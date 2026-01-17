@@ -34,7 +34,6 @@ public class SecurityConfig {
     }
 
     @Bean
-
     public AuthenticationManager authenticationManager(HttpSecurity http, PasswordEncoder passwordEncoder) {
         AuthenticationManagerBuilder  authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
         authenticationManagerBuilder.userDetailsService(customUserDetailsService).passwordEncoder(passwordEncoder);
