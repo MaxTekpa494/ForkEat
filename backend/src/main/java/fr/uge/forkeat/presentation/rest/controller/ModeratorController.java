@@ -7,11 +7,10 @@ import org.springframework.web.bind.annotation.RestController;
 
 
 @RestController
-@RequestMapping("/api")
-public class GreetingController {
-
+@RequestMapping("/api/moderator")
+public class ModeratorController {
     @GetMapping("greeting")
     public ResponseEntity<?> greeting(){
-        return ResponseEntity.ok().body("Hello World Forkeat!");
+        return ResponseEntity.ok().body("Hello Moderator!");
     }
 }
