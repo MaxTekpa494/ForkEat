@@ -1,4 +1,4 @@
-package fr.uge.forkeat.forkeat.infrastructure.persistence.postgres.entity;
+package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
 import jakarta.persistence.*;
 
@@ -10,8 +10,18 @@ public class User {
     private Long id;
     private String username;
     private String password;
+    private String email;
     private String role;
 
+
+    public User(){}
+
+    public User(String username, String password, String email, String role) {
+        this.username = username;
+        this.email = email;
+        this.role = role;
+        this.password = password;
+    }
 
     public Long getId() {
         return id;
@@ -19,6 +29,10 @@ public class User {
 
     public String getPassword() {
         return password;
+    }
+
+    public String getEmail() {
+        return email;
     }
 
     public String getRole() {
@@ -43,5 +57,9 @@ public class User {
 
     public void setUsername(String username) {
         this.username = username;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
     }
 }
