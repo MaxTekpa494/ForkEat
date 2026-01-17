@@ -1,4 +1,4 @@
-package fr.uge.forkeat.forkeat.controller;
+package fr.uge.forkeat.forkeat.presentation.rest.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;

@@ -1,4 +1,4 @@
-package fr.uge.forkeat.forkeat.entity;
+package fr.uge.forkeat.forkeat.infrastructure.persistence.postgres.entity;
 
 import jakarta.persistence.*;
 

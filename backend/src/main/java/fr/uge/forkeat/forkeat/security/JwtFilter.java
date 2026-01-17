@@ -1,6 +1,5 @@
-package fr.uge.forkeat.forkeat.filter;
+package fr.uge.forkeat.forkeat.security;
 
-import fr.uge.forkeat.forkeat.configuration.JwtUtils;
 import fr.uge.forkeat.forkeat.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;

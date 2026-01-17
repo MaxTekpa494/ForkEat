@@ -1,6 +1,5 @@
-package fr.uge.forkeat.forkeat.configuration;
+package fr.uge.forkeat.forkeat.security;
 
-import fr.uge.forkeat.forkeat.filter.JwtFilter;
 import fr.uge.forkeat.forkeat.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
