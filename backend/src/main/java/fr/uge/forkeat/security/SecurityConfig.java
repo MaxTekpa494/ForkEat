@@ -1,6 +1,6 @@
-package fr.uge.forkeat.forkeat.security;
+package fr.uge.forkeat.security;
 
-import fr.uge.forkeat.forkeat.service.CustomUserDetailsService;
+import fr.uge.forkeat.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;

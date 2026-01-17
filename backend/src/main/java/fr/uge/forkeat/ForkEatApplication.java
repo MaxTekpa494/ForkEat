@@ -1,4 +1,4 @@
-package fr.uge.forkeat.forkeat;
+package fr.uge.forkeat;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

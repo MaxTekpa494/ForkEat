@@ -1,4 +1,4 @@
-package fr.uge.forkeat.forkeat;
+package fr.uge.forkeat;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;

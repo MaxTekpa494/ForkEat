@@ -1,4 +1,4 @@
-package fr.uge.forkeat.forkeat.security;
+package fr.uge.forkeat.security;
 
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;

@@ -1,6 +1,6 @@
-package fr.uge.forkeat.forkeat.infrastructure.persistence.postgres.repository;
+package fr.uge.forkeat.infrastructure.persistence.postgres.repository;
 
-import fr.uge.forkeat.forkeat.entity.User;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.User;
 import org.springframework.data.jpa.repository.JpaRepository;
 
 import java.util.Optional;
