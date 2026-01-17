@@ -1,7 +1,7 @@
-package fr.uge.forkeat.forkeat.controller;
+package fr.uge.forkeat.forkeat.presentation.rest.controller;
 
 
-import fr.uge.forkeat.forkeat.configuration.JwtUtils;
+import fr.uge.forkeat.forkeat.security.JwtUtils;
 import fr.uge.forkeat.forkeat.entity.User;
 import fr.uge.forkeat.forkeat.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -10,12 +10,10 @@ import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
