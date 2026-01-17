@@ -3,7 +3,7 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.presentation.rest.dto.UserLogin;
 import fr.uge.forkeat.presentation.rest.dto.UserRegister;
-import fr.uge.forkeat.security.JwtUtils;
+import fr.uge.forkeat.infrastructure.security.JwtUtils;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.User;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import org.springframework.http.HttpStatus;
@@ -36,7 +36,7 @@ public class SecurityTestController {
     /**
      *  Function corresponding to the endpoint used to register a new user
      * @param userRegister A DTO which represent the data for the registering of a user
-     * @return the user newly created
+     * @return the user newly created Must return a DTO instead
      */
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody UserRegister userRegister) {
