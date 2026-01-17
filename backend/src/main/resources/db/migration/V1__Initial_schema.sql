@@ -89,7 +89,7 @@ CREATE TYPE "promotion_status" AS ENUM (
 );
 
 -- Profils utilisateur du système
-CREATE TYPE "user_system" AS ENUM (
+CREATE TYPE "user_system_type" AS ENUM (
     'USER_WALLET_EARNINGS',
     'USER_WALLET_REDISTRIBUTION',
     'USER_RECIPE_PLATFORM'
@@ -137,7 +137,7 @@ CREATE TABLE IF NOT EXISTS "wallet" (
 	"balance" BIGINT NOT NULL DEFAULT 0,
 	"updated_at" TIMESTAMP NOT NULL DEFAULT NOW(),
 	PRIMARY KEY("id"),
-	FOREIGN KEY("user_id") REFERENCES "users"("id") ON DELETE CASCADE
+	FOREIGN KEY("user_id") REFERENCES "user"("id") ON DELETE CASCADE
 );
 
 -- Table des transactions financières
@@ -164,7 +164,7 @@ CREATE TABLE IF NOT EXISTS "bank_info" (
 	"created_at" TIMESTAMP NOT NULL DEFAULT NOW(),
 	"updated_at" TIMESTAMP NOT NULL DEFAULT NOW(),
 	PRIMARY KEY("id"),
-	FOREIGN KEY("user_id") REFERENCES "users"("id") ON DELETE CASCADE
+	FOREIGN KEY("user_id") REFERENCES "user"("id") ON DELETE CASCADE
 );
 
 -- Table des portefeuilles de la plateforme
@@ -177,13 +177,13 @@ CREATE TABLE IF NOT EXISTS "platform_wallet" (
 );
 
 -- Table des utilisateurs système
-CREATE TABLE IF NOT EXISTS "users_system" (
+CREATE TABLE IF NOT EXISTS "user_system" (
     "id" UUID NOT NULL,
-    "system_type" user_system NOT NULL,
+    "system_type" user_system_type NOT NULL,
     "user_id" UUID NOT NULL,
     PRIMARY KEY("id"),
     UNIQUE("system_type", "user_id"),
-    FOREIGN KEY("user_id") REFERENCES "users"("id")
+    FOREIGN KEY("user_id") REFERENCES "user"("id")
 );
 
 -- Table des recettes
@@ -201,7 +201,7 @@ CREATE TABLE IF NOT EXISTS "recipe" (
 	"updated_at" TIMESTAMP NOT NULL DEFAULT NOW(),
 	"dietary_flag" JSONB NOT NULL,
 	PRIMARY KEY("id"),
-	FOREIGN KEY("author_id") REFERENCES "users"("id"),
+	FOREIGN KEY("author_id") REFERENCES "user"("id"),
 	FOREIGN KEY("parent_id") REFERENCES "recipe"("id")
 );
 
@@ -218,8 +218,8 @@ CREATE TABLE IF NOT EXISTS "recipe_report" (
 	"reviewed_by" UUID,
 	PRIMARY KEY("id"),
 	FOREIGN KEY("recipe_id") REFERENCES "recipe"("id"),
-	FOREIGN KEY("reporter_id") REFERENCES "users"("id") ON DELETE SET NULL,
-	FOREIGN KEY("reviewed_by") REFERENCES "users"("id") ON DELETE SET NULL
+	FOREIGN KEY("reporter_id") REFERENCES "user"("id") ON DELETE SET NULL,
+	FOREIGN KEY("reviewed_by") REFERENCES "user"("id") ON DELETE SET NULL
 );
 
 -- Table des actions de modération sur les recettes
@@ -234,7 +234,7 @@ CREATE TABLE IF NOT EXISTS "recipe_moderation_action" (
 	"related_report_id" UUID,
 	PRIMARY KEY("id"),
 	FOREIGN KEY("recipe_id") REFERENCES "recipe"("id") ON DELETE CASCADE,
-	FOREIGN KEY("moderator_id") REFERENCES "users"("id") ON DELETE SET NULL,
+	FOREIGN KEY("moderator_id") REFERENCES "user"("id") ON DELETE SET NULL,
 	FOREIGN KEY("related_report_id") REFERENCES "recipe_report"("id") ON DELETE SET NULL
 );
 
@@ -251,9 +251,9 @@ CREATE TABLE IF NOT EXISTS "user_report" (
 	"reviewed_at" TIMESTAMP,
 	"reviewed_by" UUID,
 	PRIMARY KEY("id"),
-	FOREIGN KEY("reported_user_id") REFERENCES "users"("id") ON DELETE CASCADE,
-	FOREIGN KEY("reporter_id") REFERENCES "users"("id") ON DELETE SET NULL,
-	FOREIGN KEY("reviewed_by") REFERENCES "users"("id") ON DELETE SET NULL
+	FOREIGN KEY("reported_user_id") REFERENCES "user"("id") ON DELETE CASCADE,
+	FOREIGN KEY("reporter_id") REFERENCES "user"("id") ON DELETE SET NULL,
+	FOREIGN KEY("reviewed_by") REFERENCES "user"("id") ON DELETE SET NULL
 );
 
 -- Table des actions de modération sur les utilisateurs
@@ -268,8 +268,8 @@ CREATE TABLE IF NOT EXISTS "user_moderation_action" (
 	"suspended_until" TIMESTAMP,
 	"related_report_id" UUID,
 	PRIMARY KEY("id"),
-	FOREIGN KEY("user_id") REFERENCES "users"("id") ON DELETE CASCADE,
-	FOREIGN KEY("moderator_id") REFERENCES "users"("id") ON DELETE SET NULL,
+	FOREIGN KEY("user_id") REFERENCES "user"("id") ON DELETE CASCADE,
+	FOREIGN KEY("moderator_id") REFERENCES "user"("id") ON DELETE SET NULL,
 	FOREIGN KEY("related_report_id") REFERENCES "user_report"("id") ON DELETE SET NULL
 );
 
@@ -327,7 +327,7 @@ CREATE TABLE IF NOT EXISTS "promotion" (
 	"created_at" DATE NOT NULL,
 	"created_by" UUID NOT NULL,
 	PRIMARY KEY("id"),
-	FOREIGN KEY("created_by") REFERENCES "users"("id") ON DELETE SET NULL
+	FOREIGN KEY("created_by") REFERENCES "user"("id") ON DELETE SET NULL
 );
 
 -- ============================================
@@ -335,8 +335,8 @@ CREATE TABLE IF NOT EXISTS "promotion" (
 -- ============================================
 
 -- Index pour les recherches d'utilisateurs
-CREATE INDEX "idx_user_email" ON "users" ("email");
-CREATE INDEX "idx_user_status" ON "users" ("status");
+CREATE INDEX "idx_user_email" ON "user" ("email");
+CREATE INDEX "idx_user_status" ON "user" ("status");
 
 -- Index pour les transactions (requêtes fréquentes par wallet et date)
 CREATE INDEX "idx_transaction_source" ON "transaction" ("source_wallet_id");
