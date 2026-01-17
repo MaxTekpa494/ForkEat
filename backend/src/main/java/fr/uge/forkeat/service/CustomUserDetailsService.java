@@ -1,6 +1,6 @@
-package fr.uge.forkeat.forkeat.service;
+package fr.uge.forkeat.service;
 
-import fr.uge.forkeat.forkeat.repository.UserRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;

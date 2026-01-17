@@ -1,9 +1,11 @@
-package fr.uge.forkeat.forkeat.presentation.rest.controller;
+package fr.uge.forkeat.presentation.rest.controller;
 
 
-import fr.uge.forkeat.forkeat.security.JwtUtils;
-import fr.uge.forkeat.forkeat.entity.User;
-import fr.uge.forkeat.forkeat.repository.UserRepository;
+import fr.uge.forkeat.presentation.rest.dto.UserLogin;
+import fr.uge.forkeat.presentation.rest.dto.UserRegister;
+import fr.uge.forkeat.security.JwtUtils;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.User;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,33 +35,33 @@ public class SecurityTestController {
 
     /**
      *  Function corresponding to the endpoint used to register a new user
-     * @param user To change to a DTO
-     * @return the response
+     * @param userRegister A DTO which represent the data for the registering of a user
+     * @return the user newly created
      */
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody User user) {
-        if(userRepository.findByUsername(user.getUsername()).isPresent()){
+    public ResponseEntity<?> registerUser(@RequestBody UserRegister userRegister) {
+        if(userRepository.findByUsername(userRegister.username()).isPresent()){
             return ResponseEntity.badRequest().body("Username is already used");
         }
-        user.setPassword(passwordEncoder.encode(user.getPassword()));
+
+        var user = new User(userRegister.username(), passwordEncoder.encode(userRegister.password()), userRegister.email(), "USER");
         return ResponseEntity.ok(userRepository.save(user));
     }
 
     @PostMapping("login")
-    public ResponseEntity<?> login(@RequestBody User user) {
+    public ResponseEntity<?> login(@RequestBody UserLogin userLogin) {
         try{
-            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(user.getUsername(), user.getPassword()));
+            System.out.println(userLogin);
+            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userLogin.username(), userLogin.password()));
             if(authentication.isAuthenticated()){
                 HashMap<String, Object> authData = new HashMap<>();
-                authData.put("token", jwtUtils.generateToken(user.getUsername()));
+                authData.put("token", jwtUtils.generateToken(userLogin.username()));
                 authData.put("type", "Bearer");
                 return ResponseEntity.ok(authData);
             }
-            System.out.println("BAD");
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
 
         }catch(AuthenticationException e){
-            e.printStackTrace();
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
         }
     }
