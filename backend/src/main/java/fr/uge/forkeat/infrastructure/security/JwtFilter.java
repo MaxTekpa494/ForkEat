@@ -1,4 +1,4 @@
-package fr.uge.forkeat.security;
+package fr.uge.forkeat.infrastructure.security;
 
 import fr.uge.forkeat.service.CustomUserDetailsService;
 import jakarta.servlet.FilterChain;

@@ -1,4 +1,4 @@
-package fr.uge.forkeat.security;
+package fr.uge.forkeat.infrastructure.security;
 
 import fr.uge.forkeat.service.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
@@ -42,7 +42,7 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth ->
-                        auth.requestMatchers("/api/auth/*").permitAll().anyRequest().authenticated())
+                        auth.requestMatchers("/api/auth/*").permitAll().requestMatchers("/admin/*").hasRole("ADMIN").anyRequest().authenticated())
                 .addFilterBefore(new JwtFilter(customUserDetailsService, jwtUtils), UsernamePasswordAuthenticationFilter.class)
                 .build();
     }
