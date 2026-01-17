@@ -51,7 +51,6 @@ public class SecurityTestController {
     @PostMapping("login")
     public ResponseEntity<?> login(@RequestBody UserLogin userLogin) {
         try{
-            System.out.println(userLogin);
             Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userLogin.username(), userLogin.password()));
             if(authentication.isAuthenticated()){
                 HashMap<String, Object> authData = new HashMap<>();
