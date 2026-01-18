@@ -53,6 +53,10 @@ public class TransactionEntity {
         createdAt = Instant.now();
     }
 
+    public UUID getId() {
+        return id;
+    }
+
     public Long getAmount() {
         return amount;
     }
