@@ -72,11 +72,11 @@
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
 
-		<!-- Dotenv pour lire le fichier .env -->
+		<!-- Dotenv pour charger le fichier .env -->
 		<dependency>
 			<groupId>io.github.cdimascio</groupId>
 			<artifactId>dotenv-java</artifactId>
-			<version>3.0.0</version>
+			<version>3.1.0</version>
 		</dependency>
 
 		<dependency>
