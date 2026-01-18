@@ -50,13 +50,27 @@ public class UserEntity {
     )
     private BankInfoEntity bankInfo;
 
+    public UserEntity(){}
+
+    public UserEntity(String username, String firstName, String lastName, String password, String email, UserRole role, UserStatus status, AuthMode authMode) {
+        this.username = username;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.password = password;
+        this.email = email;
+        this.role = role;
+        this.status = status;
+        this.authMode = authMode;
+    }
+
     // Voir comment lui verser tout son argent quand il se déconnecte
     @OneToOne(
             mappedBy = "user",
             cascade = CascadeType.ALL,
             orphanRemoval = true,
-            fetch = FetchType.LAZY // Sinon on ne veut pas de eager, il faut que ça soit uni-directionnel et dans ce cas il faut
+            // Sinon on ne veut pas de eager, il faut que ça soit uni-directionnel et dans ce cas il faut
             // supprimer le champs wallet de la classe UserWallet
+            optional = false
     )
     private WalletEntity wallet;
 

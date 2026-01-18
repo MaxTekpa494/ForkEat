@@ -14,7 +14,7 @@ public class WalletEntity {
     private UUID id;
 
     @Column(name = "balance", nullable = false)
-    private Long balance;
+    private Long balance = 0L;
 
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
@@ -25,8 +25,7 @@ public class WalletEntity {
 
     public WalletEntity(){}
 
-    public WalletEntity(Instant updatedAt, Long balance, UserEntity user) {
-        this.updatedAt = updatedAt;
+    public WalletEntity(Long balance, UserEntity user) {
         this.balance = balance;
         this.user = user;
     }
@@ -82,7 +81,6 @@ public class WalletEntity {
             throw new IllegalArgumentException("Cannot credit negative amount");
         }
         balance += amount;
-        updatedAt = Instant.now();
     }
 
 
@@ -99,7 +97,6 @@ public class WalletEntity {
             throw new IllegalStateException("Insufficient balance");
         }
         balance -= amount;
-        updatedAt = Instant.now();
     }
 
 

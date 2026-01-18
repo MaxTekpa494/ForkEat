@@ -96,7 +96,7 @@ class UserEntityTest {
         user.setStatus(UserStatus.ACTIVE);
         user.setAuthMode(AuthMode.LOCAL);
 
-        var wallet = new WalletEntity(null, 1000L, user);
+        var wallet = new WalletEntity(1000L, user);
         user.setWallet(wallet);
 
         entityManager.persist(user);
