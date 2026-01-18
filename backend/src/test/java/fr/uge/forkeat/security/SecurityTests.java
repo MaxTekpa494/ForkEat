@@ -133,7 +133,4 @@ public class SecurityTests {
                 .andExpect(status().isOk());
 
     }
-
-
-
 }
