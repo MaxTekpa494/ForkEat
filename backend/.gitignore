@@ -1,3 +1,7 @@
 .idea/
 .env
 target/
+
+# Données brutes d'import (local seulement)
+all_recipes.json
+scripts/import_recipes.py
