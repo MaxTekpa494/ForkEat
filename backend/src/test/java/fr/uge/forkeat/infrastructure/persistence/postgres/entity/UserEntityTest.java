@@ -31,7 +31,6 @@ class UserEntityTest {
 
     @DynamicPropertySource
     static void configureProperties(DynamicPropertyRegistry registry) {
-        // Ajouter stringtype=unspecified pour que PostgreSQL gère les ENUMs
         registry.add("spring.datasource.url", () -> postgres.getJdbcUrl() + "&stringtype=unspecified");
         registry.add("spring.datasource.username", postgres::getUsername);
         registry.add("spring.datasource.password", postgres::getPassword);
