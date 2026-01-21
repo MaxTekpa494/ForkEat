@@ -11,12 +11,12 @@ public class TransactionMapper {
         if (entity == null) return null;
 
         return new Transaction(
-                entity.getWalletSource() != null ? entity.getWalletSource().getId() : null,
-                entity.getWalletDestination() != null ? entity.getWalletDestination().getId() : null,
+                entity.getSourceWallet() != null ? entity.getSourceWallet().getId() : null,
+                entity.getDestinationWallet() != null ? entity.getDestinationWallet().getId() : null,
                 entity.getAmount(),
-                entity.getType(),
+                entity.getTransactionType(),
                 entity.getCreatedAt(),
-                entity.getStripeTransactionId()
+                entity.getStripeTransactionID()
         );
     }
 
@@ -25,9 +25,9 @@ public class TransactionMapper {
 
         TransactionEntity entity = new TransactionEntity();
         entity.setAmount(domain.amount());
-        entity.setType(domain.type());
+        entity.setTransactionType(domain.type());
         entity.setCreatedAt(domain.createdAt());
-        entity.setStripeTransactionId(domain.stripeTransactionId());
+        entity.setStripeTransactionID(domain.stripeTransactionID());
 
         return entity;
     }
