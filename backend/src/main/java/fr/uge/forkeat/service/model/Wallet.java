@@ -1,11 +1,12 @@
 package fr.uge.forkeat.service.model;
 
 import java.time.Instant;
+import java.util.UUID;
 
 public record Wallet(
-        Long id,
+        UUID id,
         Long balance,
-        Long userId,
+        UUID userId,
         Instant updatedAt
 ) {
     // (Puisque le record est immuable, on ne peut pas faire setBalance les gars)

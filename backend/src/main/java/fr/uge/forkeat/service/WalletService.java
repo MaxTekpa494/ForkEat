@@ -11,6 +11,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.UUID;
 
 @Service
 public class WalletService {
@@ -24,16 +25,16 @@ public class WalletService {
         this.walletPersistence = walletPersistence;
     }
 
-    public String prepareTopUp(Long userId, String email, Long amount, String currency) {
+    public String prepareTopUp(UUID userId, String email, Long amount, String currency) {
         var request = new PaymentRequest(userId, email, amount, currency);
         return paymentGateway.initiatePayment(request).paymentUrl();
     }
 
     @Transactional
-    public void processPaymentConfirmation(Long userId, Long amount, String stripeTransactionId) throws ResourceNotFoundException {
+    public void processPaymentConfirmation(UUID userId, Long amount, String stripeTransactionID) throws ResourceNotFoundException {
 
         // IDEMPOTENCE
-        if (walletPersistence.transactionExists(stripeTransactionId)) {
+        if (walletPersistence.transactionExists(stripeTransactionID)) {
             return;
         }
 
@@ -47,13 +48,13 @@ public class WalletService {
         // TRACABILITÉ
         var trace = new Transaction(null, wallet.id(),
                                     amount, TransactionType.RECHARGE,
-                                    Instant.now(), stripeTransactionId);
+                                    Instant.now(), stripeTransactionID);
 
         walletPersistence.saveTransaction(trace);
     }
 
     @Transactional(readOnly = true)
-    public Long getBalance(Long userId) {
+    public Long getBalance(UUID userId) {
         return walletPersistence.loadWalletWithLock(userId)
                 .map(Wallet::balance)
                 .orElse(0L);

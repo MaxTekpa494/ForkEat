@@ -6,6 +6,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 @RequestMapping("/wallet")
@@ -39,7 +40,7 @@ public class WalletController {
     ) {
         // --- MODE TEST ---
         // Comme on a désactivé la sécurité, on force l'utilisateur ID 1
-        var userId = 1L;
+        var userId = UUID.fromString("0a6a42d0-696b-4fa6-aa8e-40ba65a660ca");
         var userEmail = "test@user.com";
 
         System.out.println("BYPASS SÉCURITÉ : Paiement pour le User ID " + userId);

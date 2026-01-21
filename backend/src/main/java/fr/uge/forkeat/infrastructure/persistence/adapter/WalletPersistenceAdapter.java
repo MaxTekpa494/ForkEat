@@ -12,6 +12,7 @@ import fr.uge.forkeat.service.persistence.WalletPersistence;
 import org.springframework.stereotype.Component;
 
 import java.util.Optional;
+import java.util.UUID;
 
 @Component
 public class WalletPersistenceAdapter implements WalletPersistence {
@@ -33,13 +34,13 @@ public class WalletPersistenceAdapter implements WalletPersistence {
     }
 
     @Override
-    public Optional<Wallet> loadWalletWithLock(Long userId) {
+    public Optional<Wallet> loadWalletWithLock(UUID userId) {
         return walletRepository.findByUserId(userId)
                 .map(walletMapper::toDomain);
     }
 
     @Override
-    public Optional<Wallet> getWalletById(Long walletId) {
+    public Optional<Wallet> getWalletById(UUID walletId) {
         return walletRepository.findById(walletId).map(walletMapper::toDomain);
     }
 
@@ -54,7 +55,7 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 
     @Override
     public boolean transactionExists(String externalId) {
-        return transactionRepository.existsByStripeTransactionId(externalId);
+        return transactionRepository.existsByStripeTransactionID(externalId);
     }
 
     @Override
@@ -63,19 +64,19 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 
         if (transactionDomain.walletDestinationId() != null) {
             var dest = walletRepository.getReferenceById(transactionDomain.walletDestinationId());
-            entity.setWalletDestination(dest);
+            entity.setDestinationWallet(dest);
         }
 
         if (transactionDomain.walletSourceId() != null) {
             var source = walletRepository.getReferenceById(transactionDomain.walletSourceId());
-            entity.setWalletSource(source);
+            entity.setSourceWallet(source);
         }
 
         return transactionMapper.toDomain(transactionRepository.save(entity));
     }
 
     @Override
-    public Optional<WalletEntity> findByUserId(Long userId) {
+    public Optional<WalletEntity> findByUserId(UUID userId) {
         return walletRepository.findByUserId(userId);
     }
 }
