@@ -3,7 +3,7 @@ package fr.uge.forkeat.service;
 import fr.uge.forkeat.service.model.Transaction;
 import fr.uge.forkeat.service.model.TransactionType;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.presentation.rest.dto.PaymentRequest;
+import fr.uge.forkeat.presentation.rest.dto.PaymentRequestDto;
 import fr.uge.forkeat.service.model.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.external.PaymentGateway;
@@ -26,7 +26,7 @@ public class WalletService {
     }
 
     public String prepareTopUp(UUID userId, String email, Long amount, String currency) {
-        var request = new PaymentRequest(userId, email, amount, currency);
+        var request = new PaymentRequestDto(userId, email, amount, currency);
         return paymentGateway.initiatePayment(request).paymentUrl();
     }
 

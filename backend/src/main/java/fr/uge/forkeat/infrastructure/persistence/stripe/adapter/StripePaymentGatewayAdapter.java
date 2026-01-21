@@ -4,8 +4,8 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
 import com.stripe.param.checkout.SessionCreateParams;
 import fr.uge.forkeat.service.exception.PaymentException;
-import fr.uge.forkeat.presentation.rest.dto.PaymentRequest;
-import fr.uge.forkeat.presentation.rest.dto.PaymentResponse;
+import fr.uge.forkeat.presentation.rest.dto.PaymentRequestDto;
+import fr.uge.forkeat.presentation.rest.dto.PaymentResponseDto;
 import fr.uge.forkeat.service.external.PaymentGateway;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
@@ -18,7 +18,7 @@ public class StripePaymentGatewayAdapter implements PaymentGateway {
     private String frontUrl;
 
     @Override
-    public PaymentResponse initiatePayment(PaymentRequest request) {
+    public PaymentResponseDto initiatePayment(PaymentRequestDto request) {
         var amountInCents = request.amount();
 
         //CONSTRUCTION DE LA REQUÊTE STRIPE
@@ -45,7 +45,7 @@ public class StripePaymentGatewayAdapter implements PaymentGateway {
         try {
             var session = Session.create(params);
 
-            return new PaymentResponse(session.getUrl(), session.getId());
+            return new PaymentResponseDto(session.getUrl(), session.getId());
 
         } catch (StripeException e) {
             throw new PaymentException("Erreur lors de la communication avec Stripe", e);
