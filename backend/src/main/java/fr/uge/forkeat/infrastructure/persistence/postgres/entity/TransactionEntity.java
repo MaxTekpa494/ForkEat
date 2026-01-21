@@ -2,6 +2,8 @@ package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
 import fr.uge.forkeat.service.model.TransactionType;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.Objects;
@@ -26,6 +28,7 @@ public class TransactionEntity {
     private String stripeTransactionID;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "type", nullable = false)
     private TransactionType transactionType;
     @Column(name = "created_at")
@@ -72,7 +75,7 @@ public class TransactionEntity {
         return stripeTransactionID;
     }
 
-    void setStripeTransactionID(String stripeTransactionID) {
+    public void setStripeTransactionID(String stripeTransactionID) {
         this.stripeTransactionID = stripeTransactionID;
     }
 
@@ -107,6 +110,7 @@ public class TransactionEntity {
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }
+
 
     @Override
     public boolean equals(Object o) {

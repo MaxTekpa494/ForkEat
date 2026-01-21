@@ -50,6 +50,7 @@ public class RecipeEntity {
     private String imageUrl;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(nullable = false)
     private RecipeStatus status = RecipeStatus.DRAFT;
 

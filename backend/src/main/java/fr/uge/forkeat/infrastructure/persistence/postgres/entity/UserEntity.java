@@ -4,6 +4,9 @@ import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.UserRole;
 import fr.uge.forkeat.service.model.UserStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
+import org.springframework.beans.factory.annotation.Value;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -27,14 +30,17 @@ public class UserEntity {
     private String password;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(nullable = false)
     private UserRole role;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(nullable = false)
     private UserStatus status;
 
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "auth_mode", nullable = false)
     private AuthMode authMode;
 
