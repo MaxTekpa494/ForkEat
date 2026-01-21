@@ -3,10 +3,11 @@ package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 import jakarta.persistence.*;
 
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name = "wallet")
+@Table(name = "wallets")
 public class WalletEntity {
 
     @Id
@@ -110,6 +111,6 @@ public class WalletEntity {
 
     @Override
     public int hashCode() {
-        return getClass().hashCode();
+        return Objects.hashCode(id);
     }
 }

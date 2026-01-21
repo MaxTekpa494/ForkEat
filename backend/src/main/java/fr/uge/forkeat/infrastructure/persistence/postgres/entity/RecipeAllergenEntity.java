@@ -6,7 +6,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name = "recipe_allergen", uniqueConstraints = {
+@Table(name = "recipe_allergens", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"recipe_id", "allergen_id"})
 })
 public class RecipeAllergenEntity {

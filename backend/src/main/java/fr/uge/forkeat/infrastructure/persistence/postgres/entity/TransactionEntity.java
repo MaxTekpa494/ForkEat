@@ -8,7 +8,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name="transaction")
+@Table(name="transactions")
 public class TransactionEntity {
     @Id
     @Column(columnDefinition = "UUID")

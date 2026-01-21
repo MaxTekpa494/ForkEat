@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.UUID;
 
 @Entity
-@Table(name = "recipe")
+@Table(name = "recipes")
 public class RecipeEntity {
 
     @Id

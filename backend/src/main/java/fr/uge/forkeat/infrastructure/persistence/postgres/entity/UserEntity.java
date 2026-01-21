@@ -9,7 +9,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name="user")
+@Table(name="users")
 public class UserEntity {
 
     @Id

@@ -72,6 +72,12 @@
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-database-postgresql</artifactId>
 		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-maven-plugin</artifactId>
+			<version>11.20.2</version>
+			<scope>compile</scope>
+		</dependency>
 
 		<!-- Dotenv pour charger le fichier .env -->
 		<dependency>
@@ -132,6 +138,20 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>11.14.1</version>
+				<configuration>
+					<!--suppress UnresolvedMavenProperty -->
+					<url>${POSTGRES_URL}</url>
+					<!--suppress UnresolvedMavenProperty -->
+					<user>${POSTGRES_USER}</user>
+					<!--suppress UnresolvedMavenProperty -->
+					<password>${POSTGRES_PASSWORD}</password>
+				</configuration>
+			</plugin>
+
 		</plugins>
 	</build>
 

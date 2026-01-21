@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name = "ingredient")
+@Table(name = "ingredients")
 public class IngredientEntity {
     @Id
     @Column(columnDefinition = "UUID")

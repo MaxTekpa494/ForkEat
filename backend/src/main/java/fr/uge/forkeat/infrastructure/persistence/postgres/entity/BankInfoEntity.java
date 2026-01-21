@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name="bank_info", indexes={
+@Table(name="bank_infos", indexes={
         @Index(name = "idx_bank_info_user", columnList = "user_id")
 })
 public class BankInfoEntity {
