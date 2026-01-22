@@ -5,10 +5,17 @@ import fr.uge.forkeat.presentation.rest.dto.UserLogin;
 import fr.uge.forkeat.presentation.rest.dto.UserRegister;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
 import tools.jackson.databind.JsonNode;
 import tools.jackson.databind.ObjectMapper;
 
@@ -18,7 +25,24 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Testcontainers
+@ActiveProfiles("test")
+@AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 public class SecurityTests {
+
+    @Container
+    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+            .withDatabaseName("forkeat_test")
+            .withUsername("test")
+            .withPassword("test");
+
+    @DynamicPropertySource
+    static void configureProperties(DynamicPropertyRegistry registry) {
+        // Ajouter stringtype=unspecified pour que PostgreSQL gère les ENUMs
+        registry.add("spring.datasource.url", () -> postgres.getJdbcUrl() + "&stringtype=unspecified");
+        registry.add("spring.datasource.username", postgres::getUsername);
+        registry.add("spring.datasource.password", postgres::getPassword);
+    }
 
     @Autowired
     private MockMvc mockMvc;
@@ -27,9 +51,9 @@ public class SecurityTests {
 
     @Test
     public void authenticationTest() throws Exception {
-        var user = new UserRegister("SidAli", "password1", "sidali@gmail.com");
+        var user = new UserRegister("S1dAli", "SidAli", "Cherrati", "password1", "sidali@gmail.com");
 
-        var userLogin = new UserLogin("SidAli", "password1");
+        var userLogin = new UserLogin("S1dAli", "password1");
 
 
         var objectMapper = new ObjectMapper();
@@ -98,7 +122,7 @@ public class SecurityTests {
 
         //We try to create a moderator
 
-        var moderatorDTO = new UserRegister("modo", "password1", "modo@gmail.com");
+        var moderatorDTO = new UserRegister("modo", "Max", "Tekpa", "password1", "modo@gmail.com");
         mockMvc.perform(post("/api/admin/register")
                         .header("Authorization", tokenAdmin)
                         .contentType(MediaType.APPLICATION_JSON)

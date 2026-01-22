@@ -134,13 +134,13 @@
         </dependency>
 
         <!-- Dependencies H2 to Test the authentication waiting for the real DB-->
-
+<!--
         <dependency>
             <groupId>com.h2database</groupId>
             <artifactId>h2</artifactId>
-            <scope>runtime</scope>
+            <scope>test</scope>
         </dependency>
-
+-->
 
 		<!-- Testcontainers pour les tests avec PostgreSQL -->
 		<dependency>
