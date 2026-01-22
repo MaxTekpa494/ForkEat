@@ -28,11 +28,13 @@ public class SecurityConfig {
     }
 
     @Bean
+    //The algorithm to encode the passwords
     public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 
     @Bean
+
     public AuthenticationManager authenticationManager(HttpSecurity http, PasswordEncoder passwordEncoder) {
         AuthenticationManagerBuilder  authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
         authenticationManagerBuilder.userDetailsService(customUserDetailsService).passwordEncoder(passwordEncoder);
@@ -40,6 +42,7 @@ public class SecurityConfig {
     }
 
     @Bean
+    //The Algorithm referenced for the filter entering an endpoint
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
@@ -53,8 +56,8 @@ public class SecurityConfig {
     }
 
     @Bean
+    // The role Hierarchy
     public RoleHierarchy roleHierarchy() {
-
         return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_MODERATOR \n ROLE_MODERATOR > ROLE_USER");
     }
 

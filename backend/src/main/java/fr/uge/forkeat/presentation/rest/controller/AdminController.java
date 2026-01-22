@@ -1,9 +1,12 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.User;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.presentation.rest.dto.UserRegister;
+import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.UserRole;
+import fr.uge.forkeat.service.model.UserStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
@@ -38,7 +41,7 @@ public class AdminController {
             return ResponseEntity.badRequest().body("Username is already used");
         }
 
-        var user = new User(moderatorRegister.username(), passwordEncoder.encode(moderatorRegister.password()), moderatorRegister.email(), "MODERATOR");
+        var user = new UserEntity(moderatorRegister.username(), moderatorRegister.firstName(), moderatorRegister.lastName(), passwordEncoder.encode(moderatorRegister.password()), moderatorRegister.email(), UserRole.MODERATOR, UserStatus.ACTIVE, AuthMode.LOCAL);
         return ResponseEntity.ok(userRepository.save(user));
     }
 }

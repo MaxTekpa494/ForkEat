@@ -4,6 +4,8 @@ import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.UserRole;
 import fr.uge.forkeat.service.model.UserStatus;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -60,6 +62,20 @@ public class UserEntity {
     )
     private WalletEntity wallet;
 
+    public UserEntity(){
+
+    }
+
+    public UserEntity(String username, String firstName, String lastName, String password, String email, UserRole role, UserStatus status, AuthMode authMode) {
+        this.username = username;
+        this.firstName = firstName;
+        this.lastName = lastName;
+        this.password = password;
+        this.email = email;
+        this.role = role;
+        this.status = status;
+        this.authMode = authMode;
+    }
 
     @PrePersist
     private void create(){

@@ -1,11 +1,14 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.presentation.rest.dto.UserLogin;
 import fr.uge.forkeat.presentation.rest.dto.UserRegister;
 import fr.uge.forkeat.infrastructure.security.JwtUtils;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.User;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.UserRole;
+import fr.uge.forkeat.service.model.UserStatus;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -44,7 +47,7 @@ public class SecurityTestController {
             return ResponseEntity.badRequest().body("Username is already used");
         }
 
-        var user = new User(userRegister.username(), passwordEncoder.encode(userRegister.password()), userRegister.email(), "USER");
+        var user = new UserEntity(userRegister.username(), userRegister.firstName(), userRegister.lastName(), passwordEncoder.encode(userRegister.password()), userRegister.email(), UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL);
         return ResponseEntity.ok(userRepository.save(user));
     }
 
