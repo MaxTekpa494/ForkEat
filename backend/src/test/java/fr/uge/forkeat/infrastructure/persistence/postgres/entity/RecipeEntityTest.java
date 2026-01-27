@@ -1,6 +1,8 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
 import fr.uge.forkeat.service.model.*;
+import fr.uge.forkeat.service.recipe.model.AllergenSeverity;
+import fr.uge.forkeat.service.recipe.model.RecipeStatus;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;

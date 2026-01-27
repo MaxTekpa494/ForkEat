@@ -1,6 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
-import fr.uge.forkeat.service.model.RecipeStatus;
+import fr.uge.forkeat.service.recipe.model.RecipeStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -40,7 +40,7 @@ public class RecipeEntity {
     private UserEntity author;
 
     @Column(name = "preparation_minutes")
-    private Integer preparationMinutes;
+    private int preparationMinutes;
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "step_by_step_instructions", nullable = false, columnDefinition = "jsonb")
@@ -141,11 +141,11 @@ public class RecipeEntity {
         this.author = author;
     }
 
-    public Integer getPreparationMinutes() {
+    public int getPreparationMinutes() {
         return preparationMinutes;
     }
 
-    public void setPreparationMinutes(Integer preparationMinutes) {
+    public void setPreparationMinutes(int preparationMinutes) {
         this.preparationMinutes = preparationMinutes;
     }
 

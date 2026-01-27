@@ -1,6 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
-import fr.uge.forkeat.service.model.AllergenSeverity;
+import fr.uge.forkeat.service.recipe.model.AllergenSeverity;
 import jakarta.persistence.*;
 
 import java.util.Objects;
