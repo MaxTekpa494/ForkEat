@@ -89,6 +89,10 @@ public class UserEntity {
         updatedAt = Instant.now();
     }
 
+    public UUID getId(){ return this.id; }
+    public void setId(UUID id) {
+        this.id = id;
+    }
 
     public String getUsername() {
         return username;
@@ -198,8 +202,5 @@ public class UserEntity {
         }
     }
 
-    public UUID getId() {
-        return id;
-    }
 
 }

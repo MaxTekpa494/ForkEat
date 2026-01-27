@@ -61,6 +61,10 @@ public class BankInfoEntity {
         return id;
     }
 
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
     public void setBankName(String bankName) {
         this.bankName = bankName;
     }
