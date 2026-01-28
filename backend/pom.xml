@@ -130,6 +130,12 @@
 			<version>${testcontainers.version}</version>
 			<scope>test</scope>
 		</dependency>
+
+		<!-- Dependances json -->
+		<dependency>
+			<groupId>com.fasterxml.jackson.module</groupId>
+			<artifactId>jackson-module-parameter-names</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>
