@@ -80,7 +80,7 @@ public class SecurityTests {
 
 
         //We test the endpoint is reachable by an authenticated User
-        mockMvc.perform(get("/api/greeting")
+        mockMvc.perform(get("/api/user/greeting")
                         .header("Authorization", tokenUser))
                 .andExpect(status().isOk());
 
@@ -89,7 +89,7 @@ public class SecurityTests {
                 .andExpect(status().isForbidden());
 
         //We test the endpoint is not reachable by an non-authenticated User
-        mockMvc.perform(get("/api/greeting"))
+        mockMvc.perform(get("/api/user/greeting"))
                 .andExpect(status().isForbidden());
 
 
@@ -114,7 +114,7 @@ public class SecurityTests {
                         .header("Authorization", tokenAdmin))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/greeting")
+        mockMvc.perform(get("/api/user/greeting")
                         .header("Authorization", tokenAdmin))
                 .andExpect(status().isOk());
 
@@ -152,7 +152,7 @@ public class SecurityTests {
                         .header("Authorization", tokenModerator))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/greeting")
+        mockMvc.perform(get("/api/user/greeting")
                         .header("Authorization", tokenModerator))
                 .andExpect(status().isOk());
 
