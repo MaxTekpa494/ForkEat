@@ -5,6 +5,8 @@ import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
+import fr.uge.forkeat.infrastructure.security.JwtFilter;
+import fr.uge.forkeat.service.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mock;
@@ -33,6 +35,13 @@ class StripeWebhookControllerTest {
 
     @MockitoBean
     private WalletService walletService;
+
+    @MockitoBean
+    private JwtFilter jwtFilter;
+
+    @MockitoBean
+    private CustomUserDetailsService customUserDetailsService;
+
 
     @Test
     void handleStripeEvent_ShouldProcessPayment_WhenSignatureIsValid() throws Exception {

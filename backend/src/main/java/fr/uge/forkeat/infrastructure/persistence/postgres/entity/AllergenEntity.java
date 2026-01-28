@@ -70,4 +70,9 @@ public class AllergenEntity {
     public int hashCode() {
         return Objects.hashCode(id);
     }
+
+    public void setId(UUID id){
+        this.id = id;
+    }
+
 }

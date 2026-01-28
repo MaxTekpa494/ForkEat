@@ -8,7 +8,8 @@ import java.util.UUID;
 
 @Entity
 @Table(name = "ingredients")
-public class IngredientEntity {
+public class
+IngredientEntity {
     @Id
     @Column(columnDefinition = "UUID")
     private UUID id;
@@ -49,6 +50,10 @@ public class IngredientEntity {
 
     public void setName(String name) {
         this.name = name;
+    }
+
+    public void setId(UUID id){
+        this.id = id;
     }
 
     public String getCategory() {

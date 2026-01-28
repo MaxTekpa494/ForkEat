@@ -104,6 +104,10 @@ public class UserEntity {
         this.username = username;
     }
 
+    public void setId(UUID id){
+        this.id = id;
+    }
+
     public String getFirstName() {
         return firstName;
     }

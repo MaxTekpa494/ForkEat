@@ -1,7 +1,9 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.uge.forkeat.infrastructure.security.JwtFilter;
 import fr.uge.forkeat.presentation.rest.dto.TopUpRequestDto;
+import fr.uge.forkeat.service.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +32,12 @@ class WalletControllerTest {
 
     @MockitoBean
     private WalletService walletService;
+
+    @MockitoBean
+    private JwtFilter jwtFilter;
+
+    @MockitoBean
+    private CustomUserDetailsService customUserDetailsService;
 
     @Test
     void shouldReturnPaymentUrl() throws Exception {

@@ -3,4 +3,8 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.repository.CrudRepository;
 
-public interface UserJpaRepository extends CrudRepository<UserEntity, Long> {}
+import java.util.Optional;
+
+public interface UserJpaRepository extends CrudRepository<UserEntity, Long> {
+    Optional<UserEntity> findByUsername(String username);
+}

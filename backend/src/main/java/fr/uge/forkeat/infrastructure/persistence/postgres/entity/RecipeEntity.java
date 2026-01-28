@@ -94,6 +94,10 @@ public class RecipeEntity {
         return source;
     }
 
+    public void setId(UUID id){
+        this.id = id;
+    }
+
     public void setSource(String source) {
         this.source = source;
     }
