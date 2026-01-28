@@ -4,4 +4,8 @@ target/
 
 # Données brutes d'import (local seulement)
 all_recipes.json
-scripts/import_recipes.py
+data/
+scripts/
+
+# macOS
+.DS_Store
