@@ -2,8 +2,8 @@ package fr.uge.forkeat.infrastructure.persistence.postgres.repository;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.UserRole;
-import fr.uge.forkeat.service.model.UserStatus;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
@@ -14,9 +14,6 @@ import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
-
-import java.util.Optional;
-import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 

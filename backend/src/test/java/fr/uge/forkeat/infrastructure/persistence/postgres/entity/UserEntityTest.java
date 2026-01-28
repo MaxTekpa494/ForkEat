@@ -1,8 +1,8 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.UserRole;
-import fr.uge.forkeat.service.model.UserStatus;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;

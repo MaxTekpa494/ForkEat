@@ -1,4 +1,4 @@
-package fr.uge.forkeat.service.model;
+package fr.uge.forkeat.service.model.user;
 
 public enum UserRole {
     MEMBER,
