@@ -2,12 +2,14 @@ package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
 import fr.uge.forkeat.service.model.AllergenSeverity;
 import jakarta.persistence.*;
+import org.hibernate.annotations.JdbcTypeCode;
+import org.hibernate.type.SqlTypes;
 
 import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name = "allergen")
+@Table(name = "allergens")
 public class AllergenEntity {
     @Id
     @Column(columnDefinition = "UUID")
@@ -15,6 +17,7 @@ public class AllergenEntity {
     @Column(nullable = false)
     private String  name;
     @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "severity", nullable = false)
     private AllergenSeverity severity;
 //    @Column(name = "created_at", nullable = false)

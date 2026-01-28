@@ -9,3 +9,10 @@ Membres du groupe :
 - Max Tekpa : max.tekpa@edu.univ-eiffel.fr
 - Thierno Sy : thierno.sy@edu.univ-eiffel.fr
 - Adel Ziani : adel.ziani@edu.univ.eiffel.fr
+
+## Installation pour l'équipe dev :
+
+1. Clonez le projet.
+2. À la racine, dupliquez le fichier .env.example et renommez-le en .env
+3. Ouvrez .env et faites un copier coller du fichier .env que vous avez reçu via Discord (#Ressources)
+4. Lancez docker compose up -d

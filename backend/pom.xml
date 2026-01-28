@@ -28,7 +28,9 @@
 	</scm>
 	<properties>
 		<java.version>25</java.version>
-		<testcontainers.version>1.21.3</testcontainers.version>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<testcontainers.version>1.21.4</testcontainers.version>
 	</properties>
 	<dependencies>
 		<dependency>
@@ -71,6 +73,12 @@
 		<dependency>
 			<groupId>org.flywaydb</groupId>
 			<artifactId>flyway-database-postgresql</artifactId>
+		</dependency>
+		<dependency>
+			<groupId>org.flywaydb</groupId>
+			<artifactId>flyway-maven-plugin</artifactId>
+			<version>11.20.2</version>
+			<scope>compile</scope>
 		</dependency>
 
 		<!-- Dotenv pour charger le fichier .env -->
@@ -124,6 +132,25 @@
 			<version>${testcontainers.version}</version>
 			<scope>test</scope>
 		</dependency>
+
+		<dependency>
+			<groupId>com.stripe</groupId>
+			<artifactId>stripe-java</artifactId>
+			<version>31.1.0</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.maven.plugins</groupId>
+			<artifactId>maven-surefire-plugin</artifactId>
+			<version>3.5.4</version>
+		</dependency>
+
+		<dependency>
+			<groupId>com.h2database</groupId>
+			<artifactId>h2</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+
 	</dependencies>
 
 	<build>
@@ -132,6 +159,28 @@
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
 			</plugin>
+
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<configuration>
+					<argLine>-XX:+EnableDynamicAgentLoading -Xshare:off</argLine>
+				</configuration>
+			</plugin>
+			<plugin>
+				<groupId>org.flywaydb</groupId>
+				<artifactId>flyway-maven-plugin</artifactId>
+				<version>11.14.1</version>
+				<configuration>
+					<!--suppress UnresolvedMavenProperty -->
+					<url>${POSTGRES_URL}</url>
+					<!--suppress UnresolvedMavenProperty -->
+					<user>${POSTGRES_USER}</user>
+					<!--suppress UnresolvedMavenProperty -->
+					<password>${POSTGRES_PASSWORD}</password>
+				</configuration>
+			</plugin>
+
 		</plugins>
 	</build>
 

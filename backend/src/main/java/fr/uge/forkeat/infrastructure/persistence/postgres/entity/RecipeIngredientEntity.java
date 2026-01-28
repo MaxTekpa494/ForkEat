@@ -7,7 +7,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @Entity
-@Table(name = "recipe_ingredient", uniqueConstraints = {
+@Table(name = "recipe_ingredients", uniqueConstraints = {
         @UniqueConstraint(columnNames = {"recipe_id", "ingredient_id"})
 })
 public class RecipeIngredientEntity {
