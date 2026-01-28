@@ -1,4 +1,4 @@
-package fr.uge.forkeat.service.recipe.model;
+package fr.uge.forkeat.service.model.recipe;
 
 public enum RecipeStatus {
     DRAFT,

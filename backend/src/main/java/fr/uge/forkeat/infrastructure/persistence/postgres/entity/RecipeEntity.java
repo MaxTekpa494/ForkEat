@@ -1,6 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
-import fr.uge.forkeat.service.recipe.model.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -44,7 +44,7 @@ public class RecipeEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "step_by_step_instructions", nullable = false, columnDefinition = "jsonb")
-    private List<Map<String, Object>> stepByStepInstructions = new ArrayList<>();
+    private List<RecipeStep> stepByStepInstructions = new ArrayList<>();
 
     @Column(name = "image_url", columnDefinition = "TEXT")
     private String imageUrl;
@@ -61,7 +61,7 @@ public class RecipeEntity {
 
     @JdbcTypeCode(SqlTypes.JSON)
     @Column(name = "dietary_flag", nullable = false, columnDefinition = "jsonb")
-    private Map<String, Boolean> dietaryFlag;
+    private Map<String, Boolean> dietaryFlag; // Ici, je reflechis à mettre une List<Record> à la place
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecipeIngredientEntity> ingredients = new ArrayList<>();
@@ -149,11 +149,11 @@ public class RecipeEntity {
         this.preparationMinutes = preparationMinutes;
     }
 
-    public List<Map<String, Object>> getStepByStepInstructions() {
+    public List<RecipeStep> getStepByStepInstructions() {
         return stepByStepInstructions;
     }
 
-    public void setStepByStepInstructions(List<Map<String, Object>> stepByStepInstructions) {
+    public void setStepByStepInstructions(List<RecipeStep> stepByStepInstructions) {
         this.stepByStepInstructions = stepByStepInstructions;
     }
 

@@ -1,6 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
-import fr.uge.forkeat.service.recipe.model.AllergenSeverity;
+import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
