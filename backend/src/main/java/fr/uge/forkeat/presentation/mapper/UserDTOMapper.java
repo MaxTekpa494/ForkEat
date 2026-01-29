@@ -1,8 +1,8 @@
 package fr.uge.forkeat.presentation.mapper;
 
-import fr.uge.forkeat.presentation.dto.BankInfoDTO;
-import fr.uge.forkeat.presentation.dto.UserDTO;
-import fr.uge.forkeat.presentation.dto.WalletDTO;
+import fr.uge.forkeat.presentation.dto.user.BankInfoDTO;
+import fr.uge.forkeat.presentation.dto.user.UserDTO;
+import fr.uge.forkeat.presentation.dto.user.WalletDTO;
 import fr.uge.forkeat.service.model.user.BankInfo;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.Wallet;

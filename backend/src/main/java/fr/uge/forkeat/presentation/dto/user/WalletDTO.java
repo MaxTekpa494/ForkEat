@@ -1,4 +1,4 @@
-package fr.uge.forkeat.presentation.dto;
+package fr.uge.forkeat.presentation.dto.user;
 
 import java.time.Instant;
 import java.util.UUID;
