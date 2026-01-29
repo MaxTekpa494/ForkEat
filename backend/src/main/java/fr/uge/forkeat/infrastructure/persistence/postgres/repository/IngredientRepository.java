@@ -9,5 +9,5 @@ import java.util.UUID;
 
 @Repository
 public interface IngredientRepository extends CrudRepository<IngredientEntity, UUID> {
-  List<IngredientEntity> findByNameIngredient(List<String> names);
+  List<IngredientEntity> findByNameIn(List<String> names);
 }

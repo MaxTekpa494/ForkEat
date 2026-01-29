@@ -80,7 +80,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
 
     var ingredientNames = recipe.ingredients().stream()
             .map(RecipeIngredient::name).toList();
-    var ingredients = ingredientRepository.findByNameIngredient(ingredientNames);
+    var ingredients = ingredientRepository.findByNameIn(ingredientNames);
 
 
     var entity = RecipeEntityMapper.toEntity(
