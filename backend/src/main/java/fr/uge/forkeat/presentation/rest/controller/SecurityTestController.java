@@ -6,6 +6,7 @@ import fr.uge.forkeat.presentation.rest.dto.UserLogin;
 import fr.uge.forkeat.presentation.rest.dto.UserRegister;
 import fr.uge.forkeat.infrastructure.security.JwtUtils;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.UserRole;
 import fr.uge.forkeat.service.model.UserStatus;
@@ -24,16 +25,10 @@ import java.util.HashMap;
 @RequestMapping("/api/auth")
 public class SecurityTestController {
 
-    private final AuthenticationManager authenticationManager;
-    private final JwtUtils jwtUtils;
-    private final PasswordEncoder passwordEncoder;
-    private final UserRepository userRepository;
+    private final UserService userService;
 
-    public SecurityTestController(AuthenticationManager authenticationManager,  JwtUtils jwtUtils, PasswordEncoder passwordEncoder, UserRepository userRepository) {
-        this.authenticationManager = authenticationManager;
-        this.jwtUtils = jwtUtils;
-        this.passwordEncoder = passwordEncoder;
-        this.userRepository = userRepository;
+    public SecurityTestController(UserService userService) {
+        this.userService = userService;
     }
 
     /**
@@ -43,29 +38,19 @@ public class SecurityTestController {
      */
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody UserRegister userRegister) {
-        if(userRepository.findByUsername(userRegister.username()).isPresent()){
-            return ResponseEntity.badRequest().body("Username is already used");
+        if(this.userService.registerUser(userRegister)) {
+            return ResponseEntity.ok().build();
         }
-
-        var user = new UserEntity(userRegister.username(), userRegister.firstName(), userRegister.lastName(), passwordEncoder.encode(userRegister.password()), userRegister.email(), UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL);
-        return ResponseEntity.ok(userRepository.save(user));
+        return ResponseEntity.badRequest().body("Username is already used");
     }
 
     @PostMapping("login")
     public ResponseEntity<?> login(@RequestBody UserLogin userLogin) {
-        try{
-            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userLogin.username(), userLogin.password()));
-            if(authentication.isAuthenticated()){
-                HashMap<String, Object> authData = new HashMap<>();
-                authData.put("token", jwtUtils.generateToken(userLogin.username()));
-                authData.put("type", "Bearer");
-                return ResponseEntity.ok(authData);
-            }
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
-
-        }catch(AuthenticationException e){
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+        var authData = this.userService.loginUser(userLogin);
+        if(authData.isPresent()) {
+            return ResponseEntity.ok(authData.get());
         }
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
     }
 
 }
