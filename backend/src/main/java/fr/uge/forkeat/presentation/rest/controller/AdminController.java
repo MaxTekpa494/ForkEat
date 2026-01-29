@@ -1,28 +1,20 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.presentation.rest.dto.UserRegister;
-import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.model.UserRole;
-import fr.uge.forkeat.service.model.UserStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/admin")
 public class AdminController {
 
-    private final UserRepository userRepository;
+    private final UserService userService;
 
-    private final PasswordEncoder passwordEncoder;
-
-
-    public  AdminController(UserRepository userRepository,  PasswordEncoder passwordEncoder) {
-        this.userRepository = userRepository;
-        this.passwordEncoder = passwordEncoder;
+    public  AdminController(UserService userService) {
+        this.userService = userService;
     }
 
     @GetMapping("/greeting")
@@ -37,11 +29,9 @@ public class AdminController {
      */
     @PostMapping("/register")
     public ResponseEntity<?> registerUser(@RequestBody UserRegister moderatorRegister) {
-        if(userRepository.findByUsername(moderatorRegister.username()).isPresent()){
-            return ResponseEntity.badRequest().body("Username is already used");
+        if(this.userService.registerUser(moderatorRegister, UserRole.MODERATOR)) {
+            return ResponseEntity.ok().build();
         }
-
-        var user = new UserEntity(moderatorRegister.username(), moderatorRegister.firstName(), moderatorRegister.lastName(), passwordEncoder.encode(moderatorRegister.password()), moderatorRegister.email(), UserRole.MODERATOR, UserStatus.ACTIVE, AuthMode.LOCAL);
-        return ResponseEntity.ok(userRepository.save(user));
+        return ResponseEntity.badRequest().body("Username is already used");
     }
 }

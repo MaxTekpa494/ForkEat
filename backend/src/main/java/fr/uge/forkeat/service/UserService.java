@@ -1,7 +1,7 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserJpaRepository;
 import fr.uge.forkeat.infrastructure.security.JwtUtils;
 import fr.uge.forkeat.presentation.rest.dto.UserLogin;
 import fr.uge.forkeat.presentation.rest.dto.UserRegister;
@@ -24,25 +24,25 @@ import java.util.Optional;
 @Service
 public class UserService {
 
-    private final UserRepository userRepository;
+    private final UserJpaRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
 
 
-    public UserService(UserRepository userRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtUtils jwtUtils) {
+    public UserService(UserJpaRepository userRepository, PasswordEncoder passwordEncoder, AuthenticationManager authenticationManager, JwtUtils jwtUtils) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
     }
 
-    public boolean registerUser(UserRegister userRegister){
+    public boolean registerUser(UserRegister userRegister, UserRole role){
         if(userRepository.findByUsername(userRegister.username()).isPresent()){
             return false;
         }
 
-        var user = new UserEntity(userRegister.username(), userRegister.firstName(), userRegister.lastName(), passwordEncoder.encode(userRegister.password()), userRegister.email(), UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL);
+        var user = new UserEntity(userRegister.username(), userRegister.firstName(), userRegister.lastName(), passwordEncoder.encode(userRegister.password()), userRegister.email(), role, UserStatus.ACTIVE, AuthMode.LOCAL);
         userRepository.save(user);
         return true;
     }
