@@ -11,6 +11,7 @@ public enum HttpStatusCode {
     UNAUTHORIZED(401, "Unauthorized"),
     FORBIDDEN(403, "Forbidden"),
     NOT_FOUND(404, "Not Found"),
+    // Faire le 409 pour signaler un conflit ...
 
     INTERNAL_SERVER_ERROR(500, "Internal Server Error");
 

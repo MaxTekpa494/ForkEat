@@ -6,10 +6,7 @@ import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
 
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
 @Entity
 @Table(name = "recipes")
@@ -60,8 +57,9 @@ public class RecipeEntity {
     private Instant updatedAt;
 
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(name = "dietary_flag", nullable = false, columnDefinition = "jsonb")
-    private Map<String, Boolean> dietaryFlag; // Ici, je reflechis à mettre une List<Record> à la place
+    @Column(name = "dietary_flag", nullable = false, columnDefinition = "jsonb") // Voilà pour les tests sont importants, ici j'avais oublié d'initialiser
+    // Le Map ce qui fait que quand on veut ajouter des dietary, ça plante jusqu'à ce que je me rende compte
+    private HashMap<String, Boolean> dietaryFlag = new HashMap<>(); // Ici, je reflechis à mettre une List<Record> à la place
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RecipeIngredientEntity> ingredients = new ArrayList<>();
@@ -91,6 +89,14 @@ public class RecipeEntity {
 
     public void setId(UUID id) {
         this.id = id;
+    }
+
+    public void setUpdatedAt(Instant updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public void setCreatedAt(Instant createdAt) {
+        this.createdAt = createdAt;
     }
 
     public String getSource() {
@@ -154,7 +160,7 @@ public class RecipeEntity {
     }
 
     public void setStepByStepInstructions(List<RecipeStep> stepByStepInstructions) {
-        this.stepByStepInstructions = stepByStepInstructions;
+        this.stepByStepInstructions = List.copyOf(stepByStepInstructions); // Est-ce qu'on peut faire ça ci ?
     }
 
     public String getImageUrl() {
@@ -186,13 +192,19 @@ public class RecipeEntity {
     }
 
     public void setDietaryFlag(Map<String, Boolean> dietaryFlag) {
-        this.dietaryFlag = dietaryFlag;
+        dietaryFlag.forEach((flag, value) -> {
+            this.dietaryFlag.put(flag, value);
+        });
     }
+
 
     public List<RecipeIngredientEntity> getIngredients() {
         return ingredients;
     }
 
+    public void setIngredients(List<RecipeIngredientEntity> ingredients){
+        ingredients.forEach(this::addIngredient);
+    }
     public void addIngredient(RecipeIngredientEntity ingredient) {
         ingredients.add(ingredient);
         ingredient.setRecipe(this);
@@ -207,6 +219,10 @@ public class RecipeEntity {
         return allergens;
     }
 
+
+    public void setAllergens(List<RecipeAllergenEntity> allergens){
+        allergens.forEach(this::addAllergen);
+    }
     public void addAllergen(RecipeAllergenEntity allergen) {
         allergens.add(allergen);
         allergen.setRecipe(this);

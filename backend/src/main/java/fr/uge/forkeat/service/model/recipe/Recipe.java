@@ -5,11 +5,12 @@ import java.util.*;
 
 public record Recipe(
         UUID id, String title,
-        String summary, UUID parentId,
-        UUID authorId, int preparationMinutes,
+        String summary, UUID parentId, // Ici on met l'ID du parent et non pas Recipe directement
+        // (c'est entre le mapping du Recipe à RecipeDTO qu'on va cherche la recipe parent
+        String usernameAuthor, int preparationMinutes,
         String imageUrl, RecipeStatus status,
         List<RecipeStep> stepByStepInstructions, List<RecipeIngredient> ingredients,
-        List<String> allergens, Map<String, Boolean> dietaryFlags,
+        List<Allergen> allergens, Map<String, Boolean> dietaryFlags,
         Instant createdAt, Instant updatedAt
 ) {
 
@@ -20,7 +21,7 @@ public record Recipe(
       throw new IllegalArgumentException("title cannot be empty");
     }
     Objects.requireNonNull(summary);
-    Objects.requireNonNull(authorId);
+    Objects.requireNonNull(usernameAuthor);
     Objects.requireNonNull(status);
     if (preparationMinutes < 0) {
       throw new IllegalArgumentException("preparationMinutes cannot be negative");
