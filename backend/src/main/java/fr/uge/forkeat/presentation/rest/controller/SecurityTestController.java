@@ -27,7 +27,7 @@ public class SecurityTestController {
 
     private final UserService userService;
 
-    public SecurityTestController(UserService userService) {
+    public SecurityTestController( UserService userService) {
         this.userService = userService;
     }
 
@@ -44,7 +44,7 @@ public class SecurityTestController {
         return ResponseEntity.badRequest().body("Username is already used");
     }
 
-    @PostMapping("login")
+    @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserLogin userLogin) {
         var authData = this.userService.loginUser(userLogin);
         if(authData.isPresent()) {
