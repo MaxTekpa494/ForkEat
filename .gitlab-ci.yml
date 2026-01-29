@@ -1,0 +1,59 @@
+# On utilise une image Docker contenant Java et Maven
+image: maven:3.9-eclipse-temurin-25-alpine
+
+# Cache pour ne pas retélécharger les dépendances .m2 à chaque fois
+cache:
+  paths:
+    - .m2/repository
+
+variables:
+  # On dit à Maven d'utiliser le dossier local pour le cache
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+
+workflow:
+  rules:
+    # Condition 1 : C'est un push direct sur la branche develop
+    - if: $CI_COMMIT_BRANCH == "develop" && $CI_PIPELINE_SOURCE == "push"
+    # Condition 2 : C'est une Merge Request dont la cible est develop
+    - if: $CI_MERGE_REQUEST_TARGET_BRANCH_NAME == "develop" && $CI_PIPELINE_SOURCE == "merge_request_event"
+
+stages:
+  - build
+  - test
+  - package
+
+# 1. Compilation du code source
+compilation:
+  stage: build
+  script:
+    - cd backend && mvn clean compile
+
+# 2. Exécution des tests unitaires
+unit-tests:
+  stage: test
+  variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_TLS_CERTDIR: ""
+  services:
+    - docker:dind
+  before_script:
+    - apk add --no-cache docker docker-compose
+    # Copier le fichier .env à partir des variables GitLab CI/CD
+    - cp $DOTENV_FILE backend/.env
+  script:
+    - cd backend && mvn test
+
+
+# 4. Création du fichier JAR
+build-jar:
+  stage: package
+  rules:
+    - if: $CI_COMMIT_BRANCH == "develop" && $CI_PIPELINE_SOURCE == "push"
+      when: always
+    - when: never
+  script:
+    - cd backend && mvn package -DskipTests # On skip les tests car ils ont été faits au stage précédent
+  artifacts:
+    paths:
+      - backend/target/*.jar
+    expire_in: 1 week
