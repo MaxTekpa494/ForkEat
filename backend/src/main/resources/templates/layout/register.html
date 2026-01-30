@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Inscription - ForkEat</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <div class="min-h-[calc(100vh-80px)] flex">
+
+        <div class="hidden lg:block relative w-0 flex-1 overflow-hidden">
+            <img class="absolute inset-0 h-full w-full object-cover"
+                 src="https://images.unsplash.com/photo-1498837167922-ddd27525d352?ixlib=rb-1.2.1&auto=format&fit=crop&w=1950&q=80"
+                 alt="Ingrédients cuisine">
+
+            <div class="absolute inset-0 bg-secondary-800/80 mix-blend-multiply"></div>
+
+            <div class="absolute inset-0 flex flex-col justify-between p-12 text-white">
+                <div class="flex items-center space-x-2">
+                    <i class="fas fa-utensils text-primary-500 text-2xl"></i>
+                    <span class="font-display font-bold text-2xl">ForkEat</span>
+                </div>
+                <div>
+                    <h1 class="text-4xl font-display font-bold mb-4">Rejoignez l'aventure culinaire</h1>
+                    <p class="text-secondary-100 text-lg max-w-md">
+                        Partagez vos recettes, découvrez des talents et construisez votre communauté gourmande dès aujourd'hui.
+                    </p>
+                </div>
+                <div class="text-sm text-secondary-300">
+                    &copy; 2026 ForkEat Inc.
+                </div>
+            </div>
+        </div>
+
+        <div class="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-20 xl:px-24 bg-surface">
+            <div class="mx-auto w-full max-w-sm lg:w-96">
+
+                <div class="text-center lg:text-left">
+                    <h2 class="font-display font-bold text-3xl text-secondary-900">
+                        Créer un compte
+                    </h2>
+                    <p class="mt-2 text-sm text-gray-600">
+                        C'est gratuit et ça le restera toujours.
+                    </p>
+                </div>
+
+                <div class="mt-8">
+                    <form th:action="@{/register}" method="POST" class="space-y-5">
+
+                        <div>
+                            <label for="firstName" class="block text-sm font-medium text-secondary-900">Prénom</label>
+                            <div class="mt-1">
+                                <input id="firstName" name="firstName" type="text" required
+                                       class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                       placeholder="Jean">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="lastName" class="block text-sm font-medium text-secondary-900">Nom</label>
+                            <div class="mt-1">
+                                <input id="lastName" name="lastName" type="text" required
+                                       class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                       placeholder="Dupont">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="userName" class="block text-sm font-medium text-secondary-900">Nom d'utilisateur</label>
+                            <div class="mt-1">
+                                <input id="userName" name="userName" type="text" required
+                                       class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                       placeholder="JeanDupont">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="email" class="block text-sm font-medium text-secondary-900">Adresse email</label>
+                            <div class="mt-1">
+                                <input id="email" name="email" type="email" autocomplete="email" required
+                                       class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                       placeholder="vous@exemple.com">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="password" class="block text-sm font-medium text-secondary-900">Mot de passe</label>
+                            <div class="mt-1">
+                                <input id="password" name="password" type="password" required
+                                       class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                       placeholder="Minimum 8 caractères">
+                            </div>
+                        </div>
+
+                        <div class="flex items-start">
+                            <div class="flex items-center h-5">
+                                <input id="terms" name="terms" type="checkbox" required
+                                       class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                            </div>
+                            <div class="ml-3 text-sm">
+                                <label for="terms" class="font-medium text-gray-700">
+                                    J'accepte les <a href="#" class="text-primary-600 hover:text-primary-500">conditions d'utilisation</a>
+                                    et la <a href="#" class="text-primary-600 hover:text-primary-500">politique de confidentialité</a>.
+                                </label>
+                            </div>
+                        </div>
+
+                        <div>
+                            <button type="submit"
+                                    class="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-lg text-sm font-bold text-white bg-primary-500 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition transform hover:-translate-y-0.5">
+                                S'inscrire maintenant
+                            </button>
+                        </div>
+                    </form>
+
+                    <div class="mt-6 text-center">
+                        <p class="text-sm text-gray-600">
+                            Vous avez déjà un compte ?
+                            <a th:href="@{/login}" class="font-bold text-primary-600 hover:text-primary-500 transition">
+                                Connectez-vous
+                            </a>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+</body>
+</html>
