@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+  <title>Connexion - ForkEat</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+  <div class="min-h-[calc(100vh-80px)] flex">
+
+    <div class="flex-1 flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-20 xl:px-24 bg-surface">
+      <div class="mx-auto w-full max-w-sm lg:w-96">
+
+        <div class="text-center md:text-left">
+          <h2 class="font-display font-bold text-3xl text-secondary-900">
+            Bon retour !
+          </h2>
+          <p class="mt-2 text-sm text-gray-600">
+            Connectez-vous pour retrouver vos recettes.
+          </p>
+        </div>
+
+        <div th:if="${param.error}" class="mt-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-md animate-fadeInUp">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-exclamation-circle text-red-500"></i>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-red-700 font-medium">Email ou mot de passe incorrect.</p>
+            </div>
+          </div>
+        </div>
+
+        <div th:if="${param.logout}" class="mt-4 bg-green-50 border-l-4 border-green-500 p-4 rounded-md animate-fadeInUp">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-check-circle text-green-500"></i>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-green-700 font-medium">Vous avez été déconnecté.</p>
+            </div>
+          </div>
+        </div>
+
+        <div th:if="${success}" class="mt-4 bg-green-50 border-l-4 border-green-500 p-4 rounded-md animate-fadeInUp">
+          <div class="flex">
+            <div class="flex-shrink-0">
+              <i class="fas fa-check-circle text-green-500"></i>
+            </div>
+            <div class="ml-3">
+              <p class="text-sm text-green-700 font-medium" th:text="${success}">Inscription réussie !</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="mt-8">
+          <form th:action="@{/login}" method="POST" class="space-y-6">
+
+            <div>
+              <label for="username" class="block text-sm font-medium text-secondary-900">
+                Email ou nom d'utilisateur
+              </label>
+              <div class="mt-1 relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i class="fas fa-user text-gray-400"></i>
+                </div>
+                <input id="username" name="username" type="text" autocomplete="email" required
+                       class="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition duration-150 ease-in-out"
+                       placeholder="chef@forkeat.com ou @chef123">
+              </div>
+            </div>
+
+            <div>
+              <label for="password" class="block text-sm font-medium text-secondary-900">Mot de passe</label>
+              <div class="mt-1 relative rounded-md shadow-sm">
+                <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                  <i class="fas fa-lock text-gray-400"></i>
+                </div>
+                <input id="password" name="password" type="password" autocomplete="current-password" required
+                       class="block w-full pl-10 pr-3 py-3 border border-gray-200 rounded-xl leading-5 bg-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm transition duration-150 ease-in-out"
+                       placeholder="••••••••">
+              </div>
+            </div>
+
+            <div class="flex items-center justify-between">
+              <div class="flex items-center">
+                <input id="remember-me" name="remember-me" type="checkbox"
+                       class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
+                <label for="remember-me" class="ml-2 block text-sm text-gray-900">
+                  Se souvenir de moi
+                </label>
+              </div>
+
+              <div class="text-sm">
+                <a href="#" class="font-medium text-primary-600 hover:text-primary-500 transition">
+                  Mot de passe oublié ?
+                </a>
+              </div>
+            </div>
+
+            <div>
+              <button type="submit"
+                      class="w-full flex justify-center py-3 px-4 border border-transparent rounded-full shadow-lg text-sm font-bold text-white bg-primary-500 hover:bg-primary-600 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500 transition transform hover:-translate-y-0.5">
+                Se connecter
+              </button>
+            </div>
+          </form>
+
+          <div class="mt-6">
+            <div class="relative">
+              <div class="absolute inset-0 flex items-center">
+                <div class="w-full border-t border-gray-300"></div>
+              </div>
+              <div class="relative flex justify-center text-sm">
+                                <span class="px-2 bg-surface text-gray-500">
+                                    Pas encore de compte ?
+                                </span>
+              </div>
+            </div>
+
+            <div class="mt-6">
+              <a th:href="@{/register}"
+                 class="w-full flex justify-center py-3 px-4 border-2 border-secondary-100 rounded-full shadow-sm text-sm font-bold text-secondary-700 bg-white hover:bg-secondary-50 hover:border-secondary-200 transition">
+                Créer un compte gratuitement
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="hidden lg:block relative w-0 flex-1 overflow-hidden">
+      <img class="absolute inset-0 h-full w-full object-cover"
+           src="https://www.lejournaldelamaison.fr/wp-content/uploads/sites/8/2025/12/cuisines-blanches-depassees-ces-tendances-cuisine-2026-vont-transformer-votre-cuisine-sans-tout-refaire.jpeg"
+           alt="Cuisine ambiance">
+
+      <div class="absolute inset-0 bg-secondary-900/80 mix-blend-multiply"></div>
+
+      <div class="absolute inset-0 flex flex-col justify-center items-center text-center p-12">
+        <div class="bg-white/10 backdrop-blur-md border border-white/20 p-8 rounded-3xl max-w-lg shadow-2xl">
+          <i class="fas fa-quote-left text-primary-500 text-3xl mb-4"></i>
+
+          <p class="text-xl text-white font-display italic mb-6">
+            "La cuisine est le seul art qui nourrit à la fois le corps et l'esprit. ForkEat m'a permis de partager cet art."
+          </p>
+          <div class="flex items-center justify-center space-x-3">
+            <div class="h-10 w-10 rounded-full bg-primary-500 flex items-center justify-center text-white font-bold">J</div>
+            <div class="text-left">
+              <p class="text-white font-bold text-sm">Julie M.</p>
+              <p class="text-primary-200 text-xs">Chef Amateur</p>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>
