@@ -37,7 +37,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
 
   @Override
   public Optional<Recipe> findById(UUID id) {
-    // Objects.requireNonNull(id) ??? Voir si on fait les requireNonNull
+    Objects.requireNonNull(id); // ??? Voir si on fait les requireNonNull
     return recipeRepository.findById(id).map(RecipeEntityMapper::toDomain);
   }
 
@@ -52,7 +52,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
 
   @Override
   public List<Recipe> findByAuthorId(UUID authorId) {
-    // Objects.requireNonNull(authorId) ???
+    Objects.requireNonNull(authorId);
     return recipeRepository.findByAuthorId(authorId)
             .stream()
             .map(RecipeEntityMapper::toDomain)
@@ -61,7 +61,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
 
   @Override
   public Recipe save(Recipe recipe) {
-    Objects.requireNonNull(recipe); // ??
+    Objects.requireNonNull(recipe);
 
     var author = userRepository.findByUsername(recipe.usernameAuthor())
             .orElseThrow(() -> new IllegalStateException("User not found: " + recipe.usernameAuthor()));

@@ -14,7 +14,7 @@ public final class RecipeEntityMapper {
     private RecipeEntityMapper() {}
 
     /**
-     * Convertit une RecipeEntity (infrastructure) vers Recipe (domaine)
+     * Convertit une RecipeEntity vers Recipe
      */
     public static Recipe toDomain(RecipeEntity entity) {
         if (entity == null) {
@@ -39,7 +39,7 @@ public final class RecipeEntityMapper {
     }
 
     /**
-     * Convertit Recipe (domaine) vers RecipeEntity (infrastructure)
+     * Convertit Recipe vers RecipeEntity
      */
     public static RecipeEntity toEntity(
             Recipe recipe,
