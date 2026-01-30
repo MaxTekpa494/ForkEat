@@ -95,7 +95,6 @@ public class UserEntity {
         updatedAt = Instant.now();
     }
 
-
     public String getUsername() {
         return username;
     }
@@ -202,6 +201,9 @@ public class UserEntity {
         if(this.wallet != null){
             wallet.setUser(this);
         }
+    }
+    public void setId(UUID id){
+        this.id = id;
     }
 
     public UUID getId() {

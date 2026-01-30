@@ -1,7 +1,9 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.presentation.rest.dto.TopUpRequestDto;
+import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +33,12 @@ class WalletControllerTest {
     @MockitoBean
     private WalletService walletService;
 
+    @MockitoBean
+    private JwtFilter jwtFilter;
+
+    @MockitoBean
+    private CustomUserDetailsService customUserDetailsService;
+
     @Test
     void shouldReturnPaymentUrl() throws Exception {
         var request = new TopUpRequestDto(1000L); // Ton DTO
@@ -41,8 +49,7 @@ class WalletControllerTest {
         when(walletService.prepareTopUp(
                 eq(hardcodedUserId),
                 eq("test@user.com"),
-                eq(1000L),
-                eq("EUR")
+                eq(1000L)
         )).thenReturn(expectedUrl);
 
         mockMvc.perform(post("/wallet/recharge")

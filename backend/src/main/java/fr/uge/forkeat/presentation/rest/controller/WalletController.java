@@ -1,6 +1,6 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
-import fr.uge.forkeat.presentation.rest.dto.TopUpRequestDto; // Un DTO simple { amount: 1000 }
+import fr.uge.forkeat.presentation.rest.dto.TopUpRequestDto;
 import fr.uge.forkeat.service.WalletService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -8,7 +8,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.Map;
 import java.util.UUID;
 
-@RestController
+@RestController("walletRestController")
 @RequestMapping("/wallet")
 public class WalletController {
 
@@ -48,8 +48,7 @@ public class WalletController {
         var paymentUrl = walletService.prepareTopUp(
                 userId,
                 userEmail,
-                request.amount(),
-                "EUR"
+                request.amount()
         );
 
         return ResponseEntity.ok(Map.of("url", paymentUrl));

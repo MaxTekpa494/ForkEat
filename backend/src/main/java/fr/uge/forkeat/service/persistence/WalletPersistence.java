@@ -22,5 +22,7 @@ public interface WalletPersistence {
 
     Transaction saveTransaction(Transaction transaction);
 
-    Optional<WalletEntity> findByUserId(UUID userId);
+    Optional<Wallet> findByUserId(UUID userId) throws ResourceNotFoundException;
+
+    Long getBalance(UUID userId);
 }

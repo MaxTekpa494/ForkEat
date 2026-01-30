@@ -1,18 +1,20 @@
 package fr.uge.forkeat.service.model;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
+import java.util.UUID;
 
 public record User(
+    UUID id,
     String username,
     String firstName,
     String lastName,
     String email,
     String password,
-    LocalDateTime createdAt,
+    Instant createdAt,
     UserRole role,
     UserStatus status,
     AuthMode authentificationMode,
-    Long walletId
+    UUID walletId
 ) {
 
 }

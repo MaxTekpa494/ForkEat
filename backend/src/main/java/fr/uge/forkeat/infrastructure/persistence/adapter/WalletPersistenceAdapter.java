@@ -4,8 +4,10 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.mapper.TransactionMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.mapper.WalletMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.TransactionJpaRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserJpaRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletJpaRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.Transaction;
 import fr.uge.forkeat.service.model.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
@@ -19,18 +21,22 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 
     private final WalletJpaRepository walletRepository;
     private final TransactionJpaRepository transactionRepository;
+    private final UserJpaRepository userRepository;
 
     // LES MAPPERS
     private final WalletMapper walletMapper;
     private final TransactionMapper transactionMapper;
 
-    public WalletPersistenceAdapter(WalletJpaRepository walletRepository, 
-                                    TransactionJpaRepository transactionRepository, WalletMapper walletMapper, TransactionMapper transactionMapper) {
+    public WalletPersistenceAdapter(WalletJpaRepository walletRepository,
+                                    TransactionJpaRepository transactionRepository,
+                                    UserJpaRepository userRepository, // AJOUTER
+                                    WalletMapper walletMapper,
+                                    TransactionMapper transactionMapper) {
         this.walletRepository = walletRepository;
         this.transactionRepository = transactionRepository;
+        this.userRepository = userRepository;
         this.walletMapper = walletMapper;
         this.transactionMapper = transactionMapper;
-
     }
 
     @Override
@@ -45,12 +51,22 @@ public class WalletPersistenceAdapter implements WalletPersistence {
     }
 
     @Override
-    public Wallet saveWallet(Wallet wallet) throws ResourceNotFoundException {
+    public Wallet saveWallet(Wallet wallet) {
         var entity = walletRepository.findById(wallet.id())
-                .orElseThrow(() -> new ResourceNotFoundException("Wallet introuvable"));
+                .orElseGet(() -> {
+                    WalletEntity newEntity = new WalletEntity();
+                    newEntity.setId(wallet.id());
 
-        walletMapper.updateEntity(entity, wallet); // Pour éviter de crée un nouvuea objet
-        return walletMapper.toDomain(entity);
+                    var userEntity = userRepository.findById(wallet.userId())
+                            .orElseThrow(() -> new IllegalStateException("User not found: " + wallet.userId()));
+                    userEntity.setWallet(newEntity);
+
+                    return newEntity;
+                });
+
+        walletMapper.updateEntity(entity, wallet);
+        WalletEntity saved = walletRepository.save(entity);
+        return walletMapper.toDomain(saved);
     }
 
     @Override
@@ -76,7 +92,19 @@ public class WalletPersistenceAdapter implements WalletPersistence {
     }
 
     @Override
-    public Optional<WalletEntity> findByUserId(UUID userId) {
-        return walletRepository.findByUserId(userId);
+    public Optional<Wallet> findByUserId(UUID userId) throws ResourceNotFoundException {
+        if(walletRepository.findByUserId(userId).isEmpty()){
+            throw new ResourceNotFoundException("Wallet not found with user id  :" + userId);
+        }
+
+        return Optional.ofNullable(walletMapper.toDomain(walletRepository.findByUserId(userId).get()));
+    }
+
+    @Override
+    public Long getBalance(UUID userId) {
+        var balance = walletRepository.findBalanceByUserId(userId);
+
+        // Si l'utilisateur n'a pas de wallet (ne devrait pas arriver), on renvoie 0
+        return balance != null ? balance : 0L;
     }
 }

@@ -1,10 +1,9 @@
 package fr.uge.forkeat.service;
 
-import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.TransactionType;
+import fr.uge.forkeat.service.exception.DuplicateTransactionException;
+import fr.uge.forkeat.service.exception.WalletNotFoundException;
+import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.presentation.rest.dto.PaymentRequestDto;
-import fr.uge.forkeat.service.model.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.external.PaymentGateway;
 import org.springframework.stereotype.Service;
@@ -25,8 +24,8 @@ public class WalletService {
         this.walletPersistence = walletPersistence;
     }
 
-    public String prepareTopUp(UUID userId, String email, Long amount, String currency) {
-        var request = new PaymentRequestDto(userId, email, amount, currency);
+    public String prepareTopUp(UUID userId, String email, Long amount) {
+        var request = new PaymentRequest(userId, email, amount, Currency.DEFAULT.code());
         return paymentGateway.initiatePayment(request).paymentUrl();
     }
 
@@ -35,14 +34,14 @@ public class WalletService {
 
         // IDEMPOTENCE
         if (walletPersistence.transactionExists(stripeTransactionID)) {
-            return;
+            throw new DuplicateTransactionException(stripeTransactionID);
         }
 
         // VERROUILLAGE PESSIMISTE
         var wallet = walletPersistence.loadWalletWithLock(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("Wallet introuvable pour user " + userId));
+                .orElseThrow(() -> new WalletNotFoundException(userId));
 
-        var newWallet = wallet.withBalance(wallet.balance() + amount);
+        var newWallet = wallet.addFunds(amount);
         walletPersistence.saveWallet(newWallet);
 
         // TRACABILITÉ
@@ -55,8 +54,15 @@ public class WalletService {
 
     @Transactional(readOnly = true)
     public Long getBalance(UUID userId) {
-        return walletPersistence.loadWalletWithLock(userId)
-                .map(Wallet::balance)
-                .orElse(0L);
+        return walletPersistence.getBalance(userId);
+    }
+
+    /**
+     * Crée un nouveau wallet pour un utilisateur.
+     */
+    @Transactional
+    public Wallet createWallet(UUID userId) throws ResourceNotFoundException {
+        var newWallet = new Wallet(UUID.randomUUID(), 0L, userId, Instant.now());
+        return walletPersistence.saveWallet(newWallet);
     }
 }
