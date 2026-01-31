@@ -1,10 +1,12 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.TransactionEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.mapper.TransactionMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.mapper.WalletMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.TransactionJpaRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserJpaRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletJpaRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.Transaction;
@@ -28,6 +30,7 @@ class WalletPersistenceAdapterTest {
 
     @Mock WalletJpaRepository walletRepository;
     @Mock TransactionJpaRepository transactionRepository;
+    @Mock UserJpaRepository userRepository;
     @Mock WalletMapper walletMapper;
     @Mock TransactionMapper transactionMapper;
 
@@ -62,7 +65,29 @@ class WalletPersistenceAdapterTest {
     }
 
     @Test
-    void saveWallet_ShouldUpdateAndReturnWallet_WhenExists() throws ResourceNotFoundException {
+    void saveWallet_ShouldCreateNewWallet_WhenNotExists() {
+        var walletId = UUID.randomUUID();
+        var userId = UUID.randomUUID();
+        var walletDomain = mock(Wallet.class);
+        when(walletDomain.id()).thenReturn(walletId);
+        when(walletDomain.userId()).thenReturn(userId);
+
+        var userEntity = mock(UserEntity.class);
+
+        when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
+        when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
+        when(walletRepository.save(any(WalletEntity.class))).thenAnswer(i -> i.getArgument(0));
+        when(walletMapper.toDomain(any(WalletEntity.class))).thenReturn(walletDomain);
+
+        var result = adapter.saveWallet(walletDomain);
+
+        verify(userEntity).setWallet(any(WalletEntity.class));
+        verify(walletRepository).save(any(WalletEntity.class));
+        assertEquals(walletDomain, result);
+    }
+
+    @Test
+    void saveWallet_ShouldUpdateAndReturnWallet_WhenExists() {
         var walletId = UUID.randomUUID();
         var walletDomain = mock(Wallet.class);
         when(walletDomain.id()).thenReturn(walletId);
@@ -70,23 +95,14 @@ class WalletPersistenceAdapterTest {
         var existingEntity = new WalletEntity();
 
         when(walletRepository.findById(walletId)).thenReturn(Optional.of(existingEntity));
+        when(walletRepository.save(existingEntity)).thenReturn(existingEntity);
         when(walletMapper.toDomain(existingEntity)).thenReturn(walletDomain);
 
         var result = adapter.saveWallet(walletDomain);
 
         verify(walletMapper).updateEntity(existingEntity, walletDomain);
+        verify(walletRepository).save(existingEntity);
         assertEquals(walletDomain, result);
-    }
-
-    @Test
-    void saveWallet_ShouldThrowException_WhenWalletNotFound() {
-        var id = UUID.randomUUID();
-        var walletDomain = mock(Wallet.class);
-        when(walletDomain.id()).thenReturn(id);
-
-        when(walletRepository.findById(id)).thenReturn(Optional.empty());
-
-        assertThrows(ResourceNotFoundException.class, () -> adapter.saveWallet(walletDomain));
     }
 
     @Test
@@ -154,21 +170,19 @@ class WalletPersistenceAdapterTest {
     }
 
     @Test
-    void getWalletByUserId_ReturnEmpty_WhenNotFound(){
-        var id = UUID.randomUUID();
-        assertEquals(Optional.empty(),  adapter.findByUserId(id));
-    }
-
-    @Test
     void getWalletById_ShouldReturnWallet_WhenFound(){
         var walletDomain = mock(Wallet.class);
         assertEquals(Optional.empty(),  adapter.getWalletById(walletDomain.id()));
     }
 
     @Test
-    void getWalletByUserId_ReturnWallet_WhenNotFound(){
+    void getWalletByUserId_ThrowsException_WhenNotFound() {
         var walletDomain = mock(Wallet.class);
-        assertEquals(Optional.empty(),  adapter.findByUserId(walletDomain.userId()));
+
+        assertThrows(
+                ResourceNotFoundException.class,
+                () -> adapter.findByUserId(walletDomain.userId())
+        );
     }
 
 }
