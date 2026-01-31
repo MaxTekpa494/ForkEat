@@ -1,6 +1,5 @@
 package fr.uge.forkeat.service.persistence;
 
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.Transaction;
 import fr.uge.forkeat.service.model.Wallet;

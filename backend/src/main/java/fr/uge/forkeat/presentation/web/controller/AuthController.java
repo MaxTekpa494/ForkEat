@@ -1,10 +1,9 @@
 package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.presentation.web.form.RegisterForm;
-import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.user.UserRegistrationService;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -17,10 +16,10 @@ import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 @Controller
 public class AuthController {
 
-    private final UserService userService;
+    private final UserRegistrationService userRegistrationService;
 
-    public AuthController(UserService userService) {
-        this.userService = userService;
+    public AuthController(UserRegistrationService userRegistrationService) {
+        this.userRegistrationService = userRegistrationService;
     }
 
     @GetMapping("/login")
@@ -52,7 +51,7 @@ public class AuthController {
         }
 
         try {
-            userService.registerUser(
+            userRegistrationService.registerUser(
                     form.getFirstName(),
                     form.getLastName(),
                     form.getUserName(),
