@@ -38,7 +38,7 @@ class TransactionMapperTest {
                 TransactionType.RECHARGE,
                 Instant.now(),
                 "stripe_123"
-                );
+        );
 
         var entity = mapper.toEntity(transaction);
 
