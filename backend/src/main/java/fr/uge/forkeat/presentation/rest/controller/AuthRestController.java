@@ -16,17 +16,16 @@ import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
-import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
-public class SecurityTestController {
+public class AuthRestController {
 
     private final UserService userService;
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
 
-    public SecurityTestController( UserService userService, AuthenticationManager authenticationManager, JwtUtils jwtUtils) {
+    public AuthRestController(UserService userService, AuthenticationManager authenticationManager, JwtUtils jwtUtils) {
         this.userService = userService;
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;
