@@ -70,7 +70,7 @@ public class UserEntity {
             orphanRemoval = true,
             // Sinon on ne veut pas de eager, il faut que ça soit uni-directionnel et dans ce cas il faut
             // supprimer le champs wallet de la classe UserWallet
-            optional = false
+            optional = true // POUR L'INSTANT JE LE METS EN OPTIONAL à VOIR AVEC THIERNO
     )
     private WalletEntity wallet;
 

@@ -2,7 +2,7 @@ package fr.uge.forkeat.presentation.response;
 
 import java.util.List;
 
-public record ListResponse<T>(List<T> resources, int total) implements HttpResponse<T>{
+public record ListResponse<T>(List<T> resources, long total) implements HttpResponse<T>{
 
     public ListResponse{
         resources = List.copyOf(resources);

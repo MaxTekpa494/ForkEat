@@ -39,6 +39,28 @@ public final class RecipeDTOMapper {
         );
     }
 
+    public static RecipeDTO toDTO(Recipe recipe) {
+        if (recipe == null) {
+            return null;
+        }
+        return new RecipeDTO(
+                recipe.id(),
+                recipe.title(),
+                recipe.summary(),
+                null,
+                recipe.usernameAuthor(),
+                recipe.preparationMinutes(),
+                recipe.imageUrl(),
+                recipe.status().name(),
+                toStepDTOs(recipe.stepByStepInstructions()),
+                toIngredientDTOs(recipe.ingredients()),
+                toAllergenDTOs(recipe.allergens()),
+                recipe.dietaryFlags(),
+                recipe.createdAt(),
+                recipe.updatedAt()
+        );
+    }
+
     /**
      * Convertit RecipeDTO (présentation) vers Recipe (domaine)
      */

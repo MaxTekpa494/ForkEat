@@ -32,7 +32,7 @@ public class RecipeEntity {
     @JoinColumn(name = "parent_id")
     private RecipeEntity parent;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.EAGER) // On a tout le temps besion de l'auteur au pire des cas son username donc EAGER
     @JoinColumn(name = "author_id", nullable = false)
     private UserEntity author;
 

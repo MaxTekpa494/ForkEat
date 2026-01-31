@@ -8,11 +8,13 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.AllergenRep
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Allergen;
 import fr.uge.forkeat.service.model.recipe.Recipe;
 import fr.uge.forkeat.service.model.recipe.RecipeIngredient;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -48,6 +50,17 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
             .stream()
             .map(RecipeEntityMapper::toDomain)
             .toList();
+  }
+
+  @Override
+  public PageResult<Recipe> findByStatus(String status, int size, int page) {
+    Objects.requireNonNull(status);
+    var pageable = PageRequest.of(page, size);
+    var pageResult = recipeRepository.findByStatus(RecipeStatus.valueOf(status), pageable);
+    var recipes = pageResult.getContent().stream()
+            .map(RecipeEntityMapper::toDomain)
+            .toList();
+    return new PageResult<>(recipes, pageResult.getTotalElements());
   }
 
   @Override
