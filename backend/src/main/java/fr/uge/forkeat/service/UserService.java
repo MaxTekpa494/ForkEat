@@ -8,6 +8,7 @@ import fr.uge.forkeat.service.persistence.UserPersistence;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.util.UUID;
@@ -27,7 +28,10 @@ public class UserService {
         this.walletService = walletService;
     }
 
-    @Transactional
+    @Transactional(
+            isolation = Isolation.REPEATABLE_READ,
+            timeout = 15
+    )
     public User registerUser(String firstName, String lastName, String username,
                              String email, String password) throws ResourceNotFoundException {
 
@@ -95,7 +99,10 @@ public class UserService {
                 .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé : " + username));
     }
 
-    @Transactional
+    @Transactional(
+            isolation = Isolation.REPEATABLE_READ,
+            timeout = 10
+    )
     public User updateProfile(UUID userId, String firstName, String lastName, String username) throws ResourceNotFoundException {
         User user = getUserById(userId);
 
@@ -120,7 +127,10 @@ public class UserService {
         return userPersistence.saveUser(updatedUser);
     }
 
-    @Transactional
+    @Transactional(
+            isolation = Isolation.REPEATABLE_READ,
+            timeout = 10
+    )
     public User updateEmail(UUID userId, String newEmail, String currentPassword) throws ResourceNotFoundException {
         User user = getUserById(userId);
 
@@ -151,7 +161,10 @@ public class UserService {
         return userPersistence.saveUser(updatedUser);
     }
 
-    @Transactional
+    @Transactional(
+            isolation = Isolation.REPEATABLE_READ,
+            timeout = 10
+    )
     public void updatePassword(UUID userId, String currentPassword, String newPassword) throws ResourceNotFoundException {
         User user = getUserById(userId);
 

@@ -7,6 +7,7 @@ import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.external.PaymentGateway;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
@@ -29,7 +30,7 @@ public class WalletService {
         return paymentGateway.initiatePayment(request).paymentUrl();
     }
 
-    @Transactional
+    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 30) // Le timeout evit le deadlock
     public void processPaymentConfirmation(UUID userId, Long amount, String stripeTransactionID) throws ResourceNotFoundException {
 
         // IDEMPOTENCE
@@ -60,7 +61,10 @@ public class WalletService {
     /**
      * Crée un nouveau wallet pour un utilisateur.
      */
-    @Transactional
+    @Transactional(
+            isolation = Isolation.READ_COMMITTED,
+            timeout = 10
+    )
     public Wallet createWallet(UUID userId) throws ResourceNotFoundException {
         var newWallet = new Wallet(UUID.randomUUID(), 0L, userId, Instant.now());
         return walletPersistence.saveWallet(newWallet);
