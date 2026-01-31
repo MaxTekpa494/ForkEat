@@ -206,9 +206,6 @@ public class UserEntity {
             wallet.setUser(this);
         }
     }
-    public void setId(UUID id){
-        this.id = id;
-    }
 
     public UUID getId() {
         return id;

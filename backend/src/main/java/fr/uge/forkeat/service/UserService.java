@@ -33,7 +33,7 @@ public class UserService {
             timeout = 15
     )
     public User registerUser(String firstName, String lastName, String username,
-                             String email, String password) throws ResourceNotFoundException {
+                             String email, String password, UserRole role) throws ResourceNotFoundException {
 
         if (userPersistence.existsByEmail(email)) {
             throw new IllegalArgumentException("Cet email est déjà utilisé");
@@ -54,7 +54,7 @@ public class UserService {
                 email,
                 passwordEncoder.encode(password),
                 Instant.now(),
-                UserRole.MEMBER,
+                role,
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
                 null

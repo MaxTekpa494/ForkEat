@@ -6,7 +6,7 @@ import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
-import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.service.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;

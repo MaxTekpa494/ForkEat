@@ -2,6 +2,7 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.presentation.web.form.RegisterForm;
 import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.UserRole;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -57,7 +58,8 @@ public class AuthController {
                     form.getLastName(),
                     form.getUserName(),
                     form.getEmail(),
-                    form.getPassword()
+                    form.getPassword(),
+                    UserRole.MEMBER
             );
 
             redirectAttributes.addFlashAttribute("success",

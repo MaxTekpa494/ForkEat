@@ -1,7 +1,9 @@
-package fr.uge.forkeat.infrastructure.security;
+package fr.uge.forkeat.infrastructure.config;
 
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
+import fr.uge.forkeat.service.CustomUserDetailsService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
@@ -48,23 +50,12 @@ public class SecurityConfig {
         return http
                 .csrf(AbstractHttpConfigurer::disable)
                 .authorizeHttpRequests(auth -> auth
-                        // Ressources statiques et pages publiques
-                        .requestMatchers("/", "/login", "/css/**", "/js/**", "/images/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/register").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/register").permitAll()                        // Recettes : lecture publique, écriture authentifiée
-                        .requestMatchers(HttpMethod.GET, "/recipes").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
-                        .requestMatchers("/recipes/create").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/recipes").authenticated()
-                        .requestMatchers(HttpMethod.POST, "/recipes/**").authenticated()
-                        .requestMatchers(HttpMethod.PUT, "/recipes/**").authenticated()
-                        .requestMatchers(HttpMethod.DELETE, "/recipes/**").authenticated()
                         // Rôles spéciaux
                         .requestMatchers("/*/admin/*").hasRole("ADMIN")
                         .requestMatchers("/*/moderator/*").hasRole("MODERATOR")
                         .requestMatchers("/*/user/*").authenticated()
                         // Tout le reste nécessite authentification
-                        .anyRequest().authenticated())
+                        .anyRequest().permitAll())
                 .formLogin(form -> form
                         .loginPage("/login")
                         .loginProcessingUrl("/login")
@@ -73,6 +64,14 @@ public class SecurityConfig {
                         .usernameParameter("username") // email dans notre cas
                         .passwordParameter("password")
                         .permitAll()
+                ).exceptionHandling(ex -> ex
+                        .authenticationEntryPoint(
+                                (request, response, authException) -> {
+                                    response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                                    response.setContentType("application/json");
+                                    response.getWriter().write("{\"error\":\"Unauthorized\"}");
+                                }
+                        )
                 )
                 .logout(logout -> logout
                         .logoutUrl("/logout")

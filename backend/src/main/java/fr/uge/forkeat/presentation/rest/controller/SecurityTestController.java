@@ -1,24 +1,35 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 
+import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.presentation.rest.dto.UserLogin;
 import fr.uge.forkeat.presentation.rest.dto.UserRegister;
 import fr.uge.forkeat.service.UserService;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.UserRole;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.HashMap;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/api/auth")
 public class SecurityTestController {
 
     private final UserService userService;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtils jwtUtils;
 
-    public SecurityTestController( UserService userService) {
+    public SecurityTestController( UserService userService, AuthenticationManager authenticationManager, JwtUtils jwtUtils) {
         this.userService = userService;
+        this.authenticationManager = authenticationManager;
+        this.jwtUtils = jwtUtils;
     }
 
     /**
@@ -27,20 +38,28 @@ public class SecurityTestController {
      * @return the user newly created Must return a DTO instead
      */
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody UserRegister userRegister) {
-        if(this.userService.registerUser(userRegister, UserRole.MEMBER)) {
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.badRequest().body("Username is already used");
+    public ResponseEntity<?> registerUser(@RequestBody UserRegister userRegister) throws ResourceNotFoundException {
+        this.userService.registerUser(userRegister.firstName(), userRegister.lastName(), userRegister.username(), userRegister.email(), userRegister.password(), UserRole.MEMBER);
+        return ResponseEntity.ok().build();
     }
 
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody UserLogin userLogin) {
-        var authData = this.userService.loginUser(userLogin);
-        if(authData.isPresent()) {
-            return ResponseEntity.ok(authData.get());
+        try{
+            Authentication authentication = authenticationManager.authenticate(new UsernamePasswordAuthenticationToken(userLogin.username(), userLogin.password()));
+            if(authentication.isAuthenticated()){
+                HashMap<String, Object> authData = new HashMap<>();
+                authData.put("token", jwtUtils.generateToken(userLogin.username()));
+                authData.put("type", "Bearer");
+                return ResponseEntity.ok(authData);
+            }
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+
+        }catch(AuthenticationException e){
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+
         }
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+
     }
 
 }

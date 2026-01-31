@@ -3,6 +3,7 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.presentation.rest.dto.UserRegister;
 import fr.uge.forkeat.service.UserService;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.UserRole;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -28,10 +29,8 @@ public class AdminController {
      * @return the user newly created Must return a DTO instead
      */
     @PostMapping("/register")
-    public ResponseEntity<?> registerUser(@RequestBody UserRegister moderatorRegister) {
-        if(this.userService.registerUser(moderatorRegister, UserRole.MODERATOR)) {
-            return ResponseEntity.ok().build();
-        }
-        return ResponseEntity.badRequest().body("Username is already used");
+    public ResponseEntity<?> registerUser(@RequestBody UserRegister moderatorRegister) throws ResourceNotFoundException {
+        this.userService.registerUser(moderatorRegister.firstName(), moderatorRegister.lastName(), moderatorRegister.username(), moderatorRegister.email(), moderatorRegister.password(), UserRole.MODERATOR);
+        return ResponseEntity.ok().build();
     }
 }
