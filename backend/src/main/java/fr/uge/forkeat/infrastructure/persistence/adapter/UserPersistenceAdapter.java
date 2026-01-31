@@ -23,7 +23,6 @@ public class UserPersistenceAdapter implements UserPersistence {
     }
 
     @Override
-    @Transactional
     public User saveUser(User user) {
         var entity = userMapper.toEntity(user);
         var saved = userRepository.save(entity);
@@ -31,31 +30,26 @@ public class UserPersistenceAdapter implements UserPersistence {
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Optional<User> findById(UUID id) {
         return userRepository.findById(id).map(userMapper::toModel);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Optional<User> findByEmail(String email) {
         return userRepository.findByEmail(email).map(userMapper::toModel);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public Optional<User> findByUsername(String username) {
         return userRepository.findByUsername(username).map(userMapper::toModel);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean existsByEmail(String email) {
         return userRepository.existsByEmail(email);
     }
 
     @Override
-    @Transactional(readOnly = true)
     public boolean existsByUsername(String username) {
         return userRepository.existsByUsername(username);
     }
