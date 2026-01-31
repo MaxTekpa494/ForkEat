@@ -51,7 +51,7 @@ public class SecurityConfig {
                         // Ressources statiques et pages publiques
                         .requestMatchers("/", "/login", "/css/**", "/js/**", "/images/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/register").permitAll()
-                        .requestMatchers(HttpMethod.POST, "/register").permitAll()                        // Recettes : lecture publique, écriture authentifiée
+                        .requestMatchers(HttpMethod.POST, "/register").permitAll()// Recettes : lecture publique, écriture authentifiée
                         .requestMatchers(HttpMethod.GET, "/recipes").permitAll()
                         .requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
                         .requestMatchers("/recipes/create").authenticated()

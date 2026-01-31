@@ -30,8 +30,8 @@ public class WalletController {
         @AuthenticationPrincipal UserDetails currentUser,
         Model model
     ) throws ResourceNotFoundException {
-        User user = userService.getUserByUsername(currentUser.getUsername());
-        Long balance = walletService.getBalance(user.id());
+        var user = userService.getUserByUsername(currentUser.getUsername());
+        var balance = walletService.getBalance(user.id());
         
         // TODO: Récupérer l'historique des transactions
         // List<Transaction> transactions = walletService.getTransactionHistory(user.id());

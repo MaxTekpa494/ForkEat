@@ -46,7 +46,7 @@ public class UserService {
 
         var userId = UUID.randomUUID();
 
-        User user = new User(
+        var user = new User(
                 userId,
                 username,
                 firstName,
@@ -60,11 +60,11 @@ public class UserService {
                 null
         );
 
-        User savedUser = userPersistence.saveUser(user);
+        var savedUser = userPersistence.saveUser(user);
 
         var wallet = walletService.createWallet(savedUser.id());
 
-        User userWithWallet = new User(
+        var userWithWallet = new User(
                 savedUser.id(),
                 savedUser.username(),
                 savedUser.firstName(),
@@ -104,13 +104,13 @@ public class UserService {
             timeout = 10
     )
     public User updateProfile(UUID userId, String firstName, String lastName, String username) throws ResourceNotFoundException {
-        User user = getUserById(userId);
+        var user = getUserById(userId);
 
         if (!user.username().equals(username) && userPersistence.existsByUsername(username)) {
             throw new IllegalArgumentException("Ce nom d'utilisateur est déjà pris");
         }
 
-        User updatedUser = new User(
+        var updatedUser = new User(
                 user.id(),
                 username,
                 firstName,
@@ -132,7 +132,7 @@ public class UserService {
             timeout = 10
     )
     public User updateEmail(UUID userId, String newEmail, String currentPassword) throws ResourceNotFoundException {
-        User user = getUserById(userId);
+        var user = getUserById(userId);
 
         // Vérifier le mot de passe actuel pour la sécurité
         if (!passwordEncoder.matches(currentPassword, user.password())) {
@@ -144,7 +144,7 @@ public class UserService {
             throw new IllegalArgumentException("Cet email est déjà utilisé");
         }
 
-        User updatedUser = new User(
+        var updatedUser = new User(
                 user.id(),
                 user.username(),
                 user.firstName(),
@@ -166,7 +166,7 @@ public class UserService {
             timeout = 10
     )
     public void updatePassword(UUID userId, String currentPassword, String newPassword) throws ResourceNotFoundException {
-        User user = getUserById(userId);
+        var user = getUserById(userId);
 
         if (!passwordEncoder.matches(currentPassword, user.password())) {
             throw new IllegalArgumentException("Mot de passe actuel incorrect");
@@ -176,7 +176,7 @@ public class UserService {
             throw new IllegalArgumentException("Le nouveau mot de passe doit contenir au moins 8 caractères");
         }
 
-        User updatedUser = new User(
+        var updatedUser = new User(
                 user.id(),
                 user.username(),
                 user.firstName(),

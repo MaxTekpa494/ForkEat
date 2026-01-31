@@ -71,13 +71,13 @@ public class DashboardController {
             Model model
     ) {
         try {
-            User userBefore = userService.getUserByUsername(currentUser.getUsername());
+            var userBefore = userService.getUserByUsername(currentUser.getUsername());
 
-            User updatedUser = userService.updateProfile(userBefore.id(), firstName, lastName, username);
+            var updatedUser = userService.updateProfile(userBefore.id(), firstName, lastName, username);
 
-            UserDetails newUserDetails = customUserDetailsService.loadUserByUsername(updatedUser.username());
+            var newUserDetails = customUserDetailsService.loadUserByUsername(updatedUser.username());
 
-            Authentication newAuth = new UsernamePasswordAuthenticationToken(
+            var newAuth = new UsernamePasswordAuthenticationToken(
                     newUserDetails,
                     currentUser.getPassword(), // On garde le mot de passe actuel (crypté)
                     newUserDetails.getAuthorities()
@@ -106,7 +106,7 @@ public class DashboardController {
             Model model
     ) {
         try {
-            User user = userService.getUserByUsername(currentUser.getUsername());
+            var user = userService.getUserByUsername(currentUser.getUsername());
             userService.updateEmail(user.id(), newEmail, currentPassword);
 
             redirectAttributes.addFlashAttribute("success",
@@ -132,7 +132,7 @@ public class DashboardController {
                 throw new IllegalArgumentException("Les mots de passe ne correspondent pas");
             }
 
-            User user = userService.getUserByUsername(currentUser.getUsername());
+            var user = userService.getUserByUsername(currentUser.getUsername());
             userService.updatePassword(user.id(), currentPassword, newPassword);
 
             redirectAttributes.addFlashAttribute("success", "Mot de passe modifié avec succès !");
