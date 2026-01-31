@@ -4,11 +4,13 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.service.model.Wallet;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Component
 public class WalletMapper {
 
     public Wallet toDomain(WalletEntity entity) {
-        if (entity == null) return null;
+        Objects.requireNonNull(entity, "WalletEntity cannot be null");
 
         return new Wallet(
                 entity.getId(),
@@ -18,7 +20,8 @@ public class WalletMapper {
         );
     }
     public void updateEntity(WalletEntity entity, Wallet domain) {
-        if (domain == null || entity == null) return;
+        Objects.requireNonNull(entity, "WalletEntity cannot be null");
+        Objects.requireNonNull(domain, "Wallet cannot be null");
 
         entity.setBalance(domain.balance());
         entity.setUpdatedAt(domain.updatedAt());
