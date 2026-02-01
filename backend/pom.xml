@@ -13,18 +13,24 @@
 	<version>0.0.1-SNAPSHOT</version>
 	<name>ForkEat</name>
 	<description>Backend projet for UGE</description>
-	<url/>
+	<url>https://gitlab.com/adben27/projet-recettes-uge</url>
 	<licenses>
-		<license/>
+		<license>
+			<name>MIT License</name>
+			<url>https://opensource.org/licenses/MIT</url>
+		</license>
 	</licenses>
 	<developers>
-		<developer/>
+		<developer>
+			<name>ForkEat Team</name>
+			<organization>Universite Gustave Eiffel</organization>
+		</developer>
 	</developers>
 	<scm>
-		<connection/>
-		<developerConnection/>
-		<tag/>
-		<url/>
+		<connection>scm:git:https://gitlab.com/adben27/projet-recettes-uge.git</connection>
+		<developerConnection>scm:git:git@gitlab.com:adben27/projet-recettes-uge.git</developerConnection>
+		<tag>HEAD</tag>
+		<url>https://gitlab.com/adben27/projet-recettes-uge</url>
 	</scm>
 	<properties>
 		<java.version>25</java.version>
@@ -182,25 +188,6 @@
 		<dependency>
 			<groupId>nz.net.ultraq.thymeleaf</groupId>
 			<artifactId>thymeleaf-layout-dialect</artifactId>
-		</dependency>
-
-
-		<dependency>
-			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt-api</artifactId>
-			<version>0.11.5</version>
-		</dependency>
-		<dependency>
-			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt-impl</artifactId>
-			<version>0.11.5</version>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>io.jsonwebtoken</groupId>
-			<artifactId>jjwt-jackson</artifactId>
-			<version>0.11.5</version>
-			<scope>runtime</scope>
 		</dependency>
 
 		<dependency>
