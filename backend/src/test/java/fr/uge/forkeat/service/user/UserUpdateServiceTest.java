@@ -108,7 +108,7 @@ class UserUpdateServiceTest {
                     () -> userUpdateService.updateProfile(userId, "First", "Last", "takenusername")
             );
 
-            assertEquals("Ce nom d'utilisateur est déjà pris", exception.getMessage());
+            assertEquals("This username is already used", exception.getMessage());
             verify(userPersistence, never()).saveUser(any());
         }
 

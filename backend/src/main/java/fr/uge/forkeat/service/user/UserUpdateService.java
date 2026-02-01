@@ -33,7 +33,7 @@ public class UserUpdateService {
         var user = userQueryService.getUserById(userId);
 
         if (!user.username().equals(username) && userPersistence.existsByUsername(username)) {
-            throw new IllegalArgumentException("Ce nom d'utilisateur est déjà pris");
+            throw new IllegalArgumentException("This username is already used");
         }
 
         var updatedUser = new User(

@@ -94,7 +94,7 @@ class UserRegistrationServiceTest {
                     )
             );
 
-            assertEquals("Cet email est déjà utilisé", exception.getMessage());
+            assertEquals("This email is already used", exception.getMessage());
             verify(userPersistence, never()).saveUser(any());
         }
 
@@ -112,7 +112,7 @@ class UserRegistrationServiceTest {
                     )
             );
 
-            assertEquals("Ce nom d'utilisateur est déjà pris", exception.getMessage());
+            assertEquals("This username is already used", exception.getMessage());
             verify(userPersistence, never()).saveUser(any());
         }
 

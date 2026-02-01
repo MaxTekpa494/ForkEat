@@ -166,7 +166,7 @@ class ProfileControllerTest {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
             when(userUpdateService.updateProfile(testUser.id(), "First", "Last", "takenusername"))
-                    .thenThrow(new IllegalArgumentException("Ce nom d'utilisateur est déjà pris"));
+                    .thenThrow(new IllegalArgumentException("This username is already used"));
 
             // When & Then
             mockMvc.perform(post("/profile/update")
@@ -178,7 +178,7 @@ class ProfileControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(view().name("dashboard/profile"))
                     .andExpect(model().attributeExists("error"))
-                    .andExpect(model().attribute("error", "Ce nom d'utilisateur est déjà pris"));
+                    .andExpect(model().attribute("error", "This username is already used"));
 
             verify(authPort, never()).refreshAuthentication(any());
         }

@@ -35,12 +35,12 @@ public class UserRegistrationService {
                              String email, String password) throws ResourceNotFoundException {
 
         if (userPersistence.existsByEmail(email)) {
-            throw new IllegalArgumentException("Cet email est déjà utilisé");
+            throw new IllegalArgumentException("This email is already used");
         }
 
         // Vérifier si le username existe déjà
         if (userPersistence.existsByUsername(username)) {
-            throw new IllegalArgumentException("Ce nom d'utilisateur est déjà pris");
+            throw new IllegalArgumentException("This username is already used");
         }
 
         var userId = UUID.randomUUID();
@@ -86,11 +86,13 @@ public class UserRegistrationService {
     )
     public User registerUserFromOAuth2(String firstName, String lastName,
                                        String email, AuthMode authMode,
-                                       String profilePicture) throws ResourceNotFoundException {
+                                       String profilePicture) throws ResourceNotFoundException { // Photo de profil n'est pas utilisé pour le moment
+                                                                                                // Je l'ai mise juste pour si jamais on en aura besoin
+                                                                                                // elle sera là
 
         // Vérifier que l'email n'existe pas déjà
         if (userPersistence.existsByEmail(email)) {
-            throw new IllegalArgumentException("Cet email est déjà utilisé");
+            throw new IllegalArgumentException("This email is already used");
         }
 
         var userId = UUID.randomUUID();

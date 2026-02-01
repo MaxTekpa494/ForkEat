@@ -10,6 +10,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.Objects;
 
 /**
  * Adaptateur pour l'authentification.
@@ -21,13 +22,14 @@ public class AuthenticationAdapter implements AuthenticationPort {
     private final List<PrincipalExtractor> extractors;
 
     public AuthenticationAdapter(List<PrincipalExtractor> extractors) {
+        Objects.requireNonNull(extractors);
         this.extractors = extractors;
     }
 
     @Override
     public String extractUsername(Authentication authentication) {
         if (authentication == null) {
-            throw new IllegalArgumentException("Authentication ne peut pas être null");
+            throw new IllegalArgumentException("Authentication cannot be null");
         }
 
         Object principal = authentication.getPrincipal();
@@ -41,7 +43,9 @@ public class AuthenticationAdapter implements AuthenticationPort {
 
     @Override
     public User extractUser(Authentication authentication) {
-        if (authentication == null) return null;
+        if (authentication == null) {
+            throw new IllegalArgumentException("Authentication cannot be null");
+        }
 
         Object principal = authentication.getPrincipal();
 
@@ -54,7 +58,9 @@ public class AuthenticationAdapter implements AuthenticationPort {
 
     @Override
     public boolean isOAuth2Authentication(Authentication authentication) {
-        if (authentication == null) return false;
+        if (authentication == null) {
+            throw new IllegalArgumentException("Authentication cannot be null");
+        }
 
         Object principal = authentication.getPrincipal();
 

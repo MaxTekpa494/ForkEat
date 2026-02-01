@@ -111,7 +111,7 @@ class AuthControllerTest {
             // Given
             when(userRegistrationService.registerUser(
                     anyString(), anyString(), anyString(), anyString(), anyString()
-            )).thenThrow(new IllegalArgumentException("Cet email est déjà utilisé"));
+            )).thenThrow(new IllegalArgumentException("This email is already used"));
 
             // When/Then
             mockMvc.perform(post("/register")
@@ -132,7 +132,7 @@ class AuthControllerTest {
             // Given
             when(userRegistrationService.registerUser(
                     anyString(), anyString(), anyString(), anyString(), anyString()
-            )).thenThrow(new IllegalArgumentException("Ce nom d'utilisateur est déjà pris"));
+            )).thenThrow(new IllegalArgumentException("This username is already used"));
 
             // When/Then
             mockMvc.perform(post("/register")
@@ -145,7 +145,7 @@ class AuthControllerTest {
                             .param("password", "password123"))
                     .andExpect(status().isOk())
                     .andExpect(view().name("layout/register"))
-                    .andExpect(model().attribute("error", "Ce nom d'utilisateur est déjà pris"));
+                    .andExpect(model().attribute("error", "This username is already used"));
         }
 
         @Test

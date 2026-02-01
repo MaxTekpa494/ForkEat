@@ -8,6 +8,7 @@ import org.springframework.security.oauth2.core.user.OAuth2User;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 public class CustomOAuth2User implements OAuth2User {
 
@@ -15,6 +16,9 @@ public class CustomOAuth2User implements OAuth2User {
     private final User user;
 
     public CustomOAuth2User(OAuth2User oauth2User, User user) {
+        Objects.requireNonNull(user);
+        Objects.requireNonNull(oauth2User);
+
         this.oauth2User = oauth2User;
         this.user = user;
     }
