@@ -1,6 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
-import fr.uge.forkeat.service.model.AllergenSeverity;
+import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;
@@ -41,6 +41,10 @@ public class AllergenEntity {
 
     public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public String getName() {

@@ -1,12 +1,9 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.UserRole;
-import fr.uge.forkeat.service.model.UserStatus;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import jakarta.persistence.*;
-import org.hibernate.annotations.JdbcTypeCode;
-import org.hibernate.type.SqlTypes;
-import org.springframework.beans.factory.annotation.Value;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -26,21 +23,18 @@ public class UserEntity {
     private String lastName;
     @Column(unique = true, nullable = false)
     private String email;
-    @Column(nullable = true)
+    @Column(nullable = false)
     private String password;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(nullable = false)
     private UserRole role;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(nullable = false)
     private UserStatus status;
 
     @Enumerated(EnumType.STRING)
-    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "auth_mode", nullable = false)
     private AuthMode authMode;
 
@@ -76,7 +70,7 @@ public class UserEntity {
             orphanRemoval = true,
             // Sinon on ne veut pas de eager, il faut que ça soit uni-directionnel et dans ce cas il faut
             // supprimer le champs wallet de la classe UserWallet
-            optional = false
+            optional = true // POUR L'INSTANT JE LE METS EN OPTIONAL à VOIR AVEC THIERNO
     )
     private WalletEntity wallet;
 
@@ -95,16 +89,17 @@ public class UserEntity {
         updatedAt = Instant.now();
     }
 
+    public UUID getId(){ return this.id; }
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
     public String getUsername() {
         return username;
     }
 
     public void setUsername(String username) {
         this.username = username;
-    }
-
-    public void setId(UUID id){
-        this.id = id;
     }
 
     public String getFirstName() {
@@ -207,8 +202,5 @@ public class UserEntity {
         }
     }
 
-    public UUID getId() {
-        return id;
-    }
 
 }

@@ -25,7 +25,7 @@ public class RecipeIngredientEntity {
     private IngredientEntity ingredient;
 
     @Column(precision = 10, scale = 2)
-    private BigDecimal quantity;
+    private BigDecimal quantity; // Claude me dit que c'est conseillé d'utiliser BigDecimal que double
 
     @Column(length = 30)
     private String unit;
@@ -48,6 +48,10 @@ public class RecipeIngredientEntity {
 
     public UUID getId() {
         return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
     }
 
     public RecipeEntity getRecipe() {

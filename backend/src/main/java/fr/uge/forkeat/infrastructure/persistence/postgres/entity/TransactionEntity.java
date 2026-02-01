@@ -60,6 +60,10 @@ public class TransactionEntity {
         return id;
     }
 
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
     public Long getAmount() {
         return amount;
     }
