@@ -23,13 +23,16 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class WalletControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
-
+    private final MockMvc mockMvc;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @MockitoBean
     private WalletService walletService;
+
+    @Autowired
+    public WalletControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
 
     @Test
     void shouldReturnPaymentUrl() throws Exception {

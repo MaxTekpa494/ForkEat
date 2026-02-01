@@ -7,7 +7,6 @@ import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import fr.uge.forkeat.service.WalletService;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,11 +27,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class StripeWebhookControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     @MockitoBean
     private WalletService walletService;
+
+    @Autowired
+    public StripeWebhookControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
 
     @Test
     void handleStripeEvent_ShouldProcessPayment_WhenSignatureIsValid() throws Exception {

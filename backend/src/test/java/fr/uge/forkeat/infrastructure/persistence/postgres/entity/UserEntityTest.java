@@ -1,5 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
+import fr.uge.forkeat.infrastructure.persistence.AbstractIntegrationTest;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.UserRole;
 import fr.uge.forkeat.service.model.UserStatus;
@@ -9,35 +10,20 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@Testcontainers
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class UserEntityTest {
+class UserEntityTest extends AbstractIntegrationTest {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withDatabaseName("forkeat_test")
-            .withUsername("test")
-            .withPassword("test");
+    private final EntityManager entityManager;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", () -> postgres.getJdbcUrl() + "&stringtype=unspecified");
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
+    @Autowired
+    public UserEntityTest(EntityManager entityManager) {
+        this.entityManager = entityManager;
     }
-
-    @Autowired // L'injection par constructeur ne fonctionne pas
-    private EntityManager entityManager;
 
     @Test
     void shouldCreateUser() {
