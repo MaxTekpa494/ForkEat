@@ -90,7 +90,7 @@ public class SecurityTests {
 
         //We test the endpoint is not reachable by an non-authenticated User
         mockMvc.perform(get("/api/user/greeting"))
-                .andExpect(status().isUnauthorized());
+                .andExpect(status().isForbidden());
 
 
         var adminDTO = new UserLogin("admin", "admin");

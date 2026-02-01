@@ -2,9 +2,9 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 
 import fr.uge.forkeat.presentation.rest.dto.UserRegister;
-import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.UserRole;
+import fr.uge.forkeat.service.user.UserRegistrationService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,9 +12,9 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/admin")
 public class AdminController {
 
-    private final UserService userService;
+    private final UserRegistrationService userService;
 
-    public  AdminController(UserService userService) {
+    public  AdminController(UserRegistrationService userService) {
         this.userService = userService;
     }
 

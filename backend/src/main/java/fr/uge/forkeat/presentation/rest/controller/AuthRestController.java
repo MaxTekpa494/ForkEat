@@ -4,9 +4,9 @@ package fr.uge.forkeat.presentation.rest.controller;
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.presentation.rest.dto.UserLogin;
 import fr.uge.forkeat.presentation.rest.dto.UserRegister;
-import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.UserRole;
+import fr.uge.forkeat.service.user.UserRegistrationService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -21,11 +21,11 @@ import java.util.HashMap;
 @RequestMapping("/api/auth")
 public class AuthRestController {
 
-    private final UserService userService;
+    private final UserRegistrationService userService;
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
 
-    public AuthRestController(UserService userService, AuthenticationManager authenticationManager, JwtUtils jwtUtils) {
+    public AuthRestController(UserRegistrationService userService, AuthenticationManager authenticationManager, JwtUtils jwtUtils) {
         this.userService = userService;
         this.authenticationManager = authenticationManager;
         this.jwtUtils = jwtUtils;

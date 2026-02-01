@@ -1,102 +1,28 @@
-package fr.uge.forkeat.service;
+package fr.uge.forkeat.service.user;
 
-import fr.uge.forkeat.service.model.User;
-import fr.uge.forkeat.service.model.UserRole;
-import fr.uge.forkeat.service.model.UserStatus;
-import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.persistence.UserPersistence;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.User;
+import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
-import java.time.Instant;
+
 import java.util.UUID;
 
 @Service
-public class UserService {
-
+public class UserUpdateService {
     private final UserPersistence userPersistence;
+    private final UserQueryService userQueryService;
     private final PasswordEncoder passwordEncoder;
-    private final WalletService walletService;
 
-    public UserService(UserPersistence userPersistence,
-                       PasswordEncoder passwordEncoder,
-                       WalletService walletService) {
+    UserUpdateService(UserPersistence userPersistence,
+                      UserQueryService userQueryService,
+                      PasswordEncoder passwordEncoder){
         this.userPersistence = userPersistence;
+        this.userQueryService = userQueryService;
         this.passwordEncoder = passwordEncoder;
-        this.walletService = walletService;
-    }
-
-    @Transactional(
-            isolation = Isolation.REPEATABLE_READ,
-            timeout = 15
-    )
-    public User registerUser(String firstName, String lastName, String username,
-                             String email, String password, UserRole role) throws ResourceNotFoundException {
-
-        if (userPersistence.existsByEmail(email)) {
-            throw new IllegalArgumentException("Cet email est déjà utilisé");
-        }
-
-        // Vérifier si le username existe déjà
-        if (userPersistence.existsByUsername(username)) {
-            throw new IllegalArgumentException("Ce nom d'utilisateur est déjà pris");
-        }
-
-        var userId = UUID.randomUUID();
-
-        User user = new User(
-                userId,
-                username,
-                firstName,
-                lastName,
-                email,
-                passwordEncoder.encode(password),
-                Instant.now(),
-                role,
-                UserStatus.ACTIVE,
-                AuthMode.LOCAL,
-                null
-        );
-
-        User savedUser = userPersistence.saveUser(user);
-
-        var wallet = walletService.createWallet(savedUser.id());
-
-        User userWithWallet = new User(
-                savedUser.id(),
-                savedUser.username(),
-                savedUser.firstName(),
-                savedUser.lastName(),
-                savedUser.email(),
-                savedUser.password(),
-                savedUser.createdAt(),
-                savedUser.role(),
-                savedUser.status(),
-                savedUser.authentificationMode(),
-                wallet.id()
-        );
-
-        return userPersistence.saveUser(userWithWallet);
-    }
-
-    @Transactional(readOnly = true)
-    public User getUserByEmail(String email) throws ResourceNotFoundException {
-        return userPersistence.findByEmail(email)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
-    }
-
-    @Transactional(readOnly = true)
-    public User getUserById(UUID id) throws ResourceNotFoundException {
-        return userPersistence.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé"));
-    }
-
-    @Transactional(readOnly = true)
-    public User getUserByUsername(String username) throws ResourceNotFoundException {
-        return userPersistence.findByUsername(username)
-                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur non trouvé : " + username));
     }
 
     @Transactional(
@@ -104,13 +30,13 @@ public class UserService {
             timeout = 10
     )
     public User updateProfile(UUID userId, String firstName, String lastName, String username) throws ResourceNotFoundException {
-        User user = getUserById(userId);
+        var user = userQueryService.getUserById(userId);
 
         if (!user.username().equals(username) && userPersistence.existsByUsername(username)) {
             throw new IllegalArgumentException("Ce nom d'utilisateur est déjà pris");
         }
 
-        User updatedUser = new User(
+        var updatedUser = new User(
                 user.id(),
                 username,
                 firstName,
@@ -132,7 +58,7 @@ public class UserService {
             timeout = 10
     )
     public User updateEmail(UUID userId, String newEmail, String currentPassword) throws ResourceNotFoundException {
-        User user = getUserById(userId);
+        var user = userQueryService.getUserById(userId);
 
         // Vérifier le mot de passe actuel pour la sécurité
         if (!passwordEncoder.matches(currentPassword, user.password())) {
@@ -144,7 +70,7 @@ public class UserService {
             throw new IllegalArgumentException("Cet email est déjà utilisé");
         }
 
-        User updatedUser = new User(
+        var updatedUser = new User(
                 user.id(),
                 user.username(),
                 user.firstName(),
@@ -166,7 +92,7 @@ public class UserService {
             timeout = 10
     )
     public void updatePassword(UUID userId, String currentPassword, String newPassword) throws ResourceNotFoundException {
-        User user = getUserById(userId);
+        var user = userQueryService.getUserById(userId);
 
         if (!passwordEncoder.matches(currentPassword, user.password())) {
             throw new IllegalArgumentException("Mot de passe actuel incorrect");
@@ -176,7 +102,7 @@ public class UserService {
             throw new IllegalArgumentException("Le nouveau mot de passe doit contenir au moins 8 caractères");
         }
 
-        User updatedUser = new User(
+        var updatedUser = new User(
                 user.id(),
                 user.username(),
                 user.firstName(),
@@ -191,5 +117,36 @@ public class UserService {
         );
 
         userPersistence.saveUser(updatedUser);
+    }
+
+
+
+    /**
+     * Migre un user LOCAL vers OAuth2.
+     * Permet à un user qui s'est inscrit avec password
+     * de se connecter ensuite avec Google.
+     */
+    @Transactional(
+            isolation = Isolation.READ_COMMITTED,
+            timeout = 10
+    )
+    public User migrateToOAuth2(UUID userId, AuthMode newAuthMode) throws ResourceNotFoundException {
+        var user = userQueryService.getUserById(userId);
+
+        var migratedUser = new User(
+                user.id(),
+                user.username(),
+                user.firstName(),
+                user.lastName(),
+                user.email(),
+                null,
+                user.createdAt(),
+                user.role(),
+                user.status(),
+                newAuthMode,
+                user.walletId()
+        );
+
+        return userPersistence.saveUser(migratedUser);
     }
 }

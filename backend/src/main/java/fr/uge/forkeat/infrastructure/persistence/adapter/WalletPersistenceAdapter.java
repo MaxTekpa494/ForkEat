@@ -29,7 +29,7 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 
     public WalletPersistenceAdapter(WalletJpaRepository walletRepository,
                                     TransactionJpaRepository transactionRepository,
-                                    UserJpaRepository userRepository, // AJOUTER
+                                    UserJpaRepository userRepository,
                                     WalletMapper walletMapper,
                                     TransactionMapper transactionMapper) {
         this.walletRepository = walletRepository;
@@ -65,7 +65,7 @@ public class WalletPersistenceAdapter implements WalletPersistence {
                 });
 
         walletMapper.updateEntity(entity, wallet);
-        WalletEntity saved = walletRepository.save(entity);
+        var saved = walletRepository.save(entity);
         return walletMapper.toDomain(saved);
     }
 

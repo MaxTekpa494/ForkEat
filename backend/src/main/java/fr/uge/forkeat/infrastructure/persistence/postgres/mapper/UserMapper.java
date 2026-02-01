@@ -4,9 +4,13 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.service.model.User;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Component
 public class UserMapper {
     public UserEntity toEntity(User user) {
+        Objects.requireNonNull(user, "User cannot be null");
+
         UserEntity entity = new UserEntity();
         entity.setId(user.id());
         entity.setUsername(user.username());
@@ -22,9 +26,7 @@ public class UserMapper {
     }
 
     public User toModel(UserEntity entity) {
-        if (entity == null) {
-            return null;
-        }
+        Objects.requireNonNull(entity, "UserEntity cannot be null");
 
         var walletId = (entity.getWallet() != null) ? entity.getWallet().getId() : null;
 

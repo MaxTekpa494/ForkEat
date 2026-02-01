@@ -72,38 +72,9 @@ public class WalletEntity {
         return user;
     }
 
-    void setUser(UserEntity user) {
+    public void setUser(UserEntity user) {
         this.user = user;
     }
-
-
-    /**
-     * Crédite le wallet (recharge ou redistribution)
-     * @throws IllegalArgumentException si amount négatif
-     */
-    public void credit(long amount){
-        if(amount < 0){
-            throw new IllegalArgumentException("Cannot credit negative amount");
-        }
-        balance += amount;
-    }
-
-
-    /**
-     * Débite le wallet (super-like, retrait)
-     * @throws IllegalStateException si solde insuffisant
-     * @throws IllegalArgumentException si amount négatif
-     */
-    public void debit(long amount){
-        if(amount < 0){
-            throw new IllegalArgumentException("Cannot debit negative amount");
-        }
-        if(balance < amount){
-            throw new IllegalStateException("Insufficient balance");
-        }
-        balance -= amount;
-    }
-
 
 
     @Override

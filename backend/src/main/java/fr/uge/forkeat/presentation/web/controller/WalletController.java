@@ -1,44 +1,43 @@
 package fr.uge.forkeat.presentation.web.controller;
-
-import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.model.User;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.userdetails.UserDetails;
+import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.user.UserQueryService;
+import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 
-import java.util.List;
-
 @Controller("walletWebController")
-@RequestMapping("/wallet")
 public class WalletController {
 
-    private final UserService userService;
+    private final UserQueryService userQueryService;
     private final WalletService walletService;
+    private final AuthenticationPort authPort;
 
-    public WalletController(UserService userService, WalletService walletService) {
-        this.userService = userService;
+    public WalletController(
+            UserQueryService userQueryService,
+            WalletService walletService,
+            AuthenticationPort authPort
+    ) {
+        this.userQueryService = userQueryService;
         this.walletService = walletService;
+        this.authPort = authPort;
     }
 
-    @GetMapping
+    @GetMapping("/wallet")
     public String walletPage(
-        @AuthenticationPrincipal UserDetails currentUser,
-        Model model
+            Authentication authentication,
+            Model model
     ) throws ResourceNotFoundException {
-        User user = userService.getUserByUsername(currentUser.getUsername());
-        Long balance = walletService.getBalance(user.id());
-        
-        // TODO: Récupérer l'historique des transactions
-        // List<Transaction> transactions = walletService.getTransactionHistory(user.id());
-        
+        var username = authPort.extractUsername(authentication);
+
+        var user = userQueryService.getUserByUsername(username);
+        var balance = walletService.getBalance(user.id());
+
         model.addAttribute("user", user);
         model.addAttribute("balance", balance);
-        // model.addAttribute("transactions", transactions);
         model.addAttribute("pageTitle", "Mon Wallet - ForkEat");
 
         return "wallet/index";

@@ -4,12 +4,13 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.TransactionEnti
 import fr.uge.forkeat.service.model.Transaction;
 import org.springframework.stereotype.Component;
 
+import java.util.Objects;
+
 @Component
 public class TransactionMapper {
 
     public Transaction toDomain(TransactionEntity entity) {
-        if (entity == null) return null;
-
+        Objects.requireNonNull(entity, "Entity cannot be null");
         return new Transaction(
                 entity.getSourceWallet() != null ? entity.getSourceWallet().getId() : null,
                 entity.getDestinationWallet() != null ? entity.getDestinationWallet().getId() : null,
@@ -21,7 +22,7 @@ public class TransactionMapper {
     }
 
     public TransactionEntity toEntity(Transaction domain) {
-        if (domain == null) return null;
+        Objects.requireNonNull(domain, "Domain cannot be null");
 
         TransactionEntity entity = new TransactionEntity();
         entity.setAmount(domain.amount());
