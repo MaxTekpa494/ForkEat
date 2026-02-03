@@ -12,30 +12,27 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class DashboardController {
 
-    private final UserQueryService userQueryServic;
-    private final WalletService walletService;
-    private final AuthenticationPort authPort;
+	private final UserQueryService userQueryServic;
+	private final WalletService walletService;
+	private final AuthenticationPort authPort;
 
-    public DashboardController(UserQueryService userQueryService, WalletService walletService,
-                               AuthenticationPort authPort) {
-        this.userQueryServic = userQueryService;
-        this.walletService = walletService;
-        this.authPort = authPort;
-    }
+	public DashboardController(UserQueryService userQueryService, WalletService walletService,
+			AuthenticationPort authPort) {
+		this.userQueryServic = userQueryService;
+		this.walletService = walletService;
+		this.authPort = authPort;
+	}
 
-    @GetMapping("/dashboard")
-    public String dashboard(
-            Authentication authentication,
-            Model model
-    ) throws ResourceNotFoundException {
-        var username = authPort.extractUsername(authentication);
+	@GetMapping("/dashboard")
+	public String dashboard(Authentication authentication, Model model) {
+		var username = authPort.extractUsername(authentication);
 
-        var user = userQueryServic.getUserByUsername(username);
+		var user = userQueryServic.getUserByUsername(username);
 
-        var balance = walletService.getBalance(user.id());
-        model.addAttribute("balance", balance);
-        model.addAttribute("user", user);
+		var balance = walletService.getBalance(user.id());
+		model.addAttribute("balance", balance);
+		model.addAttribute("user", user);
 
-        return "dashboard/index";
-    }
+		return "dashboard/index";
+	}
 }

@@ -4,11 +4,12 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 
-public record Wallet(UUID id, Long balance, Instant updatedAt) {
+public record Wallet(UUID id, UUID userId, long balance, Instant updatedAt) {
 
-    public Wallet{
+    public Wallet {
+        Objects.requireNonNull(userId);
         Objects.requireNonNull(balance);
-        if(balance < 0){
+        if (balance < 0) {
             throw new IllegalArgumentException("Wallet : balance < 0");
         }
     }
@@ -21,10 +22,10 @@ public record Wallet(UUID id, Long balance, Instant updatedAt) {
         if (!hasSufficientBalance(amount)) {
             throw new IllegalStateException("Insufficient balance");
         }
-        return new Wallet(id, balance - amount, Instant.now());
+        return new Wallet(id, userId, balance - amount, Instant.now());
     }
 
     public Wallet credit(long amount) {
-        return new Wallet(id, balance + amount, Instant.now());
+        return new Wallet(id, userId, balance + amount, Instant.now());
     }
 }

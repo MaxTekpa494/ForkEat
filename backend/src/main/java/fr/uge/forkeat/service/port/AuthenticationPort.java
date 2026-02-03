@@ -1,8 +1,7 @@
 package fr.uge.forkeat.service.port;
 
-import fr.uge.forkeat.service.model.User;
+import fr.uge.forkeat.service.model.user.User;
 import org.springframework.security.core.Authentication;
-import org.springframework.security.oauth2.core.user.OAuth2User;
 
 public interface AuthenticationPort {
     String extractUsername(Authentication authentication);

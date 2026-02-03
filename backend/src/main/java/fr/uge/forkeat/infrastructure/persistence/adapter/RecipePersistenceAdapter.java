@@ -2,7 +2,6 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.AllergenRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientRepository;

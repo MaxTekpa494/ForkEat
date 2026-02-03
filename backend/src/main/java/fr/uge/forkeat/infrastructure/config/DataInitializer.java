@@ -1,13 +1,10 @@
 package fr.uge.forkeat.infrastructure.config;
 
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserJpaRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletJpaRepository;
-import fr.uge.forkeat.service.model.UserRole;
-import fr.uge.forkeat.service.model.UserStatus;
-import jakarta.persistence.EntityManager;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.context.annotation.Bean;
@@ -32,7 +29,7 @@ public class DataInitializer {
 
 
     @Bean
-    public CommandLineRunner initData(UserJpaRepository userRepo, PasswordEncoder passwordEncoder) {
+    public CommandLineRunner initData(UserRepository userRepo, PasswordEncoder passwordEncoder) {
         return args -> {
 
             if (userRepo.count() == 1) {

@@ -1,5 +1,6 @@
 package fr.uge.forkeat.presentation.mapper;
 
+import fr.uge.forkeat.presentation.mapper.rest.UserDTOMapper;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.*;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,7 +17,7 @@ class UserDTOMapperTest {
 
     @BeforeEach
     void setUp() {
-        mapper = new UserDTOMapper();
+        //mapper = new UserDTOMapper();
     }
 
     @Test
@@ -59,7 +60,7 @@ class UserDTOMapperTest {
 
     @Test
     void toDTO_shouldReturnNullWhenUserIsNull() {
-        var dto = mapper.toDTO(null);
+        var dto = UserDTOMapper.toDTO(null);
         assertNull(dto);
     }
 
@@ -67,7 +68,7 @@ class UserDTOMapperTest {
     void toDTO_shouldHandleNullBankInfo() {
         var user = createUserWithBankInfoAndWallet(null, new Wallet(UUID.randomUUID(), 500L, Instant.now()));
 
-        var dto = mapper.toDTO(user);
+        var dto = UserDTOMapper.toDTO(user);
 
         assertNotNull(dto);
         assertNull(dto.bankInfo());
@@ -78,7 +79,7 @@ class UserDTOMapperTest {
         var bankInfo = new BankInfo("Crédit Agricole", "FR7698765432109876543210987", "AGRIFRPP");
         var user = createUserWithBankInfoAndWallet(bankInfo, null);
 
-        var dto = mapper.toDTO(user);
+        var dto = UserDTOMapper.toDTO(user);
 
         assertNotNull(dto);
         assertNull(dto.wallet());
@@ -88,7 +89,7 @@ class UserDTOMapperTest {
     void toDTO_shouldConvertAllRolesCorrectly() {
         for (UserRole role : UserRole.values()) {
             var user = createUserWithRole(role);
-            var dto = mapper.toDTO(user);
+            var dto = UserDTOMapper.toDTO(user);
             assertEquals(role.name(), dto.role());
         }
     }
@@ -97,7 +98,7 @@ class UserDTOMapperTest {
     void toDTO_shouldConvertAllStatusesCorrectly() {
         for (UserStatus status : UserStatus.values()) {
             var user = createUserWithStatus(status);
-            var dto = mapper.toDTO(user);
+            var dto = UserDTOMapper.toDTO(user);
             assertEquals(status.name(), dto.status());
         }
     }
@@ -106,7 +107,7 @@ class UserDTOMapperTest {
     void toDTO_shouldConvertAllAuthModesCorrectly() {
         for (AuthMode authMode : AuthMode.values()) {
             var user = createUserWithAuthMode(authMode);
-            var dto = mapper.toDTO(user);
+            var dto = UserDTOMapper.toDTO(user);
             assertEquals(authMode.name(), dto.authMode());
         }
     }
@@ -117,7 +118,7 @@ class UserDTOMapperTest {
         var now = Instant.now();
         var wallet = new Wallet(id, 2500L, now);
 
-        var dto = mapper.toWalletDTO(wallet);
+        var dto = UserDTOMapper.toWalletDTO(wallet);
 
         assertNotNull(dto);
         assertEquals(id, dto.id());

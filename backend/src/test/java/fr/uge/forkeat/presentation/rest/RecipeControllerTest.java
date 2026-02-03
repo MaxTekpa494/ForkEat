@@ -2,6 +2,7 @@ package fr.uge.forkeat.presentation.rest;
 
 import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
+import fr.uge.forkeat.presentation.rest.controller.RecipeController;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;

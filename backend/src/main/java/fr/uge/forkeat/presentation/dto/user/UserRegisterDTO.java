@@ -1,4 +1,4 @@
-package fr.uge.forkeat.presentation.rest.dto;
+package fr.uge.forkeat.presentation.dto.user;
 
 
 public record UserRegisterDTO(String username, String firstName, String lastName, String password, String email) {

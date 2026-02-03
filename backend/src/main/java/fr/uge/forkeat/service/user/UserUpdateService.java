@@ -2,7 +2,7 @@ package fr.uge.forkeat.service.user;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.User;
+import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -112,7 +112,7 @@ public class UserUpdateService {
                 user.createdAt(),
                 user.role(),
                 user.status(),
-                user.authentificationMode(),
+                user.authMode(),
                 user.walletId()
         );
 

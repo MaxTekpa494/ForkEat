@@ -1,6 +1,6 @@
 package fr.uge.forkeat.service;
 
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserJpaRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
@@ -9,9 +9,9 @@ import org.springframework.stereotype.Service;
 @Service
 public class CustomUserDetailsService implements UserDetailsService {
 
-    private final UserJpaRepository userRepository;
+    private final UserRepository userRepository;
 
-    public  CustomUserDetailsService(UserJpaRepository userRepository) {
+    public  CustomUserDetailsService(UserRepository userRepository) {
         this.userRepository = userRepository;
     }
 

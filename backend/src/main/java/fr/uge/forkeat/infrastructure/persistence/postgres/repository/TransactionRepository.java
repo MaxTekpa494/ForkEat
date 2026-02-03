@@ -1,8 +1,8 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.repository;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.TransactionEntity;
-import org.springframework.data.repository.CrudRepository;
+import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface TransactionJpaRepository extends CrudRepository<TransactionEntity, String> {
+public interface TransactionRepository extends JpaRepository<TransactionEntity, String> {
     boolean existsByStripeTransactionID(String externalID);
 }

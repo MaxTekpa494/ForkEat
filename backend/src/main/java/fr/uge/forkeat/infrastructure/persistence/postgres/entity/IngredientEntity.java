@@ -54,9 +54,6 @@ IngredientEntity {
         this.name = name;
     }
 
-    public void setId(UUID id){
-        this.id = id;
-    }
 
     public String getCategory() {
         return category;

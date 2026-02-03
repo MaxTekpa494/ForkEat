@@ -1,6 +1,6 @@
 package fr.uge.forkeat.infrastructure.security.strategy;
 
-import fr.uge.forkeat.service.model.User;
+import fr.uge.forkeat.service.model.user.User;
 
 public interface PrincipalExtractor {
 

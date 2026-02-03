@@ -2,8 +2,11 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.mapper.UserMapper;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserJpaRepository;
-import fr.uge.forkeat.service.model.*;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -22,7 +25,7 @@ import static org.mockito.Mockito.*;
 class UserPersistenceAdapterTest {
 
     @Mock
-    private UserJpaRepository userRepository;
+    private UserRepository userRepository;
 
     @Mock
     private UserMapper userMapper;

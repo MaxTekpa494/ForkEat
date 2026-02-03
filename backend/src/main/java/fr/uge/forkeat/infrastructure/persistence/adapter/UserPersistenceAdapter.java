@@ -1,9 +1,9 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.mapper.UserMapper;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserJpaRepository;
-import fr.uge.forkeat.service.model.User;
+import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
@@ -14,10 +14,10 @@ import java.util.UUID;
 @Component
 public class UserPersistenceAdapter implements UserPersistence {
 
-    private final UserJpaRepository userRepository;
-    private final UserMapper userMapper;
+    private final UserRepository userRepository;
+    private final UserEntityMapper userMapper;
 
-    public UserPersistenceAdapter(UserJpaRepository userRepository, UserMapper userMapper) {
+    public UserPersistenceAdapter(UserRepository userRepository, UserEntityMapper userMapper) {
         this.userRepository = userRepository;
         this.userMapper = userMapper;
     }

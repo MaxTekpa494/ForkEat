@@ -1,8 +1,8 @@
-package fr.uge.forkeat.presentation.rest.dto;
+package fr.uge.forkeat.presentation.dto.user;
 
 
-public record TopUpRequestDto(Long amount) {
-    public TopUpRequestDto{
+public record TopUpRequestDTO(Long amount) {
+    public TopUpRequestDTO {
         if(amount < 100L){
             throw new IllegalArgumentException("Amount must be at least 1 euro");
         }

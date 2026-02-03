@@ -1,7 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.TransactionEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.mapper.TransactionMapper;
 import fr.uge.forkeat.service.model.Transaction;
 import fr.uge.forkeat.service.model.TransactionType;
 import org.junit.jupiter.api.Test;
@@ -10,9 +9,9 @@ import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
-class TransactionMapperTest {
+class TransactionEntityMapperTest {
 
-    private final TransactionMapper mapper = new TransactionMapper();
+    private final TransactionEntityMapper mapper = new TransactionEntityMapper();
 
     @Test
     void transactionEntityToTransaction() {

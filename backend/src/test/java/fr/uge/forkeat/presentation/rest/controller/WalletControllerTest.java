@@ -2,7 +2,7 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
-import fr.uge.forkeat.presentation.rest.dto.TopUpRequestDto;
+import fr.uge.forkeat.presentation.dto.user.TopUpRequestDTO;
 import fr.uge.forkeat.service.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import org.junit.jupiter.api.Test;
@@ -41,7 +41,7 @@ class WalletControllerTest {
 
     @Test
     void shouldReturnPaymentUrl() throws Exception {
-        var request = new TopUpRequestDto(1000L); // Ton DTO
+        var request = new TopUpRequestDTO(1000L); // Ton DTO
         var expectedUrl = "https://checkout.stripe.com/pay/123";
 
         var hardcodedUserId = UUID.fromString("0a6a42d0-696b-4fa6-aa8e-40ba65a660ca");

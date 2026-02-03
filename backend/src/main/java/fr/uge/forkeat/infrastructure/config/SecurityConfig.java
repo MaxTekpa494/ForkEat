@@ -22,85 +22,66 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 public class SecurityConfig {
 
-    private final CustomUserDetailsService customUserDetailsService;
-    private final JwtUtils jwtUtils;
-    private final CustomOAuth2UserService customOAuth2UserService;
-    private final PasswordEncoder passwordEncoder;
+	private final CustomUserDetailsService customUserDetailsService;
+	private final JwtUtils jwtUtils;
+	private final CustomOAuth2UserService customOAuth2UserService;
+	private final PasswordEncoder passwordEncoder;
 
-    public SecurityConfig(CustomUserDetailsService customUserDetailsService,
-                          JwtUtils jwtUtils,
-                          CustomOAuth2UserService customOAuth2UserService,
-                          PasswordEncoder passwordEncoder) {
-        this.customUserDetailsService = customUserDetailsService;
-        this.jwtUtils = jwtUtils;
-        this.customOAuth2UserService = customOAuth2UserService;
-        this.passwordEncoder = passwordEncoder;
-    }
+	public SecurityConfig(CustomUserDetailsService customUserDetailsService, JwtUtils jwtUtils,
+			CustomOAuth2UserService customOAuth2UserService, PasswordEncoder passwordEncoder) {
+		this.customUserDetailsService = customUserDetailsService;
+		this.jwtUtils = jwtUtils;
+		this.customOAuth2UserService = customOAuth2UserService;
+		this.passwordEncoder = passwordEncoder;
+	}
 
-    @Bean
-    public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
-        AuthenticationManagerBuilder authenticationManagerBuilder = http.getSharedObject(AuthenticationManagerBuilder.class);
-        authenticationManagerBuilder.userDetailsService(customUserDetailsService).passwordEncoder(passwordEncoder);
-        return authenticationManagerBuilder.build();
-    }
+	@Bean
+	public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+		AuthenticationManagerBuilder authenticationManagerBuilder = http
+				.getSharedObject(AuthenticationManagerBuilder.class);
+		authenticationManagerBuilder.userDetailsService(customUserDetailsService).passwordEncoder(passwordEncoder);
+		return authenticationManagerBuilder.build();
+	}
 
-    @Bean
-    @Order(1)
-    public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .securityMatcher("/api/**")
-                .csrf(AbstractHttpConfigurer::disable)
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Pas de session cookie
-                .authorizeHttpRequests(auth -> auth
-                        // Login pour Android (pour récupérer le token)
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/*/user/*").authenticated()
-                        .requestMatchers("/*/moderator/*").hasRole("MODERATOR")
-                        .requestMatchers("/*/admin/*").hasRole("ADMIN")
-                        .anyRequest().permitAll()
-                )
-                .addFilterBefore(new JwtFilter(customUserDetailsService, jwtUtils), UsernamePasswordAuthenticationFilter.class)
-                .build();
-    }
+	@Bean
+	@Order(1)
+	public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+		return http.securityMatcher("/api/**").csrf(AbstractHttpConfigurer::disable)
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Pas de
+																												// session
+																												// cookie
+				.authorizeHttpRequests(auth -> auth
+						// Login pour Android (pour récupérer le token)
+						.requestMatchers("/api/auth/**").permitAll().requestMatchers("/*/open/*").permitAll()
+						.requestMatchers("/*/user/*").authenticated().requestMatchers("/*/moderator/*")
+						.hasRole("MODERATOR").requestMatchers("/*/admin/*").hasRole("ADMIN").anyRequest()
+						.hasRole("ADMIN"))
+				.addFilterBefore(new JwtFilter(customUserDetailsService, jwtUtils),
+						UsernamePasswordAuthenticationFilter.class)
+				.build();
+	}
 
-    @Bean
-    @Order(2)
-    public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
-        return http
-                .csrf(AbstractHttpConfigurer::disable)
-                .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
-                        .requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
-                        // Rôles
-                        .requestMatchers("/*/admin/*").hasRole("ADMIN")
-                        .requestMatchers("/*/moderator/*").hasRole("MODERATOR")
-                        .anyRequest().authenticated()
-                )
-                .formLogin(form -> form
-                        .loginPage("/login")
-                        .loginProcessingUrl("/login")
-                        .defaultSuccessUrl("/dashboard", true)
-                        .failureUrl("/login?error=true")
-                        .permitAll()
-                )
-                .oauth2Login(oauth2 -> oauth2
-                        .loginPage("/login")
-                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-                        .defaultSuccessUrl("/dashboard", true)
-                        .failureUrl("/login?error=true")
-                )
-                .logout(logout -> logout
-                        .logoutUrl("/logout")
-                        .logoutSuccessUrl("/login?logout=true")
-                        .invalidateHttpSession(true)
-                        .deleteCookies("JSESSIONID")
-                        .permitAll()
-                )
-                .build();
-    }
+	@Bean
+	@Order(2)
+	public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
+		return http.csrf(AbstractHttpConfigurer::disable)
+				.authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**", "/css/**", "/js/**", "/images/**")
+						.permitAll().requestMatchers(HttpMethod.GET, "/*/open/*").permitAll()
+						// Rôles
+						.requestMatchers("/*/admin/*").hasRole("ADMIN").requestMatchers("/*/moderator/*")
+						.hasRole("MODERATOR").anyRequest().hasRole("ADMIN"))
+				.formLogin(form -> form.loginPage("/auth/login").loginProcessingUrl("/auth/login")
+						.defaultSuccessUrl("/dashboard", true).failureUrl("/login?error=true").permitAll())
+				.oauth2Login(oauth2 -> oauth2.loginPage("/auth/login")
+						.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+						.defaultSuccessUrl("/dashboard", true).failureUrl("/login?error=true"))
+				.logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/login?logout=true")
+						.invalidateHttpSession(true).deleteCookies("JSESSIONID").permitAll())
+				.build();
+	}
 
-    @Bean
-    public RoleHierarchy roleHierarchy() {
-        return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_MODERATOR \n ROLE_MODERATOR > ROLE_USER");
-    }
+	@Bean
+	public RoleHierarchy roleHierarchy() {
+		return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_MODERATOR \n ROLE_MODERATOR > ROLE_USER");
+	}
 }

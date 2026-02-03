@@ -111,10 +111,6 @@ public class TransactionEntity {
         return createdAt;
     }
 
-    public void setId(UUID id){
-        this.id = id;
-    }
-
     public void setCreatedAt(Instant createdAt) {
         this.createdAt = createdAt;
     }

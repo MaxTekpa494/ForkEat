@@ -2,11 +2,10 @@ package fr.uge.forkeat.service.persistence;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.Wallet;
+import fr.uge.forkeat.service.model.user.Wallet;
 
 import java.util.Optional;
 import java.util.UUID;
-
 
 public interface WalletPersistence {
     // Récupérer par ID Utilisateur (avec verrou pour modification)

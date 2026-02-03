@@ -2,7 +2,6 @@ package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.mapper.WalletMapper;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
@@ -16,13 +15,13 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class WalletMapperTest {
+class WalletEntityMapperTest {
 
-    private WalletMapper walletMapper;
+    private WalletEntityMapper walletEntityMapper;
 
     @BeforeEach
     void setUp() {
-        walletMapper = new WalletMapper();
+        walletEntityMapper = new WalletEntityMapper();
     }
 
     private UserEntity createUserEntity() {
@@ -52,7 +51,7 @@ class WalletMapperTest {
             entity.setUpdatedAt(Instant.now());
 
             // When
-            var wallet = walletMapper.toDomain(entity);
+            var wallet = walletEntityMapper.toDomain(entity);
 
             // Then
             assertNotNull(wallet);
@@ -72,7 +71,7 @@ class WalletMapperTest {
             entity.setUser(null); // Pas d'utilisateur
 
             // When
-            var wallet = walletMapper.toDomain(entity);
+            var wallet = walletEntityMapper.toDomain(entity);
 
             // Then
             assertNotNull(wallet);
@@ -84,7 +83,7 @@ class WalletMapperTest {
         void toDomain_ShouldThrowException_WhenEntityIsNull() {
             // When/Then
             NullPointerException exception = assertThrows(NullPointerException.class, () -> {
-                walletMapper.toDomain(null);
+                walletEntityMapper.toDomain(null);
             });
 
             // Vérifier le message d'erreur
@@ -106,7 +105,7 @@ class WalletMapperTest {
             var wallet = new Wallet(entity.getId(), 2000L, user.getId(), newTimestamp);
 
             // When
-            walletMapper.updateEntity(entity, wallet);
+            walletEntityMapper.updateEntity(entity, wallet);
 
             // Then
             assertEquals(2000L, entity.getBalance());
@@ -125,7 +124,7 @@ class WalletMapperTest {
             var wallet = new Wallet(differentId, 2000L, user.getId(), Instant.now());
 
             // When
-            walletMapper.updateEntity(entity, wallet);
+            walletEntityMapper.updateEntity(entity, wallet);
 
             // Then - ID ne doit pas changer
             assertEquals(originalId, entity.getId());
@@ -142,7 +141,7 @@ class WalletMapperTest {
             var wallet = new Wallet(entity.getId(), 2000L, differentUserId, Instant.now());
 
             // When
-            walletMapper.updateEntity(entity, wallet);
+            walletEntityMapper.updateEntity(entity, wallet);
 
             // Then - User ne doit pas changer
             assertEquals(user, entity.getUser());
@@ -156,7 +155,7 @@ class WalletMapperTest {
 
             // When/Then
             NullPointerException exception = assertThrows(NullPointerException.class, () -> {
-                walletMapper.updateEntity(null, wallet);
+                walletEntityMapper.updateEntity(null, wallet);
             });
 
             // Vérifier le message d'erreur
@@ -175,7 +174,7 @@ class WalletMapperTest {
 
             // When/Then
             NullPointerException exception = assertThrows(NullPointerException.class, () -> {
-                walletMapper.updateEntity(entity, null);
+                walletEntityMapper.updateEntity(entity, null);
             });
 
             // Vérifier le message d'erreur

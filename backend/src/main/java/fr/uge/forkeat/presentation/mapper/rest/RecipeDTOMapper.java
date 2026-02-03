@@ -1,4 +1,4 @@
-package fr.uge.forkeat.presentation.mapper;
+package fr.uge.forkeat.presentation.mapper.rest;
 
 import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;

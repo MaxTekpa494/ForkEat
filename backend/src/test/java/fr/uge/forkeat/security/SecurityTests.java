@@ -1,8 +1,7 @@
 package fr.uge.forkeat.security;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import fr.uge.forkeat.presentation.rest.dto.UserLogin;
-import fr.uge.forkeat.presentation.rest.dto.UserRegister;
+import fr.uge.forkeat.presentation.dto.user.UserLoginDTO;
+import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
@@ -51,9 +50,9 @@ public class SecurityTests {
 
     @Test
     public void authenticationTest() throws Exception {
-        var user = new UserRegister("S1dAli", "SidAli", "Cherrati", "password1", "sidali@gmail.com");
+        var user = new UserRegisterDTO("S1dAli", "SidAli", "Cherrati", "password1", "sidali@gmail.com");
 
-        var userLogin = new UserLogin("S1dAli", "password1");
+        var userLogin = new UserLoginDTO("S1dAli", "password1");
 
 
         var objectMapper = new ObjectMapper();
@@ -93,7 +92,7 @@ public class SecurityTests {
                 .andExpect(status().isForbidden());
 
 
-        var adminDTO = new UserLogin("admin", "admin");
+        var adminDTO = new UserLoginDTO("admin", "admin");
         //We try to recup the adminToken
         var loginAdminBodyResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -122,7 +121,7 @@ public class SecurityTests {
 
         //We try to create a moderator
 
-        var moderatorDTO = new UserRegister("modo", "Max", "Tekpa", "password1", "modo@gmail.com");
+        var moderatorDTO = new UserRegisterDTO("modo", "Max", "Tekpa", "password1", "modo@gmail.com");
         mockMvc.perform(post("/api/admin/register")
                         .header("Authorization", tokenAdmin)
                         .contentType(MediaType.APPLICATION_JSON)
@@ -131,7 +130,7 @@ public class SecurityTests {
 
         //We try to authentify as the newly created moderator
 
-        var moderatorLoginDTO = new UserLogin("modo", "password1");
+        var moderatorLoginDTO = new UserLoginDTO("modo", "password1");
         var loginModeratorBodyResponse = mockMvc.perform(post("/api/auth/login")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(moderatorLoginDTO)))

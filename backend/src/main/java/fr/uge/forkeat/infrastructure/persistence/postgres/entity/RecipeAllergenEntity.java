@@ -51,10 +51,6 @@ public class RecipeAllergenEntity {
         this.recipe = recipe;
     }
 
-    public void setId(UUID id){
-        this.id = id;
-    }
-
     public AllergenEntity getAllergen() {
         return allergen;
     }

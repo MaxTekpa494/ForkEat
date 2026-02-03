@@ -9,7 +9,6 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.AllergenRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;

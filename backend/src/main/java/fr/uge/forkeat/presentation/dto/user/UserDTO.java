@@ -12,8 +12,8 @@ public record UserDTO(
         String role,
         String status,
         String authMode,
-        BankInfoDTO bankInfo,
-        WalletDTO wallet,
+        UUID walletId,
+        UUID bankInfoId,
         Instant createdAt,
         Instant updatedAt
 ) {

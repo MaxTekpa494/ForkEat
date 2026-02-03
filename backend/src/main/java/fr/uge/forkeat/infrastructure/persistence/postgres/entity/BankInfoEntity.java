@@ -73,9 +73,6 @@ public class BankInfoEntity {
         return bankName;
     }
 
-    public void setId(UUID id){
-        this.id = id;
-    }
 
     public void setIban(String iban) {
         this.iban = iban;

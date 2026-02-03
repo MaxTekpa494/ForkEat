@@ -62,10 +62,6 @@ public class RecipeIngredientEntity {
         this.recipe = recipe;
     }
 
-    public void setId(UUID id){
-        this.id = id;
-    }
-
     public IngredientEntity getIngredient() {
         return ingredient;
     }

@@ -1,4 +1,4 @@
-package fr.uge.forkeat.infrastructure.persistence.postgres.mapper;
+package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.service.model.Wallet;
@@ -7,7 +7,7 @@ import org.springframework.stereotype.Component;
 import java.util.Objects;
 
 @Component
-public class WalletMapper {
+public class WalletEntityMapper {
 
     public Wallet toDomain(WalletEntity entity) {
         Objects.requireNonNull(entity, "WalletEntity cannot be null");

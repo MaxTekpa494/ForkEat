@@ -7,14 +7,14 @@ import fr.uge.forkeat.service.model.user.BankInfo;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.Wallet;
 
+import java.util.Objects;
+
 public final class UserEntityMapper {
 
     private UserEntityMapper() {}
 
-    public  User toDomain(UserEntity entity) {
-        if (entity == null) {
-            return null;
-        }
+    public  static User toDomain(UserEntity entity) {
+        Objects.requireNonNull(entity);
         return new User(
                 entity.getId(),
                 entity.getUsername(),
@@ -24,32 +24,74 @@ public final class UserEntityMapper {
                 entity.getRole(),
                 entity.getStatus(),
                 entity.getAuthMode(),
-                toBankInfo(entity.getBankInfo()),
-                toWallet(entity.getWallet()),
+                //toBankInfo(entity.getBankInfo()),
+                //toWallet(entity.getWallet()),
+                entity.getBankInfo().getId(),
+                entity.getWallet().getId(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
     }
 
-    public  Wallet toWallet(WalletEntity entity) {
-        if (entity == null) {
+    public static UserEntity toEntity(User user) {
+        Objects.requireNonNull(user);
+        var entity = new UserEntity();
+        entity.setId(user.id());
+        entity.setUsername(user.username());
+        entity.setFirstName(user.firstName());
+        entity.setLastName(user.lastName());
+        entity.setEmail(user.email());
+        entity.setRole(user.role());
+        entity.setStatus(user.status());
+        entity.setAuthMode(user.authMode());
+        entity.setCreatedAt(user.createdAt());
+        entity.setUpdatedAt(user.updatedAt());
+        //entity.setBankInfo(toBankInfoEntity(user.bankInfo(), entity));
+        //entity.setWallet(toWalletEntity(user.wallet(), entity));
+        return entity;
+    }
+
+    private static BankInfoEntity toBankInfoEntity(BankInfo bankInfo, UserEntity user) {
+        if (bankInfo == null) {
             return null;
         }
-        return new Wallet(
-                entity.getId(),
-                entity.getBalance(),
-                entity.getUpdatedAt()
+        return new BankInfoEntity(
+                bankInfo.bankName(),
+                bankInfo.iban(),
+                bankInfo.bic(),
+                user
         );
     }
 
-    public static BankInfo toBankInfo(BankInfoEntity entity) {
-        if (entity == null) {
-            return null;
-        }
-        return new BankInfo(
-                entity.getBankName(),
-                entity.getIban(),
-                entity.getBic()
-        );
-    }
+//    private static WalletEntity toWalletEntity(Wallet wallet, UserEntity user) {
+//        if (wallet == null) {
+//            return null;
+//        }
+//        var entity = new WalletEntity(wallet.balance(), user);
+//        entity.setId(wallet.id());
+//        entity.setUpdatedAt(wallet.updatedAt());
+//        return entity;
+//    }
+//
+//    private static Wallet toWallet(WalletEntity entity) {
+//        if (entity == null) {
+//            return null;
+//        }
+//        return new Wallet(
+//                entity.getId(),
+//                entity.getBalance(),
+//                entity.getUpdatedAt()
+//        );
+//    }
+//
+//    private static BankInfo toBankInfo(BankInfoEntity entity) {
+//        if (entity == null) {
+//            return null;
+//        }
+//        return new BankInfo(
+//                entity.getBankName(),
+//                entity.getIban(),
+//                entity.getBic()
+//        );
+//    }
 }

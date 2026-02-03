@@ -24,22 +24,18 @@ public class JwtUtils {
     private long expirationTime;
 
     public String generateToken(String username) {
-        Map<String, Object> claims = new HashMap<>();
+        var claims = new HashMap<String, String>();
         return createToken(claims, username);
     }
 
-    private String createToken(Map<String, Object> claims, String subject) {
-        return Jwts.builder()
-                .setClaims(claims)
-                .setSubject(subject)
-                .setIssuedAt(new Date(System.currentTimeMillis()))
+    private String createToken(Map<String, String> claims, String subject) {
+        return Jwts.builder().setClaims(claims).setSubject(subject).setIssuedAt(new Date(System.currentTimeMillis()))
                 .setExpiration(new Date(System.currentTimeMillis() + expirationTime))
-                .signWith(getSignKey(), SignatureAlgorithm.HS256)
-                .compact();
+                .signWith(getSignKey(), SignatureAlgorithm.HS256).compact();
     }
 
     private Key getSignKey() {
-        byte[] keyBytes = secret.getBytes();
+        var keyBytes = secret.getBytes();
         return new SecretKeySpec(keyBytes, SignatureAlgorithm.HS256.getJcaName());
     }
 
@@ -61,20 +57,14 @@ public class JwtUtils {
         return extractClaim(token, Claims::getExpiration);
     }
 
-
-
     private <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
-        Claims claims = extractAllClaims(token);
+        var claims = extractAllClaims(token);
         return claimsResolver.apply(claims);
 
     }
 
     private Claims extractAllClaims(String token) {
 
-        return Jwts.parserBuilder()
-                .setSigningKey(getSignKey())
-                .build()
-                .parseClaimsJws(token)
-                .getBody();
+        return Jwts.parserBuilder().setSigningKey(getSignKey()).build().parseClaimsJws(token).getBody();
     }
 }
