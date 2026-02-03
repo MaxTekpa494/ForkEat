@@ -1,6 +1,8 @@
+
 package fr.uge.forkeat.presentation.response;
 
 public record CreatedResponse<T>(T resource) implements HttpResponse<T> {
+
   @Override
   public boolean success() {
     return true;

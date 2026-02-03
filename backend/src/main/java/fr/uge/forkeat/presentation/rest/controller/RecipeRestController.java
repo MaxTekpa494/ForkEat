@@ -18,11 +18,11 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("api/recipes")
-public final class RecipeController {
+public final class RecipeRestController {
 
 	private final RecipeService recipeService;
 
-	public RecipeController(RecipeService recipeService) {
+	public RecipeRestController(RecipeService recipeService) {
 		this.recipeService = Objects.requireNonNull(recipeService);
 	}
 

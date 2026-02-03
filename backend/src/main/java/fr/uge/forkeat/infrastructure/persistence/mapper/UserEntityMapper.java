@@ -24,10 +24,6 @@ public final class UserEntityMapper {
                 entity.getRole(),
                 entity.getStatus(),
                 entity.getAuthMode(),
-                //toBankInfo(entity.getBankInfo()),
-                //toWallet(entity.getWallet()),
-                entity.getBankInfo().getId(),
-                entity.getWallet().getId(),
                 entity.getCreatedAt(),
                 entity.getUpdatedAt()
         );
@@ -46,8 +42,6 @@ public final class UserEntityMapper {
         entity.setAuthMode(user.authMode());
         entity.setCreatedAt(user.createdAt());
         entity.setUpdatedAt(user.updatedAt());
-        //entity.setBankInfo(toBankInfoEntity(user.bankInfo(), entity));
-        //entity.setWallet(toWalletEntity(user.wallet(), entity));
         return entity;
     }
 

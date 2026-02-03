@@ -24,7 +24,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(WalletController.class)
+@WebMvcTest(WalletMVCController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class WalletWebControllerTest {
 

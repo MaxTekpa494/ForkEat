@@ -5,7 +5,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
-public class HomeController {
+public class HomeWebController {
 
     @GetMapping("/")
     public String home(Model model) {
@@ -15,7 +15,6 @@ public class HomeController {
         model.addAttribute("totalRecipes", 1250);
         model.addAttribute("totalUsers", 8500);
         model.addAttribute("totalChefs", 450);
-        
         return "home/index";
     }
 }

@@ -3,54 +3,86 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
 
 @Component
 public class UserPersistenceAdapter implements UserPersistence {
 
-    private final UserRepository userRepository;
-    private final UserEntityMapper userMapper;
+	private final UserRepository userRepository;
 
-    public UserPersistenceAdapter(UserRepository userRepository, UserEntityMapper userMapper) {
-        this.userRepository = userRepository;
-        this.userMapper = userMapper;
+	public UserPersistenceAdapter(UserRepository userRepository) {
+		this.userRepository = Objects.requireNonNull(userRepository);
+	}
+
+	@Override
+	public User saveUser(User user, String hashedPassword) {
+		Objects.requireNonNull(user);
+		//Objects.requireNonNull(hashedPassword);
+		var entity = UserEntityMapper.toEntity(user);
+
+    if (Objects.requireNonNull(user.authMode()) == AuthMode.LOCAL) {
+      if (hashedPassword == null || hashedPassword.isEmpty()) {
+        throw new IllegalArgumentException("Hashed password is null or empty");
+      }
+      entity.setPassword(hashedPassword);
     }
 
-    @Override
-    public User saveUser(User user) {
-        var entity = userMapper.toEntity(user);
-        var saved = userRepository.save(entity);
-        return userMapper.toModel(saved);
-    }
+		var saved = userRepository.save(entity);
+		return UserEntityMapper.toDomain(saved);
+	}
 
-    @Override
-    public Optional<User> findById(UUID id) {
-        return userRepository.findById(id).map(userMapper::toModel);
-    }
 
-    @Override
-    public Optional<User> findByEmail(String email) {
-        return userRepository.findByEmail(email).map(userMapper::toModel);
-    }
+	@Override
+	public User updateUser(User user) {
+		Objects.requireNonNull(user);
+		var entity = UserEntityMapper.toEntity(user);
+		var userUpdated = userRepository.save(entity);
+		return UserEntityMapper.toDomain(userUpdated);
+	}
 
-    @Override
-    public Optional<User> findByUsername(String username) {
-        return userRepository.findByUsername(username).map(userMapper::toModel);
-    }
+	@Override
+	public boolean checkPassword(String username, String hashedPassword){
+		Objects.requireNonNull(username);
+		Objects.requireNonNull(hashedPassword);
+		var user = userRepository.findByUsername(username);
 
-    @Override
-    public boolean existsByEmail(String email) {
-        return userRepository.existsByEmail(email);
-    }
+		if(user.isEmpty()){
+			throw new ResourceNotFoundException("User not found with username  :" + username);
+		}
+		return user.get().getPassword().equals(hashedPassword);
+	}
 
-    @Override
-    public boolean existsByUsername(String username) {
-        return userRepository.existsByUsername(username);
-    }
+	@Override
+	public Optional<User> findById(UUID id) {
+		return userRepository.findById(id).map(UserEntityMapper::toDomain);
+	}
+
+	@Override
+	public Optional<User> findByEmail(String email) {
+		return userRepository.findByEmail(email).map(UserEntityMapper::toDomain);
+	}
+
+	@Override
+	public Optional<User> findByUsername(String username) {
+		return userRepository.findByUsername(username).map(UserEntityMapper::toDomain);
+	}
+
+	@Override
+	public boolean existsByEmail(String email) {
+		return userRepository.existsByEmail(email);
+	}
+
+	@Override
+	public boolean existsByUsername(String username) {
+		return userRepository.existsByUsername(username);
+	}
 }

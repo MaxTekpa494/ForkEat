@@ -1,25 +1,27 @@
 package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
-import fr.uge.forkeat.service.model.Wallet;
+import fr.uge.forkeat.service.model.user.Wallet;
 import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
-@Component
 public class WalletEntityMapper {
 
-    public Wallet toDomain(WalletEntity entity) {
-        Objects.requireNonNull(entity, "WalletEntity cannot be null");
+    private WalletEntityMapper() {}
 
+    public static Wallet toDomain(WalletEntity entity) {
+        Objects.requireNonNull(entity, "WalletEntity cannot be null");
         return new Wallet(
                 entity.getId(),
+                entity.getUser().getId(),
                 entity.getBalance(),
-                entity.getUser() != null ? entity.getUser().getId() : null,
                 entity.getUpdatedAt()
         );
     }
-    public void updateEntity(WalletEntity entity, Wallet domain) {
+
+    // COMMENTAIRE DE MAX : ÇA SERT À QUOI ÇA ????
+    public static void updateEntity(WalletEntity entity, Wallet domain) {
         Objects.requireNonNull(entity, "WalletEntity cannot be null");
         Objects.requireNonNull(domain, "Wallet cannot be null");
 

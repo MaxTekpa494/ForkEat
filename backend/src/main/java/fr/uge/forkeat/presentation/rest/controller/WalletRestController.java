@@ -11,11 +11,11 @@ import java.util.UUID;
 
 @RestController("walletRestController")
 @RequestMapping("/wallet")
-public class WalletController {
+public class WalletRestController {
 
     private final WalletService walletService;
 
-    public WalletController(WalletService walletService) {
+    public WalletRestController(WalletService walletService) {
         this.walletService = Objects.requireNonNull(walletService);
     }
 

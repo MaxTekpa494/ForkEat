@@ -2,7 +2,6 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.WalletService;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.user.UserQueryService;
 import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Controller;
@@ -10,14 +9,14 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
-public class DashboardController {
+public class DashboardWebController {
 
 	private final UserQueryService userQueryServic;
 	private final WalletService walletService;
 	private final AuthenticationPort authPort;
 
-	public DashboardController(UserQueryService userQueryService, WalletService walletService,
-			AuthenticationPort authPort) {
+	public DashboardWebController(UserQueryService userQueryService, WalletService walletService,
+																AuthenticationPort authPort) {
 		this.userQueryServic = userQueryService;
 		this.walletService = walletService;
 		this.authPort = authPort;

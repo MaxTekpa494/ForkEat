@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(WalletController.class)
+@WebMvcTest(WalletRestController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class WalletControllerTest {
 

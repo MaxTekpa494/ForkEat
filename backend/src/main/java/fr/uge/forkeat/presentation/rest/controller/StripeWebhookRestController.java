@@ -1,12 +1,8 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
-import com.stripe.exception.SignatureVerificationException;
-import com.stripe.model.Event;
 import com.stripe.model.checkout.Session;
-import com.stripe.net.Webhook; // -- ici
 import fr.uge.forkeat.service.WalletService;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -16,16 +12,16 @@ import java.util.logging.Logger;
 
 @RestController
 @RequestMapping("/wallet/webhooks/stripe")
-public class StripeWebhookController {
+public class StripeWebhookRestController {
 
 	private final WalletService walletService;
 	@Value("${stripe.webhook.secret}")
 	private String endpointSecret;
 
-	private final Logger logger = Logger.getLogger(StripeWebhookController.class.getName());
+	private final Logger logger = Logger.getLogger(StripeWebhookRestController.class.getName());
 	private final String stripeSessionResponse = "checkout.session.completed";
 
-	public StripeWebhookController(WalletService walletService) {
+	public StripeWebhookRestController(WalletService walletService) {
 		this.walletService = Objects.requireNonNull(walletService);
 	}
 

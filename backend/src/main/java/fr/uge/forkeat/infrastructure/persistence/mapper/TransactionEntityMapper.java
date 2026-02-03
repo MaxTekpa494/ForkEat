@@ -6,10 +6,11 @@ import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 
-@Component
 public class TransactionEntityMapper {
 
-    public Transaction toDomain(TransactionEntity entity) {
+    private TransactionEntityMapper() {}
+
+    public static Transaction toDomain(TransactionEntity entity) {
         Objects.requireNonNull(entity, "Entity cannot be null");
         return new Transaction(
                 entity.getSourceWallet() != null ? entity.getSourceWallet().getId() : null,
@@ -21,7 +22,7 @@ public class TransactionEntityMapper {
         );
     }
 
-    public TransactionEntity toEntity(Transaction domain) {
+    public static TransactionEntity toEntity(Transaction domain) {
         Objects.requireNonNull(domain, "Domain cannot be null");
 
         TransactionEntity entity = new TransactionEntity();

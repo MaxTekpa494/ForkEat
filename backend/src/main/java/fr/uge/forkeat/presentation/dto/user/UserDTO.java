@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.util.UUID;
 
 public record UserDTO(
-        UUID id,
         String username,
         String firstName,
         String lastName,
@@ -12,8 +11,6 @@ public record UserDTO(
         String role,
         String status,
         String authMode,
-        UUID walletId,
-        UUID bankInfoId,
         Instant createdAt,
         Instant updatedAt
 ) {

@@ -11,6 +11,7 @@ public interface WalletPersistence {
     // Récupérer par ID Utilisateur (avec verrou pour modification)
     Optional<Wallet> loadWalletWithLock(UUID userId);
 
+
     // Récupérer par ID du Wallet (lecture simple)
     Optional<Wallet> getWalletById(UUID walletId);
 

@@ -30,7 +30,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * Test pour DashboardController.
  * Ce controller gère uniquement l'endpoint /dashboard.
  */
-@WebMvcTest(DashboardController.class)
+@WebMvcTest(DashboardWebController.class)
 class DashboardControllerTest {
 
     @Autowired

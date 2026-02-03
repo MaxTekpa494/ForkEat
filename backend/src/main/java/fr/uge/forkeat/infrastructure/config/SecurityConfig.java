@@ -1,7 +1,7 @@
 package fr.uge.forkeat.infrastructure.config;
 
 import fr.uge.forkeat.infrastructure.security.CustomOAuth2UserService;
-import fr.uge.forkeat.service.CustomUserDetailsService;
+import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -65,23 +65,23 @@ public class SecurityConfig {
 	@Order(2)
 	public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
 		return http.csrf(AbstractHttpConfigurer::disable)
-				.authorizeHttpRequests(auth -> auth.requestMatchers("/auth/**", "/css/**", "/js/**", "/images/**")
+				.authorizeHttpRequests(auth -> auth.requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**")
 						.permitAll().requestMatchers(HttpMethod.GET, "/*/open/*").permitAll()
 						// Rôles
 						.requestMatchers("/*/admin/*").hasRole("ADMIN").requestMatchers("/*/moderator/*")
-						.hasRole("MODERATOR").anyRequest().hasRole("ADMIN"))
+						.hasRole("MODERATOR").anyRequest().authenticated())
 				.formLogin(form -> form.loginPage("/auth/login").loginProcessingUrl("/auth/login")
-						.defaultSuccessUrl("/dashboard", true).failureUrl("/login?error=true").permitAll())
+						.defaultSuccessUrl("/dashboard", true).failureUrl("/auth/login?error=true").permitAll())
 				.oauth2Login(oauth2 -> oauth2.loginPage("/auth/login")
 						.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-						.defaultSuccessUrl("/dashboard", true).failureUrl("/login?error=true"))
-				.logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/login?logout=true")
+						.defaultSuccessUrl("/dashboard", true).failureUrl("/auth/login?error=true"))
+				.logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/auth/login?logout=true")
 						.invalidateHttpSession(true).deleteCookies("JSESSIONID").permitAll())
 				.build();
 	}
 
 	@Bean
 	public RoleHierarchy roleHierarchy() {
-		return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_MODERATOR \n ROLE_MODERATOR > ROLE_USER");
+		return RoleHierarchyImpl.fromHierarchy("ROLE_ADMIN > ROLE_MODERATOR \n ROLE_MODERATOR > ROLE_MEMBER");
 	}
 }

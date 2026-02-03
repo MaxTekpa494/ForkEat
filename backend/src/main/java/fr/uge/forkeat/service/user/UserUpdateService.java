@@ -9,144 +9,148 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 
 @Service
 public class UserUpdateService {
-    private final UserPersistence userPersistence;
-    private final UserQueryService userQueryService;
-    private final PasswordEncoder passwordEncoder;
+  private final UserPersistence userPersistence;
+  private final UserQueryService userQueryService;
+  private final PasswordEncoder passwordEncoder;
 
-    UserUpdateService(UserPersistence userPersistence,
-                      UserQueryService userQueryService,
-                      PasswordEncoder passwordEncoder){
-        this.userPersistence = userPersistence;
-        this.userQueryService = userQueryService;
-        this.passwordEncoder = passwordEncoder;
+  UserUpdateService(UserPersistence userPersistence,
+                    UserQueryService userQueryService,
+                    PasswordEncoder passwordEncoder) {
+    this.userPersistence = Objects.requireNonNull(userPersistence);
+    this.userQueryService = Objects.requireNonNull(userQueryService);
+    this.passwordEncoder = Objects.requireNonNull(passwordEncoder);
+  }
+
+  @Transactional(
+          isolation = Isolation.REPEATABLE_READ,
+          timeout = 10
+  )
+  public User updateProfile(String username, String firstName, String lastName) {
+    var user = userQueryService.getUserByUsername(username);
+
+    if (!user.username().equals(username) && userPersistence.existsByUsername(username)) {
+      throw new IllegalArgumentException("Ce nom d'utilisateur est déjà pris");
     }
 
-    @Transactional(
-            isolation = Isolation.REPEATABLE_READ,
-            timeout = 10
-    )
-    public User updateProfile(UUID userId, String firstName, String lastName, String username) throws ResourceNotFoundException {
-        var user = userQueryService.getUserById(userId);
+    var updatedUser = new User(
+            user.id(),
+            username,
+            firstName,
+            lastName,
+            user.email(),
+            user.role(),
+            user.status(),
+            user.authMode(),
+            user.createdAt(),
+            Instant.now()
+    );
 
-        if (!user.username().equals(username) && userPersistence.existsByUsername(username)) {
-            throw new IllegalArgumentException("Ce nom d'utilisateur est déjà pris");
-        }
+    return userPersistence.updateUser(updatedUser);
+  }
 
-        var updatedUser = new User(
-                user.id(),
-                username,
-                firstName,
-                lastName,
-                user.email(),
-                user.password(),
-                user.createdAt(),
-                user.role(),
-                user.status(),
-                user.authentificationMode(),
-                user.walletId()
-        );
+  @Transactional(
+          isolation = Isolation.REPEATABLE_READ,
+          timeout = 10
+  )
+  public User updateEmail(String username, String newEmail, String currentPassword) {
+    var user = userQueryService.getUserByUsername(username);
+    // Vérifier le mot de passe actuel pour la sécurité
 
-        return userPersistence.saveUser(updatedUser);
+    if (!userPersistence.checkPassword(username, currentPassword)) {
+      throw new IllegalArgumentException("Incorrect password");
     }
 
-    @Transactional(
-            isolation = Isolation.REPEATABLE_READ,
-            timeout = 10
-    )
-    public User updateEmail(UUID userId, String newEmail, String currentPassword) throws ResourceNotFoundException {
-        var user = userQueryService.getUserById(userId);
-
-        // Vérifier le mot de passe actuel pour la sécurité
-        if (!passwordEncoder.matches(currentPassword, user.password())) {
-            throw new IllegalArgumentException("Mot de passe incorrect");
-        }
-
-        // Vérifier que le nouvel email n'est pas déjà utilisé
-        if (!user.email().equals(newEmail) && userPersistence.existsByEmail(newEmail)) {
-            throw new IllegalArgumentException("Cet email est déjà utilisé");
-        }
-
-        var updatedUser = new User(
-                user.id(),
-                user.username(),
-                user.firstName(),
-                user.lastName(),
-                newEmail,
-                user.password(),
-                user.createdAt(),
-                user.role(),
-                user.status(),
-                user.authentificationMode(),
-                user.walletId()
-        );
-
-        return userPersistence.saveUser(updatedUser);
+    // Vérifier que le nouvel email n'est pas déjà utilisé
+    if (!user.email().equals(newEmail) && userPersistence.existsByEmail(newEmail)) {
+      throw new IllegalArgumentException("Cet email est déjà utilisé");
     }
 
-    @Transactional(
-            isolation = Isolation.REPEATABLE_READ,
-            timeout = 10
-    )
-    public void updatePassword(UUID userId, String currentPassword, String newPassword) throws ResourceNotFoundException {
-        var user = userQueryService.getUserById(userId);
+    var updatedUser = new User(
+            user.id(),
+            user.username(),
+            user.firstName(),
+            user.lastName(),
+            newEmail,
+            user.role(),
+            user.status(),
+            user.authMode(),
+            user.createdAt(),
+            Instant.now()
+    );
 
-        if (!passwordEncoder.matches(currentPassword, user.password())) {
-            throw new IllegalArgumentException("Mot de passe actuel incorrect");
-        }
+    return userPersistence.updateUser(updatedUser);
+  }
 
-        if (newPassword.length() < 8) {
-            throw new IllegalArgumentException("Le nouveau mot de passe doit contenir au moins 8 caractères");
-        }
+  @Transactional(
+          isolation = Isolation.REPEATABLE_READ,
+          timeout = 10
+  )
+  public void updatePassword(String username, String currentPassword, String newPassword) {
+    Objects.requireNonNull(username);
+    Objects.requireNonNull(newPassword);
+    Objects.requireNonNull(currentPassword);
 
-        var updatedUser = new User(
-                user.id(),
-                user.username(),
-                user.firstName(),
-                user.lastName(),
-                user.email(),
-                passwordEncoder.encode(newPassword),
-                user.createdAt(),
-                user.role(),
-                user.status(),
-                user.authMode(),
-                user.walletId()
-        );
+    var user = userQueryService.getUserByUsername(username);
+    var newEncodedPassword = passwordEncoder.encode(newPassword);
+    var currentEncodedPassword = passwordEncoder.encode(currentPassword);
 
-        userPersistence.saveUser(updatedUser);
+    if (!userPersistence.checkPassword(username, newEncodedPassword)) {
+      throw new IllegalArgumentException("Incorrect current password");
     }
 
-
-
-    /**
-     * Migre un user LOCAL vers OAuth2.
-     * Permet à un user qui s'est inscrit avec password
-     * de se connecter ensuite avec Google.
-     */
-    @Transactional(
-            isolation = Isolation.READ_COMMITTED,
-            timeout = 10
-    )
-    public User migrateToOAuth2(UUID userId, AuthMode newAuthMode) throws ResourceNotFoundException {
-        var user = userQueryService.getUserById(userId);
-
-        var migratedUser = new User(
-                user.id(),
-                user.username(),
-                user.firstName(),
-                user.lastName(),
-                user.email(),
-                null,
-                user.createdAt(),
-                user.role(),
-                user.status(),
-                newAuthMode,
-                user.walletId()
-        );
-
-        return userPersistence.saveUser(migratedUser);
+    if(currentEncodedPassword.equals(newEncodedPassword)) {
+      throw new IllegalArgumentException("Passwords are the same");
     }
+
+    if (newPassword.length() < 8) {
+      throw new IllegalArgumentException("New password must be at least 8 characters");
+    }
+
+    var updatedUser = new User(
+            user.id(),
+            user.username(),
+            user.firstName(),
+            user.lastName(),
+            user.email(),
+            user.role(),
+            user.status(),
+            user.authMode(),
+            user.createdAt(), Instant.now());
+    userPersistence.saveUser (updatedUser, currentEncodedPassword);
+  }
+
+
+  /**
+   * Migre un user LOCAL vers OAuth2.
+   * Permet à un user qui s'est inscrit avec password
+   * de se connecter ensuite avec Google.
+   */
+  @Transactional(
+          isolation = Isolation.READ_COMMITTED,
+          timeout = 10
+  )
+  public User migrateToOAuth2(UUID userId, AuthMode newAuthMode) throws ResourceNotFoundException {
+    var user = userQueryService.getUserById(userId);
+
+    var migratedUser = new User(
+            user.id(),
+            user.username(),
+            user.firstName(),
+            user.lastName(),
+            user.email(),
+            user.role(),
+            user.status(),
+            newAuthMode,
+            user.createdAt(),
+            Instant.now()
+    );
+
+    return userPersistence.saveUser(migratedUser, null); // A VOIR
+  }
 }

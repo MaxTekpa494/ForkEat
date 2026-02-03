@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 @Order(1)
 public class UserDetailsPrincipalExtractor implements PrincipalExtractor {
 
-    @Override
+	@Override
     public boolean supports(Object principal) {
         return switch (principal) {
             case UserDetails _ -> true;
@@ -17,7 +17,7 @@ public class UserDetailsPrincipalExtractor implements PrincipalExtractor {
         };
     }
 
-    @Override
+	@Override
     public String extractUsername(Object principal) {
         return switch (principal) {
             case UserDetails userDetails -> userDetails.getUsername();
@@ -25,13 +25,13 @@ public class UserDetailsPrincipalExtractor implements PrincipalExtractor {
         };
     }
 
-    @Override
-    public User extractUser(Object principal) {
-        return null;
-    }
+	@Override
+	public User extractUser(Object principal) {
+		return null;
+	}
 
-    @Override
-    public boolean isOAuth2(Object principal) {
-        return false;
-    }
+	@Override
+	public boolean isOAuth2(Object principal) {
+		return false;
+	}
 }

@@ -16,6 +16,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
+/**
+ * TODO : Revoir cette classe
+ */
 @Service
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
@@ -45,26 +48,18 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 		var email = (String) attributes.get("email");
 		var givenName = (String) attributes.get("given_name");
 		var familyName = (String) attributes.get("family_name");
-		var picture = (String) attributes.get("picture");
 
 		User user;
 		try {
 			user = userQueryService.getUserByEmail(email);
 
 			if (user.authMode() == AuthMode.LOCAL) {
-				user = userUpdateService.migrateToOAuth2(user.id(), AuthMode.GOOGLE);
+				userUpdateService.migrateToOAuth2(user.id(), AuthMode.GOOGLE);
 			}
-
-		} catch (ResourceNotFoundException e) {
-			try {
-				user = userRegistrationService.registerUserFromOAuth2(givenName, familyName, email, AuthMode.GOOGLE,
-						picture // Photo de profil Google
-				);
-			} catch (ResourceNotFoundException ex) {
+			user = userRegistrationService.registerUserFromOAuth2(givenName, familyName, email, AuthMode.GOOGLE); // IllegalArgumentException
+		} catch (ResourceNotFoundException | IllegalArgumentException e) {
 				throw new OAuth2AuthenticationException("Erreur lors de la création du compte");
 			}
-		}
-
 		return new CustomOAuth2User(oauth2User, user);
 	}
 }

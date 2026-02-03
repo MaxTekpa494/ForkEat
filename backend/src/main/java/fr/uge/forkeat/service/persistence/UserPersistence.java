@@ -8,7 +8,7 @@ import java.util.UUID;
 public interface UserPersistence {
 	User saveUser(User user, String hashedPassword);
 
-	User updateWallet(User user, String walletId);
+	User updateUser(User user);
 
 	Optional<User> findById(UUID id);
 
@@ -19,4 +19,6 @@ public interface UserPersistence {
 	boolean existsByEmail(String email);
 
 	boolean existsByUsername(String username);
+
+	boolean checkPassword(String username, String hashedPassword);
 }

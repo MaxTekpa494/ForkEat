@@ -5,6 +5,7 @@ import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.StripEventException;
+import fr.uge.forkeat.service.model.user.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.external.PaymentGateway;
 import org.springframework.stereotype.Service;
@@ -54,7 +55,7 @@ public class WalletService {
 		var wallet = walletPersistence.loadWalletWithLock(userId) // ou la
 				.orElseThrow(() -> new WalletNotFoundException(userId));
 
-		var newWallet = wallet.addFunds(amount);
+		var newWallet = wallet.credit(amount); //addFunds(amount);
 		walletPersistence.saveWallet(newWallet);
 
 		// TRACABILITÉ
@@ -73,8 +74,8 @@ public class WalletService {
 	 * Crée un nouveau wallet pour un utilisateur.
 	 */
 	@Transactional(isolation = Isolation.READ_COMMITTED, timeout = 10)
-	public Wallet createWallet(UUID userId) throws ResourceNotFoundException {
-		var newWallet = new Wallet(UUID.randomUUID(), 0L, userId, Instant.now());
+	public Wallet createWallet(UUID userId)  {
+		var newWallet = new Wallet(UUID.randomUUID(), userId, 0L, Instant.now());
 		return walletPersistence.saveWallet(newWallet);
 	}
 }

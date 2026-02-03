@@ -1,4 +1,4 @@
-package fr.uge.forkeat.presentation.web.controller;
+package fr.uge.forkeat.presentation.web;
 
 import fr.uge.forkeat.service.exception.DuplicateTransactionException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 
 @ControllerAdvice(basePackages = "fr.uge.forkeat.presentation.web")
-public class GlobalExceptionHandler {
+public class GlobalWebExceptionHandler {
 
 	@ExceptionHandler(RecipeNotFoundException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)

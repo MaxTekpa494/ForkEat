@@ -2,7 +2,7 @@ package fr.uge.forkeat.presentation.rest;
 
 import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
-import fr.uge.forkeat.presentation.rest.controller.RecipeController;
+import fr.uge.forkeat.presentation.rest.controller.RecipeRestController;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
@@ -29,18 +29,18 @@ class RecipeControllerTest {
     @Mock
     private RecipeService recipeService;
 
-    private RecipeController recipeController;
+    private RecipeRestController recipeController;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeController = new RecipeController(recipeService);
+        recipeController = new RecipeRestController(recipeService);
         now = Instant.now();
     }
 
     @Test
     void constructor_shouldThrowWhenServiceIsNull() {
-        assertThrows(NullPointerException.class, () -> new RecipeController(null));
+        assertThrows(NullPointerException.class, () -> new RecipeRestController(null));
     }
 
     // ========== getRecipe tests ==========

@@ -167,7 +167,7 @@ class UserRegistrationServiceTest {
 
             // When
             User result = userRegistrationService.registerUserFromOAuth2(
-                    "John", "Doe", "john@gmail.com", AuthMode.GOOGLE, null
+                    "John", "Doe", "john@gmail.com", AuthMode.GOOGLE
             );
 
             // Then

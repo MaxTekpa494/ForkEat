@@ -25,7 +25,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = StripeWebhookController.class, properties = "stripe.webhook.secret=whsec_fake123")
+@WebMvcTest(controllers = StripeWebhookRestController.class, properties = "stripe.webhook.secret=whsec_fake123")
 @AutoConfigureMockMvc(addFilters = false)
 class StripeWebhookControllerTest {
 
