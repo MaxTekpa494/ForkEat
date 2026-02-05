@@ -65,7 +65,7 @@ public class SecurityConfig {
 	@Order(2)
 	public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
 		return http.csrf(AbstractHttpConfigurer::disable)
-				.authorizeHttpRequests(auth -> auth.requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**")
+				.authorizeHttpRequests(auth -> auth.requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**", "/recipes/**")
 						.permitAll().requestMatchers(HttpMethod.GET, "/*/open/*").permitAll()
 						// Rôles
 						.requestMatchers("/*/admin/*").hasRole("ADMIN").requestMatchers("/*/moderator/*")
