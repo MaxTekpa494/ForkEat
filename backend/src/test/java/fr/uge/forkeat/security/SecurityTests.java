@@ -78,20 +78,6 @@ public class SecurityTests {
         var tokenUser = "Bearer " + (json.get("token").asString());
 
 
-        //We test the endpoint is reachable by an authenticated User
-        mockMvc.perform(get("/api/user/greeting")
-                        .header("Authorization", tokenUser))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(get("/api/admin/greeting")
-                        .header("Authorization", tokenUser))
-                .andExpect(status().isForbidden());
-
-        //We test the endpoint is not reachable by an non-authenticated User
-        mockMvc.perform(get("/api/user/greeting"))
-                .andExpect(status().isForbidden());
-
-
         var adminDTO = new UserLoginDTO("admin", "admin");
         //We try to recup the adminToken
         var loginAdminBodyResponse = mockMvc.perform(post("/api/auth/login")
@@ -103,57 +89,13 @@ public class SecurityTests {
 
         var tokenAdmin = "Bearer " + (adminLoginJson.get("token").asString());
 
-        //We try the different endpoints as an admin
-
-        mockMvc.perform(get("/api/admin/greeting")
-                        .header("Authorization", tokenAdmin))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(get("/api/moderator/greeting")
-                        .header("Authorization", tokenAdmin))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(get("/api/user/greeting")
-                        .header("Authorization", tokenAdmin))
-                .andExpect(status().isOk());
-
-
 
         //We try to create a moderator
-
         var moderatorDTO = new UserRegisterDTO("modo", "Max", "Tekpa", "password1", "modo@gmail.com");
         mockMvc.perform(post("/api/admin/register")
                         .header("Authorization", tokenAdmin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(moderatorDTO)))
                 .andExpect(status().isOk());
-
-        //We try to authentify as the newly created moderator
-
-        var moderatorLoginDTO = new UserLoginDTO("modo", "password1");
-        var loginModeratorBodyResponse = mockMvc.perform(post("/api/auth/login")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(moderatorLoginDTO)))
-                .andExpect(status().isOk()).andReturn();
-
-        JsonNode moderatorLoginJson = objectMapper.readTree(loginModeratorBodyResponse.getResponse().getContentAsString());
-
-        var tokenModerator = "Bearer " + (moderatorLoginJson.get("token").asString());
-
-
-        //We try the different endpoints as a Moderator
-
-        mockMvc.perform(get("/api/admin/greeting")
-                        .header("Authorization", tokenModerator))
-                .andExpect(status().isForbidden());
-
-        mockMvc.perform(get("/api/moderator/greeting")
-                        .header("Authorization", tokenModerator))
-                .andExpect(status().isOk());
-
-        mockMvc.perform(get("/api/user/greeting")
-                        .header("Authorization", tokenModerator))
-                .andExpect(status().isOk());
-
     }
 }

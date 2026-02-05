@@ -1,12 +1,15 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
-import fr.uge.forkeat.service.CustomUserDetailsService;
+import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserQueryService;
+import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,7 +27,7 @@ import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(WalletMVCController.class)
+@WebMvcTest(WalletWebController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class WalletWebControllerTest {
 
@@ -56,15 +59,14 @@ class WalletWebControllerTest {
                 "John",
                 "Doe",
                 "test@example.com",
-                "hashedPassword",
-                Instant.now(),
                 UserRole.MEMBER,
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
-                UUID.randomUUID()
+                Instant.now(),
+                Instant.now()
         );
 
-        when(authPort.extractUsername(any())).thenReturn("testuser");
+        when(authPort.extractUsername()).thenReturn("testuser");
     }
 
     @Test
@@ -107,7 +109,7 @@ class WalletWebControllerTest {
     @Test
     @WithMockUser(username = "unknownuser")
     void walletPage_ShouldThrow_WhenUserNotFound() throws Exception {
-        when(authPort.extractUsername(any())).thenReturn("unknownuser");
+        when(authPort.extractUsername()).thenReturn("unknownuser");
 
         when(userQueryService.getUserByUsername("unknownuser"))
                 .thenThrow(new ResourceNotFoundException("Utilisateur non trouvé"));

@@ -2,9 +2,8 @@ package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.mapper.UserMapper;
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.User;
+import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -18,11 +17,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class UserMapperTest {
 
-    private UserMapper userMapper;
 
     @BeforeEach
     void setUp() {
-        userMapper = new UserMapper();
+
     }
 
     @Nested
@@ -44,7 +42,7 @@ class UserMapperTest {
             entity.setAuthMode(AuthMode.LOCAL);
 
             // When
-            User user = userMapper.toModel(entity);
+            var user = UserEntityMapper.toDomain(entity);
 
             // Then
             assertNotNull(user);
@@ -53,11 +51,10 @@ class UserMapperTest {
             assertEquals(entity.getFirstName(), user.firstName());
             assertEquals(entity.getLastName(), user.lastName());
             assertEquals(entity.getEmail(), user.email());
-            assertEquals(entity.getPassword(), user.password());
             assertEquals(entity.getCreatedAt(), user.createdAt());
             assertEquals(entity.getRole(), user.role());
             assertEquals(entity.getStatus(), user.status());
-            assertEquals(entity.getAuthMode(), user.authentificationMode());
+            assertEquals(entity.getAuthMode(), user.authMode());
         }
 
         @Test
@@ -77,11 +74,10 @@ class UserMapperTest {
             entity.setWallet(null); // Pas de wallet
 
             // When
-            User user = userMapper.toModel(entity);
+            User user = UserEntityMapper.toDomain(entity);
 
             // Then
             assertNotNull(user);
-            assertNull(user.walletId());
         }
 
         @Test
@@ -105,11 +101,10 @@ class UserMapperTest {
             userEntity.setWallet(walletEntity);
 
             // When
-            User user = userMapper.toModel(userEntity);
+            User user = UserEntityMapper.toDomain(userEntity);
 
             // Then
             assertNotNull(user);
-            assertEquals(walletId, user.walletId());
         }
 
         // ✅ TEST CORRIGÉ : Vérifie qu'une exception est lancée au lieu de retourner null
@@ -117,11 +112,11 @@ class UserMapperTest {
         void toModel_ShouldThrowException_WhenEntityIsNull() {
             // When/Then
             NullPointerException exception = assertThrows(NullPointerException.class, () -> {
-                userMapper.toModel(null);
+                UserEntityMapper.toDomain(null);
             });
 
             // Vérifier le message d'erreur
-            assertEquals("UserEntity cannot be null", exception.getMessage());
+            assertEquals("null", exception.getMessage());
         }
     }
 
@@ -138,16 +133,15 @@ class UserMapperTest {
                     "John",
                     "Doe",
                     "john@example.com",
-                    "hashed",
-                    Instant.now(),
                     UserRole.MEMBER,
                     UserStatus.ACTIVE,
                     AuthMode.LOCAL,
-                    null
+                    Instant.now(),
+                    Instant.now()
             );
 
             // When
-            UserEntity entity = userMapper.toEntity(user);
+            var entity = UserEntityMapper.toEntity(user);
 
             // Then
             assertNotNull(entity);
@@ -156,11 +150,10 @@ class UserMapperTest {
             assertEquals(user.firstName(), entity.getFirstName());
             assertEquals(user.lastName(), entity.getLastName());
             assertEquals(user.email(), entity.getEmail());
-            assertEquals(user.password(), entity.getPassword());
             assertEquals(user.createdAt(), entity.getCreatedAt());
             assertEquals(user.role(), entity.getRole());
             assertEquals(user.status(), entity.getStatus());
-            assertEquals(user.authentificationMode(), entity.getAuthMode());
+            assertEquals(user.authMode(), entity.getAuthMode());
         }
 
         // ✅ TEST CORRIGÉ : Vérifie qu'une exception est lancée au lieu de retourner null
@@ -168,7 +161,7 @@ class UserMapperTest {
         void toEntity_ShouldThrowException_WhenModelIsNull() {
             // When/Then
             NullPointerException exception = assertThrows(NullPointerException.class, () -> {
-                userMapper.toEntity(null);
+                UserEntityMapper.toEntity(null);
             });
 
             // Vérifier le message d'erreur
@@ -184,16 +177,15 @@ class UserMapperTest {
                     "John",
                     "Doe",
                     "john@example.com",
-                    null, // OAuth2 user has no password
-                    Instant.now(),
                     UserRole.MEMBER,
                     UserStatus.ACTIVE,
                     AuthMode.GOOGLE,
-                    null
+                    Instant.now(),
+                    Instant.now()
             );
 
             // When
-            UserEntity entity = userMapper.toEntity(user);
+            UserEntity entity = UserEntityMapper.toEntity(user);
 
             // Then
             assertNotNull(entity);

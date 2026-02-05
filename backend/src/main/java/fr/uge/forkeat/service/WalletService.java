@@ -3,18 +3,12 @@ package fr.uge.forkeat.service;
 import fr.uge.forkeat.service.exception.DuplicateTransactionException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.*;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.exception.StripEventException;
 import fr.uge.forkeat.service.model.user.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.external.PaymentGateway;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
-
-import com.stripe.exception.SignatureVerificationException;
-import com.stripe.model.Event;
-import com.stripe.net.Webhook;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -28,14 +22,6 @@ public class WalletService {
 	public WalletService(PaymentGateway paymentGateway, WalletPersistence walletPersistence) {
 		this.paymentGateway = paymentGateway;
 		this.walletPersistence = walletPersistence;
-	}
-
-	public Event initEvent(String payload, String sigHeader, String endpointSecret) {
-		try {
-			return Webhook.constructEvent(payload, sigHeader, endpointSecret);
-		} catch (SignatureVerificationException e) {
-			throw new StripEventException("Invalid Stripe signature", e);
-		}
 	}
 
 	public String prepareTopUp(UUID userId, String email, Long amount) {

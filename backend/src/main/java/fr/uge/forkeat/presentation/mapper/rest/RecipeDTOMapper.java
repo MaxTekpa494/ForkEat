@@ -18,9 +18,7 @@ public final class RecipeDTOMapper {
      * Convertit Recipe (service) vers RecipeDTO (présentation)
      */
     public static RecipeDTO toDTO(Recipe recipe, RecipeDTO parentDTO) {
-        if (recipe == null) {
-            return null;
-        }
+        Objects.requireNonNull(recipe);
         return new RecipeDTO(
                 recipe.id(),
                 recipe.title(),
@@ -40,9 +38,7 @@ public final class RecipeDTOMapper {
     }
 
     public static RecipeDTO toDTO(Recipe recipe) {
-        if (recipe == null) {
-            return null;
-        }
+        Objects.requireNonNull(recipe);
         return new RecipeDTO(
                 recipe.id(),
                 recipe.title(),

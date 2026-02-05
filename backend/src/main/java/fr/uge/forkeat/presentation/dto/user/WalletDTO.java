@@ -5,6 +5,7 @@ import java.util.UUID;
 
 public record WalletDTO(
         UUID id,
+        UUID userId,
         Long balance,
         Instant updatedAt
 ) {

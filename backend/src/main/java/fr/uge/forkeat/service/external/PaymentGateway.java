@@ -1,6 +1,7 @@
 package fr.uge.forkeat.service.external;
 
 
+import com.stripe.model.Event;
 import fr.uge.forkeat.service.model.PaymentRequest;
 import fr.uge.forkeat.service.model.PaymentResponse;
 
@@ -12,4 +13,5 @@ public interface PaymentGateway {
      * @return La réponse contenant l'URL de redirection
      */
     PaymentResponse initiatePayment(PaymentRequest request);
+    Event initEvent(String payload, String sigHeader, String endpointSecret);
 }

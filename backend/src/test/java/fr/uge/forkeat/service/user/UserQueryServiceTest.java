@@ -2,6 +2,9 @@ package fr.uge.forkeat.service.user;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.*;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,13 +36,12 @@ class UserQueryServiceTest {
                 "John",
                 "Doe",
                 email,
-                "hashedPassword123",
-                Instant.now(),
                 UserRole.MEMBER,
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
-                UUID.randomUUID()
-        );
+                Instant.now(),
+                Instant.now()
+                );
     }
 
     @Nested
@@ -71,7 +73,7 @@ class UserQueryServiceTest {
                     () -> userQueryService.getUserByEmail("unknown@example.com")
             );
 
-            assertEquals("Utilisateur non trouvé", exception.getMessage());
+            assertEquals("User not found with email: unknown@example.com", exception.getMessage());
         }
 
         @Test
@@ -118,7 +120,7 @@ class UserQueryServiceTest {
                     () -> userQueryService.getUserById(unknownId)
             );
 
-            assertEquals("Utilisateur non trouvé", exception.getMessage());
+            assertEquals("User not found with id: " + unknownId, exception.getMessage());
         }
 
         @Test
@@ -163,7 +165,7 @@ class UserQueryServiceTest {
                     () -> userQueryService.getUserByUsername("unknownuser")
             );
 
-            assertEquals("Utilisateur non trouvé : unknownuser", exception.getMessage());
+            assertEquals("User not found with username: unknownuser", exception.getMessage());
         }
 
         @Test

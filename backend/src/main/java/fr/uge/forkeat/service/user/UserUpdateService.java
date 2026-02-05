@@ -1,6 +1,7 @@
 package fr.uge.forkeat.service.user;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.CheckProfileUpdateFailure;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.persistence.UserPersistence;
@@ -35,7 +36,7 @@ public class UserUpdateService {
     var user = userQueryService.getUserByUsername(username);
 
     if (!user.username().equals(username) && userPersistence.existsByUsername(username)) {
-      throw new IllegalArgumentException("Ce nom d'utilisateur est déjà pris");
+      throw new CheckProfileUpdateFailure("Ce nom d'utilisateur est déjà pris");
     }
 
     var updatedUser = new User(
@@ -63,12 +64,12 @@ public class UserUpdateService {
     // Vérifier le mot de passe actuel pour la sécurité
 
     if (!userPersistence.checkPassword(username, currentPassword)) {
-      throw new IllegalArgumentException("Incorrect password");
+      throw new CheckProfileUpdateFailure("Incorrect password");
     }
 
     // Vérifier que le nouvel email n'est pas déjà utilisé
     if (!user.email().equals(newEmail) && userPersistence.existsByEmail(newEmail)) {
-      throw new IllegalArgumentException("Cet email est déjà utilisé");
+      throw new CheckProfileUpdateFailure("Cet email est déjà utilisé");
     }
 
     var updatedUser = new User(
@@ -101,15 +102,15 @@ public class UserUpdateService {
     var currentEncodedPassword = passwordEncoder.encode(currentPassword);
 
     if (!userPersistence.checkPassword(username, newEncodedPassword)) {
-      throw new IllegalArgumentException("Incorrect current password");
+      throw new CheckProfileUpdateFailure("Incorrect current password");
     }
 
     if(currentEncodedPassword.equals(newEncodedPassword)) {
-      throw new IllegalArgumentException("Passwords are the same");
+      throw new CheckProfileUpdateFailure("Passwords are the same");
     }
 
     if (newPassword.length() < 8) {
-      throw new IllegalArgumentException("New password must be at least 8 characters");
+      throw new CheckProfileUpdateFailure("New password must be at least 8 characters");
     }
 
     var updatedUser = new User(

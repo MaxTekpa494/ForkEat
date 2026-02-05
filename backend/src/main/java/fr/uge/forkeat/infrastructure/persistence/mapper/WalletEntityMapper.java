@@ -19,14 +19,4 @@ public class WalletEntityMapper {
                 entity.getUpdatedAt()
         );
     }
-
-    // COMMENTAIRE DE MAX : ÇA SERT À QUOI ÇA ????
-    public static void updateEntity(WalletEntity entity, Wallet domain) {
-        Objects.requireNonNull(entity, "WalletEntity cannot be null");
-        Objects.requireNonNull(domain, "Wallet cannot be null");
-
-        entity.setBalance(domain.balance());
-        entity.setUpdatedAt(domain.updatedAt());
-        // On ne touche pas à l'ID ni au User ici (à gérer par l'adapter si besoin)
-    }
 }

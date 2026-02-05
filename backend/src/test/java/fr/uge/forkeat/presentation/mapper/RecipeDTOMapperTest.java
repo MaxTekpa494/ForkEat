@@ -4,6 +4,7 @@ import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeIngredientDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeStepDTO;
+import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.model.recipe.*;
 import org.junit.jupiter.api.Test;
 
@@ -42,12 +43,6 @@ class RecipeDTOMapperTest {
 		assertEquals(1, dto.allergens().size());
 		assertTrue(dto.dietaryFlags().get("vegetarian"));
 		assertFalse(dto.dietaryFlags().get("vegan"));
-	}
-
-	@Test
-	void toDTO_shouldReturnNullWhenRecipeIsNull() {
-		var dto = RecipeDTOMapper.toDTO(null, null);
-		assertNull(dto);
 	}
 
 	@Test

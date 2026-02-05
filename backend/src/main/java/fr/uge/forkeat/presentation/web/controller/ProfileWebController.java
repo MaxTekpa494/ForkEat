@@ -30,7 +30,7 @@ public class ProfileWebController {
 
   @GetMapping("/profile")
   public String profile(Authentication authentication, Model model) throws ResourceNotFoundException {
-    var username = authPort.extractUsername(authentication);
+    var username = authPort.extractUsername();
     var user = userQueryService.getUserByUsername(username);
 
     model.addAttribute("user", user);
@@ -41,7 +41,7 @@ public class ProfileWebController {
   @PostMapping("/profile/update")
   public String updateProfile(Authentication authentication, @RequestParam String firstName,
                               @RequestParam String lastName, @RequestParam String username, RedirectAttributes redirectAttributes) throws ResourceNotFoundException {
-    var currentUsername = authPort.extractUsername(authentication);
+    var currentUsername = authPort.extractUsername();
     var currentUser = userQueryService.getUserByUsername(currentUsername);
 
     var updatedUser = userUpdateService.updateProfile(username, firstName, lastName);
@@ -54,28 +54,28 @@ public class ProfileWebController {
   public String updatePassword(Authentication authentication, @RequestParam String currentPassword,
                                @RequestParam String newPassword, @RequestParam String confirmPassword,
                                RedirectAttributes redirectAttributes) {
-    var username = authPort.extractUsername(authentication);
+    var username = authPort.extractUsername();
 
     if (!newPassword.equals(confirmPassword)) {
-      redirectAttributes.addFlashAttribute("error", "Passwords do not match");
+      redirectAttributes.addFlashAttribute("errorMessage", "Passwords do not match");
       return "redirect:/profile";
     }
 
     userUpdateService.updatePassword(username, currentPassword, newPassword);
-    redirectAttributes.addFlashAttribute("success", "Mot de passe modifié avec succès !");
-    return "redirect:/profile";
 
+    redirectAttributes.addFlashAttribute("success", "Mot de passe modifié avec succès !");
+    return "redirect:/profile"; // redirect mais il renvoie /profile
   }
 
   @PostMapping("/profile/update-email")
   public String updateEmail(Authentication authentication, @RequestParam String newEmail,
                             @RequestParam String currentPassword, RedirectAttributes redirectAttributes) {
-    var username = authPort.extractUsername(authentication);
+    var username = authPort.extractUsername();
     var newUser = userUpdateService.updateEmail(username, newEmail, currentPassword);
 
     redirectAttributes.addFlashAttribute("user", newUser);
     redirectAttributes.addFlashAttribute("success", "Successfully updated email !");
-    return "redirect:/logout";
+    return "redirect:/profile";
   }
 
 }

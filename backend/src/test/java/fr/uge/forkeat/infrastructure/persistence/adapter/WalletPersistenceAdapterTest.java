@@ -6,11 +6,11 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.infrastructure.persistence.mapper.TransactionEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.mapper.WalletEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.TransactionRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserJpaRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.Wallet;
+import fr.uge.forkeat.service.model.user.Wallet;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -31,7 +31,7 @@ class WalletPersistenceAdapterTest {
     WalletRepository walletRepository;
     @Mock
     TransactionRepository transactionRepository;
-    @Mock UserJpaRepository userRepository;
+    @Mock UserRepository userRepository;
     @Mock
     WalletEntityMapper walletEntityMapper;
     @Mock
@@ -47,7 +47,7 @@ class WalletPersistenceAdapterTest {
         var domain = mock(Wallet.class);
 
         when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(entity));
-        when(walletEntityMapper.toDomain(entity)).thenReturn(domain);
+        when(WalletEntityMapper.toDomain(entity)).thenReturn(domain);
 
         var result = adapter.loadWalletWithLock(userId);
 
@@ -80,7 +80,7 @@ class WalletPersistenceAdapterTest {
         when(walletRepository.findById(walletId)).thenReturn(Optional.empty());
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
         when(walletRepository.save(any(WalletEntity.class))).thenAnswer(i -> i.getArgument(0));
-        when(walletEntityMapper.toDomain(any(WalletEntity.class))).thenReturn(walletDomain);
+        when(WalletEntityMapper.toDomain(any(WalletEntity.class))).thenReturn(walletDomain);
 
         var result = adapter.saveWallet(walletDomain);
 
@@ -99,11 +99,10 @@ class WalletPersistenceAdapterTest {
 
         when(walletRepository.findById(walletId)).thenReturn(Optional.of(existingEntity));
         when(walletRepository.save(existingEntity)).thenReturn(existingEntity);
-        when(walletEntityMapper.toDomain(existingEntity)).thenReturn(walletDomain);
+        when(WalletEntityMapper.toDomain(existingEntity)).thenReturn(walletDomain);
 
         var result = adapter.saveWallet(walletDomain);
 
-        verify(walletEntityMapper).updateEntity(existingEntity, walletDomain);
         verify(walletRepository).save(existingEntity);
         assertEquals(walletDomain, result);
     }
@@ -128,7 +127,7 @@ class WalletPersistenceAdapterTest {
         when(domainTx.walletDestinationId()).thenReturn(destId);
 
         var entityTx = new TransactionEntity();
-        when(transactionEntityMapper.toEntity(domainTx)).thenReturn(entityTx);
+        when(TransactionEntityMapper.toEntity(domainTx)).thenReturn(entityTx);
 
         var sourceRef = new WalletEntity();
         var destRef = new WalletEntity();
@@ -137,7 +136,7 @@ class WalletPersistenceAdapterTest {
         when(walletRepository.getReferenceById(destId)).thenReturn(destRef);
 
         when(transactionRepository.save(any())).thenReturn(entityTx);
-        when(transactionEntityMapper.toDomain(entityTx)).thenReturn(domainTx);
+        when(TransactionEntityMapper.toDomain(entityTx)).thenReturn(domainTx);
 
         Transaction result = adapter.saveTransaction(domainTx);
 
@@ -153,10 +152,10 @@ class WalletPersistenceAdapterTest {
         when(domainTx.walletDestinationId()).thenReturn(null);
 
         var entityTx = new TransactionEntity();
-        when(transactionEntityMapper.toEntity(domainTx)).thenReturn(entityTx);
+        when(TransactionEntityMapper.toEntity(domainTx)).thenReturn(entityTx);
 
         when(transactionRepository.save(any())).thenReturn(entityTx);
-        when(transactionEntityMapper.toDomain(entityTx)).thenReturn(domainTx);
+        when(TransactionEntityMapper.toDomain(entityTx)).thenReturn(domainTx);
 
         adapter.saveTransaction(domainTx);
 

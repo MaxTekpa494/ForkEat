@@ -4,13 +4,12 @@ import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.Event;
 import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.checkout.Session;
-import com.stripe.net.Webhook;
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
-import fr.uge.forkeat.service.CustomUserDetailsService;
+import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
+import fr.uge.forkeat.service.exception.StripEventException;
+import fr.uge.forkeat.service.external.PaymentGateway;
 import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
@@ -41,6 +40,9 @@ class StripeWebhookControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
+    @MockitoBean
+    private PaymentGateway paymentGateway;
+
     @Test
     void handleStripeEvent_ShouldProcessPayment_WhenSignatureIsValid() throws Exception {
         var payload = "{}";
@@ -60,30 +62,29 @@ class StripeWebhookControllerTest {
         when(mockEvent.getType()).thenReturn("checkout.session.completed");
         when(mockEvent.getDataObjectDeserializer()).thenReturn(mockDeserializer);
 
-        try (MockedStatic<Webhook> mockedWebhook = Mockito.mockStatic(Webhook.class)) {
-            mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
-                    .thenReturn(mockEvent);
+        when(paymentGateway.initEvent(anyString(), anyString(), anyString()))
+                .thenReturn(mockEvent);
 
             mockMvc.perform(post("/wallet/webhooks/stripe")
                             .content(payload)
                             .header("Stripe-Signature", sigHeader)
                             .contentType(MediaType.APPLICATION_JSON))
                     .andExpect(status().isOk());
-        }
-
         verify(walletService).processPaymentConfirmation(userId, 5000L, stripeTxId);
     }
 
+
+
     @Test
     void handleStripeEvent_ShouldReturn400_WhenSignatureInvalid() throws Exception {
-        try (MockedStatic<Webhook> mockedWebhook = Mockito.mockStatic(Webhook.class)) {
-            mockedWebhook.when(() -> Webhook.constructEvent(anyString(), anyString(), anyString()))
-                    .thenThrow(new SignatureVerificationException("Invalid signature", "sig_header"));
+        when(paymentGateway.initEvent(anyString(), anyString(), anyString()))
+                .thenThrow(new StripEventException("Invalid Stripe signature",
+                        new SignatureVerificationException("Invalid signature", "sig_header")));
 
-            mockMvc.perform(post("/wallet/webhooks/stripe")
-                            .content("{}")
-                            .header("Stripe-Signature", "invalid_sig"))
-                    .andExpect(status().isBadRequest());
-        }
+        mockMvc.perform(post("/wallet/webhooks/stripe")
+                        .content("{}")
+                        .header("Stripe-Signature", "invalid_sig")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isBadRequest());
     }
 }

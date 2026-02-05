@@ -1,7 +1,7 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.mapper.UserMapper;
+import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
@@ -27,9 +27,6 @@ class UserPersistenceAdapterTest {
     @Mock
     private UserRepository userRepository;
 
-    @Mock
-    private UserMapper userMapper;
-
     @InjectMocks
     private UserPersistenceAdapter adapter;
 
@@ -40,12 +37,11 @@ class UserPersistenceAdapterTest {
                 "John",
                 "Doe",
                 email,
-                "hashedPassword",
-                Instant.now(),
                 UserRole.MEMBER,
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
-                UUID.randomUUID()
+                Instant.now(),
+                Instant.now()
         );
     }
 
@@ -70,19 +66,19 @@ class UserPersistenceAdapterTest {
         var userDomain = createTestUser(userId, "testuser", "test@example.com");
         var userEntity = createTestUserEntity();
 
-        when(userMapper.toEntity(userDomain)).thenReturn(userEntity);
+        when(UserEntityMapper.toEntity(userDomain)).thenReturn(userEntity);
         when(userRepository.save(userEntity)).thenReturn(userEntity);
-        when(userMapper.toModel(userEntity)).thenReturn(userDomain);
+        when(UserEntityMapper.toDomain(userEntity)).thenReturn(userDomain);
 
         // When
-        User result = adapter.saveUser(userDomain);
+        User result = adapter.saveUser(userDomain, "hashedPassword");
 
         // Then
         assertNotNull(result);
         assertEquals(userDomain, result);
         verify(userRepository).save(userEntity);
-        verify(userMapper).toEntity(userDomain);
-        verify(userMapper).toModel(userEntity);
+        verify(UserEntityMapper.toEntity(userDomain));
+        verify(UserEntityMapper.toDomain(userEntity));
     }
 
     @Test
@@ -93,7 +89,7 @@ class UserPersistenceAdapterTest {
         var userDomain = createTestUser(userId, "testuser", "test@example.com");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
-        when(userMapper.toModel(userEntity)).thenReturn(userDomain);
+        when(UserEntityMapper.toDomain(userEntity)).thenReturn(userDomain);
 
         // When
         Optional<User> result = adapter.findById(userId);
@@ -114,7 +110,6 @@ class UserPersistenceAdapterTest {
 
         // Then
         assertTrue(result.isEmpty());
-        verifyNoInteractions(userMapper);
     }
 
     @Test
@@ -125,7 +120,7 @@ class UserPersistenceAdapterTest {
         var userDomain = createTestUser(UUID.randomUUID(), "testuser", email);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(userEntity));
-        when(userMapper.toModel(userEntity)).thenReturn(userDomain);
+        when(UserEntityMapper.toDomain(userEntity)).thenReturn(userDomain);
 
         // When
         Optional<User> result = adapter.findByEmail(email);
@@ -156,7 +151,7 @@ class UserPersistenceAdapterTest {
         var userDomain = createTestUser(UUID.randomUUID(), username, "test@example.com");
 
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(userEntity));
-        when(userMapper.toModel(userEntity)).thenReturn(userDomain);
+        when(UserEntityMapper.toDomain(userEntity)).thenReturn(userDomain);
 
         // When
         Optional<User> result = adapter.findByUsername(username);

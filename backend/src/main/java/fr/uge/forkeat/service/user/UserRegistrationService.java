@@ -2,6 +2,7 @@ package fr.uge.forkeat.service.user;
 
 import fr.uge.forkeat.presentation.mapper.web.UserFormDTOMapper;
 import fr.uge.forkeat.service.WalletService;
+import fr.uge.forkeat.service.exception.RegisterFailure;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
@@ -42,12 +43,12 @@ public class UserRegistrationService {
     Objects.requireNonNull(userRegister);
     if (userPersistence.existsByEmail(userRegister.email())) { // Max ici il vaut mieux crée une Exception
       // personnalisée
-      throw new IllegalArgumentException("This email is already in use");
+      throw new RegisterFailure("This email is already in use");
     }
 
     // Vérifier si le username existe déjà
     if (userPersistence.existsByUsername(userRegister.username())) {
-      throw new IllegalArgumentException("This username is already taken");
+      throw new RegisterFailure("This username is already taken");
     }
 
     logger.info("Registering user: " + userRegister);
@@ -75,7 +76,7 @@ public class UserRegistrationService {
     Objects.requireNonNull(authMode);
     // Vérifier que l'email n'existe pas déjà
     if (userPersistence.existsByEmail(email)) {
-      throw new IllegalArgumentException("Cet email est déjà utilisé");
+      throw new RegisterFailure("Cet email est déjà utilisé");
     }
 
     var userId = UUID.randomUUID();
@@ -98,6 +99,34 @@ public class UserRegistrationService {
     walletService.createWallet(savedUser.id());
 
     return savedUser;
+  }
+
+  @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
+  public User registerModerator(UserRegister userRegister) {
+    Objects.requireNonNull(userRegister);
+    if (userPersistence.existsByEmail(userRegister.email())) {
+      throw new RegisterFailure("This email is already in use");
+    }
+
+    if (userPersistence.existsByUsername(userRegister.username())) {
+      throw new RegisterFailure("This username is already taken");
+    }
+
+    logger.info("Registering moderator: " + userRegister);
+    var user = new User(UUID.randomUUID(),
+            userRegister.username(),
+            userRegister.firstName(),
+            userRegister.lastName(),
+            userRegister.email(),
+            UserRole.MODERATOR,
+            UserStatus.ACTIVE,
+            AuthMode.LOCAL,
+            Instant.now(), Instant.now()
+    );
+
+    var savedUser = userPersistence.saveUser(user, passwordEncoder.encode(userRegister.password()));
+    walletService.createWallet(savedUser.id());
+    return user;
   }
 
   private String generateUsername(String email) {

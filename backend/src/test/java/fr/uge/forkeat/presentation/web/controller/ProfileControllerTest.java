@@ -1,8 +1,12 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
-import fr.uge.forkeat.service.CustomUserDetailsService;
-import fr.uge.forkeat.service.model.*;
+import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.service.exception.CheckProfileUpdateFailure;
+import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.user.UserUpdateService;
@@ -35,7 +39,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  */
 @WebMvcTest(ProfileWebController.class)
 class ProfileControllerTest {
-/*
+
     @Autowired
     private MockMvc mockMvc;
 
@@ -64,12 +68,11 @@ class ProfileControllerTest {
                 "John",
                 "Doe",
                 "test@example.com",
-                "hashedPassword",
-                Instant.now(),
                 UserRole.MEMBER,
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
-                UUID.randomUUID()
+                Instant.now(),
+                Instant.now()
         );
 
         // Bypass JWT filter
@@ -82,7 +85,7 @@ class ProfileControllerTest {
         }).when(jwtFilter).doFilter(any(), any(), any());
 
         // Configuration de l'authentification
-        when(authPort.extractUsername(any())).thenReturn(testUser.username());
+        when(authPort.extractUsername()).thenReturn(testUser.username());
     }
 
     @Nested
@@ -115,7 +118,7 @@ class ProfileControllerTest {
                     .andExpect(status().isOk());
 
             // Then
-            verify(authPort).extractUsername(any());
+            verify(authPort).extractUsername();
             verify(userQueryService).getUserByUsername("testuser");
         }
     }
@@ -132,16 +135,15 @@ class ProfileControllerTest {
                     "NewFirst",
                     "NewLast",
                     testUser.email(),
-                    testUser.password(),
-                    testUser.createdAt(),
                     testUser.role(),
                     testUser.status(),
-                    testUser.authentificationMode(),
-                    testUser.walletId()
+                    testUser.authMode(),
+                    testUser.createdAt(),
+                    testUser.updatedAt()
             );
 
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            when(userUpdateService.updateProfile(testUser.id(), "NewFirst", "NewLast", "newusername"))
+            when(userUpdateService.updateProfile("newusername", "NewFirst", "NewLast"))
                     .thenReturn(updatedUser);
             doNothing().when(authPort).refreshAuthentication(updatedUser);
 
@@ -156,7 +158,7 @@ class ProfileControllerTest {
                     .andExpect(redirectedUrl("/profile"))
                     .andExpect(flash().attributeExists("success"));
 
-            verify(userUpdateService).updateProfile(testUser.id(), "NewFirst", "NewLast", "newusername");
+            verify(userUpdateService).updateProfile("newusername", "NewFirst", "NewLast");
             verify(authPort).refreshAuthentication(updatedUser);
         }
 
@@ -165,8 +167,8 @@ class ProfileControllerTest {
         void updateProfile_ShouldReturnProfileView_WhenUsernameAlreadyTaken() throws Exception {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            when(userUpdateService.updateProfile(testUser.id(), "First", "Last", "takenusername"))
-                    .thenThrow(new IllegalArgumentException("Ce nom d'utilisateur est déjà pris"));
+            when(userUpdateService.updateProfile("takenusername", "First", "Last"))
+                    .thenThrow(new CheckProfileUpdateFailure("Ce nom d'utilisateur est déjà pris"));
 
             // When & Then
             mockMvc.perform(post("/profile/update")
@@ -175,10 +177,9 @@ class ProfileControllerTest {
                             .param("firstName", "First")
                             .param("lastName", "Last")
                             .param("username", "takenusername"))
-                    .andExpect(status().isOk())
-                    .andExpect(view().name("dashboard/profile"))
-                    .andExpect(model().attributeExists("error"))
-                    .andExpect(model().attribute("error", "Ce nom d'utilisateur est déjà pris"));
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(view().name("redirect:/profile"))
+                    .andExpect(flash().attributeExists("error"));
 
             verify(authPort, never()).refreshAuthentication(any());
         }
@@ -188,7 +189,7 @@ class ProfileControllerTest {
     class UpdateEmailTests {
         @Test
         @WithMockUser(username = "testuser")
-        void updateEmail_ShouldRedirectToLogout_WhenSuccessful() throws Exception {
+        void updateEmail_ShouldRedirectToProfile_WhenSuccessful() throws Exception {
             // Given
             var updatedUser = new User(
                     testUser.id(),
@@ -196,16 +197,15 @@ class ProfileControllerTest {
                     testUser.firstName(),
                     testUser.lastName(),
                     "new@example.com",
-                    testUser.password(),
-                    testUser.createdAt(),
                     testUser.role(),
                     testUser.status(),
-                    testUser.authentificationMode(),
-                    testUser.walletId()
+                    testUser.authMode(),
+                    testUser.createdAt(),
+                    Instant.now()
             );
 
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            when(userUpdateService.updateEmail(testUser.id(), "new@example.com", "correctPassword"))
+            when(userUpdateService.updateEmail( "testuser", "new@example.com", "correctPassword"))
                     .thenReturn(updatedUser);
 
             // When & Then
@@ -215,10 +215,10 @@ class ProfileControllerTest {
                             .param("newEmail", "new@example.com")
                             .param("currentPassword", "correctPassword"))
                     .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrl("/logout"))
+                    .andExpect(redirectedUrl("/profile"))
                     .andExpect(flash().attributeExists("success"));
 
-            verify(userUpdateService).updateEmail(testUser.id(), "new@example.com", "correctPassword");
+            verify(userUpdateService).updateEmail(testUser.username(), "new@example.com", "correctPassword");
         }
 
         @Test
@@ -226,8 +226,8 @@ class ProfileControllerTest {
         void updateEmail_ShouldRedirectToProfile_WhenPasswordIncorrect() throws Exception {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            when(userUpdateService.updateEmail(testUser.id(), "new@example.com", "wrongPassword"))
-                    .thenThrow(new IllegalArgumentException("Mot de passe incorrect"));
+            when(userUpdateService.updateEmail(testUser.username(), "new@example.com", "wrongPassword"))
+                    .thenThrow(new CheckProfileUpdateFailure("Mot de passe incorrect"));
 
             // When & Then
             mockMvc.perform(post("/profile/update-email")
@@ -248,7 +248,7 @@ class ProfileControllerTest {
         void updatePassword_ShouldRedirectToProfile_WhenSuccessful() throws Exception {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            doNothing().when(userUpdateService).updatePassword(testUser.id(), "currentPass", "newPassword123");
+            doNothing().when(userUpdateService).updatePassword(testUser.username(), "currentPass", "newPassword123");
 
             // When & Then
             mockMvc.perform(post("/profile/update-password")
@@ -259,9 +259,9 @@ class ProfileControllerTest {
                             .param("confirmPassword", "newPassword123"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/profile"))
-                    .andExpect(flash().attributeExists("success"));
+                    .andExpect(flash().attribute("success", "Mot de passe modifié avec succès !"));
 
-            verify(userUpdateService).updatePassword(testUser.id(), "currentPass", "newPassword123");
+            verify(userUpdateService).updatePassword(testUser.username(), "currentPass", "newPassword123");
         }
 
         @Test
@@ -269,8 +269,8 @@ class ProfileControllerTest {
         void updatePassword_ShouldReturnProfileView_WhenCurrentPasswordIncorrect() throws Exception {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            doThrow(new IllegalArgumentException("Mot de passe actuel incorrect"))
-                    .when(userUpdateService).updatePassword(testUser.id(), "wrongPassword", "newPassword123");
+            doThrow(new CheckProfileUpdateFailure("Mot de passe actuel incorrect"))
+                    .when(userUpdateService).updatePassword(testUser.username(), "wrongPassword", "newPassword123");
 
             // When & Then
             mockMvc.perform(post("/profile/update-password")
@@ -279,9 +279,9 @@ class ProfileControllerTest {
                             .param("currentPassword", "wrongPassword")
                             .param("newPassword", "newPassword123")
                             .param("confirmPassword", "newPassword123"))
-                    .andExpect(status().isOk())
-                    .andExpect(view().name("dashboard/profile"))
-                    .andExpect(model().attributeExists("error"));
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(view().name("redirect:/profile"))
+                    .andExpect(flash().attributeExists("error"));
         }
 
         @Test
@@ -297,13 +297,11 @@ class ProfileControllerTest {
                             .param("currentPassword", "currentPass")
                             .param("newPassword", "newPassword123")
                             .param("confirmPassword", "differentPassword"))
-                    .andExpect(status().isOk())
-                    .andExpect(view().name("dashboard/profile"))
-                    .andExpect(model().attributeExists("error"))
-                    .andExpect(model().attribute("error", "Les mots de passe ne correspondent pas"));
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(view().name("redirect:/profile"))
+                    .andExpect(flash().attributeExists("errorMessage"));
 
             verify(userUpdateService, never()).updatePassword(any(), any(), any());
         }
     }
-*/
 }

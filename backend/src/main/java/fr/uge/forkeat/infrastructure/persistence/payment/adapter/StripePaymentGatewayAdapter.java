@@ -1,9 +1,13 @@
 package fr.uge.forkeat.infrastructure.persistence.payment.adapter;
 
+import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
+import com.stripe.model.Event;
 import com.stripe.model.checkout.Session;
+import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionCreateParams;
 import fr.uge.forkeat.service.exception.PaymentException;
+import fr.uge.forkeat.service.exception.StripEventException;
 import fr.uge.forkeat.service.model.PaymentRequest;
 import fr.uge.forkeat.service.model.PaymentResponse;
 import fr.uge.forkeat.service.external.PaymentGateway;
@@ -49,6 +53,14 @@ public class StripePaymentGatewayAdapter implements PaymentGateway {
 
         } catch (StripeException e) {
             throw new PaymentException("Erreur lors de la communication avec Stripe", e);
+        }
+    }
+
+    public Event initEvent(String payload, String sigHeader, String endpointSecret) {
+        try {
+            return Webhook.constructEvent(payload, sigHeader, endpointSecret);
+        } catch (SignatureVerificationException e) {
+            throw new StripEventException("Invalid Stripe signature", e);
         }
     }
 }

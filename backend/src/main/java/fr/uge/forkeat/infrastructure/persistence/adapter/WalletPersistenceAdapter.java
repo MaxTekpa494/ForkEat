@@ -57,7 +57,8 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 			return newEntity;
 		});
 
-		WalletEntityMapper.updateEntity(entity, wallet);
+		entity.setBalance(wallet.balance());
+		entity.setUpdatedAt(wallet.updatedAt());
 		var saved = walletRepository.save(entity);
 		return WalletEntityMapper.toDomain(saved);
 	}

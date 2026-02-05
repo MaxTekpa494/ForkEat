@@ -11,7 +11,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 class TransactionEntityMapperTest {
 
-    private final TransactionEntityMapper mapper = new TransactionEntityMapper();
 
     @Test
     void transactionEntityToTransaction() {
@@ -23,7 +22,7 @@ class TransactionEntityMapperTest {
                 Instant.now()
         );
 
-        var transaction = mapper.toDomain(entity);
+        var transaction = TransactionEntityMapper.toDomain(entity);
 
         assertEquals(entity.getStripeTransactionID(), transaction.stripeTransactionID());
         assertEquals(entity.getTransactionType(), transaction.type());
@@ -39,7 +38,7 @@ class TransactionEntityMapperTest {
                 "stripe_123"
         );
 
-        var entity = mapper.toEntity(transaction);
+        var entity = TransactionEntityMapper.toEntity(transaction);
 
         assertEquals(entity.getStripeTransactionID(), transaction.stripeTransactionID());
         assertEquals(entity.getTransactionType(), transaction.type());

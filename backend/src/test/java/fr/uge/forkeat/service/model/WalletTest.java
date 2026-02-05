@@ -1,6 +1,7 @@
 package fr.uge.forkeat.service.model;
 
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
+import fr.uge.forkeat.service.model.user.Wallet;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -12,7 +13,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class WalletTest {
 
     private Wallet createWallet(Long balance) {
-        return new Wallet(UUID.randomUUID(), balance, UUID.randomUUID(), Instant.now());
+        return new Wallet(UUID.randomUUID(), UUID.randomUUID(), balance, Instant.now());
     }
 
     @Nested
@@ -24,7 +25,7 @@ class WalletTest {
             var wallet = createWallet(1000L);
 
             // When
-            var newWallet = wallet.addFunds(500L);
+            var newWallet = wallet.credit(500L);
 
             // Then
             assertEquals(1500L, newWallet.balance());
@@ -36,7 +37,7 @@ class WalletTest {
             var wallet = createWallet(1000L);
 
             // When
-            var newWallet = wallet.addFunds(500L);
+            var newWallet = wallet.credit(500L);
 
             // Then
             assertNotSame(wallet, newWallet);
@@ -50,7 +51,7 @@ class WalletTest {
             var wallet = createWallet(1000L);
 
             // When
-            var newWallet = wallet.addFunds(500L);
+            var newWallet = wallet.credit(500L);
 
             // Then
             assertEquals(wallet.id(), newWallet.id());
@@ -62,7 +63,7 @@ class WalletTest {
             var wallet = createWallet(1000L);
 
             // When
-            var newWallet = wallet.addFunds(500L);
+            var newWallet = wallet.credit(500L);
 
             // Then
             assertEquals(wallet.userId(), newWallet.userId());
@@ -72,10 +73,10 @@ class WalletTest {
         void addFunds_ShouldUpdateTimestamp() {
             // Given
             var oldTimestamp = Instant.now().minusSeconds(100);
-            var wallet = new Wallet(UUID.randomUUID(), 1000L, UUID.randomUUID(), oldTimestamp);
+            var wallet = new Wallet(UUID.randomUUID(), UUID.randomUUID(),1000L,  oldTimestamp);
 
             // When
-            var newWallet = wallet.addFunds(500L);
+            var newWallet = wallet.credit(500L);
 
             // Then
             assertTrue(newWallet.updatedAt().isAfter(oldTimestamp));
@@ -87,7 +88,7 @@ class WalletTest {
             var wallet = createWallet(1000L);
 
             // When
-            var newWallet = wallet.addFunds(0L);
+            var newWallet = wallet.credit(0L);
 
             // Then
             assertEquals(1000L, newWallet.balance());
@@ -99,7 +100,7 @@ class WalletTest {
             var wallet = createWallet(0L);
 
             // When
-            var newWallet = wallet.addFunds(Long.MAX_VALUE - 1);
+            var newWallet = wallet.credit(Long.MAX_VALUE - 1);
 
             // Then
             assertEquals(Long.MAX_VALUE - 1, newWallet.balance());
@@ -115,7 +116,7 @@ class WalletTest {
             var wallet = createWallet(1000L);
 
             // When
-            var newWallet = wallet.removeFunds(300L);
+            var newWallet = wallet.debit(300L);
 
             // Then
             assertEquals(700L, newWallet.balance());
@@ -127,7 +128,7 @@ class WalletTest {
             var wallet = createWallet(1000L);
 
             // When
-            var newWallet = wallet.removeFunds(300L);
+            var newWallet = wallet.debit(300L);
 
             // Then
             assertNotSame(wallet, newWallet);
@@ -140,7 +141,7 @@ class WalletTest {
             var wallet = createWallet(1000L);
 
             // When
-            var newWallet = wallet.removeFunds(1000L);
+            var newWallet = wallet.debit(1000L);
 
             // Then
             assertEquals(0L, newWallet.balance());
@@ -154,7 +155,7 @@ class WalletTest {
             // When/Then
             InsufficientFundsException exception = assertThrows(
                     InsufficientFundsException.class,
-                    () -> wallet.removeFunds(1000L)
+                    () -> wallet.debit(1000L)
             );
 
             assertEquals(500L, exception.getAvailable());
@@ -169,7 +170,7 @@ class WalletTest {
             // When/Then
             assertThrows(
                     InsufficientFundsException.class,
-                    () -> wallet.removeFunds(1L)
+                    () -> wallet.debit(1L)
             );
         }
 
@@ -179,7 +180,7 @@ class WalletTest {
             var wallet = createWallet(1000L);
 
             // When
-            var newWallet = wallet.removeFunds(300L);
+            var newWallet = wallet.debit(300L);
 
             // Then
             assertEquals(wallet.id(), newWallet.id());
@@ -192,7 +193,7 @@ class WalletTest {
             var wallet = createWallet(1000L);
 
             // When
-            var newWallet = wallet.removeFunds(0L);
+            var newWallet = wallet.debit(0L);
 
             // Then
             assertEquals(1000L, newWallet.balance());
@@ -202,10 +203,10 @@ class WalletTest {
         void removeFunds_ShouldUpdateTimestamp() {
             // Given
             var oldTimestamp = Instant.now().minusSeconds(100);
-            var wallet = new Wallet(UUID.randomUUID(), 1000L, UUID.randomUUID(), oldTimestamp);
+            var wallet = new Wallet(UUID.randomUUID(), UUID.randomUUID(),1000L,  oldTimestamp);
 
             // When
-            var newWallet = wallet.removeFunds(500L);
+            var newWallet = wallet.credit(500L);
 
             // Then
             assertTrue(newWallet.updatedAt().isAfter(oldTimestamp));
@@ -221,11 +222,11 @@ class WalletTest {
             var id = UUID.randomUUID();
             var userId = UUID.randomUUID();
             var timestamp = Instant.now();
-            var wallet = new Wallet(id, 1000L, userId, timestamp);
+            var wallet = new Wallet(id, userId,1000L,  timestamp);
 
             // When - perform operations
-            var afterAdd = wallet.addFunds(500L);
-            var afterRemove = wallet.removeFunds(200L);
+            var afterAdd = wallet.credit(500L);
+            var afterRemove = wallet.debit(200L);
 
             // Then - original should be unchanged
             assertEquals(1000L, wallet.balance());
@@ -245,7 +246,7 @@ class WalletTest {
         @Test
         void wallet_ShouldAcceptNullUpdatedAt() {
             // Given/When
-            var wallet = new Wallet(UUID.randomUUID(), 1000L, UUID.randomUUID(), null);
+            var wallet = new Wallet(UUID.randomUUID(), UUID.randomUUID(),1000L,  null);
 
             // Then
             assertNull(wallet.updatedAt());
@@ -255,7 +256,7 @@ class WalletTest {
         @Test
         void wallet_ShouldAcceptZeroBalance() {
             // Given/When
-            var wallet = new Wallet(UUID.randomUUID(), 0L, UUID.randomUUID(), Instant.now());
+            var wallet = new Wallet(UUID.randomUUID(), UUID.randomUUID(),0L,  Instant.now());
 
             // Then
             assertEquals(0L, wallet.balance());

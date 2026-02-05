@@ -7,7 +7,7 @@ import fr.uge.forkeat.service.model.PaymentResponse;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.external.PaymentGateway;
 import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.Wallet;
+import fr.uge.forkeat.service.model.user.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -53,7 +53,7 @@ class WalletServiceTest {
         Long amount = 500L;
         String stripeId = "tx_12345";
         
-        Wallet initialWallet = new Wallet(UUID.randomUUID(), 1000L, userId, Instant.now());
+        Wallet initialWallet = new Wallet(UUID.randomUUID(), userId, 1000, Instant.now());
         when(walletPersistence.transactionExists(stripeId)).thenReturn(false);
         when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.of(initialWallet));
 

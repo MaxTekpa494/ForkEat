@@ -48,12 +48,14 @@ public class AuthWebController {
 
   @PostMapping("/register")
   public String register(@Valid @ModelAttribute RegisterFormDTO form, BindingResult result,
-                         RedirectAttributes redirectAttributes) {
+                         RedirectAttributes redirectAttributes, Model model) {
+
     if (result.hasErrors()) {
       return "layout/register";
     }
 
-    userRegistrationService.registerUser(UserFormDTOMapper.toUserRegister(form));
+     userRegistrationService.registerUser(UserFormDTOMapper.toUserRegister(form));
+
     redirectAttributes.addFlashAttribute("success",
             "Compte créé avec succès ! Vous pouvez maintenant vous connecter.");
     return "redirect:/login";

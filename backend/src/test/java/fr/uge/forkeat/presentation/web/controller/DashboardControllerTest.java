@@ -1,10 +1,13 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
-import fr.uge.forkeat.service.CustomUserDetailsService;
+import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.*;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserQueryService;
 import jakarta.servlet.FilterChain;
@@ -52,23 +55,20 @@ class DashboardControllerTest {
     private JwtFilter jwtFilter;
 
     private User testUser;
-    private UUID walletId;
 
     @BeforeEach
     void setUp() throws Exception {
-        walletId = UUID.randomUUID();
         testUser = new User(
                 UUID.randomUUID(),
                 "testuser",
                 "John",
                 "Doe",
                 "test@example.com",
-                "hashedPassword",
-                Instant.now(),
                 UserRole.MEMBER,
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
-                walletId
+                Instant.now(),
+                Instant.now()
         );
 
         // Bypass JWT filter
@@ -81,7 +81,7 @@ class DashboardControllerTest {
         }).when(jwtFilter).doFilter(any(), any(), any());
 
         // Configuration de l'authentification
-        when(authPort.extractUsername(any())).thenReturn(testUser.username());
+        when(authPort.extractUsername()).thenReturn(testUser.username());
     }
 
     @Test
@@ -133,7 +133,7 @@ class DashboardControllerTest {
                 .andExpect(status().isOk());
 
         // Then
-        verify(authPort).extractUsername(any());
+        verify(authPort).extractUsername();
         verify(userQueryService).getUserByUsername("testuser");
     }
 
@@ -147,15 +147,14 @@ class DashboardControllerTest {
                 "Jane",
                 "Smith",
                 "other@example.com",
-                "hashedPassword",
-                Instant.now(),
                 UserRole.MEMBER,
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
-                UUID.randomUUID()
-        );
+                Instant.now(),
+                Instant.now()
+                );
 
-        when(authPort.extractUsername(any())).thenReturn("otheruser");
+        when(authPort.extractUsername()).thenReturn("otheruser");
         when(userQueryService.getUserByUsername("otheruser")).thenReturn(otherUser);
         when(walletService.getBalance(otherUser.id())).thenReturn(2000L);
 

@@ -24,7 +24,7 @@ public class DashboardWebController {
 
 	@GetMapping("/dashboard")
 	public String dashboard(Authentication authentication, Model model) {
-		var username = authPort.extractUsername(authentication);
+		var username = authPort.extractUsername();
 
 		var user = userQueryServic.getUserByUsername(username);
 

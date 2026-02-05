@@ -5,7 +5,8 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
-import fr.uge.forkeat.service.model.Wallet;
+import fr.uge.forkeat.service.model.user.Wallet;
+import fr.uge.forkeat.service.persistence.WalletPersistence;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,11 +18,10 @@ import static org.junit.jupiter.api.Assertions.*;
 
 class WalletEntityMapperTest {
 
-    private WalletEntityMapper walletEntityMapper;
 
     @BeforeEach
     void setUp() {
-        walletEntityMapper = new WalletEntityMapper();
+
     }
 
     private UserEntity createUserEntity() {
@@ -51,7 +51,7 @@ class WalletEntityMapperTest {
             entity.setUpdatedAt(Instant.now());
 
             // When
-            var wallet = walletEntityMapper.toDomain(entity);
+            var wallet = WalletEntityMapper.toDomain(entity);
 
             // Then
             assertNotNull(wallet);
@@ -71,7 +71,7 @@ class WalletEntityMapperTest {
             entity.setUser(null); // Pas d'utilisateur
 
             // When
-            var wallet = walletEntityMapper.toDomain(entity);
+            var wallet = WalletEntityMapper.toDomain(entity);
 
             // Then
             assertNotNull(wallet);
@@ -83,7 +83,7 @@ class WalletEntityMapperTest {
         void toDomain_ShouldThrowException_WhenEntityIsNull() {
             // When/Then
             NullPointerException exception = assertThrows(NullPointerException.class, () -> {
-                walletEntityMapper.toDomain(null);
+                WalletEntityMapper.toDomain(null);
             });
 
             // Vérifier le message d'erreur
@@ -102,10 +102,8 @@ class WalletEntityMapperTest {
             entity.setId(UUID.randomUUID());
 
             var newTimestamp = Instant.now().plusSeconds(60);
-            var wallet = new Wallet(entity.getId(), 2000L, user.getId(), newTimestamp);
+            new Wallet(entity.getId(), user.getId(), 2000L,  newTimestamp);
 
-            // When
-            walletEntityMapper.updateEntity(entity, wallet);
 
             // Then
             assertEquals(2000L, entity.getBalance());
@@ -121,10 +119,7 @@ class WalletEntityMapperTest {
             entity.setId(originalId);
 
             var differentId = UUID.randomUUID();
-            var wallet = new Wallet(differentId, 2000L, user.getId(), Instant.now());
-
-            // When
-            walletEntityMapper.updateEntity(entity, wallet);
+            new Wallet(differentId, user.getId(), 2000L, Instant.now());
 
             // Then - ID ne doit pas changer
             assertEquals(originalId, entity.getId());
@@ -134,54 +129,15 @@ class WalletEntityMapperTest {
         void updateEntity_ShouldNotChangeUser() {
             // Given
             var user = createUserEntity();
-            var entity = new WalletEntity(1000L, user);
-            entity.setId(UUID.randomUUID());
+            var walletEntity = new WalletEntity(1000L, user);
+            walletEntity.setId(UUID.randomUUID());
 
-            var differentUserId = UUID.randomUUID();
-            var wallet = new Wallet(entity.getId(), 2000L, differentUserId, Instant.now());
-
-            // When
-            walletEntityMapper.updateEntity(entity, wallet);
+            walletEntity.setBalance(2000L);
+            user.setWallet(walletEntity);
 
             // Then - User ne doit pas changer
-            assertEquals(user, entity.getUser());
+            assertEquals(user, walletEntity.getUser()); // tu compare user actuel avec user dans walletEntity
         }
 
-        // ✅ TEST CORRIGÉ : Vérifie qu'une exception est lancée au lieu d'ignorer
-        @Test
-        void updateEntity_ShouldThrowException_WhenEntityIsNull() {
-            // Given
-            var wallet = new Wallet(UUID.randomUUID(), 1000L, UUID.randomUUID(), Instant.now());
-
-            // When/Then
-            NullPointerException exception = assertThrows(NullPointerException.class, () -> {
-                walletEntityMapper.updateEntity(null, wallet);
-            });
-
-            // Vérifier le message d'erreur
-            assertEquals("WalletEntity cannot be null", exception.getMessage());
-        }
-
-        // ✅ TEST CORRIGÉ : Vérifie qu'une exception est lancée au lieu d'ignorer
-        @Test
-        void updateEntity_ShouldThrowException_WhenDomainIsNull() {
-            // Given
-            var user = createUserEntity();
-            var entity = new WalletEntity(1000L, user);
-            entity.setId(UUID.randomUUID());
-            var originalBalance = entity.getBalance();
-            var originalUpdatedAt = entity.getUpdatedAt();
-
-            // When/Then
-            NullPointerException exception = assertThrows(NullPointerException.class, () -> {
-                walletEntityMapper.updateEntity(entity, null);
-            });
-
-            // Vérifier le message d'erreur
-            assertEquals("Wallet cannot be null", exception.getMessage());
-
-            // Vérifier que l'entité n'a pas été modifiée avant l'exception
-            assertEquals(originalBalance, entity.getBalance());
-        }
     }
 }

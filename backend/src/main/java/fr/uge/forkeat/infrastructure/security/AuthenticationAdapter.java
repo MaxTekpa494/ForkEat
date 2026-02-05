@@ -25,9 +25,10 @@ public class AuthenticationAdapter implements AuthenticationPort {
     }
 
     @Override
-    public String extractUsername(Authentication authentication) {
+    public String extractUsername() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
-            throw new IllegalArgumentException("Authentication cannot be null");
+            throw new IllegalArgumentException("Authentication context cannot be null");
         }
 
         Object principal = authentication.getPrincipal();

@@ -1,15 +1,12 @@
 package fr.uge.forkeat.presentation.web;
 
-import fr.uge.forkeat.service.exception.DuplicateTransactionException;
-import fr.uge.forkeat.service.exception.RecipeNotFoundException;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.exception.StripEventException;
-import fr.uge.forkeat.service.exception.WalletNotFoundException;
+import fr.uge.forkeat.service.exception.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @ControllerAdvice(basePackages = "fr.uge.forkeat.presentation.web")
 public class GlobalWebExceptionHandler {
@@ -60,6 +57,21 @@ public class GlobalWebExceptionHandler {
 		model.addAttribute("errorMessage", ex.getMessage());
 		model.addAttribute("pageTitle", "Transaction en double");
 		return "error/409";
+	}
+
+	@ExceptionHandler(RegisterFailure.class)
+	@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public String HandleRegisterFailure(RegisterFailure ex, Model model) {
+		model.addAttribute("errorMessage", ex.getMessage());
+		model.addAttribute("pageTitle", "Erreur lors de l'inscription");
+		return "layout/register";
+	}
+
+	@ExceptionHandler(CheckProfileUpdateFailure.class)
+	//@ResponseStatus(HttpStatus.BAD_REQUEST)
+	public String HandleUpdatePasswordFailure(CheckProfileUpdateFailure ex, RedirectAttributes redirectAttributes){
+		redirectAttributes.addFlashAttribute("error", ex.getMessage());
+		return "redirect:/profile";
 	}
 
 }

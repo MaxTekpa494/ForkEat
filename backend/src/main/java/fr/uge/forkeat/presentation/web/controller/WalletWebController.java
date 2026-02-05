@@ -30,7 +30,7 @@ public class WalletWebController {
             Authentication authentication,
             Model model
     ) throws ResourceNotFoundException {
-        var username = authPort.extractUsername(authentication);
+        var username = authPort.extractUsername();
 
         var user = userQueryService.getUserByUsername(username);
         var balance = walletService.getBalance(user.id());
