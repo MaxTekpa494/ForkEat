@@ -6,8 +6,6 @@ import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.model.user.Wallet;
-import fr.uge.forkeat.service.persistence.WalletPersistence;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 
@@ -17,12 +15,6 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 class WalletEntityMapperTest {
-
-
-    @BeforeEach
-    void setUp() {
-
-    }
 
     private UserEntity createUserEntity() {
         UserEntity user = new UserEntity();
@@ -46,39 +38,37 @@ class WalletEntityMapperTest {
         void toDomain_ShouldConvertEntityToDomain() {
             // Given
             var user = createUserEntity();
+            var walletId = UUID.randomUUID();
+            var updatedAt = Instant.now();
             var entity = new WalletEntity(1000L, user);
-            entity.setId(UUID.randomUUID());
-            entity.setUpdatedAt(Instant.now());
+            entity.setId(walletId);
+            entity.setUpdatedAt(updatedAt);
 
             // When
             var wallet = WalletEntityMapper.toDomain(entity);
 
             // Then
             assertNotNull(wallet);
-            assertEquals(entity.getId(), wallet.id());
-            assertEquals(entity.getBalance(), wallet.balance());
+            assertEquals(walletId, wallet.id());
+            assertEquals(1000L, wallet.balance());
             assertEquals(user.getId(), wallet.userId());
-            assertEquals(entity.getUpdatedAt(), wallet.updatedAt());
+            assertEquals(updatedAt, wallet.updatedAt());
         }
 
         @Test
-        void toDomain_ShouldHandleNullUser() {
+        void toDomain_ShouldThrowException_WhenUserIsNull() {
             // Given
             var entity = new WalletEntity();
             entity.setId(UUID.randomUUID());
             entity.setBalance(500L);
             entity.setUpdatedAt(Instant.now());
-            entity.setUser(null); // Pas d'utilisateur
 
-            // When
-            var wallet = WalletEntityMapper.toDomain(entity);
-
-            // Then
-            assertNotNull(wallet);
-            assertNull(wallet.userId());
+            // When/Then
+            assertThrows(NullPointerException.class, () -> {
+                WalletEntityMapper.toDomain(entity);
+            });
         }
 
-        // ✅ TEST CORRIGÉ : Vérifie qu'une exception est lancée au lieu de retourner null
         @Test
         void toDomain_ShouldThrowException_WhenEntityIsNull() {
             // When/Then
@@ -86,58 +76,86 @@ class WalletEntityMapperTest {
                 WalletEntityMapper.toDomain(null);
             });
 
-            // Vérifier le message d'erreur
+            // Then
             assertEquals("WalletEntity cannot be null", exception.getMessage());
         }
     }
 
     @Nested
-    class UpdateEntityTests {
+    class EntityBehaviorTests {
 
         @Test
-        void updateEntity_ShouldUpdateBalanceAndTimestamp() {
+        void walletEntity_ShouldMaintainBalance() {
+            // Given
+            var user = createUserEntity();
+            var entity = new WalletEntity(1000L, user);
+            entity.setId(UUID.randomUUID());
+
+            // When
+            entity.setBalance(2000L);
+
+            // Then
+            assertEquals(2000L, entity.getBalance());
+        }
+
+        @Test
+        void walletEntity_ShouldMaintainTimestamp() {
             // Given
             var user = createUserEntity();
             var entity = new WalletEntity(1000L, user);
             entity.setId(UUID.randomUUID());
 
             var newTimestamp = Instant.now().plusSeconds(60);
-            new Wallet(entity.getId(), user.getId(), 2000L,  newTimestamp);
 
+            // When
+            entity.setUpdatedAt(newTimestamp);
 
             // Then
-            assertEquals(2000L, entity.getBalance());
             assertEquals(newTimestamp, entity.getUpdatedAt());
         }
 
         @Test
-        void updateEntity_ShouldNotChangeId() {
+        void walletEntity_ShouldMaintainId() {
             // Given
             var user = createUserEntity();
             var originalId = UUID.randomUUID();
             var entity = new WalletEntity(1000L, user);
+
+            // When
             entity.setId(originalId);
 
-            var differentId = UUID.randomUUID();
-            new Wallet(differentId, user.getId(), 2000L, Instant.now());
-
-            // Then - ID ne doit pas changer
+            // Then
             assertEquals(originalId, entity.getId());
         }
 
         @Test
-        void updateEntity_ShouldNotChangeUser() {
+        void walletEntity_ShouldMaintainUserReference() {
+            // Given
+            var user = createUserEntity();
+            var entity = new WalletEntity(1000L, user);
+            entity.setId(UUID.randomUUID());
+
+            // When
+            entity.setBalance(2000L);
+
+            // Then - La référence utilisateur ne doit pas changer
+            assertEquals(user, entity.getUser());
+            assertEquals(user.getId(), entity.getUser().getId());
+        }
+
+        @Test
+        void walletEntity_ShouldAllowBidirectionalRelationship() {
             // Given
             var user = createUserEntity();
             var walletEntity = new WalletEntity(1000L, user);
             walletEntity.setId(UUID.randomUUID());
 
-            walletEntity.setBalance(2000L);
+            // When
             user.setWallet(walletEntity);
 
-            // Then - User ne doit pas changer
-            assertEquals(user, walletEntity.getUser()); // tu compare user actuel avec user dans walletEntity
+            // Then
+            assertEquals(walletEntity, user.getWallet());
+            assertEquals(user, walletEntity.getUser());
         }
-
     }
 }

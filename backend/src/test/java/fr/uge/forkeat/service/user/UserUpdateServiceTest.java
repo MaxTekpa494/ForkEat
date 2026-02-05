@@ -1,12 +1,15 @@
 package fr.uge.forkeat.service.user;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.CheckProfileUpdateFailure;
 import fr.uge.forkeat.service.model.*;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,13 +19,12 @@ import java.time.Instant;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserUpdateServiceTest {
-/*
+
     @Mock
     private UserPersistence userPersistence;
 
@@ -42,12 +44,11 @@ class UserUpdateServiceTest {
                 "John",
                 "Doe",
                 email,
-                "hashedPassword123",
-                Instant.now(),
                 UserRole.MEMBER,
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
-                UUID.randomUUID()
+                Instant.now(),
+                Instant.now()
         );
     }
 
@@ -55,74 +56,80 @@ class UserUpdateServiceTest {
     class UpdateProfileTests {
 
         @Test
-        void updateProfile_ShouldUpdateUserProfile_WhenValidData() throws ResourceNotFoundException {
+        void updateProfile_ShouldUpdateUserProfile_WhenValidData() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "oldusername", "test@example.com");
 
-            when(userQueryService.getUserById(userId)).thenReturn(existingUser);
+            // Le service appelle getUserByUsername avec le CURRENT username (oldusername)
+            when(userQueryService.getUserByUsername("oldusername")).thenReturn(existingUser);
             when(userPersistence.existsByUsername("newusername")).thenReturn(false);
-            when(userPersistence.saveUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
+            when(userPersistence.updateUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-            // When
+            // When - On passe currentUsername puis newUsername
             User result = userUpdateService.updateProfile(
-                    userId, "NewFirst", "NewLast", "newusername"
+                    "oldusername", "newusername", "NewFirst", "NewLast"
             );
 
             // Then
             assertEquals("NewFirst", result.firstName());
             assertEquals("NewLast", result.lastName());
             assertEquals("newusername", result.username());
-            assertEquals("test@example.com", result.email()); // Email ne change pas
-            verify(userPersistence).saveUser(any(User.class));
+            assertEquals("test@example.com", result.email());
+            verify(userQueryService).getUserByUsername("oldusername");
+            verify(userPersistence).existsByUsername("newusername");
+            verify(userPersistence).updateUser(any(User.class));
         }
 
         @Test
-        void updateProfile_ShouldNotCheckUsername_WhenUsernameNotChanged() throws ResourceNotFoundException {
+        void updateProfile_ShouldNotCheckUsername_WhenUsernameNotChanged() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "sameusername", "test@example.com");
 
-            when(userQueryService.getUserById(userId)).thenReturn(existingUser);
-            when(userPersistence.saveUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
+            when(userQueryService.getUserByUsername("sameusername")).thenReturn(existingUser);
+            when(userPersistence.updateUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
-            // When
-            userUpdateService.updateProfile(userId, "First", "Last", "sameusername");
+            // When - currentUsername et newUsername sont identiques
+            userUpdateService.updateProfile("sameusername", "sameusername", "First", "Last");
 
             // Then
             verify(userPersistence, never()).existsByUsername(anyString());
+            verify(userPersistence).updateUser(any(User.class));
         }
 
         @Test
-        void updateProfile_ShouldThrow_WhenUsernameAlreadyTaken() throws ResourceNotFoundException {
+        void updateProfile_ShouldThrow_WhenUsernameAlreadyTaken() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "oldusername", "test@example.com");
 
-            when(userQueryService.getUserById(userId)).thenReturn(existingUser);
+            // Le service appelle getUserByUsername avec le CURRENT username
+            when(userQueryService.getUserByUsername("oldusername")).thenReturn(existingUser);
             when(userPersistence.existsByUsername("takenusername")).thenReturn(true);
 
             // When/Then
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> userUpdateService.updateProfile(userId, "First", "Last", "takenusername")
+            CheckProfileUpdateFailure exception = assertThrows(
+                    CheckProfileUpdateFailure.class,
+                    () -> userUpdateService.updateProfile("oldusername", "takenusername", "First", "Last")
             );
 
             assertEquals("Ce nom d'utilisateur est déjà pris", exception.getMessage());
-            verify(userPersistence, never()).saveUser(any());
+            verify(userQueryService).getUserByUsername("oldusername");
+            verify(userPersistence).existsByUsername("takenusername");
+            verify(userPersistence, never()).updateUser(any());
         }
 
         @Test
-        void updateProfile_ShouldThrow_WhenUserNotFound() throws ResourceNotFoundException {
+        void updateProfile_ShouldThrow_WhenUserNotFound() {
             // Given
-            var unknownId = UUID.randomUUID();
-            when(userQueryService.getUserById(unknownId))
+            when(userQueryService.getUserByUsername("unknown"))
                     .thenThrow(new ResourceNotFoundException("Utilisateur non trouvé"));
 
             // When/Then
             assertThrows(
                     ResourceNotFoundException.class,
-                    () -> userUpdateService.updateProfile(unknownId, "First", "Last", "username")
+                    () -> userUpdateService.updateProfile("unknown", "newusername", "First", "Last")
             );
         }
     }
@@ -131,78 +138,79 @@ class UserUpdateServiceTest {
     class UpdateEmailTests {
 
         @Test
-        void updateEmail_ShouldUpdateEmail_WhenPasswordCorrect() throws ResourceNotFoundException {
+        void updateEmail_ShouldUpdateEmail_WhenPasswordCorrect() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "old@example.com");
 
-            when(userQueryService.getUserById(userId)).thenReturn(existingUser);
-            when(passwordEncoder.matches("correctPassword", "hashedPassword123")).thenReturn(true);
+            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(userPersistence.checkPassword("testuser", "correctPassword")).thenReturn(true);
             when(userPersistence.existsByEmail("new@example.com")).thenReturn(false);
-            when(userPersistence.saveUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
+            when(userPersistence.updateUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
             // When
-            User result = userUpdateService.updateEmail(userId, "new@example.com", "correctPassword");
+            User result = userUpdateService.updateEmail("testuser", "new@example.com", "correctPassword");
 
             // Then
             assertEquals("new@example.com", result.email());
-            verify(userPersistence).saveUser(any(User.class));
+            verify(userPersistence).updateUser(any(User.class));
         }
 
         @Test
-        void updateEmail_ShouldThrow_WhenPasswordIncorrect() throws ResourceNotFoundException {
+        void updateEmail_ShouldThrow_WhenPasswordIncorrect() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "old@example.com");
 
-            when(userQueryService.getUserById(userId)).thenReturn(existingUser);
-            when(passwordEncoder.matches("wrongPassword", "hashedPassword123")).thenReturn(false);
+            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(userPersistence.checkPassword("testuser", "wrongPassword")).thenReturn(false);
 
             // When/Then
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> userUpdateService.updateEmail(userId, "new@example.com", "wrongPassword")
+            CheckProfileUpdateFailure exception = assertThrows(
+                    CheckProfileUpdateFailure.class,
+                    () -> userUpdateService.updateEmail("testuser", "new@example.com", "wrongPassword")
             );
 
-            assertEquals("Mot de passe incorrect", exception.getMessage());
-            verify(userPersistence, never()).saveUser(any());
+            assertEquals("Incorrect password", exception.getMessage());
+            verify(userPersistence, never()).updateUser(any());
         }
 
         @Test
-        void updateEmail_ShouldThrow_WhenNewEmailAlreadyUsed() throws ResourceNotFoundException {
+        void updateEmail_ShouldThrow_WhenNewEmailAlreadyUsed() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "old@example.com");
 
-            when(userQueryService.getUserById(userId)).thenReturn(existingUser);
-            when(passwordEncoder.matches("correctPassword", "hashedPassword123")).thenReturn(true);
+            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(userPersistence.checkPassword("testuser", "correctPassword")).thenReturn(true);
             when(userPersistence.existsByEmail("taken@example.com")).thenReturn(true);
 
             // When/Then
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> userUpdateService.updateEmail(userId, "taken@example.com", "correctPassword")
+            CheckProfileUpdateFailure exception = assertThrows(
+                    CheckProfileUpdateFailure.class,
+                    () -> userUpdateService.updateEmail("testuser", "taken@example.com", "correctPassword")
             );
 
             assertEquals("Cet email est déjà utilisé", exception.getMessage());
-            verify(userPersistence, never()).saveUser(any());
+            verify(userPersistence, never()).updateUser(any());
         }
 
         @Test
-        void updateEmail_ShouldNotCheckEmail_WhenEmailNotChanged() throws ResourceNotFoundException {
+        void updateEmail_ShouldNotCheckEmail_WhenEmailNotChanged() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "same@example.com");
 
-            when(userQueryService.getUserById(userId)).thenReturn(existingUser);
-            when(passwordEncoder.matches("correctPassword", "hashedPassword123")).thenReturn(true);
-            when(userPersistence.saveUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
+            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(userPersistence.checkPassword("testuser", "correctPassword")).thenReturn(true);
+            when(userPersistence.updateUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
             // When
-            userUpdateService.updateEmail(userId, "same@example.com", "correctPassword");
+            userUpdateService.updateEmail("testuser", "same@example.com", "correctPassword");
 
             // Then
             verify(userPersistence, never()).existsByEmail(anyString());
+            verify(userPersistence).updateUser(any(User.class));
         }
     }
 
@@ -210,77 +218,101 @@ class UserUpdateServiceTest {
     class UpdatePasswordTests {
 
         @Test
-        void updatePassword_ShouldUpdatePassword_WhenCurrentPasswordCorrect() throws ResourceNotFoundException {
+        void updatePassword_ShouldUpdatePassword_WhenCurrentPasswordCorrect() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "test@example.com");
 
-            when(userQueryService.getUserById(userId)).thenReturn(existingUser);
-            when(passwordEncoder.matches("currentPassword", "hashedPassword123")).thenReturn(true);
-            when(passwordEncoder.encode("newPassword123")).thenReturn("newHashedPassword");
+            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(passwordEncoder.encode("currentPassword")).thenReturn("encodedCurrentPassword");
+            when(passwordEncoder.encode("newPassword123")).thenReturn("encodedNewPassword");
+            when(userPersistence.checkPassword("testuser", "encodedNewPassword")).thenReturn(true);
 
             // When
-            userUpdateService.updatePassword(userId, "currentPassword", "newPassword123");
+            userUpdateService.updatePassword("testuser", "currentPassword", "newPassword123");
 
             // Then
-            ArgumentCaptor<User> userCaptor = ArgumentCaptor.forClass(User.class);
-            verify(userPersistence).saveUser(userCaptor.capture());
-            assertEquals("newHashedPassword", userCaptor.getValue().password());
+            verify(userPersistence).saveUser(any(User.class), eq("encodedCurrentPassword"));
         }
 
         @Test
-        void updatePassword_ShouldThrow_WhenCurrentPasswordIncorrect() throws ResourceNotFoundException {
+        void updatePassword_ShouldThrow_WhenCurrentPasswordIncorrect() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "test@example.com");
 
-            when(userQueryService.getUserById(userId)).thenReturn(existingUser);
-            when(passwordEncoder.matches("wrongPassword", "hashedPassword123")).thenReturn(false);
+            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(passwordEncoder.encode("wrongPassword")).thenReturn("encodedWrongPassword");
+            when(passwordEncoder.encode("newPassword123")).thenReturn("encodedNewPassword");
+            when(userPersistence.checkPassword("testuser", "encodedNewPassword")).thenReturn(false);
 
             // When/Then
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> userUpdateService.updatePassword(userId, "wrongPassword", "newPassword123")
+            CheckProfileUpdateFailure exception = assertThrows(
+                    CheckProfileUpdateFailure.class,
+                    () -> userUpdateService.updatePassword("testuser", "wrongPassword", "newPassword123")
             );
 
-            assertEquals("Mot de passe actuel incorrect", exception.getMessage());
-            verify(userPersistence, never()).saveUser(any());
+            assertEquals("Incorrect current password", exception.getMessage());
+            verify(userPersistence, never()).saveUser(any(), anyString());
         }
 
         @Test
-        void updatePassword_ShouldThrow_WhenNewPasswordTooShort() throws ResourceNotFoundException {
+        void updatePassword_ShouldThrow_WhenNewPasswordTooShort() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "test@example.com");
 
-            when(userQueryService.getUserById(userId)).thenReturn(existingUser);
-            when(passwordEncoder.matches("currentPassword", "hashedPassword123")).thenReturn(true);
+            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(passwordEncoder.encode("currentPassword")).thenReturn("encodedCurrentPassword");
+            when(passwordEncoder.encode("short")).thenReturn("encodedShort");
+            when(userPersistence.checkPassword("testuser", "encodedShort")).thenReturn(true);
 
             // When/Then
-            IllegalArgumentException exception = assertThrows(
-                    IllegalArgumentException.class,
-                    () -> userUpdateService.updatePassword(userId, "currentPassword", "short")
+            CheckProfileUpdateFailure exception = assertThrows(
+                    CheckProfileUpdateFailure.class,
+                    () -> userUpdateService.updatePassword("testuser", "currentPassword", "short")
             );
 
-            assertEquals("Le nouveau mot de passe doit contenir au moins 8 caractères", exception.getMessage());
-            verify(userPersistence, never()).saveUser(any());
+            assertEquals("New password must be at least 8 characters", exception.getMessage());
+            verify(userPersistence, never()).saveUser(any(), anyString());
         }
 
         @Test
-        void updatePassword_ShouldAcceptPasswordWithExactly8Characters() throws ResourceNotFoundException {
+        void updatePassword_ShouldThrow_WhenPasswordsAreSame() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "test@example.com");
 
-            when(userQueryService.getUserById(userId)).thenReturn(existingUser);
-            when(passwordEncoder.matches("currentPassword", "hashedPassword123")).thenReturn(true);
-            when(passwordEncoder.encode("pass1234")).thenReturn("newHashedPassword");
+            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(passwordEncoder.encode("samePassword")).thenReturn("encodedPassword");
+            when(userPersistence.checkPassword("testuser", "encodedPassword")).thenReturn(true);
+
+            // When/Then
+            CheckProfileUpdateFailure exception = assertThrows(
+                    CheckProfileUpdateFailure.class,
+                    () -> userUpdateService.updatePassword("testuser", "samePassword", "samePassword")
+            );
+
+            assertEquals("Passwords are the same", exception.getMessage());
+            verify(userPersistence, never()).saveUser(any(), anyString());
+        }
+
+        @Test
+        void updatePassword_ShouldAcceptPasswordWithExactly8Characters() {
+            // Given
+            var userId = UUID.randomUUID();
+            var existingUser = createTestUser(userId, "testuser", "test@example.com");
+
+            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(passwordEncoder.encode("current8")).thenReturn("encodedCurrent");
+            when(passwordEncoder.encode("newpass8")).thenReturn("encodedNew");
+            when(userPersistence.checkPassword("testuser", "encodedNew")).thenReturn(true);
 
             // When
-            userUpdateService.updatePassword(userId, "currentPassword", "pass1234");
+            userUpdateService.updatePassword("testuser", "current8", "newpass8");
 
             // Then
-            verify(userPersistence).saveUser(any(User.class));
+            verify(userPersistence).saveUser(any(User.class), eq("encodedCurrent"));
         }
     }
 
@@ -288,44 +320,41 @@ class UserUpdateServiceTest {
     class MigrateToOAuth2Tests {
 
         @Test
-        void migrateToOAuth2_ShouldUpdateAuthModeAndRemovePassword() throws ResourceNotFoundException {
+        void migrateToOAuth2_ShouldUpdateAuthMode() throws ResourceNotFoundException {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "test@example.com");
 
             when(userQueryService.getUserById(userId)).thenReturn(existingUser);
-            when(userPersistence.saveUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
+            when(userPersistence.saveUser(any(User.class), isNull())).thenAnswer(i -> i.getArgument(0));
 
             // When
             User result = userUpdateService.migrateToOAuth2(userId, AuthMode.GOOGLE);
 
             // Then
-            assertNull(result.password());
-            assertEquals(AuthMode.GOOGLE, result.authentificationMode());
-            verify(userPersistence).saveUser(any(User.class));
+            assertEquals(AuthMode.GOOGLE, result.authMode());
+            verify(userPersistence).saveUser(any(User.class), isNull());
         }
 
         @Test
         void migrateToOAuth2_ShouldPreserveOtherUserFields() throws ResourceNotFoundException {
             // Given
             var userId = UUID.randomUUID();
-            var walletId = UUID.randomUUID();
             var existingUser = new User(
                     userId,
                     "testuser",
                     "John",
                     "Doe",
                     "test@example.com",
-                    "hashedPassword123",
-                    Instant.now(),
                     UserRole.MEMBER,
                     UserStatus.ACTIVE,
                     AuthMode.LOCAL,
-                    walletId
+                    Instant.now(),
+                    Instant.now()
             );
 
             when(userQueryService.getUserById(userId)).thenReturn(existingUser);
-            when(userPersistence.saveUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
+            when(userPersistence.saveUser(any(User.class), isNull())).thenAnswer(i -> i.getArgument(0));
 
             // When
             User result = userUpdateService.migrateToOAuth2(userId, AuthMode.GOOGLE);
@@ -338,11 +367,11 @@ class UserUpdateServiceTest {
             assertEquals("test@example.com", result.email());
             assertEquals(UserRole.MEMBER, result.role());
             assertEquals(UserStatus.ACTIVE, result.status());
-            assertEquals(walletId, result.walletId());
+            assertEquals(AuthMode.GOOGLE, result.authMode());
         }
 
         @Test
-        void migrateToOAuth2_ShouldThrow_WhenUserNotFound() throws ResourceNotFoundException {
+        void migrateToOAuth2_ShouldThrow_WhenUserNotFound() {
             // Given
             var unknownId = UUID.randomUUID();
             when(userQueryService.getUserById(unknownId))
@@ -353,8 +382,8 @@ class UserUpdateServiceTest {
                     ResourceNotFoundException.class,
                     () -> userUpdateService.migrateToOAuth2(unknownId, AuthMode.GOOGLE)
             );
+
+            verify(userPersistence, never()).saveUser(any(), any());
         }
     }
-
- */
 }

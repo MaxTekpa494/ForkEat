@@ -39,12 +39,14 @@ public class ProfileWebController {
   }
 
   @PostMapping("/profile/update")
-  public String updateProfile(Authentication authentication, @RequestParam String firstName,
-                              @RequestParam String lastName, @RequestParam String username, RedirectAttributes redirectAttributes) throws ResourceNotFoundException {
+  public String updateProfile(Authentication authentication,
+                              @RequestParam String firstName,
+                              @RequestParam String lastName,
+                              @RequestParam String username,
+                              RedirectAttributes redirectAttributes) throws ResourceNotFoundException {
     var currentUsername = authPort.extractUsername();
-    var currentUser = userQueryService.getUserByUsername(currentUsername);
 
-    var updatedUser = userUpdateService.updateProfile(username, firstName, lastName);
+    var updatedUser = userUpdateService.updateProfile(currentUsername, username, firstName, lastName);
     authPort.refreshAuthentication(updatedUser);
     redirectAttributes.addFlashAttribute("success", "Profil mis à jour avec succès !");
     return "redirect:/profile";

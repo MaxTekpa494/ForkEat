@@ -143,7 +143,7 @@ class ProfileControllerTest {
             );
 
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            when(userUpdateService.updateProfile("newusername", "NewFirst", "NewLast"))
+            when(userUpdateService.updateProfile("testuser","newusername", "NewFirst", "NewLast"))
                     .thenReturn(updatedUser);
             doNothing().when(authPort).refreshAuthentication(updatedUser);
 
@@ -158,7 +158,7 @@ class ProfileControllerTest {
                     .andExpect(redirectedUrl("/profile"))
                     .andExpect(flash().attributeExists("success"));
 
-            verify(userUpdateService).updateProfile("newusername", "NewFirst", "NewLast");
+            verify(userUpdateService).updateProfile("testuser","newusername", "NewFirst", "NewLast");
             verify(authPort).refreshAuthentication(updatedUser);
         }
 
@@ -167,7 +167,7 @@ class ProfileControllerTest {
         void updateProfile_ShouldReturnProfileView_WhenUsernameAlreadyTaken() throws Exception {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            when(userUpdateService.updateProfile("takenusername", "First", "Last"))
+            when(userUpdateService.updateProfile("testuser", "takenusername", "First", "Last"))
                     .thenThrow(new CheckProfileUpdateFailure("Ce nom d'utilisateur est déjà pris"));
 
             // When & Then

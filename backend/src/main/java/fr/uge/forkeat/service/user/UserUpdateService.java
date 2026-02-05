@@ -32,16 +32,16 @@ public class UserUpdateService {
           isolation = Isolation.REPEATABLE_READ,
           timeout = 10
   )
-  public User updateProfile(String username, String firstName, String lastName) {
-    var user = userQueryService.getUserByUsername(username);
+  public User updateProfile(String currentUsername, String newUsername, String firstName, String lastName) {
+    var user = userQueryService.getUserByUsername(currentUsername);
 
-    if (!user.username().equals(username) && userPersistence.existsByUsername(username)) {
+    if (!newUsername.equals(currentUsername) && userPersistence.existsByUsername(newUsername)) {
       throw new CheckProfileUpdateFailure("Ce nom d'utilisateur est déjà pris");
     }
 
     var updatedUser = new User(
             user.id(),
-            username,
+            newUsername,
             firstName,
             lastName,
             user.email(),

@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -45,17 +46,19 @@ class UserPersistenceAdapterTest {
         );
     }
 
-    private UserEntity createTestUserEntity() {
+    private UserEntity createTestUserEntity(UUID id, String username, String email) {
         var entity = new UserEntity();
-        entity.setId(UUID.randomUUID());
-        entity.setUsername("testuser");
+        entity.setId(id);
+        entity.setUsername(username);
         entity.setFirstName("John");
         entity.setLastName("Doe");
-        entity.setEmail("test@example.com");
+        entity.setEmail(email);
         entity.setPassword("hashedPassword");
         entity.setRole(UserRole.MEMBER);
         entity.setStatus(UserStatus.ACTIVE);
         entity.setAuthMode(AuthMode.LOCAL);
+        entity.setCreatedAt(Instant.now());
+        entity.setUpdatedAt(Instant.now());
         return entity;
     }
 
@@ -64,39 +67,53 @@ class UserPersistenceAdapterTest {
         // Given
         var userId = UUID.randomUUID();
         var userDomain = createTestUser(userId, "testuser", "test@example.com");
-        var userEntity = createTestUserEntity();
+        var savedEntity = createTestUserEntity(userId, "testuser", "test@example.com");
 
-        when(UserEntityMapper.toEntity(userDomain)).thenReturn(userEntity);
-        when(userRepository.save(userEntity)).thenReturn(userEntity);
-        when(UserEntityMapper.toDomain(userEntity)).thenReturn(userDomain);
+        when(userRepository.save(any(UserEntity.class))).thenReturn(savedEntity);
 
         // When
         User result = adapter.saveUser(userDomain, "hashedPassword");
 
         // Then
         assertNotNull(result);
-        assertEquals(userDomain, result);
-        verify(userRepository).save(userEntity);
-        verify(UserEntityMapper.toEntity(userDomain));
-        verify(UserEntityMapper.toDomain(userEntity));
+        assertEquals(userId, result.id());
+        assertEquals("testuser", result.username());
+        assertEquals("test@example.com", result.email());
+        assertEquals("John", result.firstName());
+        assertEquals("Doe", result.lastName());
+        assertEquals(UserRole.MEMBER, result.role());
+        assertEquals(UserStatus.ACTIVE, result.status());
+        assertEquals(AuthMode.LOCAL, result.authMode());
+
+        verify(userRepository).save(argThat(entity ->
+                entity.getUsername().equals("testuser") &&
+                        entity.getEmail().equals("test@example.com") &&
+                        entity.getPassword().equals("hashedPassword") &&
+                        entity.getFirstName().equals("John") &&
+                        entity.getLastName().equals("Doe") &&
+                        entity.getRole() == UserRole.MEMBER &&
+                        entity.getStatus() == UserStatus.ACTIVE &&
+                        entity.getAuthMode() == AuthMode.LOCAL
+        ));
     }
 
     @Test
     void findById_ShouldReturnUser_WhenExists() {
         // Given
         var userId = UUID.randomUUID();
-        var userEntity = createTestUserEntity();
-        var userDomain = createTestUser(userId, "testuser", "test@example.com");
+        var userEntity = createTestUserEntity(userId, "testuser", "test@example.com");
 
         when(userRepository.findById(userId)).thenReturn(Optional.of(userEntity));
-        when(UserEntityMapper.toDomain(userEntity)).thenReturn(userDomain);
 
         // When
         Optional<User> result = adapter.findById(userId);
 
         // Then
         assertTrue(result.isPresent());
-        assertEquals(userDomain, result.get());
+        assertEquals(userId, result.get().id());
+        assertEquals("testuser", result.get().username());
+        assertEquals("test@example.com", result.get().email());
+        verify(userRepository).findById(userId);
     }
 
     @Test
@@ -110,17 +127,17 @@ class UserPersistenceAdapterTest {
 
         // Then
         assertTrue(result.isEmpty());
+        verify(userRepository).findById(unknownId);
     }
 
     @Test
     void findByEmail_ShouldReturnUser_WhenExists() {
         // Given
         var email = "test@example.com";
-        var userEntity = createTestUserEntity();
-        var userDomain = createTestUser(UUID.randomUUID(), "testuser", email);
+        var userId = UUID.randomUUID();
+        var userEntity = createTestUserEntity(userId, "testuser", email);
 
         when(userRepository.findByEmail(email)).thenReturn(Optional.of(userEntity));
-        when(UserEntityMapper.toDomain(userEntity)).thenReturn(userDomain);
 
         // When
         Optional<User> result = adapter.findByEmail(email);
@@ -128,6 +145,8 @@ class UserPersistenceAdapterTest {
         // Then
         assertTrue(result.isPresent());
         assertEquals(email, result.get().email());
+        assertEquals("testuser", result.get().username());
+        verify(userRepository).findByEmail(email);
     }
 
     @Test
@@ -141,17 +160,17 @@ class UserPersistenceAdapterTest {
 
         // Then
         assertTrue(result.isEmpty());
+        verify(userRepository).findByEmail(unknownEmail);
     }
 
     @Test
     void findByUsername_ShouldReturnUser_WhenExists() {
         // Given
         var username = "testuser";
-        var userEntity = createTestUserEntity();
-        var userDomain = createTestUser(UUID.randomUUID(), username, "test@example.com");
+        var userId = UUID.randomUUID();
+        var userEntity = createTestUserEntity(userId, username, "test@example.com");
 
         when(userRepository.findByUsername(username)).thenReturn(Optional.of(userEntity));
-        when(UserEntityMapper.toDomain(userEntity)).thenReturn(userDomain);
 
         // When
         Optional<User> result = adapter.findByUsername(username);
@@ -159,6 +178,8 @@ class UserPersistenceAdapterTest {
         // Then
         assertTrue(result.isPresent());
         assertEquals(username, result.get().username());
+        assertEquals("test@example.com", result.get().email());
+        verify(userRepository).findByUsername(username);
     }
 
     @Test
@@ -172,6 +193,7 @@ class UserPersistenceAdapterTest {
 
         // Then
         assertTrue(result.isEmpty());
+        verify(userRepository).findByUsername(unknownUsername);
     }
 
     @Test
@@ -185,6 +207,7 @@ class UserPersistenceAdapterTest {
 
         // Then
         assertTrue(result);
+        verify(userRepository).existsByEmail(email);
     }
 
     @Test
@@ -198,6 +221,7 @@ class UserPersistenceAdapterTest {
 
         // Then
         assertFalse(result);
+        verify(userRepository).existsByEmail(email);
     }
 
     @Test
@@ -211,6 +235,7 @@ class UserPersistenceAdapterTest {
 
         // Then
         assertTrue(result);
+        verify(userRepository).existsByUsername(username);
     }
 
     @Test
@@ -224,5 +249,6 @@ class UserPersistenceAdapterTest {
 
         // Then
         assertFalse(result);
+        verify(userRepository).existsByUsername(username);
     }
 }
