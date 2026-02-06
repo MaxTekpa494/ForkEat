@@ -1,55 +1,59 @@
-package fr.uge.forkeat.security;
+package fr.uge.forkeat.infrastructure.security;
 
+import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.presentation.dto.user.UserLoginDTO;
 import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
+import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
+import org.springframework.transaction.annotation.Transactional;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc
-@Testcontainers
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-public class SecurityTests {
-
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withDatabaseName("forkeat_test")
-            .withUsername("test")
-            .withPassword("test");
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        // Ajouter stringtype=unspecified pour que PostgreSQL gère les ENUMs
-        registry.add("spring.datasource.url", () -> postgres.getJdbcUrl() + "&stringtype=unspecified");
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
+@Transactional
+public class SecurityTests extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private UserRepository userRepository;
 
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     @Test
     public void authenticationTest() throws Exception {
+        // Create admin user manually
+        var admin = new UserEntity();
+        admin.setUsername("admin");
+        admin.setFirstName("Admin");
+        admin.setLastName("System");
+        admin.setEmail("admin@forkeat.app");
+        admin.setPassword(passwordEncoder.encode("admin"));
+        admin.setRole(UserRole.ADMIN);
+        admin.setStatus(UserStatus.ACTIVE);
+        admin.setAuthMode(AuthMode.LOCAL);
+        userRepository.save(admin);
+
         var user = new UserRegisterDTO("S1dAli", "SidAli", "Cherrati", "password1", "sidali@gmail.com");
 
         var userLogin = new UserLoginDTO("S1dAli", "password1");
@@ -72,10 +76,10 @@ public class SecurityTests {
 
         var stringResponse = bodyResponse.getResponse().getContentAsString();
 
-        JsonNode json = objectMapper.readTree(stringResponse);
+        var json = objectMapper.readTree(stringResponse);
 
         //Store the token
-        var tokenUser = "Bearer " + (json.get("token").asString());
+        var tokenUser = "Bearer " + (json.get("token").asText());
 
 
         var adminDTO = new UserLoginDTO("admin", "admin");
@@ -87,7 +91,7 @@ public class SecurityTests {
 
         JsonNode adminLoginJson = objectMapper.readTree(loginAdminBodyResponse.getResponse().getContentAsString());
 
-        var tokenAdmin = "Bearer " + (adminLoginJson.get("token").asString());
+        var tokenAdmin = "Bearer " + (adminLoginJson.get("token").asText());
 
 
         //We try to create a moderator

@@ -24,7 +24,7 @@ public class DataInitializer {
     @Value("${app.admin.username}")
     private String adminUsername;
 
-    @Value("${app.admin.password}")
+    @Value("${app.admin.password:admin}")
     private String adminPassword;
 
 

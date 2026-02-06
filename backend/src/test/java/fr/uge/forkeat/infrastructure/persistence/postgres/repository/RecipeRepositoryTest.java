@@ -1,5 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.repository;
 
+import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeStep;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
@@ -13,48 +14,33 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
-
+import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@Testcontainers
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class RecipeRepositoryTest {
+@Transactional
+class RecipeRepositoryTest extends AbstractIntegrationTest {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withDatabaseName("forkeat_test")
-            .withUsername("test")
-            .withPassword("test");
+    private final RecipeRepository recipeRepository;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", () -> postgres.getJdbcUrl() + "&stringtype=unspecified");
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
-
-    @Autowired
-    private RecipeRepository recipeRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
     private UserEntity savedAuthor;
 
+    @Autowired
+    public RecipeRepositoryTest(RecipeRepository recipeRepository, UserRepository userRepository) {
+        this.recipeRepository = recipeRepository;
+        this.userRepository = userRepository;
+    }
+
+
     @BeforeEach
     void setUp() {
-        recipeRepository.deleteAll();
-        userRepository.deleteAll();
 
         var author = new UserEntity();
         author.setUsername("chef_test");
@@ -87,7 +73,6 @@ class RecipeRepositoryTest {
         var saved = recipeRepository.save(recipe);
 
         var found = recipeRepository.findById(saved.getId());
-
         assertTrue(found.isPresent());
         assertEquals("Pasta Carbonara", found.get().getTitle());
     }
@@ -98,7 +83,6 @@ class RecipeRepositoryTest {
         recipeRepository.save(recipe);
 
         var found = recipeRepository.findBySourceAndExternalId("spoonacular", "12345");
-
         assertTrue(found.isPresent());
         assertEquals("External Recipe", found.get().getTitle());
     }
@@ -106,7 +90,6 @@ class RecipeRepositoryTest {
     @Test
     void shouldReturnEmptyWhenSourceAndExternalIdNotFound() {
         var found = recipeRepository.findBySourceAndExternalId("unknown", "99999");
-
         assertTrue(found.isEmpty());
     }
 
@@ -121,26 +104,29 @@ class RecipeRepositoryTest {
 
     @Test
     void shouldFindBySource() {
+        int initialSpoonacularCount = recipeRepository.findBySource("spoonacular").size();
+
         recipeRepository.save(createRecipe("Recipe 1", "spoonacular", "1", RecipeStatus.PUBLISHED));
         recipeRepository.save(createRecipe("Recipe 2", "spoonacular", "2", RecipeStatus.PUBLISHED));
         recipeRepository.save(createRecipe("Recipe 3", "internal", null, RecipeStatus.DRAFT));
 
         var spoonacularRecipes = recipeRepository.findBySource("spoonacular");
-
-        assertEquals(2, spoonacularRecipes.size());
+        assertEquals(initialSpoonacularCount + 2, spoonacularRecipes.size());
     }
 
     @Test
     void shouldFindByStatus() {
+        int initialPublishedCount = recipeRepository.findByStatus(RecipeStatus.PUBLISHED).size();
+        int initialDraftCount = recipeRepository.findByStatus(RecipeStatus.DRAFT).size();
+
         recipeRepository.save(createRecipe("Draft Recipe", "internal", null, RecipeStatus.DRAFT));
         recipeRepository.save(createRecipe("Published Recipe 1", "internal", null, RecipeStatus.PUBLISHED));
         recipeRepository.save(createRecipe("Published Recipe 2", "internal", null, RecipeStatus.PUBLISHED));
 
         var publishedRecipes = recipeRepository.findByStatus(RecipeStatus.PUBLISHED);
         var draftRecipes = recipeRepository.findByStatus(RecipeStatus.DRAFT);
-
-        assertEquals(2, publishedRecipes.size());
-        assertEquals(1, draftRecipes.size());
+        assertEquals(initialPublishedCount + 2, publishedRecipes.size());
+        assertEquals(initialDraftCount + 1, draftRecipes.size());
     }
 
     @Test
@@ -149,30 +135,35 @@ class RecipeRepositoryTest {
         recipeRepository.save(createRecipe("Author Recipe 2", "internal", null, RecipeStatus.DRAFT));
 
         var authorRecipes = recipeRepository.findByAuthorId(savedAuthor.getId());
-
         assertEquals(2, authorRecipes.size());
     }
 
     @Test
     void shouldCountBySource() {
+        long initialSpoonacularCount = recipeRepository.countBySource("spoonacular");
+        long initialInternalCount = recipeRepository.countBySource("internal");
+        long initialUnknownCount = recipeRepository.countBySource("unknown");
+
         recipeRepository.save(createRecipe("Recipe 1", "spoonacular", "1", RecipeStatus.PUBLISHED));
         recipeRepository.save(createRecipe("Recipe 2", "spoonacular", "2", RecipeStatus.PUBLISHED));
         recipeRepository.save(createRecipe("Recipe 3", "internal", null, RecipeStatus.DRAFT));
 
-        assertEquals(2, recipeRepository.countBySource("spoonacular"));
-        assertEquals(1, recipeRepository.countBySource("internal"));
-        assertEquals(0, recipeRepository.countBySource("unknown"));
+        assertEquals(initialSpoonacularCount + 2, recipeRepository.countBySource("spoonacular"));
+        assertEquals(initialInternalCount + 1, recipeRepository.countBySource("internal"));
+        assertEquals(initialUnknownCount, recipeRepository.countBySource("unknown"));
     }
 
     @Test
     void shouldFindByTitleContainingIgnoreCase() {
+        int initialPastaCount = recipeRepository.findByTitleContainingIgnoreCase("pasta").size();
+
         recipeRepository.save(createRecipe("Pasta Carbonara", "internal", null, RecipeStatus.PUBLISHED));
         recipeRepository.save(createRecipe("Spaghetti Bolognese", "internal", null, RecipeStatus.PUBLISHED));
         recipeRepository.save(createRecipe("pasta primavera", "internal", null, RecipeStatus.DRAFT));
 
         var pastaRecipes = recipeRepository.findByTitleContainingIgnoreCase("pasta");
 
-        assertEquals(2, pastaRecipes.size());
+        assertEquals(initialPastaCount + 2, pastaRecipes.size());
     }
 
     @Test
@@ -185,25 +176,33 @@ class RecipeRepositoryTest {
 
     @Test
     void shouldFindByStatusIn() {
+        var statuses = List.of(RecipeStatus.PUBLISHED, RecipeStatus.DRAFT);
+        int initialCount = recipeRepository.findByStatusIn(statuses).size();
+
         recipeRepository.save(createRecipe("Draft", "internal", null, RecipeStatus.DRAFT));
         recipeRepository.save(createRecipe("Published", "internal", null, RecipeStatus.PUBLISHED));
         recipeRepository.save(createRecipe("Pending", "internal", null, RecipeStatus.PENDING_REVIEW));
         recipeRepository.save(createRecipe("Rejected", "internal", null, RecipeStatus.REJECTED));
 
-        var activeRecipes = recipeRepository.findByStatusIn(List.of(RecipeStatus.PUBLISHED, RecipeStatus.DRAFT));
+        var activeRecipes = recipeRepository.findByStatusIn(statuses);
 
-        assertEquals(2, activeRecipes.size());
+        assertEquals(initialCount + 2, activeRecipes.size());
     }
 
     @Test
     void shouldCountByStatus() {
+        // Compter les éléments existants
+        long initialPublishedCount = recipeRepository.countByStatus(RecipeStatus.PUBLISHED);
+        long initialDraftCount = recipeRepository.countByStatus(RecipeStatus.DRAFT);
+        long initialRejectedCount = recipeRepository.countByStatus(RecipeStatus.REJECTED);
+
         recipeRepository.save(createRecipe("Published 1", "internal", null, RecipeStatus.PUBLISHED));
         recipeRepository.save(createRecipe("Published 2", "internal", null, RecipeStatus.PUBLISHED));
         recipeRepository.save(createRecipe("Draft", "internal", null, RecipeStatus.DRAFT));
 
-        assertEquals(2, recipeRepository.countByStatus(RecipeStatus.PUBLISHED));
-        assertEquals(1, recipeRepository.countByStatus(RecipeStatus.DRAFT));
-        assertEquals(0, recipeRepository.countByStatus(RecipeStatus.REJECTED));
+        assertEquals(initialPublishedCount + 2, recipeRepository.countByStatus(RecipeStatus.PUBLISHED));
+        assertEquals(initialDraftCount + 1, recipeRepository.countByStatus(RecipeStatus.DRAFT));
+        assertEquals(initialRejectedCount, recipeRepository.countByStatus(RecipeStatus.REJECTED));
     }
 
     @Test

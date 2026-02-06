@@ -40,8 +40,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(ProfileWebController.class)
 class ProfileControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     @MockitoBean
     private UserQueryService userQueryService;
@@ -59,6 +58,11 @@ class ProfileControllerTest {
     private JwtFilter jwtFilter;
 
     private User testUser;
+
+    @Autowired
+    public ProfileControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
 
     @BeforeEach
     void setUp() throws Exception {
