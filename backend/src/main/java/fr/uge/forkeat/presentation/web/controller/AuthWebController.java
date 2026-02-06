@@ -33,7 +33,6 @@ public class AuthWebController {
     if (isAuthenticated()) {
       return "redirect:/dashboard";
     }
-    logger.debug("Loading user by username: ");
     return "layout/login";
   }
 

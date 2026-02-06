@@ -50,15 +50,11 @@ public class UserPersistenceAdapter implements UserPersistence {
 	}
 
 	@Override
-	public boolean checkPassword(String username, String hashedPassword){
+	public String findPasswordHashByUsername(String username) {
 		Objects.requireNonNull(username);
-		Objects.requireNonNull(hashedPassword);
-		var user = userRepository.findByUsername(username);
-
-		if(user.isEmpty()){
-			throw new ResourceNotFoundException("User not found with username  :" + username);
-		}
-		return user.get().getPassword().equals(hashedPassword);
+		var user = userRepository.findByUsername(username)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+		return user.getPassword();
 	}
 
 	@Override

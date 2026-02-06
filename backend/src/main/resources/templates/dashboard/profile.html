@@ -8,11 +8,9 @@
 <body>
 <div layout:fragment="content">
 
-    <!-- Header Profile -->
     <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-12">
         <div class="container mx-auto px-4">
             <div class="flex items-center space-x-6">
-                <!-- Avatar -->
                 <div class="w-24 h-24 bg-primary-500 rounded-full flex items-center justify-center text-white font-bold text-4xl shadow-xl ring-4 ring-white/20">
                     <span th:text="${#strings.substring(user.firstName, 0, 1).toUpperCase() + #strings.substring(user.lastName, 0, 1).toUpperCase()}">AB</span>
                 </div>
@@ -38,15 +36,12 @@
         </div>
     </section>
 
-    <!-- Contenu Profile -->
     <section class="py-12 bg-surface">
         <div class="container mx-auto px-4">
             <div class="grid lg:grid-cols-3 gap-8">
 
-                <!-- Formulaire d'édition -->
                 <div class="lg:col-span-2 space-y-6">
 
-                    <!-- Informations personnelles -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
                         <div class="p-6 border-b border-gray-100 flex items-center justify-between">
                             <h2 class="font-display font-bold text-xl text-secondary-900">
@@ -58,7 +53,6 @@
                             </button>
                         </div>
 
-                        <!-- Mode lecture -->
                         <div id="info-display" class="p-6 space-y-4">
                             <div class="grid md:grid-cols-2 gap-4">
                                 <div>
@@ -82,7 +76,6 @@
                             </div>
                         </div>
 
-                        <!-- Mode édition (caché par défaut) -->
                         <form id="info-edit" class="p-6 space-y-4 hidden" th:action="@{/profile/update}" method="post">
                             <div class="grid md:grid-cols-2 gap-4">
                                 <div>
@@ -120,7 +113,6 @@
                         </form>
                     </div>
 
-                    <!-- Sécurité -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
                         <div class="p-6 border-b border-gray-100">
                             <h2 class="font-display font-bold text-xl text-secondary-900">
@@ -130,7 +122,6 @@
                         </div>
 
                         <div class="p-6 space-y-4">
-                            <!-- Modifier Email -->
                             <div class="flex items-center justify-between p-4 bg-surface rounded-xl">
                                 <div>
                                     <div class="font-medium text-secondary-900">Adresse email</div>
@@ -142,7 +133,6 @@
                                 </button>
                             </div>
 
-                            <!-- Modifier Mot de passe -->
                             <div class="flex items-center justify-between p-4 bg-surface rounded-xl">
                                 <div>
                                     <div class="font-medium text-secondary-900">Mot de passe</div>
@@ -154,7 +144,6 @@
                                 </button>
                             </div>
 
-                            <!-- 2FA (placeholder) -->
                             <div class="flex items-center justify-between p-4 bg-surface rounded-xl">
                                 <div>
                                     <div class="font-medium text-secondary-900">Authentification à deux facteurs</div>
@@ -167,7 +156,6 @@
                         </div>
                     </div>
 
-                    <!-- Sessions actives -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
                         <div class="p-6 border-b border-gray-100">
                             <h2 class="font-display font-bold text-xl text-secondary-900">
@@ -195,7 +183,6 @@
                         </div>
                     </div>
 
-                    <!-- Zone danger -->
                     <div class="bg-white rounded-2xl shadow-md border border-red-200 overflow-hidden">
                         <div class="p-6 border-b border-red-200 bg-red-50">
                             <h2 class="font-display font-bold text-xl text-red-900">
@@ -220,10 +207,8 @@
                     </div>
                 </div>
 
-                <!-- Sidebar -->
                 <div class="space-y-6">
 
-                    <!-- Statistiques du profil -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
                         <h3 class="font-bold text-lg text-secondary-900 mb-4">Mes statistiques</h3>
 
@@ -286,7 +271,6 @@
                         </div>
                     </div>
 
-                    <!-- Badge de progression -->
                     <div class="bg-gradient-to-br from-primary-500 to-orange-600 rounded-2xl p-6 text-white shadow-xl">
                         <div class="text-center">
                             <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
@@ -305,7 +289,6 @@
                         </div>
                     </div>
 
-                    <!-- Actions rapides -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
                         <h3 class="font-bold text-lg text-secondary-900 mb-4">Actions rapides</h3>
 
@@ -332,7 +315,6 @@
         </div>
     </section>
 
-    <!-- Modal Modifier Email -->
     <div id="emailModal" class="hidden fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div class="flex items-center justify-between mb-6">
@@ -434,7 +416,6 @@
 
 </div>
 
-<!-- Scripts pour le mode édition et modals -->
 <th:block layout:fragment="scripts">
     <script>
         document.addEventListener('DOMContentLoaded', function() {
@@ -456,7 +437,6 @@
             }
         });
 
-        // Modals
         function openEmailModal() {
             document.getElementById('emailModal').classList.remove('hidden');
         }
@@ -473,7 +453,6 @@
             document.getElementById('passwordModal').classList.add('hidden');
         }
 
-        // Fermer au clic en dehors du modal
         document.getElementById('emailModal')?.addEventListener('click', function(e) {
             if (e.target === this) closeEmailModal();
         });
@@ -482,7 +461,6 @@
             if (e.target === this) closePasswordModal();
         });
 
-        // Fermer avec Escape
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeEmailModal();

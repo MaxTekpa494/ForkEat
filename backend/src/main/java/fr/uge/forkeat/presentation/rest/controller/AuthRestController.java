@@ -58,15 +58,15 @@ public class AuthRestController {
 	@PostMapping("/login")
 	public ResponseEntity<?> login(@RequestBody UserLoginDTO userLogin) {
 		Objects.requireNonNull(userLogin);
-		var authentication = authenticationManager
-				.authenticate(new UsernamePasswordAuthenticationToken(userLogin.username(), userLogin.password()));
-		if (authentication.isAuthenticated()) {
+		try {
+			authenticationManager
+					.authenticate(new UsernamePasswordAuthenticationToken(userLogin.username(), userLogin.password()));
 			var authData = new HashMap<String, String>();
 			authData.put("token", jwtUtils.generateToken(userLogin.username()));
 			authData.put("type", "Bearer");
-			return ResponseEntity.ok(authData); // Il faut mettre le token de le header de la réponse et renvoyer les
-												// informations de l'utilisateur et changer le type de retour
+			return ResponseEntity.ok(authData);
+		} catch (AuthenticationException e) {
+			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
 		}
-		return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
 	}
 }

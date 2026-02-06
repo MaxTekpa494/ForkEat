@@ -35,8 +35,10 @@ public class UserUpdateService {
   public User updateProfile(String currentUsername, String newUsername, String firstName, String lastName) {
     var user = userQueryService.getUserByUsername(currentUsername);
 
-    if (!newUsername.equals(currentUsername) && userPersistence.existsByUsername(newUsername)) {
-      throw new CheckProfileUpdateFailure("Ce nom d'utilisateur est déjà pris");
+    if (!user.username().equals(newUsername)) {
+      if (userPersistence.existsByUsername(newUsername)) {
+        throw new CheckProfileUpdateFailure("Ce nom d'utilisateur est déjà pris");
+      }
     }
 
     var updatedUser = new User(
@@ -61,9 +63,8 @@ public class UserUpdateService {
   )
   public User updateEmail(String username, String newEmail, String currentPassword) {
     var user = userQueryService.getUserByUsername(username);
-    // Vérifier le mot de passe actuel pour la sécurité
-
-    if (!userPersistence.checkPassword(username, currentPassword)) {
+    var storedHash = userPersistence.findPasswordHashByUsername(username);
+    if (!passwordEncoder.matches(currentPassword, storedHash)) {
       throw new CheckProfileUpdateFailure("Incorrect password");
     }
 
@@ -94,25 +95,25 @@ public class UserUpdateService {
   )
   public void updatePassword(String username, String currentPassword, String newPassword) {
     Objects.requireNonNull(username);
-    Objects.requireNonNull(newPassword);
     Objects.requireNonNull(currentPassword);
-
-    var user = userQueryService.getUserByUsername(username);
-    var newEncodedPassword = passwordEncoder.encode(newPassword);
-    var currentEncodedPassword = passwordEncoder.encode(currentPassword);
-
-    if (!userPersistence.checkPassword(username, newEncodedPassword)) {
-      throw new CheckProfileUpdateFailure("Incorrect current password");
-    }
-
-    if(currentEncodedPassword.equals(newEncodedPassword)) {
-      throw new CheckProfileUpdateFailure("Passwords are the same");
-    }
+    Objects.requireNonNull(newPassword);
 
     if (newPassword.length() < 8) {
       throw new CheckProfileUpdateFailure("New password must be at least 8 characters");
     }
 
+    var user = userQueryService.getUserByUsername(username);
+    var storedHash = userPersistence.findPasswordHashByUsername(username);
+
+    if (!passwordEncoder.matches(currentPassword, storedHash)) {
+      throw new CheckProfileUpdateFailure("Incorrect current password");
+    }
+
+    if (passwordEncoder.matches(newPassword, storedHash)) {
+      throw new CheckProfileUpdateFailure("Passwords are the same");
+    }
+
+    var newEncodedPassword = passwordEncoder.encode(newPassword);
     var updatedUser = new User(
             user.id(),
             user.username(),
@@ -122,8 +123,9 @@ public class UserUpdateService {
             user.role(),
             user.status(),
             user.authMode(),
-            user.createdAt(), Instant.now());
-    userPersistence.saveUser (updatedUser, currentEncodedPassword);
+            user.createdAt(),
+            Instant.now());
+    userPersistence.saveUser(updatedUser, newEncodedPassword);
   }
 
 

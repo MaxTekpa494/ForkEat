@@ -32,17 +32,16 @@
             <div class="hidden md:flex items-center space-x-4">
 
                 <div sec:authorize="!isAuthenticated()" class="flex items-center space-x-3">
-                    <a th:href="@{/login}"
+                    <a th:href="@{/auth/login}"
                        class="text-secondary-700 hover:text-primary-500 font-semibold transition px-4">
                         Connexion
                     </a>
-                    <a th:href="@{/register}"
+                    <a th:href="@{/auth/register}"
                        class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2.5 rounded-full font-semibold transition shadow-lg shadow-primary-500/30 transform hover:-translate-y-0.5">
                         S'inscrire
                     </a>
                 </div>
 
-                <!-- ✅ DROPDOWN CORRIGÉ -->
                 <div sec:authorize="isAuthenticated()" class="relative">
                     <button id="user-menu-button" class="flex items-center space-x-3 text-secondary-800 hover:text-primary-500 font-medium transition pl-2">
                         <span sec:authentication="name" class="hidden lg:block">Utilisateur</span>

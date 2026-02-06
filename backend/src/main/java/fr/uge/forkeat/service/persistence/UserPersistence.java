@@ -20,5 +20,5 @@ public interface UserPersistence {
 
 	boolean existsByUsername(String username);
 
-	boolean checkPassword(String username, String hashedPassword);
+	String findPasswordHashByUsername(String username);
 }
