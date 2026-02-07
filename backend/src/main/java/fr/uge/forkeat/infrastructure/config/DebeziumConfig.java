@@ -12,10 +12,11 @@ import org.apache.kafka.connect.source.SourceRecord;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.concurrent.Executor;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 
 /**
@@ -23,6 +24,7 @@ import java.util.concurrent.Executors;
  * Debezium surveille les modifications dans PostgreSQL et les transmet au listener pour synchronisation avec Neo4j.
  */
 @Component
+@ConditionalOnProperty(name = "debezium.enabled", havingValue = "true")
 public class DebeziumConfig {
 
     private static final Logger log = LoggerFactory.getLogger(DebeziumConfig.class);
@@ -51,7 +53,7 @@ public class DebeziumConfig {
 
     // Moteur Debezium et son exécuteur
     private DebeziumEngine<RecordChangeEvent<SourceRecord>> engine;
-    private final Executor executor = Executors.newSingleThreadExecutor();
+    private final ExecutorService executor = Executors.newSingleThreadExecutor();
 
     public DebeziumConfig(DebeziumCDCListener cdcListener) {
         this.cdcListener = cdcListener;
@@ -114,5 +116,6 @@ public class DebeziumConfig {
             log.info("Arrêt de Debezium Embedded Engine...");
             engine.close();
         }
+        executor.shutdown();
     }
 }
