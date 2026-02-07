@@ -84,10 +84,11 @@ import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
 @Composable
 fun HomeScreen(
     onNavigateToLogin: () -> Unit = {},
+    onNavigateToRegister: () -> Unit = {},
     onNavigateToExplore: () -> Unit = {},
 ) {
     Scaffold(
-        topBar = { ForkEatTopBar(onNavigateToLogin = onNavigateToLogin) },
+        topBar = { ForkEatTopBar(onNavigateToLogin = onNavigateToLogin, onNavigateToRegister = onNavigateToRegister) },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -96,7 +97,7 @@ fun HomeScreen(
                 .padding(paddingValues)
         ) {
             HeroSection(
-                onCommencerClick = onNavigateToLogin,
+                onCommencerClick = onNavigateToRegister,
                 onExplorerClick = onNavigateToExplore,
             )
             FeaturesSection()
@@ -109,7 +110,7 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ForkEatTopBar(onNavigateToLogin: () -> Unit) {
+private fun ForkEatTopBar(onNavigateToLogin: () -> Unit, onNavigateToRegister: () -> Unit) {
     var menuExpanded by remember { mutableStateOf(false) }
 
     TopAppBar(
@@ -181,7 +182,10 @@ private fun ForkEatTopBar(onNavigateToLogin: () -> Unit) {
                 )
                 DropdownMenuItem(
                     text = { Text("S'inscrire", fontWeight = FontWeight.SemiBold, color = Primary500) },
-                    onClick = { menuExpanded = false },
+                    onClick = {
+                        menuExpanded = false
+                        onNavigateToRegister()
+                              },
                     leadingIcon = {
                         Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Primary500)
                     },

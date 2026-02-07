@@ -1,5 +1,6 @@
 package fr.uge.android.forkeat.home
 
+
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
@@ -68,23 +69,27 @@ import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun LoginScreen(
+fun RegisterScreen(
     onNavigateBack: () -> Unit = {},
-    onNavigateToRegister: () -> Unit = {},
-    onLoginSuccess: () -> Unit = {},
-    newUser: Boolean = false,
-    viewModel: LoginViewModel = viewModel(),
+    onNavigateToLogin: () -> Unit = {},
+    onRegisterSuccess: () -> Unit = {},
+    viewModel: RegisterViewModel = viewModel(),
 ) {
+    var firstname by remember { mutableStateOf("") }
+    var lastname by remember { mutableStateOf("") }
     var username by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
     var rememberMe by remember { mutableStateOf(false) }
 
     val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
-            onLoginSuccess()
+            onRegisterSuccess()
         }
     }
 
@@ -118,24 +123,15 @@ fun LoginScreen(
             Spacer(Modifier.height(16.dp))
 
             // Header
-            if(newUser){
-                Text(
-                    text = "Vous êtes maintenant inscrit !",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Secondary900,
-                )
-            }else{
-                Text(
-                    text = "Bon retour !",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Secondary900,
-                )
-            }
+            Text(
+                text = "Bienvenue !",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Secondary900,
+            )
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Connectez-vous pour retrouver vos recettes",
+                text = "Créez un compte maintenant !",
                 fontSize = 14.sp,
                 color = Gray500,
             )
@@ -210,9 +206,86 @@ fun LoginScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // Username field
+            // firstName field
             Text(
-                text = "Email ou nom d'utilisateur",
+                text = "Prénom",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Secondary900,
+            )
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = firstname,
+                onValueChange = {
+                    firstname = it
+                    viewModel.clearError()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text("Jon", color = Color(0xFF9CA3AF))
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF9CA3AF))
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color(0xFFE5E7EB),
+                    focusedBorderColor = Primary500,
+                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = Color.White,
+                ),
+                singleLine = true,
+                enabled = !uiState.isLoading,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next,
+                ),
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            //lastName field
+                    Text(
+                        text = "Nom",
+                        fontSize = 14.sp,
+                        fontWeight = FontWeight.Medium,
+                        color = Secondary900,
+                    )
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = lastname,
+                onValueChange = {
+                    lastname = it
+                    viewModel.clearError()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text("Doe", color = Color(0xFF9CA3AF))
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF9CA3AF))
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color(0xFFE5E7EB),
+                    focusedBorderColor = Primary500,
+                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = Color.White,
+                ),
+                singleLine = true,
+                enabled = !uiState.isLoading,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next,
+                ),
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+
+            // username field
+            Text(
+                text = "Nom d'utilisateur",
                 fontSize = 14.sp,
                 fontWeight = FontWeight.Medium,
                 color = Secondary900,
@@ -226,7 +299,45 @@ fun LoginScreen(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 placeholder = {
-                    Text("chef@forkeat.com ou @chef123", color = Color(0xFF9CA3AF))
+                    Text("JDoe77", color = Color(0xFF9CA3AF))
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF9CA3AF))
+                },
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color(0xFFE5E7EB),
+                    focusedBorderColor = Primary500,
+                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = Color.White,
+                ),
+                singleLine = true,
+                enabled = !uiState.isLoading,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Email,
+                    imeAction = ImeAction.Next,
+                ),
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // Email field
+            Text(
+                text = "Email",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Secondary900,
+            )
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = email,
+                onValueChange = {
+                    email = it
+                    viewModel.clearError()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text("jon.doe@forkeat.com", color = Color(0xFF9CA3AF))
                 },
                 leadingIcon = {
                     Icon(Icons.Default.Person, contentDescription = null, tint = Color(0xFF9CA3AF))
@@ -294,42 +405,58 @@ fun LoginScreen(
                 ),
             )
 
-            Spacer(Modifier.height(16.dp))
-
-            // Remember me + Forgot password
-            Row(
+            // Confirm Password field
+            Text(
+                text = "Confirmer votre mot de passe",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Secondary900,
+            )
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = {
+                    confirmPassword = it
+                    viewModel.clearError()
+                },
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Checkbox(
-                    checked = rememberMe,
-                    onCheckedChange = { rememberMe = it },
-                    colors = CheckboxDefaults.colors(
-                        checkedColor = Primary500,
-                        uncheckedColor = Color(0xFFD1D5DB),
-                    ),
-                )
-                Text(
-                    text = "Se souvenir de moi",
-                    fontSize = 14.sp,
-                    color = Secondary900,
-                )
-                Spacer(Modifier.weight(1f))
-                TextButton(onClick = { /* TODO */ }) {
-                    Text(
-                        "Mot de passe oubli\u00e9 ?",
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Medium,
-                        color = Primary600,
-                    )
-                }
-            }
+                placeholder = {
+                    Text("\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022", color = Color(0xFF9CA3AF))
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF9CA3AF))
+                },
+                trailingIcon = {
+                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                        Icon(
+                            if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (confirmPasswordVisible) "Masquer" else "Afficher",
+                            tint = Color(0xFF9CA3AF),
+                        )
+                    }
+                },
+                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color(0xFFE5E7EB),
+                    focusedBorderColor = Primary500,
+                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = Color.White,
+                ),
+                singleLine = true,
+                enabled = !uiState.isLoading,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done,
+                ),
+            )
 
-            Spacer(Modifier.height(24.dp))
+
+            Spacer(Modifier.height(16.dp))
 
             // Login button
             Button(
-                onClick = { viewModel.login(username, password) },
+                onClick = { viewModel.register(firstname, lastname, username, email, password, confirmPassword) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(50),
                 enabled = !uiState.isLoading,
@@ -348,7 +475,7 @@ fun LoginScreen(
                     Spacer(Modifier.width(8.dp))
                 }
                 Text(
-                    "Se connecter",
+                    "Créer un compte",
                     fontWeight = FontWeight.Bold,
                     fontSize = 15.sp,
                     modifier = Modifier.padding(vertical = 8.dp),
@@ -364,7 +491,7 @@ fun LoginScreen(
             ) {
                 HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFD1D5DB))
                 Text(
-                    text = "Pas encore de compte ?",
+                    text = "Déjà inscrit ?",
                     modifier = Modifier.padding(horizontal = 12.dp),
                     fontSize = 12.sp,
                     color = Gray500,
@@ -376,7 +503,7 @@ fun LoginScreen(
 
             // Register button
             OutlinedButton(
-                onClick = onNavigateToRegister,
+                onClick = onNavigateToLogin,
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(50),
                 border = BorderStroke(2.dp, Secondary100),
@@ -386,7 +513,7 @@ fun LoginScreen(
                 ),
             ) {
                 Text(
-                    "Cr\u00e9er un compte gratuitement",
+                    "Connectez-vous maintenant",
                     fontWeight = FontWeight.Bold,
                     fontSize = 14.sp,
                     modifier = Modifier.padding(vertical = 8.dp),
@@ -400,6 +527,6 @@ fun LoginScreen(
 
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
-private fun LoginScreenPreview() {
-    LoginScreen()
+private fun RegisterScreenPreview() {
+    RegisterScreen()
 }
