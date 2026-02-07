@@ -8,7 +8,7 @@ cache:
 
 variables:
   # On dit à Maven d'utiliser le dossier local pour le cache
-  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository -Dorg.slf4j.simpleLogger.defaultLogLevel=info"
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository -Dspring.main.banner-mode=off -Dlogging.level.root=WARN -Dlogging.level.org.hibernate.SQL=WARN -Dlogging.level.org.hibernate.type.descriptor.sql=WARN -Dspring.jpa.show-sql=false -Dspring.jpa.properties.hibernate.show_sql=false -Dlogging.level.fr.uge.forkeat.infrastructure.persistence.sync=WARN -Dlogging.level.org.springframework.data.neo4j=ERROR"
 
 workflow:
   rules:
