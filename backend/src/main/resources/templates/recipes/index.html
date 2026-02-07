@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Recettes - ForkEat</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <!-- Header avec recherche -->
+    <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-8">
+                <h1 class="font-display font-bold text-4xl md:text-5xl mb-4">
+                    Découvrez nos <span class="text-primary-500">recettes</span>
+                </h1>
+                <p class="text-secondary-200 text-lg max-w-2xl mx-auto">
+                    Explorez des créations culinaires partagées par notre communauté de passionnés.
+                </p>
+            </div>
+
+            <!-- Barre de recherche -->
+            <div class="max-w-2xl mx-auto">
+                <form th:action="@{/recipes}" method="get" class="relative">
+                    <input type="text"
+                           name="search"
+                           th:value="${search}"
+                           placeholder="Rechercher une recette..."
+                           id="search-input"
+                           class="w-full px-6 py-4 pl-14 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition">
+                    <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-white/60"></i>
+                    <button type="submit"
+                            class="absolute right-2 top-1/2 -translate-y-1/2 bg-primary-500 hover:bg-primary-600 text-white px-6 py-2 rounded-full font-semibold transition">
+                        Rechercher
+                    </button>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contenu principal -->
+    <section class="py-12 bg-surface">
+        <div class="container mx-auto px-4">
+
+            <!-- Info résultats -->
+            <div class="flex items-center justify-between mb-8">
+                <p class="text-secondary-600">
+                    <span th:text="${totalRecipes}" class="font-bold text-secondary-900">0</span> recette(s) trouvée(s)
+                </p>
+            </div>
+
+            <!-- Message si aucune recette -->
+            <div th:if="${#lists.isEmpty(recipes)}" class="text-center py-16">
+                <div class="w-24 h-24 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-utensils text-4xl text-secondary-400"></i>
+                </div>
+                <h3 class="font-display font-bold text-2xl text-secondary-900 mb-2">Aucune recette disponible</h3>
+                <p class="text-secondary-500 mb-6">Soyez le premier à partager une recette !</p>
+                <a th:href="@{/recipes/create}"
+                   class="inline-block bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-full font-semibold transition">
+                    <i class="fas fa-plus mr-2"></i>Créer une recette
+                </a>
+            </div>
+
+            <!-- Grille de recettes -->
+            <div th:unless="${#lists.isEmpty(recipes)}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                <div th:each="recipe : ${recipes}" class="recipe-card">
+                    <a th:href="@{/recipes/{id}(id=${recipe.id})}"
+                       class="block bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 group">
+
+                        <!-- Image -->
+                        <div class="aspect-[4/3] bg-secondary-100 overflow-hidden relative">
+                            <img th:if="${recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}"
+                                 th:src="${recipe.imageUrl}"
+                                 th:alt="${recipe.title}"
+                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            <div th:unless="${recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}"
+                                 class="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary-50 to-secondary-100">
+                                <i class="fas fa-utensils text-4xl text-secondary-300"></i>
+                            </div>
+
+                            <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-secondary-800 shadow-sm">
+                                <i class="fas fa-clock mr-1 text-primary-500"></i>
+                                <span th:text="${recipe.preparationMinutes + ' min'}">30 min</span>
+                            </div>
+                        </div>
+
+                        <div class="p-5">
+                            <h3 class="font-bold text-lg text-secondary-900 mb-2 line-clamp-1 group-hover:text-primary-500 transition">
+                                <span th:text="${recipe.title}">Titre de la recette</span>
+                            </h3>
+
+                            <!-- Savoir faire ce css par coeur ? MDR -->
+                            <p th:if="${recipe.summary != null and !recipe.summary.isEmpty()}"
+                               class="text-secondary-500 text-sm mb-4 line-clamp-2"
+                               th:text="${recipe.summary}">
+                                Description de la recette...
+                            </p>
+
+                            <div class="flex items-center justify-between pt-4 border-t border-gray-100">
+                                <div class="flex items-center space-x-2">
+                                    <div class="w-8 h-8 bg-secondary-800 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                        <span th:text="${#strings.toUpperCase(#strings.substring(recipe.username, 0, 1))}">U</span>
+                                    </div>
+                                    <span class="text-sm text-secondary-600 font-medium" th:text="${recipe.username}">Utilisateur</span>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div th:if="${totalPages > 1}" class="flex justify-center mt-12">
+                <nav class="flex items-center space-x-2">
+                    <!-- Bouton précédent -->
+                    <a th:if="${currentPage > 0}"
+                       th:href="@{/recipes(page=${currentPage - 1}, search=${search})}"
+                       class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+
+                    <!-- Numéros de page -->
+                    <th:block th:each="i : ${#numbers.sequence(0, totalPages - 1)}">
+                        <a th:href="@{/recipes(page=${i}, search=${search})}"
+                           th:text="${i + 1}"
+                           th:class="${i == currentPage} ? 'px-4 py-2 bg-primary-500 text-white rounded-lg font-semibold' : 'px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition'">
+                            1
+                        </a>
+                    </th:block>
+
+                    <a th:if="${currentPage < totalPages - 1}"
+                       th:href="@{/recipes(page=${currentPage + 1}, search=${search})}"
+                       class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </nav>
+            </div>
+
+        </div>
+    </section>
+
+</div>
+
+</body>
+</html>
