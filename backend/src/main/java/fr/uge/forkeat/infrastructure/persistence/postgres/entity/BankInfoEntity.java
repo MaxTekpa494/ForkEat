@@ -28,7 +28,7 @@ public class BankInfoEntity {
     @Column(name="updated_at", nullable = false)
     private Instant updatedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private UserEntity user;
 
@@ -61,6 +61,10 @@ public class BankInfoEntity {
         return id;
     }
 
+    public void setId(UUID id) {
+        this.id = id;
+    }
+
     public void setBankName(String bankName) {
         this.bankName = bankName;
     }
@@ -68,6 +72,7 @@ public class BankInfoEntity {
     public String getBankName() {
         return bankName;
     }
+
 
     public void setIban(String iban) {
         this.iban = iban;

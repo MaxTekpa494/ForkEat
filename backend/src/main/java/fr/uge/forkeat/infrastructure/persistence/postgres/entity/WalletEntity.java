@@ -20,7 +20,7 @@ public class WalletEntity {
     @Column(name = "updated_at", nullable = false)
     private Instant updatedAt;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "user_id", nullable = false, unique = true)
     private UserEntity user;
 
@@ -72,36 +72,8 @@ public class WalletEntity {
         return user;
     }
 
-    void setUser(UserEntity user) {
+    public void setUser(UserEntity user) {
         this.user = user;
-    }
-
-
-    /**
-     * Crédite le wallet (recharge ou redistribution)
-     * @throws IllegalArgumentException si amount négatif
-     */
-    public void credit(long amount){
-        if(amount < 0){
-            throw new IllegalArgumentException("Cannot credit negative amount");
-        }
-        balance += amount;
-    }
-
-
-    /**
-     * Débite le wallet (super-like, retrait)
-     * @throws IllegalStateException si solde insuffisant
-     * @throws IllegalArgumentException si amount négatif
-     */
-    public void debit(long amount){
-        if(amount < 0){
-            throw new IllegalArgumentException("Cannot debit negative amount");
-        }
-        if(balance < amount){
-            throw new IllegalStateException("Insufficient balance");
-        }
-        balance -= amount;
     }
 
 

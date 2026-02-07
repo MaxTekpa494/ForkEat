@@ -1,11 +1,13 @@
 package fr.uge.forkeat.service;
 
-import fr.uge.forkeat.presentation.rest.dto.PaymentRequestDto;
-import fr.uge.forkeat.presentation.rest.dto.PaymentResponseDto;
+import fr.uge.forkeat.service.exception.DuplicateTransactionException;
+import fr.uge.forkeat.service.exception.WalletNotFoundException;
+import fr.uge.forkeat.service.model.PaymentRequest;
+import fr.uge.forkeat.service.model.PaymentResponse;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.external.PaymentGateway;
 import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.Wallet;
+import fr.uge.forkeat.service.model.user.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -36,11 +38,11 @@ class WalletServiceTest {
         var userId = UUID.randomUUID();
         var expectedUrl = "https://stripe.com/pay/123";
         
-        var mockResponse = mock(PaymentResponseDto.class);
+        var mockResponse = mock(PaymentResponse.class);
         when(mockResponse.paymentUrl()).thenReturn(expectedUrl);
-        when(paymentGateway.initiatePayment(any(PaymentRequestDto.class))).thenReturn(mockResponse);
+        when(paymentGateway.initiatePayment(any(PaymentRequest.class))).thenReturn(mockResponse);
 
-        String resultUrl = walletService.prepareTopUp(userId, "test@test.com", 1000L, "EUR");
+        String resultUrl = walletService.prepareTopUp(userId, "test@test.com", 1000L);
 
         assertEquals(expectedUrl, resultUrl);
     }
@@ -51,7 +53,7 @@ class WalletServiceTest {
         Long amount = 500L;
         String stripeId = "tx_12345";
         
-        Wallet initialWallet = new Wallet(UUID.randomUUID(), 1000L, userId, Instant.now());
+        Wallet initialWallet = new Wallet(UUID.randomUUID(), userId, 1000, Instant.now());
         when(walletPersistence.transactionExists(stripeId)).thenReturn(false);
         when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.of(initialWallet));
 
@@ -70,7 +72,9 @@ class WalletServiceTest {
         String stripeId = "tx_déjà_traité";
         when(walletPersistence.transactionExists(stripeId)).thenReturn(true);
 
-        walletService.processPaymentConfirmation(UUID.randomUUID(), 100L, stripeId);
+        assertThrows(DuplicateTransactionException.class, () -> {
+            walletService.processPaymentConfirmation(UUID.randomUUID(), 100L, stripeId);
+        });
 
         verify(walletPersistence, never()).loadWalletWithLock(any());
         verify(walletPersistence, never()).saveWallet(any());
@@ -78,13 +82,11 @@ class WalletServiceTest {
 
     @Test
     void processPaymentConfirmation_ShouldThrow_WhenWalletNotFound() {
-        // GIVEN
         UUID userId = UUID.randomUUID();
         when(walletPersistence.transactionExists(anyString())).thenReturn(false);
         when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.empty());
 
-        // WHEN & THEN
-        assertThrows(ResourceNotFoundException.class, () -> 
+        assertThrows(WalletNotFoundException.class, () ->
             walletService.processPaymentConfirmation(userId, 100L, "tx_123")
         );
     }
