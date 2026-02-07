@@ -15,7 +15,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
-import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executor;
 import java.util.concurrent.Executors;
 
 /**
@@ -51,7 +51,7 @@ public class DebeziumConfig {
 
     // Moteur Debezium et son exécuteur
     private DebeziumEngine<RecordChangeEvent<SourceRecord>> engine;
-    private final ExecutorService executor = Executors.newSingleThreadExecutor();
+    private final Executor executor = Executors.newSingleThreadExecutor();
 
     public DebeziumConfig(DebeziumCDCListener cdcListener) {
         this.cdcListener = cdcListener;
@@ -113,7 +113,6 @@ public class DebeziumConfig {
         if (engine != null) {
             log.info("Arrêt de Debezium Embedded Engine...");
             engine.close();
-            executor.shutdown();
         }
     }
 }
