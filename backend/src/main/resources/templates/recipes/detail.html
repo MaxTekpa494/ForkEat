@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title th:text="${recipe.title + ' - ForkEat'}">Recette - ForkEat</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <section class="py-12 bg-surface">
+        <div class="container mx-auto px-4 max-w-4xl">
+
+            <!-- Lien parent si variante -->
+            <div th:if="${parent != null}" class="mb-6">
+                <p class="text-secondary-500 text-sm">
+                    <i class="fas fa-code-branch mr-1"></i>
+                    Variante de
+                    <a th:href="@{/recipes/{id}(id=${parent.id})}"
+                       th:text="${parent.title}"
+                       class="text-primary-500 hover:underline font-medium">
+                        Recette parent
+                    </a>
+                </p>
+            </div>
+
+            <!-- En-tête recette -->
+            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+                <!-- Image -->
+                <div th:if="${recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}"
+                     class="aspect-[16/9] bg-secondary-100 overflow-hidden">
+                    <img th:src="${recipe.imageUrl}"
+                         th:alt="${recipe.title}"
+                         class="w-full h-full object-cover">
+                </div>
+
+                <div class="p-8">
+                    <h1 class="font-display font-bold text-3xl md:text-4xl text-secondary-900 mb-4"
+                        th:text="${recipe.title}">Titre de la recette</h1>
+
+                    <div class="flex items-center space-x-6 text-secondary-500 mb-6">
+                        <div class="flex items-center space-x-2">
+                            <div class="w-8 h-8 bg-secondary-800 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                                <span th:text="${#strings.toUpperCase(#strings.substring(recipe.username, 0, 1))}">U</span>
+                            </div>
+                            <span class="text-sm font-medium" th:text="${recipe.username}">Utilisateur</span>
+                        </div>
+                        <span class="text-sm">
+                            <i class="fas fa-clock mr-1 text-primary-500"></i>
+                            <span th:text="${recipe.preparationMinutes + ' min'}">30 min</span>
+                        </span>
+                    </div>
+
+                    <p th:if="${recipe.summary != null and !recipe.summary.isEmpty()}"
+                       class="text-secondary-600 text-lg mb-8"
+                       th:text="${recipe.summary}">
+                        Description de la recette
+                    </p>
+
+                    <!-- Allergènes -->
+                    <div th:if="${!recipe.allergens.isEmpty()}" class="mb-8">
+                        <h2 class="font-display font-bold text-xl text-secondary-900 mb-4">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>Allergènes
+                        </h2>
+                        <div class="flex flex-wrap gap-2">
+                            <span th:each="allergen : ${recipe.allergens}"
+                                  th:text="${allergen.name}"
+                                  class="px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-sm font-medium border border-yellow-200">
+                                Allergène
+                            </span>
+                        </div>
+                    </div>
+
+                    <!-- Ingrédients -->
+                    <div th:if="${!recipe.ingredients.isEmpty()}" class="mb-8">
+                        <h2 class="font-display font-bold text-xl text-secondary-900 mb-4">
+                            <i class="fas fa-carrot text-primary-500 mr-2"></i>Ingrédients
+                        </h2>
+                        <ul class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <li th:each="ingredient : ${recipe.ingredients}"
+                                class="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                <i class="fas fa-check-circle text-primary-500"></i>
+                                <span>
+                                    <span th:text="${ingredient.quantity}" class="font-semibold">0</span>
+                                    <span th:text="${ingredient.unit}" class="text-secondary-500">g</span>
+                                    <span th:text="${ingredient.name}">Ingrédient</span>
+                                </span>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <!-- Étapes -->
+                    <div th:if="${!recipe.steps.isEmpty()}">
+                        <h2 class="font-display font-bold text-xl text-secondary-900 mb-4">
+                            <i class="fas fa-list-ol text-primary-500 mr-2"></i>Préparation
+                        </h2>
+                        <ol class="space-y-4">
+                            <li th:each="step : ${recipe.steps}"
+                                class="flex space-x-4 p-4 bg-gray-50 rounded-lg">
+                                <span class="flex-shrink-0 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center font-bold text-sm"
+                                      th:text="${step.stepNumber}">1</span>
+                                <p class="text-secondary-700" th:text="${step.instruction}">Instruction</p>
+                            </li>
+                        </ol>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </section>
+
+</div>
+</body>
+</html>
