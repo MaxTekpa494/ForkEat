@@ -75,8 +75,7 @@ IngredientEntity {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof IngredientEntity)) return false;
-        var that = (IngredientEntity) o;
+        if (!(o instanceof IngredientEntity that)) return false;
         return id != null && id.equals(that.id);
     }
 

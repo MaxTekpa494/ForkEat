@@ -16,22 +16,18 @@ public class Neo4jSyncService {
     private final RecipeNodeClient recipeNodeClient;
 
     public Neo4jSyncService(UserNodeClient userNodeClient, RecipeNodeClient recipeNodeClient) {
-        this.userNodeClient = Objects.requireNonNull(userNodeClient);
-        this.recipeNodeClient = Objects.requireNonNull(recipeNodeClient);
+        this.userNodeClient = userNodeClient;
+        this.recipeNodeClient = recipeNodeClient;
     }
 
     @Transactional
     public void handleUserChange(String operation, JsonNode payload) {
         Objects.requireNonNull(operation);
         Objects.requireNonNull(payload);
-        try {
-            switch (operation) {
-                case "c", "r", "u" -> handleUserCreateOrUpdate(payload);
-                case "d" -> handleUserDelete(payload);
-                default -> logger.warn("Unknown operation: {}", operation);
-            }
-        } catch (Exception e) {
-            logger.error("Error handling user change: {}", e.getMessage(), e);
+        switch (operation) {
+            case "c", "r", "u" -> handleUserCreateOrUpdate(payload);
+            case "d" -> handleUserDelete(payload);
+            default -> logger.warn("Unknown operation: {}", operation);
         }
     }
 
@@ -39,14 +35,10 @@ public class Neo4jSyncService {
     public void handleRecipeChange(String operation, JsonNode payload) {
         Objects.requireNonNull(operation);
         Objects.requireNonNull(payload);
-        try {
-            switch (operation) {
-                case "c", "r", "u" -> handleRecipeCreateOrUpdate(payload);
-                case "d" -> handleRecipeDelete(payload);
-                default -> logger.warn("Unknown operation: {}", operation);
-            }
-        } catch (Exception e) {
-            logger.error("Error handling recipe change: {}", e.getMessage(), e);
+        switch (operation) {
+            case "c", "r", "u" -> handleRecipeCreateOrUpdate(payload);
+            case "d" -> handleRecipeDelete(payload);
+            default -> logger.warn("Unknown operation: {}", operation);
         }
     }
 
