@@ -108,7 +108,7 @@ src/main/java/com/forkeat/
     │   │   ├── node/
     │   │   ├── relationship/
     │   │   └── repository/
-    │   └── sync/cdc/                 # Debezium (Consumer Kafka)
+    │   └── sync/cdc/                 # Debezium
     │
     ├── stripe/
     │   └── adapter/
