@@ -74,9 +74,9 @@ public class ProfileWebController {
                             @RequestParam String currentPassword, RedirectAttributes redirectAttributes) {
     var username = authPort.extractUsername();
     var newUser = userUpdateService.updateEmail(username, newEmail, currentPassword);
+    authPort.refreshAuthentication(newUser);
 
-    redirectAttributes.addFlashAttribute("user", newUser);
-    redirectAttributes.addFlashAttribute("success", "Successfully updated email !");
+    redirectAttributes.addFlashAttribute("success", "Email mis à jour avec succès !");
     return "redirect:/profile";
   }
 
