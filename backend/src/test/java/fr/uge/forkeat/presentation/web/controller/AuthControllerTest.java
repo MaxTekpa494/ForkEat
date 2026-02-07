@@ -32,8 +32,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     @MockitoBean
     private UserRegistrationService userRegistrationService;
@@ -43,6 +42,12 @@ class AuthControllerTest {
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @Autowired
+    public AuthControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
+
 
     private User createTestUser() {
         return new User(

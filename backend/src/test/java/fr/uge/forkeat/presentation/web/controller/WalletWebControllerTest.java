@@ -31,8 +31,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class WalletWebControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     @MockitoBean
     private UserQueryService userQueryService;
@@ -50,6 +49,12 @@ class WalletWebControllerTest {
     private CustomUserDetailsService customUserDetailsService;
 
     private User testUser;
+
+    @Autowired
+    public WalletWebControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
+
 
     @BeforeEach
     void setUp() {

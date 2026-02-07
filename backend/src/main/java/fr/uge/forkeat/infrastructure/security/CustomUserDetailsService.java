@@ -29,11 +29,13 @@ public class CustomUserDetailsService implements UserDetailsService {
     @Override
     public UserDetails loadUserByUsername(String username){
 
-        logger.debug("Loading user by username: " + username);
-        var user = userRepository.findByUsername(username).orElseThrow(() ->  new UsernameNotFoundException("User not found with username: " + username));
+        logger.debug("Loading user by username or email: " + username);
+        var user = userRepository.findByUsername(username)
+                .or(() -> userRepository.findByEmail(username))
+                .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
-        return  User.withUsername(username)
-                .password(user.getPassword()) // Le mot de passe
+        return  User.withUsername(user.getUsername())
+                .password(user.getPassword())
                 .roles(user.getRole().toString())
                 .build();
     }

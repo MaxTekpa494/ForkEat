@@ -53,7 +53,3 @@ build-jar:
     - when: never
   script:
     - cd backend && mvn package -DskipTests # On skip les tests car ils ont été faits au stage précédent
-  artifacts:
-    paths:
-      - backend/target/*.jar
-    expire_in: 1 week

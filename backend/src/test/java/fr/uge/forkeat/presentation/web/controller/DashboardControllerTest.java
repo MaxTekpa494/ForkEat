@@ -36,8 +36,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @WebMvcTest(DashboardWebController.class)
 class DashboardControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     @MockitoBean
     private UserQueryService userQueryService;
@@ -55,6 +54,12 @@ class DashboardControllerTest {
     private JwtFilter jwtFilter;
 
     private User testUser;
+
+    @Autowired
+    public DashboardControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
+
 
     @BeforeEach
     void setUp() throws Exception {

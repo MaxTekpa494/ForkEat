@@ -81,7 +81,7 @@ public class WalletEntity {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof WalletEntity wallet)) return false;
-      return id != null && id.equals(wallet.id);
+        return id != null && id.equals(wallet.id);
     }
 
     @Override

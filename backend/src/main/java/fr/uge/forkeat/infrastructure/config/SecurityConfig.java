@@ -17,6 +17,7 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
@@ -47,36 +48,56 @@ public class SecurityConfig {
 	@Order(1)
 	public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
 		return http.securityMatcher("/api/**").csrf(AbstractHttpConfigurer::disable)
-				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Pas de
-																												// session
-																												// cookie
+				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+				.exceptionHandling(ex -> ex
+						.authenticationEntryPoint((request, response, authException) -> {
+							response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+							response.setContentType("application/json");
+							response.getWriter().write("{\"error\": \"Unauthorized\"}");
+						}))
 				.authorizeHttpRequests(auth -> auth
-						// Login pour Android (pour récupérer le token)
 						.requestMatchers("/api/auth/**").permitAll().requestMatchers("/*/open/*").permitAll()
 						.requestMatchers("/*/user/*").authenticated().requestMatchers("/*/moderator/*")
 						.hasRole("MODERATOR").requestMatchers("/*/admin/*").hasRole("ADMIN").anyRequest()
 						.hasRole("ADMIN"))
 				.addFilterBefore(new JwtFilter(customUserDetailsService, jwtUtils),
-						UsernamePasswordAuthenticationFilter.class)
+								 UsernamePasswordAuthenticationFilter.class)
 				.build();
 	}
 
 	@Bean
 	@Order(2)
 	public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
-		return http.csrf(AbstractHttpConfigurer::disable)
-				.authorizeHttpRequests(auth -> auth.requestMatchers("/", "/auth/**", "/css/**", "/js/**", "/images/**", "/recipes/**")
-						.permitAll().requestMatchers(HttpMethod.GET, "/*/open/*").permitAll()
-						// Rôles
-						.requestMatchers("/*/admin/*").hasRole("ADMIN").requestMatchers("/*/moderator/*")
-						.hasRole("MODERATOR").anyRequest().authenticated())
-				.formLogin(form -> form.loginPage("/auth/login").loginProcessingUrl("/auth/login")
-						.defaultSuccessUrl("/dashboard", true).failureUrl("/auth/login?error=true").permitAll())
-				.oauth2Login(oauth2 -> oauth2.loginPage("/auth/login")
+		return http
+				// On garde CSRF désactivé pour le développement il faut pense a le réactiver
+				.csrf(AbstractHttpConfigurer::disable)
+
+				.authorizeHttpRequests(auth -> auth
+						.requestMatchers("/", "/auth/**", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
+						.requestMatchers("/admin/**").hasRole("ADMIN")
+						.requestMatchers("/moderator/**").hasRole("MODERATOR")
+						.requestMatchers("/profile/**").authenticated()
+						.anyRequest().authenticated())
+
+				.formLogin(form -> form
+						.loginPage("/auth/login")
+						.loginProcessingUrl("/auth/login")
+						.defaultSuccessUrl("/dashboard", true) // il faut mettre /recipes ici
+						.failureUrl("/auth/login?error=true")
+						.permitAll())
+
+				.oauth2Login(oauth2 -> oauth2
+						.loginPage("/auth/login")
 						.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-						.defaultSuccessUrl("/dashboard", true).failureUrl("/auth/login?error=true"))
-				.logout(logout -> logout.logoutUrl("/logout").logoutSuccessUrl("/auth/login?logout=true")
-						.invalidateHttpSession(true).deleteCookies("JSESSIONID").permitAll())
+						.defaultSuccessUrl("/dashboard", true)
+						.failureUrl("/auth/login?error=true"))
+
+				.logout(logout -> logout
+						.logoutUrl("/logout")
+						.logoutSuccessUrl("/auth/login?logout=true")
+						.invalidateHttpSession(true)
+						.deleteCookies("JSESSIONID")
+						.permitAll())
 				.build();
 	}
 

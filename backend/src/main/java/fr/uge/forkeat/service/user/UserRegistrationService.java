@@ -74,9 +74,13 @@ public class UserRegistrationService {
     Objects.requireNonNull(lastName);
     Objects.requireNonNull(email);
     Objects.requireNonNull(authMode);
-    // Vérifier que l'email n'existe pas déjà
-    if (userPersistence.existsByEmail(email)) {
-      throw new RegisterFailure("Cet email est déjà utilisé");
+
+    var existingUserOpt = userPersistence.findByEmail(email);
+
+    if (existingUserOpt.isPresent()) {
+      User existingUser = existingUserOpt.get();
+      logger.info("User already exists, logging in: {}", email);
+      return existingUser;
     }
 
     var userId = UUID.randomUUID();
@@ -131,9 +135,14 @@ public class UserRegistrationService {
 
   private String generateUsername(String email) {
     var baseUsername = email.split("@")[0].replaceAll("[^a-zA-Z0-9]", "");
-    var username = baseUsername + new Random().nextLong();
-    while (userPersistence.existsByUsername(username)) { // SI C'EST FAIT 1 FOIS C'EST BON.
-      username = baseUsername + new Random().nextLong();
+
+    if (!userPersistence.existsByUsername(baseUsername)) {
+      return baseUsername;
+    }
+
+    var username = baseUsername + new Random().nextInt(1000, 9999);
+    while (userPersistence.existsByUsername(username)) {
+      username = baseUsername + new Random().nextInt(1000, 9999);
     }
     return username;
   }

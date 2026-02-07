@@ -16,6 +16,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.time.Instant;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -113,21 +114,16 @@ class UserRegistrationServiceTest {
   class OAuth2Tests {
 
     @Test
-    void registerUserFromOAuth2_ShouldCreateUserWithoutPassword() throws ResourceNotFoundException {
-      var userId = UUID.randomUUID();
+    void registerUserFromOAuth2_ShouldCreateUserWithoutPassword() {
       var walletId = UUID.randomUUID();
+      var wallet = new Wallet(walletId, UUID.randomUUID(), 0L, Instant.now());
 
-      var savedUser = new User(
-              userId, "john", "John", "Doe", "john@gmail.com",
-              UserRole.MEMBER, UserStatus.ACTIVE,
-              AuthMode.GOOGLE,
-              Instant.now(), Instant.now()
-      );
-      var wallet = new Wallet(walletId, userId, 0L, Instant.now());
+      when(userPersistence.saveUser(any(User.class), isNull()))
+              .thenAnswer(invocation -> invocation.getArgument(0));
 
-      when(userPersistence.existsByEmail("john@gmail.com")).thenReturn(false);
-      when(userPersistence.saveUser(any(User.class), isNull())).thenReturn(savedUser);
-      when(walletService.createWallet(userId)).thenReturn(wallet);
+      when(userPersistence.findByEmail("john@gmail.com")).thenReturn(Optional.empty());
+
+      when(walletService.createWallet(any(UUID.class))).thenReturn(wallet);
 
       User result = userRegistrationService.registerUserFromOAuth2(
               "John", "Doe", "john@gmail.com", AuthMode.GOOGLE
@@ -135,48 +131,32 @@ class UserRegistrationServiceTest {
 
       assertNotNull(result);
       assertEquals(AuthMode.GOOGLE, result.authMode());
-      verify(walletService).createWallet(userId);
+
+      verify(walletService).createWallet(any(UUID.class));
+      verify(userPersistence).findByEmail("john@gmail.com");
     }
 
-    @Test
-    void registerUserFromOAuth2_ShouldThrow_WhenEmailAlreadyExists() {
-      when(userPersistence.existsByEmail("existing@gmail.com")).thenReturn(true);
-
-      assertThrows(
-              RegisterFailure.class,
-              () -> userRegistrationService.registerUserFromOAuth2(
-                      "John", "Doe", "existing@gmail.com", AuthMode.GOOGLE
-              )
-      );
-    }
 
     @Test
-    void registerUserFromOAuth2_ShouldGenerateUniqueUsername() throws ResourceNotFoundException {
-      var userId = UUID.randomUUID();
+    void registerUserFromOAuth2_ShouldGenerateUniqueUsername() {
       var walletId = UUID.randomUUID();
+      var wallet = new Wallet(walletId, UUID.randomUUID(), 0L, Instant.now());
 
-      var savedUser = new User(
-              userId, "johndoe", "John", "Doe", "john.doe@gmail.com",
-              UserRole.MEMBER, UserStatus.ACTIVE,
-              AuthMode.GOOGLE,
-              Instant.now(), Instant.now()
-      );
-      var wallet = new Wallet(walletId, userId, 0L, Instant.now());
-
-      when(userPersistence.existsByEmail("john.doe@gmail.com")).thenReturn(false);
+      when(userPersistence.saveUser(any(User.class), isNull()))
+              .thenAnswer(invocation -> invocation.getArgument(0));
+      when(userPersistence.findByEmail("john.doe@gmail.com")).thenReturn(Optional.empty());
       when(userPersistence.existsByUsername(anyString()))
               .thenReturn(true)
               .thenReturn(false);
-      when(userPersistence.saveUser(any(User.class), isNull())).thenReturn(savedUser);
-      when(walletService.createWallet(userId)).thenReturn(wallet);
+      when(walletService.createWallet(any(UUID.class))).thenReturn(wallet);
 
       User result = userRegistrationService.registerUserFromOAuth2(
               "John", "Doe", "john.doe@gmail.com", AuthMode.GOOGLE
       );
 
       assertNotNull(result);
-
       ArgumentCaptor<String> captor = ArgumentCaptor.forClass(String.class);
+
       verify(userPersistence, times(2)).existsByUsername(captor.capture());
 
       assertTrue(captor.getAllValues().get(0).startsWith("johndoe"));

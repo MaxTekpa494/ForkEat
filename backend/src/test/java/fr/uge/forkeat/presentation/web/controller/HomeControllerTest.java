@@ -16,14 +16,19 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class HomeControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     @MockitoBean
     private JwtFilter jwtFilter;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+
+    @Autowired
+    public HomeControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
+
 
     @Test
     void home_ShouldReturnHomeView() throws Exception {

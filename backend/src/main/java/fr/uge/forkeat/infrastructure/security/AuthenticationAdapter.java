@@ -61,10 +61,17 @@ public class AuthenticationAdapter implements AuthenticationPort {
 
     @Override
     public void refreshAuthentication(User user) {
-        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(user.role().name()));
+        String roleName = user.role().name().startsWith("ROLE_")
+                ? user.role().name()
+                : "ROLE_" + user.role().name();
 
-        var newAuth = new UsernamePasswordAuthenticationToken(user.username(), authorities);
+        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(roleName));
 
+        var newAuth = new UsernamePasswordAuthenticationToken(
+                user.username(),
+                null,
+                authorities
+        );
         SecurityContextHolder.getContext().setAuthentication(newAuth);
     }
 }

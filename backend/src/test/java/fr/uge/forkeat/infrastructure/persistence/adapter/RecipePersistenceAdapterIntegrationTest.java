@@ -1,5 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
+import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
@@ -18,11 +19,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -32,50 +29,36 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@Testcontainers
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
+@Transactional
 @Import(RecipePersistenceAdapter.class)
-class RecipePersistenceAdapterIntegrationTest {
+class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withDatabaseName("forkeat_test")
-            .withUsername("test")
-            .withPassword("test");
+    private final RecipePersistenceAdapter adapter;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", () -> postgres.getJdbcUrl() + "&stringtype=unspecified");
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
+    private final RecipeRepository recipeRepository;
 
-    @Autowired
-    private RecipePersistenceAdapter adapter;
+    private final UserRepository userRepository;
 
-    @Autowired
-    private RecipeRepository recipeRepository;
+    private final AllergenRepository allergenRepository;
 
-    @Autowired
-    private UserRepository userRepository;
-
-    @Autowired
-    private AllergenRepository allergenRepository;
-
-    @Autowired
-    private IngredientRepository ingredientRepository;
+    private final IngredientRepository ingredientRepository;
 
     private UserEntity savedAuthor;
     private Instant now;
 
+    @Autowired
+    public RecipePersistenceAdapterIntegrationTest(RecipePersistenceAdapter adapter, RecipeRepository recipeRepository, UserRepository userRepository, AllergenRepository allergenRepository, IngredientRepository ingredientRepository) {
+        this.adapter = adapter;
+        this.recipeRepository = recipeRepository;
+        this.userRepository = userRepository;
+        this.allergenRepository = allergenRepository;
+        this.ingredientRepository = ingredientRepository;
+    }
+
     @BeforeEach
     void setUp() {
-        recipeRepository.deleteAll();
-        ingredientRepository.deleteAll();
-        allergenRepository.deleteAll();
-        userRepository.deleteAll();
-
         var author = new UserEntity();
         author.setUsername("chef_integration");
         author.setEmail("chef@integration.com");
@@ -188,6 +171,8 @@ class RecipePersistenceAdapterIntegrationTest {
 
     @Test
     void findByStatus_shouldReturnOnlyMatchingRecipes() {
+        var initialPublished = adapter.findByStatus("PUBLISHED");
+        var initialDrafts = adapter.findByStatus("DRAFT");
         adapter.save(createRecipe(UUID.randomUUID(), "Draft 1", RecipeStatus.DRAFT));
         adapter.save(createRecipe(UUID.randomUUID(), "Draft 2", RecipeStatus.DRAFT));
         adapter.save(createRecipe(UUID.randomUUID(), "Published", RecipeStatus.PUBLISHED));
@@ -195,9 +180,9 @@ class RecipePersistenceAdapterIntegrationTest {
         var drafts = adapter.findByStatus("DRAFT");
         var published = adapter.findByStatus("PUBLISHED");
 
-        assertEquals(2, drafts.size());
+        assertEquals(initialDrafts.size() + 2, drafts.size());
         assertTrue(drafts.stream().allMatch(r -> r.status() == RecipeStatus.DRAFT));
-        assertEquals(1, published.size());
+        assertEquals(initialPublished.size() + 1, published.size());
         assertEquals(RecipeStatus.PUBLISHED, published.getFirst().status());
     }
 

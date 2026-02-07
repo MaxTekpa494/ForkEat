@@ -28,8 +28,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class StripeWebhookControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     @MockitoBean
     private WalletService walletService;
@@ -42,6 +41,12 @@ class StripeWebhookControllerTest {
 
     @MockitoBean
     private PaymentGateway paymentGateway;
+
+    @Autowired
+    public StripeWebhookControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
+
 
     @Test
     void handleStripeEvent_ShouldProcessPayment_WhenSignatureIsValid() throws Exception {
