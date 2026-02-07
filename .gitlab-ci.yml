@@ -8,7 +8,7 @@ cache:
 
 variables:
   # On dit à Maven d'utiliser le dossier local pour le cache
-  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository -Dorg.slf4j.simpleLogger.defaultLogLevel=info"
 
 workflow:
   rules:
