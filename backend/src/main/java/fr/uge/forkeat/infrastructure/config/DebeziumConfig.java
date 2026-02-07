@@ -62,7 +62,7 @@ public class DebeziumConfig {
      */
     @PostConstruct
     public void start() {
-        log.info("Démarrage de Debezium Embedded Engine...");
+        log.info("Démarrage de Debezium Embedded Engine");
 
         Configuration config = Configuration.create()
                 // Nom unique du connecteur
