@@ -1,8 +1,9 @@
 package fr.uge.forkeat.service.external;
 
 
-import fr.uge.forkeat.presentation.rest.dto.PaymentRequestDto;
-import fr.uge.forkeat.presentation.rest.dto.PaymentResponseDto;
+import com.stripe.model.Event;
+import fr.uge.forkeat.service.model.PaymentRequest;
+import fr.uge.forkeat.service.model.PaymentResponse;
 
 public interface PaymentGateway {
 
@@ -11,5 +12,6 @@ public interface PaymentGateway {
      * * @param request Les détails
      * @return La réponse contenant l'URL de redirection
      */
-    PaymentResponseDto initiatePayment(PaymentRequestDto request);
+    PaymentResponse initiatePayment(PaymentRequest request);
+    Event initEvent(String payload, String sigHeader, String endpointSecret);
 }

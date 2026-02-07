@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Dashboard - ForkEat</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="font-display font-bold text-4xl mb-2">
+                        Bienvenue, <span class="text-primary-500" th:text="${user.firstName}">Utilisateur</span> ! 👋
+                    </h1>
+                    <p class="text-secondary-200 text-lg">
+                        Ravi de vous revoir. Voici un aperçu de votre activité.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistiques -->
+    <section class="py-12 bg-surface">
+        <div class="container mx-auto px-4">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
+                <!-- Solde Wallet -->
+                <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-6 text-white shadow-xl">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-wallet text-2xl"></i>
+                        </div>
+                        <a th:href="@{/wallet}" class="text-white/80 hover:text-white transition">
+                            <i class="fas fa-arrow-right"></i>
+                        </a>
+                    </div>
+                    <div class="text-3xl font-bold mb-1">
+                        <span th:text="${#numbers.formatDecimal(balance / 100.0, 1, 2)}">0.00</span> €
+                    </div>
+                    <div class="text-primary-100 text-sm font-medium">Solde disponible</div>
+                </div>
+
+                <!-- Recettes -->
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-secondary-50 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-book text-secondary-800 text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${totalRecipes}">0</div>
+                    <div class="text-gray-500 text-sm font-medium">Mes recettes</div>
+                </div>
+
+                <!-- Likes -->
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-heart text-red-500 text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${totalLikes}">0</div>
+                    <div class="text-gray-500 text-sm font-medium">Total likes</div>
+                </div>
+
+                <!-- Abonnés -->
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-users text-blue-500 text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${followers}">0</div>
+                    <div class="text-gray-500 text-sm font-medium">Abonnés</div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Actions rapides -->
+    <section class="py-12 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="font-display font-bold text-2xl text-secondary-900 mb-6">Actions rapides</h2>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <a th:href="@{/recipes/create}"
+                   class="bg-surface border-2 border-gray-200 hover:border-primary-500 rounded-2xl p-6 transition group">
+                    <div class="w-14 h-14 bg-primary-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-primary-500 transition">
+                        <i class="fas fa-plus text-2xl text-primary-500 group-hover:text-white transition"></i>
+                    </div>
+                    <h3 class="font-bold text-lg text-secondary-900 mb-2">Créer une recette</h3>
+                    <p class="text-gray-600 text-sm">Partagez une nouvelle création culinaire</p>
+                </a>
+
+                <a th:href="@{/wallet(from=dashboard)}"
+                   class="bg-surface border-2 border-gray-200 hover:border-primary-500 rounded-2xl p-6 transition group">
+                    <div class="w-14 h-14 bg-secondary-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-secondary-800 transition">
+                        <i class="fas fa-wallet text-2xl text-secondary-800 group-hover:text-white transition"></i>
+                    </div>
+                    <h3 class="font-bold text-lg text-secondary-900 mb-2">Gérer mon wallet</h3>
+                    <p class="text-gray-600 text-sm">Rechargez ou consultez vos transactions</p>
+                </a>
+
+                <a th:href="@{/profile}"
+                   class="bg-surface border-2 border-gray-200 hover:border-primary-500 rounded-2xl p-6 transition group">
+                    <div class="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-orange-500 transition">
+                        <i class="fas fa-cog text-2xl text-orange-500 group-hover:text-white transition"></i>
+                    </div>
+                    <h3 class="font-bold text-lg text-secondary-900 mb-2">Paramètres</h3>
+                    <p class="text-gray-600 text-sm">Modifiez votre profil et vos préférences</p>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Activité récente (placeholder) PAS MVP -->
+    <section class="py-12 bg-surface">
+        <div class="container mx-auto px-4">
+            <h2 class="font-display font-bold text-2xl text-secondary-900 mb-6">Activité récente</h2>
+
+            <div class="bg-white rounded-2xl p-8 text-center border border-gray-100">
+                <i class="fas fa-inbox text-4xl text-gray-300 mb-4"></i>
+                <p class="text-gray-500">Aucune activité récente pour le moment.</p>
+                <p class="text-gray-400 text-sm mt-2">Créez votre première recette pour commencer !</p>
+            </div>
+        </div>
+    </section>
+
+</div>
+</body>
+</html>

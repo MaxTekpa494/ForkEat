@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${pageTitle ?: 'ForkEat - Partagez vos recettes'}">ForkEat</title>
+
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        // LE CORAIL (Cercle du logo) - Pour les boutons et l'énergie
+                        primary: {
+                            50: '#fff0ee',
+                            100: '#ffe0db',
+                            200: '#ffc1b8',
+                            300: '#ff988a',
+                            400: '#ff6b59',
+                            500: '#FF5745', // <-- CODE EXACT PIOCHÉ SUR TON LOGO (Rouge/Corail vibrant)
+                            600: '#ed3e2c',
+                            700: '#c72a1b',
+                            800: '#a52519',
+                            900: '#88241a',
+                        },
+                        // LE VERT SOMBRE (Fourchette du logo) - Pour le fond et le sérieux
+                        secondary: {
+                            50: '#f2fafa',
+                            100: '#dff4f4',
+                            200: '#c2ebeb',
+                            300: '#95dcdc',
+                            400: '#5fc5c7',
+                            500: '#3baeb1',
+                            600: '#2d8d91',
+                            700: '#267175',
+                            800: '#0F3D3E', // <-- CODE EXACT PIOCHÉ SUR TON LOGO (Vert Canard Profond)
+                            900: '#0a2b2c', // Version plus sombre pour les dégradés
+                        },
+                        // LE CRÈME (Fond du logo)
+                        surface: '#FBF9F4'
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        display: ['Poppins', 'sans-serif'],
+                    },
+                    animation: {
+                        'fadeInUp': 'fadeInUp 0.8s ease-out forwards',
+                        'float': 'float 6s ease-in-out infinite',
+                    },
+                    keyframes: {
+                        fadeInUp: {
+                            '0%': { opacity: '0', transform: 'translateY(20px)' },
+                            '100%': { opacity: '1', transform: 'translateY(0)' },
+                        },
+                        float: {
+                            '0%, 100%': { transform: 'translateY(0)' },
+                            '50%': { transform: 'translateY(-20px)' },
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Poppins:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <th:block layout:fragment="styles"></th:block>
+</head>
+<body class="bg-surface font-sans text-secondary-900 antialiased selection:bg-primary-100 selection:text-primary-700">
+
+<nav th:replace="~{layout/navbar :: navbar}"></nav>
+
+<main>
+    <div layout:fragment="content"></div>
+</main>
+
+<footer class="bg-secondary-900 text-white mt-20 border-t border-secondary-800">
+    <div class="container mx-auto px-4 py-12 text-center">
+        <div class="flex items-center justify-center space-x-2 mb-4">
+            <i class="fas fa-utensils text-primary-500 text-2xl"></i>
+            <span class="font-display font-bold text-2xl">ForkEat</span>
+        </div>
+        <p class="text-secondary-200 text-sm">&copy; 2026 ForkEat. Fait avec passion.</p>
+    </div>
+</footer>
+
+<script th:src="@{/js/main.js}"></script>
+<th:block layout:fragment="scripts"></th:block>
+</body>
+</html>
+
+<style>
+
+    @keyframes fadeInUp {
+        from { opacity: 0; transform: translateY(30px); }
+        to { opacity: 1; transform: translateY(0); }
+    }
+    .animate-fadeInUp {
+        animation: fadeInUp 0.6s ease-out forwards;
+    }
+
+    @keyframes menuFade {
+        from { opacity: 0; transform: translateY(10px) scale(0.95); }
+        to { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    .animate-menuFade {
+        animation: menuFade 0.15s ease-out forwards; /* 0.15s = Instantané */
+    }
+</style>
