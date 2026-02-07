@@ -44,8 +44,17 @@ public class UserPersistenceAdapter implements UserPersistence {
 	@Override
 	public User updateUser(User user) {
 		Objects.requireNonNull(user);
-		var entity = UserEntityMapper.toEntity(user);
-		var userUpdated = userRepository.save(entity);
+		var existing = userRepository.findById(user.id())
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + user.id()));
+		existing.setUsername(user.username());
+		existing.setFirstName(user.firstName());
+		existing.setLastName(user.lastName());
+		existing.setEmail(user.email());
+		existing.setRole(user.role());
+		existing.setStatus(user.status());
+		existing.setAuthMode(user.authMode());
+		existing.setUpdatedAt(user.updatedAt());
+		var userUpdated = userRepository.save(existing);
 		return UserEntityMapper.toDomain(userUpdated);
 	}
 
