@@ -1,7 +1,9 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fr.uge.forkeat.presentation.rest.dto.TopUpRequestDto;
+import fr.uge.forkeat.infrastructure.config.JwtFilter;
+import fr.uge.forkeat.presentation.dto.user.TopUpRequestDTO;
+import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -19,21 +21,32 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(WalletController.class)
+@WebMvcTest(WalletRestController.class)
 @AutoConfigureMockMvc(addFilters = false)
 class WalletControllerTest {
 
-    @Autowired
-    private MockMvc mockMvc;
+    private final MockMvc mockMvc;
 
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     @MockitoBean
     private WalletService walletService;
 
+    @MockitoBean
+    private JwtFilter jwtFilter;
+
+    @MockitoBean
+    private CustomUserDetailsService customUserDetailsService;
+
+    @Autowired
+    public WalletControllerTest(MockMvc mockMvc) {
+        this.mockMvc = mockMvc;
+    }
+
+
     @Test
     void shouldReturnPaymentUrl() throws Exception {
-        var request = new TopUpRequestDto(1000L); // Ton DTO
+        var request = new TopUpRequestDTO(1000L); // Ton DTO
         var expectedUrl = "https://checkout.stripe.com/pay/123";
 
         var hardcodedUserId = UUID.fromString("0a6a42d0-696b-4fa6-aa8e-40ba65a660ca");
@@ -41,8 +54,7 @@ class WalletControllerTest {
         when(walletService.prepareTopUp(
                 eq(hardcodedUserId),
                 eq("test@user.com"),
-                eq(1000L),
-                eq("EUR")
+                eq(1000L)
         )).thenReturn(expectedUrl);
 
         mockMvc.perform(post("/wallet/recharge")

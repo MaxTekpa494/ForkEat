@@ -1,6 +1,11 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
+import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.service.model.*;
+import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
+import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -8,11 +13,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -21,28 +22,19 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@Testcontainers
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-class RecipeEntityTest {
+@Transactional
+class RecipeEntityTest extends AbstractIntegrationTest {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withDatabaseName("forkeat_test")
-            .withUsername("test")
-            .withPassword("test");
-
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", () -> postgres.getJdbcUrl() + "&stringtype=unspecified");
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
-
-    @Autowired
-    private EntityManager entityManager;
+    private final EntityManager entityManager;
 
     private UserEntity author;
+
+    @Autowired
+    public RecipeEntityTest(EntityManager entityManager) {
+        this.entityManager = entityManager;
+    }
 
     @BeforeEach
     void setUp() {
@@ -68,8 +60,8 @@ class RecipeEntityTest {
         recipe.setPreparationMinutes(45);
         recipe.setStatus(RecipeStatus.DRAFT);
         recipe.setStepByStepInstructions(List.of(
-                Map.of("step", 1, "instruction", "Préchauffer le four à 180°C"),
-                Map.of("step", 2, "instruction", "Éplucher les pommes")
+                new RecipeStep(1, "Préchauffer le four à 180°C"),
+                new RecipeStep(2, "Éplucher les pommes")
         ));
         recipe.setDietaryFlag(Map.of("vegetarian", true, "vegan", false, "glutenFree", false));
 
@@ -95,7 +87,7 @@ class RecipeEntityTest {
         recipe.setSummary("Une délicieuse tarte");
         recipe.setAuthor(author);
         recipe.setStatus(RecipeStatus.DRAFT);
-        recipe.setStepByStepInstructions(List.of(Map.of("step", 1, "instruction", "Mélanger")));
+        recipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Mélanger")));
         recipe.setDietaryFlag(Map.of("vegetarian", true));
 
         var recipeIngredient1 = new RecipeIngredientEntity(recipe, ingredient1, new BigDecimal("500"), "g");
@@ -123,7 +115,7 @@ class RecipeEntityTest {
         recipe.setSummary("Des crêpes bretonnes");
         recipe.setAuthor(author);
         recipe.setStatus(RecipeStatus.PUBLISHED);
-        recipe.setStepByStepInstructions(List.of(Map.of("step", 1, "instruction", "Mélanger la farine")));
+        recipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Mélanger la farine")));
         recipe.setDietaryFlag(Map.of("vegetarian", true));
 
         var recipeAllergen1 = new RecipeAllergenEntity(recipe, allergen1);
@@ -150,7 +142,7 @@ class RecipeEntityTest {
         recipe.setSummary("Un gâteau sucré");
         recipe.setAuthor(author);
         recipe.setStatus(RecipeStatus.DRAFT);
-        recipe.setStepByStepInstructions(List.of(Map.of("step", 1, "instruction", "Ajouter le sucre")));
+        recipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Ajouter le sucre")));
         recipe.setDietaryFlag(Map.of("vegetarian", true));
 
         var recipeIngredient = new RecipeIngredientEntity(recipe, ingredient, new BigDecimal("100"), "g");
@@ -180,7 +172,7 @@ class RecipeEntityTest {
         recipe.setSummary("Une omelette aux œufs");
         recipe.setAuthor(author);
         recipe.setStatus(RecipeStatus.DRAFT);
-        recipe.setStepByStepInstructions(List.of(Map.of("step", 1, "instruction", "Battre les œufs")));
+        recipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Battre les œufs")));
         recipe.setDietaryFlag(Map.of("vegetarian", true));
 
         var recipeAllergen = new RecipeAllergenEntity(recipe, allergen);
@@ -206,7 +198,7 @@ class RecipeEntityTest {
         parentRecipe.setSummary("La recette de base");
         parentRecipe.setAuthor(author);
         parentRecipe.setStatus(RecipeStatus.PUBLISHED);
-        parentRecipe.setStepByStepInstructions(List.of(Map.of("step", 1, "instruction", "Étape 1")));
+        parentRecipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Étape 1")));
         parentRecipe.setDietaryFlag(Map.of("vegetarian", true));
         entityManager.persist(parentRecipe);
 
@@ -216,7 +208,7 @@ class RecipeEntityTest {
         childRecipe.setAuthor(author);
         childRecipe.setParent(parentRecipe);
         childRecipe.setStatus(RecipeStatus.DRAFT);
-        childRecipe.setStepByStepInstructions(List.of(Map.of("step", 1, "instruction", "Étape modifiée")));
+        childRecipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Étape modifiée")));
         childRecipe.setDietaryFlag(Map.of("vegetarian", true, "vegan", true));
         entityManager.persist(childRecipe);
 
@@ -235,7 +227,7 @@ class RecipeEntityTest {
         recipe.setSummary("En cours de rédaction");
         recipe.setAuthor(author);
         recipe.setStatus(RecipeStatus.DRAFT);
-        recipe.setStepByStepInstructions(List.of(Map.of("step", 1, "instruction", "Étape")));
+        recipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Étape")));
         recipe.setDietaryFlag(Map.of("vegetarian", false));
         entityManager.persist(recipe);
         entityManager.flush();

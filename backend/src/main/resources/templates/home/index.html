@@ -1,0 +1,114 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      xmlns:sec="http://www.thymeleaf.org/extras/spring-security" layout:decorate="~{layout/base}">
+
+<head>
+    <title>Accueil - ForkEat</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <section class="relative bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-24 md:py-32 overflow-hidden">
+
+        <div class="absolute inset-0 overflow-hidden pointer-events-none">
+            <div class="absolute -top-20 -right-20 w-[600px] h-[600px] bg-primary-500/10 rounded-full blur-[120px]"></div>
+            <div class="absolute bottom-0 left-0 w-[400px] h-[400px] bg-secondary-400/5 rounded-full blur-[80px]"></div>
+        </div>
+
+        <div class="container mx-auto px-4 relative z-10">
+            <div class="grid md:grid-cols-2 gap-16 items-center">
+
+                <div class="animate-fadeInUp text-center md:text-left">
+                    <span class="inline-block py-1 px-3 rounded-full bg-secondary-700/50 border border-secondary-600 text-primary-300 text-xs font-bold uppercase tracking-wider mb-6">
+                        La plateforme gourmande #1
+                    </span>
+
+                    <h1 class="font-display font-bold text-5xl md:text-6xl lg:text-7xl mb-6 leading-tight">
+                        Partagez vos
+                        <span class="text-primary-500">recettes</span>
+                        favorites
+                    </h1>
+
+                    <p class="text-lg md:text-xl text-secondary-100 mb-10 leading-relaxed font-light max-w-lg mx-auto md:mx-0">
+                        Rejoignez une communauté passionnée. Découvrez de nouvelles saveurs et monétisez votre talent culinaire.
+                    </p>
+
+                    <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
+                        <a sec:authorize="!isAuthenticated()"
+                           th:href="@{/login}"
+                           class="bg-primary-500 text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-primary-400 transition shadow-xl hover:shadow-2xl transform hover:-translate-y-1 text-center">
+                            <i class="fas fa-rocket mr-2"></i>
+                            Commencer
+                        </a>
+
+                        <a sec:authorize="isAuthenticated()"
+                           th:href="@{/dashboard}"
+                           class="bg-primary-500 text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-primary-400 transition shadow-xl hover:shadow-2xl transform hover:-translate-y-1 text-center">
+                            <i class="fas fa-user-circle mr-2"></i>
+                            Mon Espace
+                        </a>
+                        <a th:href="@{/recipes}"
+                           class="bg-transparent border border-white/20 text-white px-8 py-4 rounded-full font-bold text-lg hover:bg-white/10 transition hover:-translate-y-1">
+                            <i class="fas fa-search mr-2"></i> Explorer
+                        </a>
+                    </div>
+                </div>
+
+                <div class="hidden md:block relative animate-float">
+                    <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 shadow-2xl transform rotate-3 hover:rotate-0 transition duration-500">
+                        <div class="aspect-square bg-gradient-to-b from-secondary-700 to-secondary-800 rounded-2xl flex items-center justify-center relative overflow-hidden group">
+                            <i class="fas fa-utensils text-8xl text-secondary-600/30 group-hover:scale-110 transition duration-700"></i>
+
+                            <div class="absolute bottom-6 left-6 right-6 bg-white p-4 rounded-xl shadow-lg flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
+                                    <i class="fas fa-heart"></i>
+                                </div>
+                                <div>
+                                    <div class="text-xs text-gray-500 font-bold uppercase">Plat du jour</div>
+                                    <div class="text-secondary-900 font-bold">Pasta à la truffe</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="py-24 bg-surface">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-16">
+                <h2 class="font-display font-bold text-4xl text-secondary-900 mb-4">Pourquoi <span class="text-primary-500">ForkEat</span> ?</h2>
+                <p class="text-secondary-600">Tout ce dont vous avez besoin pour cuisiner.</p>
+            </div>
+
+            <div class="grid md:grid-cols-3 gap-8">
+                <div class="bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl transition border border-gray-100 group">
+                    <div class="w-14 h-14 bg-secondary-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-secondary-800 transition">
+                        <i class="fas fa-share-alt text-2xl text-secondary-800 group-hover:text-white transition"></i>
+                    </div>
+                    <h3 class="font-bold text-xl mb-3 text-secondary-900">Partage Simple</h3>
+                    <p class="text-gray-500 text-sm leading-relaxed">Publiez vos meilleures recettes en quelques clics et inspirez la communauté.</p>
+                </div>
+                <div class="bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl transition border border-gray-100 group">
+                    <div class="w-14 h-14 bg-primary-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-primary-500 transition">
+                        <i class="fas fa-coins text-2xl text-primary-500 group-hover:text-white transition"></i>
+                    </div>
+                    <h3 class="font-bold text-xl mb-3 text-secondary-900">Monétisation</h3>
+                    <p class="text-gray-500 text-sm leading-relaxed">Gagnez de l'argent grâce aux Super Likes et au soutien de vos fans.</p>
+                </div>
+                <div class="bg-white p-8 rounded-3xl shadow-sm hover:shadow-xl transition border border-gray-100 group">
+                    <div class="w-14 h-14 bg-orange-50 rounded-2xl flex items-center justify-center mb-6 group-hover:bg-orange-500 transition">
+                        <i class="fas fa-users text-2xl text-orange-500 group-hover:text-white transition"></i>
+                    </div>
+                    <h3 class="font-bold text-xl mb-3 text-secondary-900">Communauté</h3>
+                    <p class="text-gray-500 text-sm leading-relaxed">Échangez avec des chefs et amateurs passionnés du monde entier.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+</div>
+</body>
+</html>
