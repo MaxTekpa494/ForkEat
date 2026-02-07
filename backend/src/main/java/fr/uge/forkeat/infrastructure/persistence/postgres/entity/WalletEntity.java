@@ -80,8 +80,7 @@ public class WalletEntity {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof WalletEntity)) return false;
-        var wallet = (WalletEntity) o;
+        if (!(o instanceof WalletEntity wallet)) return false;
         return id != null && id.equals(wallet.id);
     }
 

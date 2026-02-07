@@ -6,7 +6,7 @@ import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.RelationshipProperties;
 import org.springframework.data.neo4j.core.schema.TargetNode;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @RelationshipProperties
 public class LikedRelationship {
@@ -14,14 +14,14 @@ public class LikedRelationship {
     @Id
     @GeneratedValue
     private Long id;
-    private LocalDateTime date;
+    private Instant date;
     @TargetNode
     private RecipeNode recipe;
 
     public LikedRelationship() {
     }
 
-    public LikedRelationship(RecipeNode recipe, LocalDateTime date) {
+    public LikedRelationship(RecipeNode recipe, Instant date) {
         this.recipe = recipe;
         this.date = date;
     }
@@ -34,11 +34,11 @@ public class LikedRelationship {
         this.id = id;
     }
 
-    public LocalDateTime getDate() {
+    public Instant getDate() {
         return date;
     }
 
-    public void setDate(LocalDateTime date) {
+    public void setDate(Instant date) {
         this.date = date;
     }
 
