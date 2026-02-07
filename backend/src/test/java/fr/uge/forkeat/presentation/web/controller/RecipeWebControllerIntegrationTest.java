@@ -65,7 +65,6 @@ class RecipeWebControllerIntegrationTest {
     @BeforeEach
     void setUp() {
         recipeRepository.deleteAll();
-        userRepository.deleteAll();
 
         var author = new UserEntity();
         author.setUsername("chef_web");
