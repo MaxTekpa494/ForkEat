@@ -116,7 +116,7 @@ class UserMapperTest {
             });
 
             // Vérifier le message d'erreur
-            assertEquals(null, exception.getMessage());
+            assertNull(exception.getMessage());
         }
     }
 
@@ -165,7 +165,7 @@ class UserMapperTest {
             });
 
             // Vérifier le message d'erreur
-            assertEquals(null, exception.getMessage());
+            assertNull(exception.getMessage());
         }
 
         @Test

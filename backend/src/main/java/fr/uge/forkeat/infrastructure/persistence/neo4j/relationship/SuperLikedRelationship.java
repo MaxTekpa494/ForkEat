@@ -6,7 +6,7 @@ import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.RelationshipProperties;
 import org.springframework.data.neo4j.core.schema.TargetNode;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.util.UUID;
 
 @RelationshipProperties
@@ -15,7 +15,7 @@ public class SuperLikedRelationship {
     @Id
     @GeneratedValue
     private Long id;
-    private LocalDateTime date;
+    private Instant date;
     private Integer amount;
     private UUID transactionId;
 
@@ -25,7 +25,7 @@ public class SuperLikedRelationship {
     public SuperLikedRelationship() {
     }
 
-    public SuperLikedRelationship(RecipeNode recipe, LocalDateTime date, Integer amount, UUID transactionId) {
+    public SuperLikedRelationship(RecipeNode recipe, Instant date, Integer amount, UUID transactionId) {
         this.recipe = recipe;
         this.date = date;
         this.amount = amount;
@@ -40,11 +40,11 @@ public class SuperLikedRelationship {
         this.id = id;
     }
 
-    public LocalDateTime getDate() {
+    public Instant getDate() {
         return date;
     }
 
-    public void setDate(LocalDateTime date) {
+    public void setDate(Instant date) {
         this.date = date;
     }
 

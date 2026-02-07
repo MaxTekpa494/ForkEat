@@ -6,7 +6,7 @@ import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.RelationshipProperties;
 import org.springframework.data.neo4j.core.schema.TargetNode;
 
-import java.time.LocalDateTime;
+import java.time.Instant;
 
 @RelationshipProperties
 public class FollowsRelationship {
@@ -14,14 +14,14 @@ public class FollowsRelationship {
     @Id
     @GeneratedValue
     private Long id;
-    private LocalDateTime since;
+    private Instant since;
     @TargetNode
     private UserNode followedUser;
 
     public FollowsRelationship() {
     }
 
-    public FollowsRelationship(UserNode followedUser, LocalDateTime since) {
+    public FollowsRelationship(UserNode followedUser, Instant since) {
         this.followedUser = followedUser;
         this.since = since;
     }
@@ -35,11 +35,11 @@ public class FollowsRelationship {
         this.id = id;
     }
 
-    public LocalDateTime getSince() {
+    public Instant getSince() {
         return since;
     }
 
-    public void setSince(LocalDateTime since) {
+    public void setSince(Instant since) {
         this.since = since;
     }
 

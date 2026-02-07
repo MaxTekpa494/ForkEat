@@ -112,8 +112,7 @@ public class BankInfoEntity {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof BankInfoEntity)) return false;
-        BankInfoEntity other = (BankInfoEntity) o;
+        if (!(o instanceof BankInfoEntity other)) return false;
         return id != null && id.equals(other.id);
     }
 
