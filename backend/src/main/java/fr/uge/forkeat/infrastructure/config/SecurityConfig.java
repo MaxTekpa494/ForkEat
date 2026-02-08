@@ -74,6 +74,8 @@ public class SecurityConfig {
 
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/", "/auth/**", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
+						.requestMatchers("/recipes/my").authenticated()
+						.requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/moderator/**").hasRole("MODERATOR")
 						.requestMatchers("/profile/**").authenticated()
@@ -82,14 +84,14 @@ public class SecurityConfig {
 				.formLogin(form -> form
 						.loginPage("/auth/login")
 						.loginProcessingUrl("/auth/login")
-						.defaultSuccessUrl("/dashboard", true) // il faut mettre /recipes ici
+						.defaultSuccessUrl("/recipes", true)
 						.failureUrl("/auth/login?error=true")
 						.permitAll())
 
 				.oauth2Login(oauth2 -> oauth2
 						.loginPage("/auth/login")
 						.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-						.defaultSuccessUrl("/dashboard", true)
+						.defaultSuccessUrl("/recipes", true)
 						.failureUrl("/auth/login?error=true"))
 
 				.logout(logout -> logout
