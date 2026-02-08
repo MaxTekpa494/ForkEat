@@ -1,35 +1,20 @@
-# OS
-.DS_Store
-Thumbs.db
-
 # Gradle
 .gradle/
 build/
 */build/
 
-# Android Studio / IntelliJ
+# Kotlin/Java
+*.class
+*.log
+*.dex
+*.jar
+*.apk
+
+# IDE
 .idea/
 *.iml
-*.ipr
-*.iws
+*.hprof
 
-# Config locale (SDK, paths)
+# Local files
 local.properties
-
-# Native / NDK
-.externalNativeBuild/
-.cxx/
-obj/
-
-# Kotlin
-.kotlin/
-
-# Logs & temp
-*.log
-*.swp
-*.swo
-
-# APK / AAB
-*.apk
-*.aab
 
