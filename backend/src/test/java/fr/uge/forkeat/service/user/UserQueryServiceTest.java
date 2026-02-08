@@ -40,7 +40,8 @@ class UserQueryServiceTest {
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
                 Instant.now(),
-                Instant.now()
+                Instant.now(),
+                false
                 );
     }
 
@@ -190,8 +191,6 @@ class UserQueryServiceTest {
             User result = userQueryService.getUserByUsername("testuser");
 
             // Then
-            // Vérifie que la méthode est annotée @Transactional(readOnly = true)
-            // (Ceci est vérifié par Spring au runtime)
             assertNotNull(result);
         }
     }
