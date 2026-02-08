@@ -25,6 +25,9 @@ public class RegisterFormDTO {
     @Size(min = 8, message = "Le mot de passe doit contenir au moins 8 caractères")
     private String password;
 
+    @NotBlank(message = "La confirmation du mot de passe est obligatoire")
+    private String confirmPassword;
+
     @AssertTrue(message = "Vous devez accepter les conditions d'utilisation")
     private boolean terms;
 
@@ -70,6 +73,14 @@ public class RegisterFormDTO {
 
     public void setPassword(String password) {
         this.password = password;
+    }
+
+    public String getConfirmPassword() {
+        return confirmPassword;
+    }
+
+    public void setConfirmPassword(String confirmPassword) {
+        this.confirmPassword = confirmPassword;
     }
 
     public boolean isTerms() {

@@ -47,56 +47,93 @@
                 </div>
 
                 <div class="mt-8">
-                    <form th:action="@{/auth/register}" method="POST" class="space-y-5">
+                    <form th:action="@{/auth/register}" th:object="${registerForm}" method="POST" class="space-y-5">
+
+                        <!-- Erreur globale (ex: email/username déjà utilisé) -->
+                        <div th:if="${errorMessage}" class="rounded-xl bg-red-50 border border-red-200 p-4">
+                            <div class="flex items-center">
+                                <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>
+                                <p th:text="${errorMessage}" class="text-sm text-red-700"></p>
+                            </div>
+                        </div>
 
                         <div>
                             <label for="firstName" class="block text-sm font-medium text-secondary-900">Prénom</label>
                             <div class="mt-1">
-                                <input id="firstName" name="firstName" type="text" required
-                                       class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                <input id="firstName" th:field="*{firstName}" type="text" required
+                                       th:classappend="${#fields.hasErrors('firstName')} ? 'border-red-400 ring-red-400' : 'border-gray-200'"
+                                       class="block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                                        placeholder="Jean">
                             </div>
+                            <p th:if="${#fields.hasErrors('firstName')}" th:errors="*{firstName}" class="mt-1 text-sm text-red-600"></p>
                         </div>
 
                         <div>
                             <label for="lastName" class="block text-sm font-medium text-secondary-900">Nom</label>
                             <div class="mt-1">
-                                <input id="lastName" name="lastName" type="text" required
-                                       class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                <input id="lastName" th:field="*{lastName}" type="text" required
+                                       th:classappend="${#fields.hasErrors('lastName')} ? 'border-red-400 ring-red-400' : 'border-gray-200'"
+                                       class="block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                                        placeholder="Dupont">
                             </div>
+                            <p th:if="${#fields.hasErrors('lastName')}" th:errors="*{lastName}" class="mt-1 text-sm text-red-600"></p>
                         </div>
 
                         <div>
                             <label for="userName" class="block text-sm font-medium text-secondary-900">Nom d'utilisateur</label>
                             <div class="mt-1">
-                                <input id="userName" name="userName" type="text" required
-                                       class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                <input id="userName" th:field="*{userName}" type="text" required
+                                       th:classappend="${#fields.hasErrors('userName')} ? 'border-red-400 ring-red-400' : 'border-gray-200'"
+                                       class="block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                                        placeholder="JeanDupont">
                             </div>
+                            <p th:if="${#fields.hasErrors('userName')}" th:errors="*{userName}" class="mt-1 text-sm text-red-600"></p>
                         </div>
 
                         <div>
                             <label for="email" class="block text-sm font-medium text-secondary-900">Adresse email</label>
                             <div class="mt-1">
-                                <input id="email" name="email" type="email" autocomplete="email" required
-                                       class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                <input id="email" th:field="*{email}" type="email" autocomplete="email" required
+                                       th:classappend="${#fields.hasErrors('email')} ? 'border-red-400 ring-red-400' : 'border-gray-200'"
+                                       class="block w-full px-4 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                                        placeholder="vous@exemple.com">
                             </div>
+                            <p th:if="${#fields.hasErrors('email')}" th:errors="*{email}" class="mt-1 text-sm text-red-600"></p>
                         </div>
 
                         <div>
                             <label for="password" class="block text-sm font-medium text-secondary-900">Mot de passe</label>
-                            <div class="mt-1">
-                                <input id="password" name="password" type="password" required
-                                       class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                            <div class="mt-1 relative">
+                                <input id="password" th:field="*{password}" type="password" required
+                                       th:classappend="${#fields.hasErrors('password')} ? 'border-red-400 ring-red-400' : 'border-gray-200'"
+                                       class="block w-full px-4 pr-10 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
                                        placeholder="Minimum 8 caractères">
+                                <button type="button" onclick="togglePassword('password', this)"
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition">
+                                    <i class="fas fa-eye"></i>
+                                </button>
                             </div>
+                            <p th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="mt-1 text-sm text-red-600"></p>
+                        </div>
+
+                        <div>
+                            <label for="confirmPassword" class="block text-sm font-medium text-secondary-900">Confirmer le mot de passe</label>
+                            <div class="mt-1 relative">
+                                <input id="confirmPassword" th:field="*{confirmPassword}" type="password" required
+                                       th:classappend="${#fields.hasErrors('confirmPassword')} ? 'border-red-400 ring-red-400' : 'border-gray-200'"
+                                       class="block w-full px-4 pr-10 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                                       placeholder="Retapez votre mot de passe">
+                                <button type="button" onclick="togglePassword('confirmPassword', this)"
+                                        class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                            </div>
+                            <p th:if="${#fields.hasErrors('confirmPassword')}" th:errors="*{confirmPassword}" class="mt-1 text-sm text-red-600"></p>
                         </div>
 
                         <div class="flex items-start">
                             <div class="flex items-center h-5">
-                                <input id="terms" name="terms" type="checkbox" required
+                                <input id="terms" th:field="*{terms}" type="checkbox" required
                                        class="h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded">
                             </div>
                             <div class="ml-3 text-sm">
@@ -106,6 +143,7 @@
                                 </label>
                             </div>
                         </div>
+                        <p th:if="${#fields.hasErrors('terms')}" th:errors="*{terms}" class="text-sm text-red-600"></p>
 
                         <div>
                             <button type="submit"
@@ -127,6 +165,20 @@
             </div>
         </div>
     </div>
+
+<script>
+function togglePassword(inputId, btn) {
+  const input = document.getElementById(inputId);
+  const icon = btn.querySelector('i');
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.classList.replace('fa-eye', 'fa-eye-slash');
+  } else {
+    input.type = 'password';
+    icon.classList.replace('fa-eye-slash', 'fa-eye');
+  }
+}
+</script>
 
 </div>
 </body>
