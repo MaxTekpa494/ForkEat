@@ -7,7 +7,6 @@ import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
 import fr.uge.forkeat.presentation.mapper.rest.UserDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
-import fr.uge.forkeat.service.MailService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.user.UserRegistrationService;

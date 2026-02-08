@@ -74,8 +74,10 @@ public class SecurityConfig {
 
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/", "/auth/**", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
-						.requestMatchers("/recipes/my").authenticated()
 						.requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
+						.requestMatchers("/recipes/my").authenticated()
+						.requestMatchers("/recipes/create", "/recipes/*/edit", "/recipes/*/delete").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers("/wallet/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/moderator/**").hasRole("MODERATOR")
 						.requestMatchers("/profile/**").authenticated()

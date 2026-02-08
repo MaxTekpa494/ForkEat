@@ -26,7 +26,6 @@ public class UserPersistenceAdapter implements UserPersistence {
 	@Override
 	public User saveUser(User user, String hashedPassword) {
 		Objects.requireNonNull(user);
-		//Objects.requireNonNull(hashedPassword);
 		var entity = UserEntityMapper.toEntity(user);
 
     if (Objects.requireNonNull(user.authMode()) == AuthMode.LOCAL) {
@@ -89,5 +88,13 @@ public class UserPersistenceAdapter implements UserPersistence {
 	@Override
 	public boolean existsByUsername(String username) {
 		return userRepository.existsByUsername(username);
+	}
+
+	@Override
+	public void updateEmailVerified(UUID userId, boolean emailVerified) {
+		var entity = userRepository.findById(userId)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+		entity.setEmailVerified(emailVerified);
+		userRepository.save(entity);
 	}
 }

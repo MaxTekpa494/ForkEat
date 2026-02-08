@@ -9,6 +9,7 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -65,7 +66,11 @@ public class AuthenticationAdapter implements AuthenticationPort {
                 ? user.role().name()
                 : "ROLE_" + user.role().name();
 
-        List<SimpleGrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(roleName));
+        var authorities = new ArrayList<SimpleGrantedAuthority>();
+        authorities.add(new SimpleGrantedAuthority(roleName));
+        if (user.emailVerified()) {
+            authorities.add(new SimpleGrantedAuthority("EMAIL_VERIFIED"));
+        }
 
         var newAuth = new UsernamePasswordAuthenticationToken(
                 user.username(),
