@@ -1,15 +1,35 @@
-*.iml
-.gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+# OS
 .DS_Store
-build/**
-/captures
-.externalNativeBuild
-.cxx
+Thumbs.db
+
+# Gradle
+.gradle/
+build/
+*/build/
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Config locale (SDK, paths)
 local.properties
+
+# Native / NDK
+.externalNativeBuild/
+.cxx/
+obj/
+
+# Kotlin
+.kotlin/
+
+# Logs & temp
+*.log
+*.swp
+*.swo
+
+# APK / AAB
+*.apk
+*.aab
+
