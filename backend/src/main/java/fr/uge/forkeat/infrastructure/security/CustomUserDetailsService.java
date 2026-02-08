@@ -34,8 +34,12 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .or(() -> userRepository.findByEmail(username))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
 
+        // Un user Google sans password local → on met un placeholder vide
+        // qui ne matchera jamais avec BCrypt, donc le form login échouera proprement
+        var password = user.getPassword() != null ? user.getPassword() : "";
+
         return  User.withUsername(user.getUsername())
-                .password(user.getPassword())
+                .password(password)
                 .roles(user.getRole().toString())
                 .build();
     }

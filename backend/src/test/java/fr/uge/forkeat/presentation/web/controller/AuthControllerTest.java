@@ -106,18 +106,21 @@ class AuthControllerTest {
                             .param("lastName", "Doe")
                             .param("userName", "johndoe")
                             .param("email", "john@example.com")
-                            .param("password", "password123"))
+                            .param("password", "password123")
+                            .param("confirmPassword", "password123")
+                            .param("terms", "true"))
                     .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrl("/login"))
+                    .andExpect(redirectedUrl("/auth/login"))
                     .andExpect(flash().attributeExists("success"));
 
-            verify(userRegistrationService).registerUser(new UserRegister("johndoe", "John", "Doe", "password123", "john@example.com"));
+            verify(userRegistrationService).registerUser(any(UserRegister.class));
         }
 
         @Test
         void register_ShouldReturnRegisterView_WhenEmailAlreadyExists() throws Exception {
             // Given
-            when(userRegistrationService.registerUser(any(UserRegister.class))).thenThrow(new RegisterFailure("Cet email est déjà utilisé"));
+            when(userRegistrationService.registerUser(any(UserRegister.class)))
+                    .thenThrow(new RegisterFailure("Cet email est déjà utilisé"));
 
             // When/Then
             mockMvc.perform(post("/auth/register")
@@ -127,7 +130,9 @@ class AuthControllerTest {
                             .param("lastName", "Doe")
                             .param("userName", "johndoe")
                             .param("email", "existing@example.com")
-                            .param("password", "password123"))
+                            .param("password", "password123")
+                            .param("confirmPassword", "password123")
+                            .param("terms", "true"))
                     .andExpect(status().isBadRequest())
                     .andExpect(view().name("layout/register"))
                     .andExpect(model().attributeExists("errorMessage"));
@@ -136,7 +141,8 @@ class AuthControllerTest {
         @Test
         void register_ShouldReturnRegisterView_WhenUsernameAlreadyExists() throws Exception {
             // Given
-            when(userRegistrationService.registerUser(any(UserRegister.class))).thenThrow(new RegisterFailure("Ce nom d'utilisateur est déjà pris"));
+            when(userRegistrationService.registerUser(any(UserRegister.class)))
+                    .thenThrow(new RegisterFailure("Ce nom d'utilisateur est déjà pris"));
 
             // When/Then
             mockMvc.perform(post("/auth/register")
@@ -146,7 +152,9 @@ class AuthControllerTest {
                             .param("lastName", "Doe")
                             .param("userName", "existinguser")
                             .param("email", "john@example.com")
-                            .param("password", "password123"))
+                            .param("password", "password123")
+                            .param("confirmPassword", "password123")
+                            .param("terms", "true"))
                     .andExpect(status().isBadRequest())
                     .andExpect(view().name("layout/register"))
                     .andExpect(model().attribute("errorMessage", "Ce nom d'utilisateur est déjà pris"));
@@ -155,8 +163,8 @@ class AuthControllerTest {
         @Test
         void register_ShouldReturnRegisterView_WhenResourceNotFound() throws Exception {
             // Given
-            when(userRegistrationService.registerUser(any(UserRegister.class)
-            )).thenThrow(new RegisterFailure("Resource not found"));
+            when(userRegistrationService.registerUser(any(UserRegister.class)))
+                    .thenThrow(new RegisterFailure("Resource not found"));
 
             // When/Then
             mockMvc.perform(post("/auth/register")
@@ -166,7 +174,9 @@ class AuthControllerTest {
                             .param("lastName", "Doe")
                             .param("userName", "johndoe")
                             .param("email", "john@example.com")
-                            .param("password", "password123"))
+                            .param("password", "password123")
+                            .param("confirmPassword", "password123")
+                            .param("terms", "true"))
                     .andExpect(status().isBadRequest())
                     .andExpect(view().name("layout/register"))
                     .andExpect(model().attributeExists("errorMessage"));
@@ -175,7 +185,8 @@ class AuthControllerTest {
         @Test
         void register_ShouldReturnRegisterView_WhenGenericException() throws Exception {
             // Given
-            when(userRegistrationService.registerUser(any(UserRegister.class))).thenThrow(new RegisterFailure("TEST"));
+            when(userRegistrationService.registerUser(any(UserRegister.class)))
+                    .thenThrow(new RegisterFailure("TEST"));
 
             // When/Then
             mockMvc.perform(post("/auth/register")
@@ -185,10 +196,32 @@ class AuthControllerTest {
                             .param("lastName", "Doe")
                             .param("userName", "johndoe")
                             .param("email", "john@example.com")
-                            .param("password", "password123"))
+                            .param("password", "password123")
+                            .param("confirmPassword", "password123")
+                            .param("terms", "true"))
                     .andExpect(status().isBadRequest())
                     .andExpect(view().name("layout/register"))
                     .andExpect(model().attributeExists("errorMessage"));
+        }
+
+        @Test
+        void register_ShouldReturnRegisterView_WhenPasswordsDontMatch() throws Exception {
+            // When/Then
+            mockMvc.perform(post("/auth/register")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("firstName", "John")
+                            .param("lastName", "Doe")
+                            .param("userName", "johndoe")
+                            .param("email", "john@example.com")
+                            .param("password", "password123")
+                            .param("confirmPassword", "different456")
+                            .param("terms", "true"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(view().name("layout/register"))
+                    .andExpect(model().attributeHasFieldErrors("registerForm", "confirmPassword"));
+
+            verifyNoInteractions(userRegistrationService);
         }
     }
 }

@@ -128,20 +128,30 @@ public class UserUpdateService {
     userPersistence.saveUser(updatedUser, newEncodedPassword);
   }
 
-
   /**
-   * Migre un user LOCAL vers OAuth2.
-   * Permet à un user qui s'est inscrit avec password
-   * de se connecter ensuite avec Google.
+   * Permet à un user Google (sans password) de définir un mot de passe local.
+   * Passe l'authMode de GOOGLE à LOCAL.
+   * Ne nécessite pas l'ancien mot de passe (le user n'en a pas).
    */
   @Transactional(
-          isolation = Isolation.READ_COMMITTED,
+          isolation = Isolation.REPEATABLE_READ,
           timeout = 10
   )
-  public User migrateToOAuth2(UUID userId, AuthMode newAuthMode) throws ResourceNotFoundException {
-    var user = userQueryService.getUserById(userId);
+  public void setPasswordForOAuthUser(String username, String newPassword) {
+    Objects.requireNonNull(username);
+    Objects.requireNonNull(newPassword);
 
-    var migratedUser = new User(
+    if (newPassword.length() < 8) {
+      throw new CheckProfileUpdateFailure("New password must be at least 8 characters");
+    }
+
+    var user = userQueryService.getUserByUsername(username);
+
+    if (user.authMode() != AuthMode.GOOGLE) {
+      throw new CheckProfileUpdateFailure("This user already has a local password");
+    }
+
+    var updatedUser = new User(
             user.id(),
             user.username(),
             user.firstName(),
@@ -149,11 +159,10 @@ public class UserUpdateService {
             user.email(),
             user.role(),
             user.status(),
-            newAuthMode,
+            AuthMode.LOCAL,
             user.createdAt(),
-            Instant.now()
-    );
+            Instant.now());
 
-    return userPersistence.saveUser(migratedUser, null); // A VOIR
+    userPersistence.saveUser(updatedUser, passwordEncoder.encode(newPassword));
   }
 }

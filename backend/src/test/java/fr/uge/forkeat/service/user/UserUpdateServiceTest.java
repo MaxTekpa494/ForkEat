@@ -52,6 +52,21 @@ class UserUpdateServiceTest {
         );
     }
 
+    private User createGoogleTestUser(UUID id, String username, String email) {
+        return new User(
+                id,
+                username,
+                "John",
+                "Doe",
+                email,
+                UserRole.MEMBER,
+                UserStatus.ACTIVE,
+                AuthMode.GOOGLE,
+                Instant.now(),
+                Instant.now()
+        );
+    }
+
     @Nested
     class UpdateProfileTests {
 
@@ -298,39 +313,71 @@ class UserUpdateServiceTest {
     }
 
     @Nested
-    class MigrateToOAuth2Tests {
+    class SetPasswordForOAuthUserTests {
 
         @Test
-        void migrateToOAuth2_ShouldUpdateAuthMode() throws ResourceNotFoundException {
+        void setPasswordForOAuthUser_ShouldSetPasswordAndSwitchToLocal() {
             // Given
             var userId = UUID.randomUUID();
-            var existingUser = createTestUser(userId, "testuser", "test@example.com");
+            var googleUser = createGoogleTestUser(userId, "googleuser", "google@example.com");
 
-            when(userQueryService.getUserById(userId)).thenReturn(existingUser);
-            when(userPersistence.saveUser(any(User.class), isNull())).thenAnswer(i -> i.getArgument(0));
+            when(userQueryService.getUserByUsername("googleuser")).thenReturn(googleUser);
+            when(passwordEncoder.encode("newPassword123")).thenReturn("encodedPassword");
 
             // When
-            User result = userUpdateService.migrateToOAuth2(userId, AuthMode.GOOGLE);
+            userUpdateService.setPasswordForOAuthUser("googleuser", "newPassword123");
 
             // Then
-            assertEquals(AuthMode.GOOGLE, result.authMode());
-            verify(userPersistence).saveUser(any(User.class), isNull());
+            verify(userPersistence).saveUser(argThat(user ->
+                    user.authMode() == AuthMode.LOCAL &&
+                    user.username().equals("googleuser")
+            ), eq("encodedPassword"));
         }
 
         @Test
-        void migrateToOAuth2_ShouldThrow_WhenUserNotFound() {
+        void setPasswordForOAuthUser_ShouldThrow_WhenPasswordTooShort() {
+            // When/Then
+            CheckProfileUpdateFailure exception = assertThrows(
+                    CheckProfileUpdateFailure.class,
+                    () -> userUpdateService.setPasswordForOAuthUser("googleuser", "short")
+            );
+
+            assertEquals("New password must be at least 8 characters", exception.getMessage());
+            verifyNoInteractions(userQueryService);
+            verifyNoInteractions(userPersistence);
+        }
+
+        @Test
+        void setPasswordForOAuthUser_ShouldThrow_WhenUserAlreadyLocal() {
             // Given
-            var unknownId = UUID.randomUUID();
-            when(userQueryService.getUserById(unknownId))
+            var userId = UUID.randomUUID();
+            var localUser = createTestUser(userId, "localuser", "local@example.com");
+
+            when(userQueryService.getUserByUsername("localuser")).thenReturn(localUser);
+
+            // When/Then
+            CheckProfileUpdateFailure exception = assertThrows(
+                    CheckProfileUpdateFailure.class,
+                    () -> userUpdateService.setPasswordForOAuthUser("localuser", "newPassword123")
+            );
+
+            assertEquals("This user already has a local password", exception.getMessage());
+            verify(userPersistence, never()).saveUser(any(), anyString());
+        }
+
+        @Test
+        void setPasswordForOAuthUser_ShouldThrow_WhenUserNotFound() {
+            // Given
+            when(userQueryService.getUserByUsername("unknown"))
                     .thenThrow(new ResourceNotFoundException("Utilisateur non trouvé"));
 
             // When/Then
             assertThrows(
                     ResourceNotFoundException.class,
-                    () -> userUpdateService.migrateToOAuth2(unknownId, AuthMode.GOOGLE)
+                    () -> userUpdateService.setPasswordForOAuthUser("unknown", "newPassword123")
             );
 
-            verify(userPersistence, never()).saveUser(any(), any());
+            verify(userPersistence, never()).saveUser(any(), anyString());
         }
     }
 }

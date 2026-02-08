@@ -1,7 +1,9 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.web.form.RegisterFormDTO;
+import fr.uge.forkeat.service.exception.RegisterFailure;
 import fr.uge.forkeat.service.user.UserRegistrationService;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -46,18 +48,29 @@ public class AuthWebController {
   }
 
   @PostMapping("/register")
-  public String register(@Valid @ModelAttribute RegisterFormDTO form, BindingResult result,
-                         RedirectAttributes redirectAttributes, Model model) {
+  public String register(@Valid @ModelAttribute("registerForm") RegisterFormDTO form, BindingResult result,
+                         RedirectAttributes redirectAttributes, Model model, HttpServletResponse response) {
+
+    if (!form.getPassword().equals(form.getConfirmPassword())) {
+      result.rejectValue("confirmPassword", "error.registerForm", "Les mots de passe ne correspondent pas");
+    }
 
     if (result.hasErrors()) {
+      response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
       return "layout/register";
     }
 
-     userRegistrationService.registerUser(UserFormDTOMapper.toUserRegister(form));
+    try {
+      userRegistrationService.registerUser(UserFormDTOMapper.toUserRegister(form));
+    } catch (RegisterFailure e) {
+      model.addAttribute("errorMessage", e.getMessage());
+      response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+      return "layout/register";
+    }
 
     redirectAttributes.addFlashAttribute("success",
             "Compte créé avec succès ! Vous pouvez maintenant vous connecter.");
-    return "redirect:/login";
+    return "redirect:/auth/login";
   }
 
   private boolean isAuthenticated() {
