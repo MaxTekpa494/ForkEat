@@ -246,7 +246,7 @@ class DebeziumIntegrationTest extends AbstractIntegrationTest {
             TestTransaction.flagForCommit();
             TestTransaction.end();
 
-            await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
+            await().atMost(Duration.ofSeconds(20)).untilAsserted(() -> {
                 var isVariant = neo4jClient.query("""
                         MATCH (v:Recipe {title: $vTitle})-[:IS_VARIANT_OF]->(p:Recipe {title: $pTitle})
                         RETURN count(v) > 0

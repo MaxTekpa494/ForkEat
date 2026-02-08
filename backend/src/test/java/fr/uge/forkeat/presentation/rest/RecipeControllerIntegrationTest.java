@@ -1,6 +1,5 @@
 package fr.uge.forkeat.presentation.rest;
 
-/*
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
@@ -349,4 +348,3 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         return recipeRepository.save(recipe);
     }
 }
-*/
