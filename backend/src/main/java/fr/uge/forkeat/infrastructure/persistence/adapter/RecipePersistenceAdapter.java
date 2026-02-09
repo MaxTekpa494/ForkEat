@@ -63,10 +63,41 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
   }
 
   @Override
+  public PageResult<Recipe> findByStatusAndSearch(String status, String search, int size, int page) {
+    Objects.requireNonNull(status);
+    Objects.requireNonNull(search);
+    var pageable = PageRequest.of(page, size);
+    var pageResult = recipeRepository.findByStatusAndFullTextSearch(RecipeStatus.valueOf(status), search, pageable);
+    var recipes = pageResult.getContent().stream()
+            .map(RecipeEntityMapper::toDomain)
+            .toList();
+    return new PageResult<>(recipes, pageResult.getTotalElements());
+  }
+
+  @Override
+  public PageResult<Recipe> findByStatusAndSearchAndAllergens(String status, String search, List<String> allergens, int size, int page) {
+    Objects.requireNonNull(status);
+    Objects.requireNonNull(allergens);
+    var pageable = PageRequest.of(page, size);
+    var pageResult = recipeRepository.findByStatusAndSearchAndAllergens(RecipeStatus.valueOf(status), search, allergens, pageable);
+    var recipes = pageResult.getContent().stream()
+            .map(RecipeEntityMapper::toDomain)
+            .toList();
+    return new PageResult<>(recipes, pageResult.getTotalElements());
+  }
+
+  @Override
   public List<Recipe> findByAuthorId(UUID authorId) {
     Objects.requireNonNull(authorId);
     return recipeRepository.findByAuthorId(authorId)
             .stream()
+            .map(RecipeEntityMapper::toDomain)
+            .toList();
+  }
+
+  @Override
+  public List<Allergen> findAllAllergens() {
+    return allergenRepository.findAll().stream()
             .map(RecipeEntityMapper::toDomain)
             .toList();
   }
@@ -85,9 +116,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     var allergenIds = recipe.allergens().stream().map(Allergen::id).toList();
-    var allergens = new ArrayList<AllergenEntity>();
-    allergenRepository.findAllById(allergenIds)
-            .forEach(allergens::add);
+      var allergens = new ArrayList<>(allergenRepository.findAllById(allergenIds));
 
 
     var ingredientNames = recipe.ingredients().stream()
