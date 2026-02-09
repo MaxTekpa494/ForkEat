@@ -21,4 +21,6 @@ public interface UserPersistence {
 	boolean existsByUsername(String username);
 
 	String findPasswordHashByUsername(String username);
+
+	void updateEmailVerified(UUID userId, boolean emailVerified);
 }

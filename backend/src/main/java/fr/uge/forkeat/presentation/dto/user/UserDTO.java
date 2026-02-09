@@ -11,6 +11,7 @@ public record UserDTO(
         String role,
         String status,
         String authMode,
+        boolean emailVerified,
         Instant createdAt,
         Instant updatedAt
 ) {

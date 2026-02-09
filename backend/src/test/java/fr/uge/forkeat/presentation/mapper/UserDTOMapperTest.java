@@ -16,7 +16,7 @@ import static org.junit.jupiter.api.Assertions.*;
 class UserDTOMapperTest {
 
   User testUser = new User(UUID.randomUUID(), "chef_arnaud", "Arnaud", "Carayol", "arnaud@test.com", UserRole.MEMBER,
-          UserStatus.ACTIVE, AuthMode.LOCAL, Instant.now(), Instant.now());
+          UserStatus.ACTIVE, AuthMode.LOCAL, Instant.now(), Instant.now(), false);
 
   @BeforeEach
   void setUp() {
@@ -153,7 +153,7 @@ class UserDTOMapperTest {
     var bankInfo = new BankInfo(userId, "Caisse d'Épargne", "FR7612345678901234567890189", "CEPAFRPP");
 
     var user = new User(userId, "admin_user", "Jean", "Dupont", "jean.dupont@example.com", UserRole.ADMIN,
-            UserStatus.ACTIVE, AuthMode.GOOGLE, createdAt, updatedAt);
+            UserStatus.ACTIVE, AuthMode.GOOGLE, createdAt, updatedAt, false);
 
     var dto = UserDTOMapper.toDTO(user);
 
@@ -202,21 +202,21 @@ class UserDTOMapperTest {
 
   private User createUserWithBankInfoAndWallet(BankInfo bankInfo, Wallet wallet) {
     return new User(UUID.randomUUID(), "test_user", "Test", "User", "test@test.com", UserRole.MEMBER,
-            UserStatus.ACTIVE, AuthMode.LOCAL, Instant.now(), Instant.now());
+            UserStatus.ACTIVE, AuthMode.LOCAL, Instant.now(), Instant.now(), false);
   }
 
   private User createUserWithRole(UserRole role) {
     return new User(UUID.randomUUID(), "test_user", "Test", "User", "test@test.com", role, UserStatus.ACTIVE,
-            AuthMode.LOCAL, Instant.now(), Instant.now());
+            AuthMode.LOCAL, Instant.now(), Instant.now(), false);
   }
 
   private User createUserWithStatus(UserStatus status) {
     return new User(UUID.randomUUID(), "test_user", "Test", "User", "test@test.com", UserRole.MEMBER, status,
-            AuthMode.LOCAL, Instant.now(), Instant.now());
+            AuthMode.LOCAL, Instant.now(), Instant.now(), false);
   }
 
   private User createUserWithAuthMode(AuthMode authMode) {
     return new User(UUID.randomUUID(), "test_user", "Test", "User", "test@test.com", UserRole.MEMBER,
-            UserStatus.ACTIVE, authMode, Instant.now(), Instant.now());
+            UserStatus.ACTIVE, authMode, Instant.now(), Instant.now(), false);
   }
 }

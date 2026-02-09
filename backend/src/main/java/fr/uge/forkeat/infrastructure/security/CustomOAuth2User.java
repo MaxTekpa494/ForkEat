@@ -26,7 +26,10 @@ public class CustomOAuth2User implements OAuth2User {
 
 	@Override
 	public Collection<? extends GrantedAuthority> getAuthorities() {
-		return List.of(new SimpleGrantedAuthority("ROLE_" + user.role().name()));
+		return List.of(
+				new SimpleGrantedAuthority("ROLE_" + user.role().name()),
+				new SimpleGrantedAuthority("EMAIL_VERIFIED")
+		);
 	}
 
 	@Override

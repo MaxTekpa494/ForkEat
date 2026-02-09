@@ -38,6 +38,9 @@ public class UserEntity {
     @Column(name = "auth_mode", nullable = false)
     private AuthMode authMode;
 
+    @Column(name = "email_verified", nullable = false)
+    private boolean emailVerified;
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private Instant createdAt;
     @Column(name = "updated_at", nullable = false)
@@ -156,6 +159,14 @@ public class UserEntity {
 
     public void setAuthMode(AuthMode authMode) {
         this.authMode = authMode;
+    }
+
+    public boolean isEmailVerified() {
+        return emailVerified;
+    }
+
+    public void setEmailVerified(boolean emailVerified) {
+        this.emailVerified = emailVerified;
     }
 
     public Instant getCreatedAt() {

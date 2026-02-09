@@ -3,6 +3,7 @@ package fr.uge.forkeat.presentation.rest;
 import fr.uge.forkeat.service.exception.DuplicateTransactionException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.VerificationException;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -56,6 +57,12 @@ public class GlobalRestExceptionHandler {
   public ResponseEntity<Map<String, Object>> handleWalletNotFound(WalletNotFoundException e) {
     return ResponseEntity.status(HttpStatus.NOT_FOUND)
             .body(Map.of("error", "Not Found", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+  }
+
+  @ExceptionHandler(VerificationException.class)
+  public ResponseEntity<Map<String, Object>> handleVerificationException(VerificationException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
   }
 
 }
