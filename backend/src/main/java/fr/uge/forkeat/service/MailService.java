@@ -6,6 +6,8 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.stereotype.Service;
 
+import java.util.Objects;
+
 @Service
 public class MailService {
     private final JavaMailSender mailSender;
@@ -18,6 +20,10 @@ public class MailService {
     }
 
     public void send(String to, String subject, String text) {
+        Objects.requireNonNull(to);
+        Objects.requireNonNull(subject);
+        Objects.requireNonNull(text);
+
         SimpleMailMessage mailMessage = new SimpleMailMessage();
         mailMessage.setSubject(subject);
         mailMessage.setFrom(mail);

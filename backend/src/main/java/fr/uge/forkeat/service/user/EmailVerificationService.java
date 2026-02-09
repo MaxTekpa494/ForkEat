@@ -29,8 +29,12 @@ public class EmailVerificationService {
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
 
-    private static final long EMAIL_CONFIRMATION_EXPIRY_HOURS = 24;
-    private static final long CODE_EXPIRY_MINUTES = 10;
+    @Value("${app.email.confirmation-expiry-hours}")
+    private long EMAIL_CONFIRMATION_EXPIRY_HOURS;
+
+    @Value("${app.email.code-expiry-minutes}")
+    private long CODE_EXPIRY_MINUTES;
+
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
     public EmailVerificationService(VerificationTokenPersistence tokenPersistence,
@@ -65,6 +69,7 @@ public class EmailVerificationService {
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
     public void confirmEmail(String tokenValue) {
+
         var token = tokenPersistence.findByToken(tokenValue)
                 .orElseThrow(() -> new VerificationException("Lien de confirmation invalide"));
 
@@ -83,6 +88,7 @@ public class EmailVerificationService {
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
     public void sendPasswordChangeCode(UUID userId, String email, String hashedNewPassword) {
+
         tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
 
         var code = generateSixDigitCode();
