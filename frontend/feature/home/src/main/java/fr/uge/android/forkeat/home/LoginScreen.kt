@@ -72,6 +72,7 @@ fun LoginScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToRegister: () -> Unit = {},
     onLoginSuccess: () -> Unit = {},
+    onForgotPassword: () -> Unit = {},
     newUser: Boolean = false,
     viewModel: LoginViewModel = viewModel(),
 ) {
@@ -315,7 +316,7 @@ fun LoginScreen(
                     color = Secondary900,
                 )
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = { /* TODO */ }) {
+                TextButton(onClick = { onForgotPassword() }) {
                     Text(
                         "Mot de passe oubli\u00e9 ?",
                         fontSize = 13.sp,

@@ -8,6 +8,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import fr.uge.android.forkeat.designsystem.theme.ForkEatTheme
+import fr.uge.android.forkeat.home.ForgotPasswordScreen
 import fr.uge.android.forkeat.home.HomeScreen
 import fr.uge.android.forkeat.home.LoginScreen
 import fr.uge.android.forkeat.home.RegisterScreen
@@ -36,6 +37,15 @@ class MainActivity : ComponentActivity() {
                                     popUpTo("home") { inclusive = true }
                                 }
                             },
+                            onForgotPassword = {
+                                navController.navigate("forgot-password")
+                            }
+                        )
+                    }
+                    composable("forgot-password"){
+                        ForgotPasswordScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            onCodeSuccess =  {}
                         )
                     }
                     composable("new-user-login") {
