@@ -8,10 +8,12 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import fr.uge.android.forkeat.designsystem.theme.ForkEatTheme
+import fr.uge.android.forkeat.dashboard.DashboardScreen
 import fr.uge.android.forkeat.home.ForgotPasswordScreen
 import fr.uge.android.forkeat.home.HomeScreen
 import fr.uge.android.forkeat.home.LoginScreen
 import fr.uge.android.forkeat.home.RegisterScreen
+import fr.uge.android.forkeat.profile.ProfileScreen
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -32,8 +34,7 @@ class MainActivity : ComponentActivity() {
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToRegister = {  navController.navigate("register") },
                             onLoginSuccess = {
-                                // TODO: navigate to dashboard
-                                navController.navigate("home") {
+                                navController.navigate("dashboard") { // Navigate to dashboard on successful login
                                     popUpTo("home") { inclusive = true }
                                 }
                             },
@@ -53,7 +54,7 @@ class MainActivity : ComponentActivity() {
                             onNavigateBack = { navController.navigate("home") },
                             onNavigateToRegister = {  navController.navigate("register") },
                             onLoginSuccess = {
-                                navController.navigate("home") {
+                                navController.navigate("dashboard") { // Navigate to dashboard on successful new user login
                                     popUpTo("home") { inclusive = true }
                                 }
                             },
@@ -66,11 +67,21 @@ class MainActivity : ComponentActivity() {
                             onNavigateBack = { navController.popBackStack() },
                             onNavigateToLogin = {  navController.navigate("login") },
                             onRegisterSuccess = {
-                                navController.navigate("new-user-login") {
-                                    popUpTo("new-user-login") { inclusive = true }
+                                navController.navigate("dashboard") { // Navigate to dashboard on successful registration
+                                    popUpTo("home") { inclusive = true }
                                 }
                             },
                         )
+                    }
+                    composable("dashboard") {
+                        DashboardScreen(
+                            onNavigateToProfile = {
+                                navController.navigate("profile")
+                            }
+                        )
+                    }
+                    composable("profile") {
+                        ProfileScreen()
                     }
                 }
             }
