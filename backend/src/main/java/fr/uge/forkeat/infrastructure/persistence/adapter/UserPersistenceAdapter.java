@@ -28,12 +28,12 @@ public class UserPersistenceAdapter implements UserPersistence {
 		Objects.requireNonNull(user);
 		var entity = UserEntityMapper.toEntity(user);
 
-    if (Objects.requireNonNull(user.authMode()) == AuthMode.LOCAL) {
-      if (hashedPassword == null || hashedPassword.isEmpty()) {
-        throw new IllegalArgumentException("Hashed password is null or empty");
-      }
-      entity.setPassword(hashedPassword);
-    }
+		if (Objects.requireNonNull(user.authMode()) == AuthMode.LOCAL) {
+		  if (hashedPassword == null || hashedPassword.isEmpty()) {
+			throw new IllegalArgumentException("Hashed password is null or empty");
+		  }
+		  entity.setPassword(hashedPassword);
+		}
 
 		var saved = userRepository.save(entity);
 		return UserEntityMapper.toDomain(saved);

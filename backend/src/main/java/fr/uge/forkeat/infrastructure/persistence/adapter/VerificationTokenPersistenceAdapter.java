@@ -23,6 +23,7 @@ public class VerificationTokenPersistenceAdapter implements VerificationTokenPer
 
     @Override
     public VerificationToken save(VerificationToken token) {
+        Objects.requireNonNull(token);
         var entity = VerificationTokenEntityMapper.toEntity(token);
         var saved = repository.save(entity);
         return VerificationTokenEntityMapper.toDomain(saved);
@@ -30,17 +31,22 @@ public class VerificationTokenPersistenceAdapter implements VerificationTokenPer
 
     @Override
     public Optional<VerificationToken> findByToken(String token) {
+        Objects.requireNonNull(token);
         return repository.findByToken(token).map(VerificationTokenEntityMapper::toDomain);
     }
 
     @Override
     public Optional<VerificationToken> findByUserIdAndType(UUID userId, VerificationTokenType type) {
+        Objects.requireNonNull(type);
+        Objects.requireNonNull(userId);
         return repository.findByUserIdAndType(userId, type).map(VerificationTokenEntityMapper::toDomain);
     }
 
     @Override
     @Transactional
     public void deleteByUserIdAndType(UUID userId, VerificationTokenType type) {
+        Objects.requireNonNull(type);
+        Objects.requireNonNull(userId);
         repository.deleteByUserIdAndType(userId, type);
     }
 }

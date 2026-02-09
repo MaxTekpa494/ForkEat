@@ -47,6 +47,7 @@ public class EmailVerificationService {
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
     public void sendEmailConfirmation(UUID userId, String email) {
+        Objects.requireNonNull(email);
         tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.EMAIL_CONFIRMATION);
 
         var tokenValue = UUID.randomUUID().toString();
@@ -61,15 +62,15 @@ public class EmailVerificationService {
         var link = baseUrl + "/auth/confirm-email?token=" + tokenValue;
         mailService.send(email, "ForkEat - Confirmez votre adresse email",
                 "Bienvenue sur ForkEat !\n\n"
-                + "Cliquez sur le lien suivant pour confirmer votre email :\n"
-                + link + "\n\n"
-                + "Ce lien expire dans 24 heures.\n\n"
-                + "Si vous n'avez pas créé de compte, ignorez ce message.");
+                        + "Cliquez sur le lien suivant pour confirmer votre email :\n"
+                        + link + "\n\n"
+                        + "Ce lien expire dans 24 heures.\n\n"
+                        + "Si vous n'avez pas créé de compte, ignorez ce message.");
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
     public void confirmEmail(String tokenValue) {
-
+        // Pas de RequireNonNull il est deja dans findByToken
         var token = tokenPersistence.findByToken(tokenValue)
                 .orElseThrow(() -> new VerificationException("Lien de confirmation invalide"));
 
@@ -102,12 +103,14 @@ public class EmailVerificationService {
 
         mailService.send(email, "ForkEat - Code de confirmation",
                 "Votre code de confirmation pour le changement de mot de passe : " + code + "\n\n"
-                + "Ce code expire dans 10 minutes.\n"
-                + "Si vous n'avez pas demandé ce changement, ignorez ce message.");
+                        + "Ce code expire dans 10 minutes.\n"
+                        + "Si vous n'avez pas demandé ce changement, ignorez ce message.");
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
     public void confirmPasswordChange(UUID userId, String code) {
+        Objects.requireNonNull(code);
+
         var token = tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE)
                 .orElseThrow(() -> new VerificationException("Aucun changement de mot de passe en attente"));
 
@@ -146,30 +149,17 @@ public class EmailVerificationService {
 
         mailService.send(currentEmail, "ForkEat - Code de confirmation",
                 "Votre code de confirmation pour le changement d'email : " + code + "\n\n"
-                + "Ce code expire dans 10 minutes.\n"
-                + "Si vous n'avez pas demandé ce changement, ignorez ce message.");
+                        + "Ce code expire dans 10 minutes.\n"
+                        + "Si vous n'avez pas demandé ce changement, ignorez ce message.");
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
     public User confirmEmailChange(UUID userId, String code) {
-        var token = tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE)
-                .orElseThrow(() -> new VerificationException("Aucun changement d'email en attente"));
-
-        if (token.isExpired()) {
-            tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE);
-            throw new VerificationException("Le code a expiré. Veuillez recommencer.");
-        }
-
-        if (!token.token().equals(code)) {
-            throw new VerificationException("Code incorrect");
-        }
-
-        var newEmail = token.payload();
-        var user = userPersistence.findById(userId)
-                .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
+        var validated = validateEmailChangeCode(userId, code);
+        var user = validated.user();
 
         var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
-                newEmail, user.role(), user.status(), user.authMode(),
+                validated.newEmail(), user.role(), user.status(), user.authMode(),
                 user.createdAt(), Instant.now(), user.emailVerified());
         var result = userPersistence.updateUser(updatedUser);
 
@@ -179,6 +169,22 @@ public class EmailVerificationService {
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
     public User confirmEmailChangeWithPassword(UUID userId, String code, String hashedPassword) {
+        var validated = validateEmailChangeCode(userId, code);
+        var user = validated.user();
+
+        var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
+                validated.newEmail(), user.role(), user.status(), AuthMode.LOCAL,
+                user.createdAt(), Instant.now(), user.emailVerified());
+        var result = userPersistence.saveUser(updatedUser, hashedPassword);
+
+        tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE);
+        return result;
+    }
+
+    private record ValidatedEmailChange(User user, String newEmail) {}
+
+    private ValidatedEmailChange validateEmailChangeCode(UUID userId, String code) {
+        Objects.requireNonNull(code);
         var token = tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE)
                 .orElseThrow(() -> new VerificationException("Aucun changement d'email en attente"));
 
@@ -195,13 +201,7 @@ public class EmailVerificationService {
         var user = userPersistence.findById(userId)
                 .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
 
-        var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
-                newEmail, user.role(), user.status(), AuthMode.LOCAL,
-                user.createdAt(), Instant.now(), user.emailVerified());
-        var result = userPersistence.saveUser(updatedUser, hashedPassword);
-
-        tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE);
-        return result;
+        return new ValidatedEmailChange(user, newEmail);
     }
 
     private String generateSixDigitCode() {

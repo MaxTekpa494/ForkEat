@@ -57,7 +57,7 @@ public class SecurityConfig {
 						}))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/**").permitAll().requestMatchers("/*/open/*").permitAll()
-						.requestMatchers("/*/user/*").authenticated().requestMatchers("/*/moderator/*")
+						.requestMatchers("/*/user/*").authenticated().requestMatchers("/moderator/*")
 						.hasRole("MODERATOR").requestMatchers("/*/admin/*").hasRole("ADMIN").anyRequest()
 						.hasRole("ADMIN"))
 				.addFilterBefore(new JwtFilter(customUserDetailsService, jwtUtils),
