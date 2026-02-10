@@ -87,6 +87,12 @@ public class EmailVerificationService {
         tokenPersistence.deleteByUserIdAndType(token.userId(), VerificationTokenType.EMAIL_CONFIRMATION);
     }
 
+    /**
+     *  Send a code to reset the password by mail to the mail indicated
+     * @param userId The ID of the user
+     * @param email The email of the user
+     * @param hashedNewPassword the hashed password
+     */
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
     public void sendPasswordChangeCode(UUID userId, String email, String hashedNewPassword) {
 
@@ -101,10 +107,8 @@ public class EmailVerificationService {
         );
         tokenPersistence.save(token);
 
-        mailService.send(email, "ForkEat - Code de confirmation",
-                "Votre code de confirmation pour le changement de mot de passe : " + code + "\n\n"
-                        + "Ce code expire dans 10 minutes.\n"
-                        + "Si vous n'avez pas demandé ce changement, ignorez ce message.");
+        this.sendChangePasswordCodeMail(email, code);
+
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
@@ -202,6 +206,13 @@ public class EmailVerificationService {
                 .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
 
         return new ValidatedEmailChange(user, newEmail);
+    }
+
+    private void sendChangePasswordCodeMail(String email, String code){
+        mailService.send(email, "ForkEat - Code de confirmation",
+                "Votre code de confirmation pour le changement de mot de passe : " + code + "\n\n"
+                        + "Ce code expire dans 10 minutes.\n"
+                        + "Si vous n'avez pas demandé ce changement, ignorez ce message.");
     }
 
     private String generateSixDigitCode() {
