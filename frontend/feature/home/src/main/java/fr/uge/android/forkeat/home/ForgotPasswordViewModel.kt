@@ -27,17 +27,17 @@ class ForgotPasswordViewModel(application: Application) : AndroidViewModel(appli
 
     private lateinit var mail: String;
 
-    fun askForgotPassword(email: String) {
+    fun askForgotPassword(email: String, password: String, confirmPassword: String) {
         _uiState.value = ForgotPasswordUiState(isLoading = true)
-        if(email == "adel.ziani1@outlook.fr"){
-            mail = email;
-            _uiState.value = ForgotPasswordUiState(isSuccess =  true)
+
+        if(password != confirmPassword){
+            _uiState.value = ForgotPasswordUiState(errorMessage = "Les mots de passe sont différents")
             return;
         }
 
         viewModelScope.launch {
             try {
-                val response = ForkEatApi.authService.askForgottenPassword(ForgottenPasswordRequest(email))
+                val response = ForkEatApi.authService.askForgottenPassword(ForgottenPasswordRequest(email, password))
                 if (response.isSuccessful) {
                     _uiState.value = ForgotPasswordUiState(isSuccess = true)
                 } else {
@@ -56,10 +56,6 @@ class ForgotPasswordViewModel(application: Application) : AndroidViewModel(appli
 
     fun sendCodeForgotPassword(code: String) {
         _uiState.value = ForgotPasswordUiState(isLoading = true)
-        if(code == "240503"){
-            _uiState.value = ForgotPasswordUiState(isSuccess =  true)
-            return;
-        }
         viewModelScope.launch {
             try {
                 val response = ForkEatApi.authService.sendForgottenPasswordCode(
@@ -79,40 +75,6 @@ class ForgotPasswordViewModel(application: Application) : AndroidViewModel(appli
             }
         }
     }
-
-
-    fun sendNewPassword(password: String, confirmPassword: String) {
-        if(password != confirmPassword){
-            _uiState.value = ForgotPasswordUiState(errorMessage = "Les mots de passe sont différents")
-            return;
-        }
-        if(password == "password"){
-            _uiState.value = ForgotPasswordUiState(isSuccess =  true)
-            return;
-        }
-
-        _uiState.value = ForgotPasswordUiState(isLoading = true)
-
-        viewModelScope.launch {
-            try {
-                val response = ForkEatApi.authService.sendNewPassword(
-                    NewPasswordRequest(mail, password)
-                )
-                if (response.isSuccessful) {
-                    _uiState.value = ForgotPasswordUiState(isSuccess = true)
-                } else {
-                    _uiState.value = ForgotPasswordUiState(
-                        errorMessage = "code incorrect"
-                    )
-                }
-            } catch (e: Exception) {
-                _uiState.value = ForgotPasswordUiState(
-                    errorMessage = "Erreur de connexion au serveur"
-                )
-            }
-        }
-    }
-
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
     }

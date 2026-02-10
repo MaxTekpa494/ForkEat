@@ -10,7 +10,7 @@ import androidx.navigation.compose.rememberNavController
 import fr.uge.android.forkeat.designsystem.theme.ForkEatTheme
 import fr.uge.android.forkeat.dashboard.DashboardScreen
 import fr.uge.android.forkeat.home.ForgotPasswordChangePasswordScreen
-import fr.uge.android.forkeat.home.ForgotPasswordEmailScreen
+import fr.uge.android.forkeat.home.ForgotPasswordScreen
 import fr.uge.android.forkeat.home.ForgotPasswordCodeScreen
 import fr.uge.android.forkeat.home.HomeScreen
 import fr.uge.android.forkeat.home.LoginScreen
@@ -46,21 +46,12 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("forgot-password"){
-                       ForgotPasswordEmailScreen(onNavigateBack = { navController.popBackStack() },onAskingSuccess = { navController.navigate("forgot-password-code")})
-
+                       ForgotPasswordScreen(onNavigateBack = { navController.popBackStack() },onAskingSuccess = { navController.navigate("forgot-password-code")})
                     }
                     composable("forgot-password-code"){
                         ForgotPasswordCodeScreen(
                             onNavigateBack = { navController.popBackStack() },
-                            onCodeSuccess =  { navController.navigate("new-password")}
-                        )
-                    }
-
-
-                    composable("new-password"){
-                        ForgotPasswordChangePasswordScreen(
-                            onNavigateBack = { navController.popBackStack() },
-                            onSuccess =  { navController.navigate("login")}
+                            onCodeSuccess =  { navController.navigate("login")}
                         )
                     }
                     composable("new-user-login") {

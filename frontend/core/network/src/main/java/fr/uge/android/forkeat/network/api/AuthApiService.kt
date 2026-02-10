@@ -18,10 +18,10 @@ interface AuthApiService {
     @POST("api/auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<Unit>
 
-    @POST("FAKE_URL")
+    @POST("api/auth/forgot-password")
     suspend fun askForgottenPassword(@Body request: ForgottenPasswordRequest): Response<Unit>
 
-    @POST("FAKE_URL")
+    @POST("api/auth/forgot-password/confirm-code")
      suspend fun sendForgottenPasswordCode(@Body request: ForgottenPasswordCodeRequest): Response<Unit>
 
     @POST("FAKE_URL")
