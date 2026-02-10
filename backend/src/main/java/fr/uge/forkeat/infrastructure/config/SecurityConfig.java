@@ -56,10 +56,10 @@ public class SecurityConfig {
 							response.getWriter().write("{\"error\": \"Unauthorized\"}");
 						}))
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/api/auth/**").permitAll()
-						.requestMatchers("/*/user/*").authenticated().requestMatchers("/moderator/*").hasRole("MODERATOR")
-                        .requestMatchers("/*/admin/*").hasRole("ADMIN")
-                        .anyRequest().hasRole("ADMIN"))
+						.requestMatchers("/api/auth/**").permitAll().requestMatchers("/api/recipes/**").permitAll()
+						.requestMatchers("/*/user/*").authenticated().requestMatchers("/*/moderator/*")
+						.hasRole("MODERATOR").requestMatchers("/*/admin/*").hasRole("ADMIN").anyRequest()
+						.hasRole("ADMIN"))
 				.addFilterBefore(new JwtFilter(customUserDetailsService, jwtUtils),
 								 UsernamePasswordAuthenticationFilter.class)
 				.build();
