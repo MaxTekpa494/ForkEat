@@ -5,6 +5,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class RecipeStepDTO(
     val stepNumber: Int,
-    val description: String
+    val instruction: String
 )
 

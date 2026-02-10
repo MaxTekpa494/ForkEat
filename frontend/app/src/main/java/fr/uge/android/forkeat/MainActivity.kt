@@ -17,7 +17,10 @@ import fr.uge.android.forkeat.recipes.RecipesListScreen
 import fr.uge.android.forkeat.recipes.RecipesViewModel
 import fr.uge.android.forkeat.recipes.RecipeDetailScreen
 import androidx.compose.material3.Text
-import java.util.UUID
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -26,6 +29,8 @@ class MainActivity : ComponentActivity() {
         setContent {
             ForkEatTheme {
                 val navController = rememberNavController()
+                // ViewModel partagé pour toute la navigation
+                val recipesViewModel: RecipesViewModel = viewModel()
                 NavHost(navController = navController, startDestination = "home") {
                     composable("home") {
                         HomeScreen(
@@ -46,19 +51,18 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("recipes") {
-                        val viewModel: RecipesViewModel = viewModel()
-                        val recipesState = viewModel.recipes.collectAsState()
-                        val totalCountState = viewModel.totalCount.collectAsState()
-                        val currentPageState = viewModel.currentPage.collectAsState()
-                        val errorMessageState = viewModel.errorMessage.collectAsState()
-                        val pageSizeState = viewModel.pageSize.collectAsState()
+                        val recipesState = recipesViewModel.recipes.collectAsState()
+                        val totalCountState = recipesViewModel.totalCount.collectAsState()
+                        val currentPageState = recipesViewModel.currentPage.collectAsState()
+                        val errorMessageState = recipesViewModel.errorMessage.collectAsState()
+                        val pageSizeState = recipesViewModel.pageSize.collectAsState()
 
                         RecipesListScreen(
                             recipes = recipesState.value,
                             totalCount = totalCountState.value,
                             currentPage = currentPageState.value,
                             pageSize = pageSizeState.value,
-                            onPageChange = { page -> viewModel.loadRecipes(page) },
+                            onPageChange = { page -> recipesViewModel.loadRecipes(page) },
                             errorMessage = errorMessageState.value,
                             navController = navController,
                             onSearch = { query ->
@@ -67,14 +71,15 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("recipes/{id}") { backStackEntry ->
-                        val viewModel: RecipesViewModel = viewModel()
-                        val recipes = viewModel.recipes.collectAsState().value
+                        val recipes = recipesViewModel.recipes.collectAsState().value
                         val recipeId = backStackEntry.arguments?.getString("id")
                         val recipe = recipes.find { it.id.toString() == recipeId }
                         if (recipe != null) {
                             RecipeDetailScreen(recipe = recipe, onBack = { navController.popBackStack() })
                         } else {
-                            Text("Recette introuvable", color = Color.Red)
+                            Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                Text("Recette introuvable", color = Color.Red)
+                            }
                         }
                     }
                 }
