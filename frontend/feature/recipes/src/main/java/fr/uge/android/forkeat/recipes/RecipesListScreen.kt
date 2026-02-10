@@ -66,7 +66,7 @@ fun RecipesListScreen(
     var showSearchField by remember { mutableStateOf(false) }
     var searchText by remember { mutableStateOf("") }
     ForkEatScaffold(
-        onNavigateToLogin = {},
+        navController = navController,
         showSearchIcon = true,
         onSearchIconClick = { showSearchField = !showSearchField },
         content = { paddingValues ->
