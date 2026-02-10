@@ -107,21 +107,6 @@ public class AuthWebController {
     return "redirect:/auth/login";
   }
 
-  @PostMapping("/resend-confirmation")
-  public String resendConfirmation(Authentication authentication, RedirectAttributes redirectAttributes) {
-    var username = authPort.extractUsername();
-    var user = userQueryService.getUserByUsername(username);
-
-    if (user.emailVerified()) {
-      redirectAttributes.addFlashAttribute("success", "Votre email est déjà confirmé.");
-      return "redirect:/profile";
-    }
-
-    emailVerificationService.sendEmailConfirmation(user.id(), user.email());
-    redirectAttributes.addFlashAttribute("success", "Un nouvel email de confirmation a été envoyé.");
-    return "redirect:/profile";
-  }
-
   private boolean isAuthenticated() {
     var authentication = SecurityContextHolder.getContext().getAuthentication();
     if (authentication == null || AnonymousAuthenticationToken.class.isAssignableFrom(authentication.getClass())) {

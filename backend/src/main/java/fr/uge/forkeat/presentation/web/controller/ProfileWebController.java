@@ -146,7 +146,7 @@ public class ProfileWebController {
     var user = userQueryService.getUserByUsername(username);
 
     User updatedUser;
-    var pendingPasswordHash = (String) session.getAttribute("pendingPasswordHash");
+    var pendingPasswordHash = (String) session.getAttribute("pendingPasswordHash"); // Le password est stocké dans la session ?? c'est sécurisé ça ?
 
     if (pendingPasswordHash != null) {
       updatedUser = emailVerificationService.confirmEmailChangeWithPassword(
@@ -158,6 +158,21 @@ public class ProfileWebController {
 
     authPort.refreshAuthentication(updatedUser);
     redirectAttributes.addFlashAttribute("success", "Email mis à jour avec succès !");
+    return "redirect:/profile";
+  }
+
+  @PostMapping("/profile/resend-confirmation")
+  public String resendConfirmation(Authentication authentication, RedirectAttributes redirectAttributes) {
+    var username = authPort.extractUsername();
+    var user = userQueryService.getUserByUsername(username);
+
+    if (user.emailVerified()) {
+      redirectAttributes.addFlashAttribute("success", "Votre email est déjà confirmé.");
+      return "redirect:/profile";
+    }
+
+    emailVerificationService.sendEmailConfirmation(user.id(), user.email());
+    redirectAttributes.addFlashAttribute("success", "Un nouvel email de confirmation a été envoyé.");
     return "redirect:/profile";
   }
 }
