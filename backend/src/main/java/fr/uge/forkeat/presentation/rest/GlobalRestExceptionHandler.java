@@ -2,6 +2,7 @@ package fr.uge.forkeat.presentation.rest;
 
 import fr.uge.forkeat.service.exception.DuplicateTransactionException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.exception.RegisterFailure;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.VerificationException;
 
@@ -61,6 +62,12 @@ public class GlobalRestExceptionHandler {
 
   @ExceptionHandler(VerificationException.class)
   public ResponseEntity<Map<String, Object>> handleVerificationException(VerificationException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+  }
+
+  @ExceptionHandler(RegisterFailure.class)
+  public ResponseEntity<Map<String, Object>> handleRegisterFailure(RegisterFailure e) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
   }
