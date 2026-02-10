@@ -12,8 +12,8 @@ object ForkEatApi {
 
     // 10.0.2.2 = host machine depuis l'émulateur Android
     // Pour un device physique, utiliser l'IP locale de la machine (ex: 192.168.x.x)
-    //private const val BASE_URL = "http://10.0.2.2:8080/"
-    private const val BASE_URL = "http://192.168.1.129:8080/"
+    private const val BASE_URL = "http://10.0.2.2:8080/"
+    //private const val BASE_URL = "http://192.168.1.129:8080/"
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY

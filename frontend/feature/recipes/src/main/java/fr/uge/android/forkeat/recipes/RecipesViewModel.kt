@@ -47,10 +47,15 @@ class RecipesViewModel : ViewModel() {
                     _currentPage.value = page
                     _errorMessage.value = null
                 } else {
-                    _errorMessage.value = "Erreur API: ${response.code()} ${response.message()}"
+                    val code = response.code()
+                    _errorMessage.value = when {
+                        code >= 500 -> "Le serveur est indisponible, veuillez réessayer plus tard."
+                        code in 400..499 -> "Une erreur est survenue, veuillez réessayer."
+                        else -> "Une erreur inconnue est survenue."
+                    }
                 }
             } catch (e: Exception) {
-                _errorMessage.value = "Erreur réseau: ${e.localizedMessage ?: e.javaClass.simpleName}"
+                _errorMessage.value = "Le serveur est indisponible, veuillez réessayer plus tard."
             }
         }
     }
