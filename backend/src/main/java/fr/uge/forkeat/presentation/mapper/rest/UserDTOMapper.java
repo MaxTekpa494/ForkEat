@@ -29,6 +29,7 @@ public final class UserDTOMapper {
             user.lastName(),
             user.email(),
             user.role().name(), user.status().name(), user.authMode().name(),
+            user.emailVerified(),
             user.createdAt(), user.updatedAt());
   }
 

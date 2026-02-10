@@ -25,7 +25,8 @@ public final class UserEntityMapper {
                 entity.getStatus(),
                 entity.getAuthMode(),
                 entity.getCreatedAt(),
-                entity.getUpdatedAt()
+                entity.getUpdatedAt(),
+                entity.isEmailVerified()
         );
     }
 
@@ -42,6 +43,7 @@ public final class UserEntityMapper {
         entity.setAuthMode(user.authMode());
         entity.setCreatedAt(user.createdAt());
         entity.setUpdatedAt(user.updatedAt());
+        entity.setEmailVerified(user.emailVerified());
         return entity;
     }
 

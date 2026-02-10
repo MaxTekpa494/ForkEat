@@ -1,6 +1,5 @@
 package fr.uge.forkeat.service.user;
 
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.CheckProfileUpdateFailure;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
@@ -12,20 +11,22 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Objects;
-import java.util.UUID;
 
 @Service
 public class UserUpdateService {
   private final UserPersistence userPersistence;
   private final UserQueryService userQueryService;
   private final PasswordEncoder passwordEncoder;
+  private final EmailVerificationService emailVerificationService;
 
   UserUpdateService(UserPersistence userPersistence,
                     UserQueryService userQueryService,
-                    PasswordEncoder passwordEncoder) {
+                    PasswordEncoder passwordEncoder,
+                    EmailVerificationService emailVerificationService) {
     this.userPersistence = Objects.requireNonNull(userPersistence);
     this.userQueryService = Objects.requireNonNull(userQueryService);
     this.passwordEncoder = Objects.requireNonNull(passwordEncoder);
+    this.emailVerificationService = Objects.requireNonNull(emailVerificationService);
   }
 
   @Transactional(
@@ -51,7 +52,8 @@ public class UserUpdateService {
             user.status(),
             user.authMode(),
             user.createdAt(),
-            Instant.now()
+            Instant.now(),
+            user.emailVerified()
     );
 
     return userPersistence.updateUser(updatedUser);
@@ -61,39 +63,28 @@ public class UserUpdateService {
           isolation = Isolation.REPEATABLE_READ,
           timeout = 10
   )
-  public User updateEmail(String username, String newEmail, String currentPassword) {
+  public void requestEmailChange(String username, String newEmail, String currentPassword) {
     var user = userQueryService.getUserByUsername(username);
-    var storedHash = userPersistence.findPasswordHashByUsername(username);
-    if (!passwordEncoder.matches(currentPassword, storedHash)) {
-      throw new CheckProfileUpdateFailure("Incorrect password");
+
+    if (user.authMode() == AuthMode.LOCAL) {
+      var storedHash = userPersistence.findPasswordHashByUsername(username);
+      if (!passwordEncoder.matches(currentPassword, storedHash)) {
+        throw new CheckProfileUpdateFailure("Incorrect password");
+      }
     }
 
-    // Vérifier que le nouvel email n'est pas déjà utilisé
     if (!user.email().equals(newEmail) && userPersistence.existsByEmail(newEmail)) {
       throw new CheckProfileUpdateFailure("Cet email est déjà utilisé");
     }
 
-    var updatedUser = new User(
-            user.id(),
-            user.username(),
-            user.firstName(),
-            user.lastName(),
-            newEmail,
-            user.role(),
-            user.status(),
-            user.authMode(),
-            user.createdAt(),
-            Instant.now()
-    );
-
-    return userPersistence.updateUser(updatedUser);
+    emailVerificationService.sendEmailChangeCode(user.id(), user.email(), newEmail);
   }
 
   @Transactional(
           isolation = Isolation.REPEATABLE_READ,
           timeout = 10
   )
-  public void updatePassword(String username, String currentPassword, String newPassword) {
+  public void requestPasswordChange(String username, String currentPassword, String newPassword) {
     Objects.requireNonNull(username);
     Objects.requireNonNull(currentPassword);
     Objects.requireNonNull(newPassword);
@@ -113,7 +104,28 @@ public class UserUpdateService {
       throw new CheckProfileUpdateFailure("Passwords are the same");
     }
 
-    var newEncodedPassword = passwordEncoder.encode(newPassword);
+    var hashedNewPassword = passwordEncoder.encode(newPassword);
+    emailVerificationService.sendPasswordChangeCode(user.id(), user.email(), hashedNewPassword);
+  }
+
+  @Transactional(
+          isolation = Isolation.REPEATABLE_READ,
+          timeout = 10
+  )
+  public void setPasswordForOAuthUser(String username, String newPassword) {
+    Objects.requireNonNull(username);
+    Objects.requireNonNull(newPassword);
+
+    if (newPassword.length() < 8) {
+      throw new CheckProfileUpdateFailure("New password must be at least 8 characters");
+    }
+
+    var user = userQueryService.getUserByUsername(username);
+
+    if (user.authMode() != AuthMode.GOOGLE) {
+      throw new CheckProfileUpdateFailure("This user already has a local password");
+    }
+
     var updatedUser = new User(
             user.id(),
             user.username(),
@@ -122,38 +134,11 @@ public class UserUpdateService {
             user.email(),
             user.role(),
             user.status(),
-            user.authMode(),
+            AuthMode.LOCAL,
             user.createdAt(),
-            Instant.now());
-    userPersistence.saveUser(updatedUser, newEncodedPassword);
-  }
+            Instant.now(),
+            user.emailVerified());
 
-
-  /**
-   * Migre un user LOCAL vers OAuth2.
-   * Permet à un user qui s'est inscrit avec password
-   * de se connecter ensuite avec Google.
-   */
-  @Transactional(
-          isolation = Isolation.READ_COMMITTED,
-          timeout = 10
-  )
-  public User migrateToOAuth2(UUID userId, AuthMode newAuthMode) throws ResourceNotFoundException {
-    var user = userQueryService.getUserById(userId);
-
-    var migratedUser = new User(
-            user.id(),
-            user.username(),
-            user.firstName(),
-            user.lastName(),
-            user.email(),
-            user.role(),
-            user.status(),
-            newAuthMode,
-            user.createdAt(),
-            Instant.now()
-    );
-
-    return userPersistence.saveUser(migratedUser, null); // A VOIR
+    userPersistence.saveUser(updatedUser, passwordEncoder.encode(newPassword));
   }
 }

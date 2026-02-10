@@ -9,6 +9,8 @@ cache:
 variables:
   # On dit à Maven d'utiliser le dossier local pour le cache
   MAVEN_OPTS: "-Dmaven.repo.local=$CI_PROJECT_DIR/.m2/repository"
+  
+  MAVEN_SILENCE_FLAGS: "-Dspring.main.banner-mode=off -Dlogging.level.root=WARN -Dlogging.level.org.hibernate.SQL=WARN -Dlogging.level.org.hibernate.type.descriptor.sql=WARN -Dspring.jpa.show-sql=false -Dspring.jpa.properties.hibernate.show_sql=false -Dlogging.level.fr.uge.forkeat.infrastructure.persistence.sync=WARN -Dlogging.level.org.springframework.data.neo4j=ERROR"
 
 workflow:
   rules:
@@ -41,7 +43,7 @@ unit-tests:
     # Copier le fichier .env à partir des variables GitLab CI/CD
     - cp $DOTENV_FILE backend/.env
   script:
-    - cd backend && mvn test
+    - cd backend && mvn test $MAVEN_SILENCE_FLAGS
 
 
 # 4. Création du fichier JAR

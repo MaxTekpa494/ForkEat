@@ -35,6 +35,9 @@ class UserRegistrationServiceTest {
   @Mock
   private WalletService walletService;
 
+  @Mock
+  private EmailVerificationService emailVerificationService;
+
   @InjectMocks
   private UserRegistrationService userRegistrationService;
 
@@ -49,7 +52,8 @@ class UserRegistrationServiceTest {
             UserStatus.ACTIVE,
             AuthMode.LOCAL,
             Instant.now(),
-            Instant.now()
+            Instant.now(),
+            false
     );
   }
 
@@ -69,6 +73,8 @@ class UserRegistrationServiceTest {
       when(userPersistence.saveUser(any(User.class), anyString())).thenReturn(savedUser);
       when(walletService.createWallet(userId)).thenReturn(wallet);
 
+      doNothing().when(emailVerificationService).sendEmailConfirmation(any(UUID.class), anyString());
+
       User result = userRegistrationService.registerUser(
               new UserRegister("testuser", "John", "Doe", "password123", "test@example.com")
       );
@@ -76,6 +82,7 @@ class UserRegistrationServiceTest {
       assertNotNull(result);
       verify(userPersistence, times(1)).saveUser(any(User.class), anyString());
       verify(walletService).createWallet(userId);
+      verify(emailVerificationService).sendEmailConfirmation(userId, "test@example.com");
     }
 
     @Test
@@ -91,6 +98,7 @@ class UserRegistrationServiceTest {
 
       assertEquals("This email is already in use", exception.getMessage());
       verify(userPersistence, never()).saveUser(any(), anyString());
+      verify(emailVerificationService, never()).sendEmailConfirmation(any(), anyString());
     }
 
     @Test
@@ -107,6 +115,7 @@ class UserRegistrationServiceTest {
 
       assertEquals("This username is already taken", exception.getMessage());
       verify(userPersistence, never()).saveUser(any(), anyString());
+      verify(emailVerificationService, never()).sendEmailConfirmation(any(), anyString());
     }
   }
 
@@ -134,6 +143,7 @@ class UserRegistrationServiceTest {
 
       verify(walletService).createWallet(any(UUID.class));
       verify(userPersistence).findByEmail("john@gmail.com");
+      verifyNoInteractions(emailVerificationService);
     }
 
 

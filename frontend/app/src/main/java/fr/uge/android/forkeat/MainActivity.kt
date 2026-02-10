@@ -9,7 +9,6 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import fr.uge.android.forkeat.designsystem.theme.ForkEatTheme
 import fr.uge.android.forkeat.dashboard.DashboardScreen
-import fr.uge.android.forkeat.home.ForgotPasswordChangePasswordScreen
 import fr.uge.android.forkeat.home.ForgotPasswordScreen
 import fr.uge.android.forkeat.home.ForgotPasswordCodeScreen
 import fr.uge.android.forkeat.home.HomeScreen

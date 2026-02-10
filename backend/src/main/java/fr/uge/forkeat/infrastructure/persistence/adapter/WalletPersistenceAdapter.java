@@ -44,7 +44,7 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 	}
 
 	@Override
-	public Wallet saveWallet(Wallet wallet) { // PAS BESION DE FAIRE LA RECHERCHE, SAVE == SAVE ET NON PAS FIND + SAVE
+	public Wallet saveWallet(Wallet wallet) {
 		var entity = walletRepository.findById(wallet.id()).orElseGet(() -> {
 			WalletEntity newEntity = new WalletEntity();
 			newEntity.setId(wallet.id());

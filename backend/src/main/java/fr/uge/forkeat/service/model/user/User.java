@@ -7,7 +7,8 @@ import java.util.Objects;
 import java.util.UUID;
 
 public record User(UUID id, String username, String firstName, String lastName, String email, UserRole role,
-                   UserStatus status, AuthMode authMode, Instant createdAt, Instant updatedAt) {
+                   UserStatus status, AuthMode authMode, Instant createdAt, Instant updatedAt,
+                   boolean emailVerified) {
 
   public User {
     Objects.requireNonNull(id);
