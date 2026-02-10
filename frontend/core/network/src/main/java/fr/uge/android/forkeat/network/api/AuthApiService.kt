@@ -1,7 +1,10 @@
 package fr.uge.android.forkeat.network.api
 
+import fr.uge.android.forkeat.network.dto.ForgottenPasswordCodeRequest
+import fr.uge.android.forkeat.network.dto.ForgottenPasswordRequest
 import fr.uge.android.forkeat.network.dto.LoginRequest
 import fr.uge.android.forkeat.network.dto.LoginResponse
+import fr.uge.android.forkeat.network.dto.NewPasswordRequest
 import fr.uge.android.forkeat.network.dto.RegisterRequest
 import retrofit2.Response
 import retrofit2.http.Body
@@ -14,4 +17,13 @@ interface AuthApiService {
 
     @POST("api/auth/register")
     suspend fun register(@Body request: RegisterRequest): Response<Unit>
+
+    @POST("FAKE_URL")
+    suspend fun askForgottenPassword(@Body request: ForgottenPasswordRequest): Response<Unit>
+
+    @POST("FAKE_URL")
+     suspend fun sendForgottenPasswordCode(@Body request: ForgottenPasswordCodeRequest): Response<Unit>
+
+    @POST("FAKE_URL")
+    suspend fun sendNewPassword(@Body request: NewPasswordRequest): Response<Unit>
 }
