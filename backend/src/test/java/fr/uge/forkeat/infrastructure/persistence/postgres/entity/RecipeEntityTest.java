@@ -1,6 +1,7 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
@@ -12,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,12 +30,18 @@ import static org.junit.jupiter.api.Assertions.*;
 class RecipeEntityTest extends AbstractIntegrationTest {
 
     private final EntityManager entityManager;
+    private final RecipeRepository recipeRepository;
 
     private UserEntity author;
+    private IngredientEntity ingredientChocolat;
+    private IngredientEntity ingredientFarine;
+    private AllergenEntity allergenGluten;
+    private AllergenEntity allergenLait;
 
     @Autowired
-    public RecipeEntityTest(EntityManager entityManager) {
+    public RecipeEntityTest(EntityManager entityManager, RecipeRepository recipeRepository) {
         this.entityManager = entityManager;
+        this.recipeRepository = recipeRepository;
     }
 
     @BeforeEach
@@ -48,6 +56,18 @@ class RecipeEntityTest extends AbstractIntegrationTest {
         author.setStatus(UserStatus.ACTIVE);
         author.setAuthMode(AuthMode.LOCAL);
         entityManager.persist(author);
+
+        // Création des ingrédients et allergènes communs pour les tests de recherche
+        ingredientChocolat = new IngredientEntity("Chocolat", "Sucrerie", false);
+        ingredientFarine = new IngredientEntity("Farine", "Céréale", false);
+        entityManager.persist(ingredientChocolat);
+        entityManager.persist(ingredientFarine);
+
+        allergenGluten = new AllergenEntity("Gluten", AllergenSeverity.HIGH);
+        allergenLait = new AllergenEntity("Lait", AllergenSeverity.MEDIUM);
+        entityManager.persist(allergenGluten);
+        entityManager.persist(allergenLait);
+
         entityManager.flush();
     }
 
@@ -238,5 +258,79 @@ class RecipeEntityTest extends AbstractIntegrationTest {
 
         var found = entityManager.find(RecipeEntity.class, recipe.getId());
         assertEquals(RecipeStatus.PENDING_REVIEW, found.getStatus());
+    }
+
+    private void createTestRecipesForSearch() {
+        var recipe1 = new RecipeEntity();
+        recipe1.setTitle("Gâteau au chocolat");
+        recipe1.setSummary("Un délicieux gâteau");
+        recipe1.setAuthor(author);
+        recipe1.setStatus(RecipeStatus.PUBLISHED);
+        recipe1.setStepByStepInstructions(List.of(new RecipeStep(1, "Mélanger")));
+        recipe1.setDietaryFlag(Map.of("vegetarian", true));
+        recipe1.addIngredient(new RecipeIngredientEntity(recipe1, ingredientChocolat, BigDecimal.TEN, "g"));
+        recipe1.addIngredient(new RecipeIngredientEntity(recipe1, ingredientFarine, BigDecimal.TEN, "g"));
+        recipe1.addAllergen(new RecipeAllergenEntity(recipe1, allergenGluten));
+        entityManager.persist(recipe1);
+
+        var recipe2 = new RecipeEntity();
+        recipe2.setTitle("Mousse au chocolat");
+        recipe2.setSummary("Une mousse légère");
+        recipe2.setAuthor(author);
+        recipe2.setStatus(RecipeStatus.PUBLISHED);
+        recipe2.setStepByStepInstructions(List.of(new RecipeStep(1, "Battre les oeufs")));
+        recipe2.setDietaryFlag(Map.of("vegetarian", true));
+        recipe2.addIngredient(new RecipeIngredientEntity(recipe2, ingredientChocolat, BigDecimal.TEN, "g"));
+        entityManager.persist(recipe2);
+
+        entityManager.flush();
+        entityManager.clear();
+    }
+
+    @Test
+    void shouldFindRecipesBySearchQuery() {
+        long initialCount = recipeRepository.findByStatusAndSearchAndAllergens(
+                RecipeStatus.PUBLISHED, "chocolat", List.of(), PageRequest.of(0, 100)).getTotalElements();
+
+        createTestRecipesForSearch();
+
+        var results = recipeRepository.findByStatusAndSearchAndAllergens(
+                RecipeStatus.PUBLISHED, "chocolat", List.of(), PageRequest.of(0, 100));
+
+        assertEquals(initialCount + 2, results.getTotalElements());
+    }
+
+    @Test
+    void shouldExcludeRecipesWithSpecificAllergen() {
+        long initialCount = recipeRepository.findByStatusAndSearchAndAllergens(
+                RecipeStatus.PUBLISHED, "chocolat", List.of("Gluten"), PageRequest.of(0, 100)).getTotalElements();
+        createTestRecipesForSearch();
+        var results = recipeRepository.findByStatusAndSearchAndAllergens(
+                RecipeStatus.PUBLISHED, "chocolat", List.of("Gluten"), PageRequest.of(0, 100));
+        assertEquals(initialCount + 1, results.getTotalElements());
+        assertTrue(results.getContent().stream()
+                .anyMatch(r -> r.getTitle().equals("Mousse au chocolat")));
+        assertFalse(results.getContent().stream()
+                .anyMatch(r -> r.getTitle().equals("Gâteau au chocolat")));
+    }
+
+    @Test
+    void shouldNotExcludeRecipesWhenAllergenIsNotPresent() {
+        long initialCount = recipeRepository.findByStatusAndSearchAndAllergens(
+                RecipeStatus.PUBLISHED, "chocolat", List.of("Lait"), PageRequest.of(0, 100)).getTotalElements();
+        createTestRecipesForSearch();
+        var results = recipeRepository.findByStatusAndSearchAndAllergens(
+                RecipeStatus.PUBLISHED, "chocolat", List.of("Lait"), PageRequest.of(0, 100));
+        assertEquals(initialCount + 2, results.getTotalElements());
+    }
+
+    @Test
+    void shouldReturnEmptyWhenNoMatch() {
+        long initialCount = recipeRepository.findByStatusAndSearchAndAllergens(
+                RecipeStatus.PUBLISHED, "xyz_introuvable_123", List.of(), PageRequest.of(0, 100)).getTotalElements();
+        createTestRecipesForSearch();
+        var results = recipeRepository.findByStatusAndSearchAndAllergens(
+                RecipeStatus.PUBLISHED, "xyz_introuvable_123", List.of(), PageRequest.of(0, 100));
+        assertEquals(initialCount, results.getTotalElements());
     }
 }

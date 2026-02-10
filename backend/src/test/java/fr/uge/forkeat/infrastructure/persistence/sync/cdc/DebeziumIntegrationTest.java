@@ -9,9 +9,10 @@ import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import jakarta.persistence.EntityManager;
-import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.neo4j.core.Neo4jClient;
@@ -36,6 +37,7 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest
 @ActiveProfiles("test")
 @TestPropertySource(properties = "debezium.enabled=true")
+@TestInstance(TestInstance.Lifecycle.PER_CLASS)
 class DebeziumIntegrationTest extends AbstractIntegrationTest {
 
     private final EntityManager entityManager;
@@ -45,6 +47,18 @@ class DebeziumIntegrationTest extends AbstractIntegrationTest {
     public DebeziumIntegrationTest(EntityManager entityManager, Neo4jClient neo4jClient) {
         this.entityManager = entityManager;
         this.neo4jClient = neo4jClient;
+    }
+
+    @AfterAll
+    void cleanDatabases() throws Exception {
+        // Nettoyage Neo4j
+        neo4jClient.query("MATCH (n) DETACH DELETE n").run();
+
+        // Nettoyage PostgreSQL via psql dans le conteneur
+        postgres.execInContainer("psql",
+                "-U", postgres.getUsername(),
+                "-d", postgres.getDatabaseName(),
+                "-c", "TRUNCATE TABLE recipe_allergens, recipe_ingredients, recipes, platform_wallets, wallets, user_systems, \"users\" CASCADE");
     }
 
     @Nested

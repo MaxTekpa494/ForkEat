@@ -5,8 +5,11 @@ import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
+import fr.uge.forkeat.service.model.recipe.Allergen;
+import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
 import fr.uge.forkeat.service.model.recipe.Recipe;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
@@ -19,7 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
+import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -98,7 +102,7 @@ class RecipeWebControllerTest {
     void listRecipes_shouldPassSearchParam() throws Exception {
         var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
 
-        when(recipeService.findByStatus("PUBLISHED", 12, 0)).thenReturn(pageResult);
+        when(recipeService.findByStatusAndSearch("PUBLISHED", "tarte", 12, 0)).thenReturn(pageResult);
 
         mockMvc.perform(get("/recipes")
                         .param("search", "tarte"))
@@ -177,6 +181,99 @@ class RecipeWebControllerTest {
                 .andExpect(status().isNotFound());
     }
 
+
+    // --- Tests recherche + allergènes ---
+    @Nested
+    class SearchAndAllergene {
+        @Test
+        @WithMockUser
+        void listRecipes_shouldUseSearchAndAllergens_whenBothProvided() throws Exception {
+            var recipe = createRecipe("Salade verte", RecipeStatus.PUBLISHED);
+            var pageResult = new PageResult<>(List.of(recipe), 1L);
+            var allergens = List.of("Gluten", "Lactose");
+
+            when(recipeService.findByStatusAndSearchAndAllergens("PUBLISHED", "salade", allergens, 12, 0))
+                    .thenReturn(pageResult);
+
+            mockMvc.perform(get("/recipes")
+                            .param("search", "salade")
+                            .param("allergens", "Gluten", "Lactose"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("recipes/index"))
+                    .andExpect(model().attribute("totalRecipes", 1L))
+                    .andExpect(model().attribute("search", "salade"))
+                    .andExpect(model().attribute("selectedAllergens", allergens));
+
+            verify(recipeService).findByStatusAndSearchAndAllergens("PUBLISHED", "salade", allergens, 12, 0);
+            verify(recipeService, never()).findByStatusAndSearch(any(), any(), anyInt(), anyInt());
+            verify(recipeService, never()).findByStatus(any(), anyInt(), anyInt());
+        }
+
+        @Test
+        @WithMockUser
+        void listRecipes_shouldUseAllergens_whenOnlyAllergensProvided() throws Exception {
+            var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
+            var allergens = List.of("Gluten");
+
+            when(recipeService.findByStatusAndSearchAndAllergens("PUBLISHED", null, allergens, 12, 0))
+                    .thenReturn(pageResult);
+
+            mockMvc.perform(get("/recipes")
+                            .param("allergens", "Gluten"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("recipes/index"))
+                    .andExpect(model().attribute("selectedAllergens", allergens));
+
+            verify(recipeService).findByStatusAndSearchAndAllergens("PUBLISHED", null, allergens, 12, 0);
+            verify(recipeService, never()).findByStatusAndSearch(any(), any(), anyInt(), anyInt());
+        }
+
+        @Test
+        @WithMockUser
+        void listRecipes_shouldPassAllAllergensToModel() throws Exception {
+            var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
+            when(recipeService.findByStatus("PUBLISHED", 12, 0)).thenReturn(pageResult);
+
+            var allergensList = List.of(
+                    new Allergen(UUID.randomUUID(), "Gluten", AllergenSeverity.HIGH),
+                    new Allergen(UUID.randomUUID(), "Lactose", AllergenSeverity.MEDIUM)
+            );
+            when(recipeService.findAllAllergens()).thenReturn(allergensList);
+
+            mockMvc.perform(get("/recipes"))
+                    .andExpect(status().isOk())
+                    .andExpect(model().attributeExists("allAllergens"))
+                    .andExpect(model().attribute("allAllergens", hasSize(2)));
+        }
+
+        @Test
+        @WithMockUser
+        void listRecipes_shouldPassSelectedAllergensToModel() throws Exception {
+            var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
+            var allergens = List.of("Gluten", "Lactose");
+            when(recipeService.findByStatusAndSearchAndAllergens("PUBLISHED", null, allergens, 12, 0))
+                    .thenReturn(pageResult);
+
+            mockMvc.perform(get("/recipes")
+                            .param("allergens", "Gluten", "Lactose"))
+                    .andExpect(status().isOk())
+                    .andExpect(model().attribute("selectedAllergens", allergens));
+        }
+
+        @Test
+        @WithMockUser
+        void listRecipes_shouldUseFindByStatus_whenNoSearchNoAllergens() throws Exception {
+            var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
+            when(recipeService.findByStatus("PUBLISHED", 12, 0)).thenReturn(pageResult);
+
+            mockMvc.perform(get("/recipes"))
+                    .andExpect(status().isOk());
+
+            verify(recipeService).findByStatus("PUBLISHED", 12, 0);
+            verify(recipeService, never()).findByStatusAndSearch(any(), any(), anyInt(), anyInt());
+            verify(recipeService, never()).findByStatusAndSearchAndAllergens(any(), any(), any(), anyInt(), anyInt());
+        }
+    }
 
     private Recipe createRecipe(String title, RecipeStatus status) {
         return createRecipeWithId(UUID.randomUUID(), title, status, null);
