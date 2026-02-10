@@ -8,6 +8,7 @@ import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.user.UserUpdateService;
 import jakarta.servlet.FilterChain;
@@ -19,6 +20,8 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -33,10 +36,6 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-/**
- * Test pour ProfileController.
- * Ce controller gère /profile et ses sous-routes.
- */
 @WebMvcTest(ProfileWebController.class)
 class ProfileControllerTest {
 
@@ -55,7 +54,16 @@ class ProfileControllerTest {
     private CustomUserDetailsService customUserDetailsService;
 
     @MockitoBean
+    private JavaMailSender javaMailSender;
+
+    @MockitoBean
+    private EmailVerificationService emailVerificationService;
+
+    @MockitoBean
     private JwtFilter jwtFilter;
+
+    @MockitoBean
+    private PasswordEncoder passwordEncoder;
 
     private User testUser;
 
@@ -76,7 +84,8 @@ class ProfileControllerTest {
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
                 Instant.now(),
-                Instant.now()
+                Instant.now(),
+                false
         );
 
         // Bypass JWT filter
@@ -143,7 +152,8 @@ class ProfileControllerTest {
                     testUser.status(),
                     testUser.authMode(),
                     testUser.createdAt(),
-                    testUser.updatedAt()
+                    testUser.updatedAt(),
+                    false
             );
 
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
@@ -193,36 +203,23 @@ class ProfileControllerTest {
     class UpdateEmailTests {
         @Test
         @WithMockUser(username = "testuser")
-        void updateEmail_ShouldRedirectToProfile_WhenSuccessful() throws Exception {
+        void updateEmail_ShouldRedirectToConfirmAction_WhenSuccessful() throws Exception {
             // Given
-            var updatedUser = new User(
-                    testUser.id(),
-                    testUser.username(),
-                    testUser.firstName(),
-                    testUser.lastName(),
-                    "new@example.com",
-                    testUser.role(),
-                    testUser.status(),
-                    testUser.authMode(),
-                    testUser.createdAt(),
-                    Instant.now()
-            );
-
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            when(userUpdateService.updateEmail( "testuser", "new@example.com", "correctPassword"))
-                    .thenReturn(updatedUser);
+            doNothing().when(userUpdateService).requestEmailChange("testuser", "new@example.com", "correctPassword");
 
             // When & Then
-            mockMvc.perform(post("/profile/update-email")
+            mockMvc.perform(post("/profile/request-email-change")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                             .param("newEmail", "new@example.com")
                             .param("currentPassword", "correctPassword"))
                     .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrl("/profile"))
-                    .andExpect(flash().attributeExists("success"));
+                    .andExpect(redirectedUrl("/profile/confirm-action"))
+                    .andExpect(flash().attribute("actionType", "EMAIL_CHANGE"))
+                    .andExpect(flash().attributeExists("infoMessage"));
 
-            verify(userUpdateService).updateEmail(testUser.username(), "new@example.com", "correctPassword");
+            verify(userUpdateService).requestEmailChange(testUser.username(), "new@example.com", "correctPassword");
         }
 
         @Test
@@ -230,11 +227,11 @@ class ProfileControllerTest {
         void updateEmail_ShouldRedirectToProfile_WhenPasswordIncorrect() throws Exception {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            when(userUpdateService.updateEmail(testUser.username(), "new@example.com", "wrongPassword"))
-                    .thenThrow(new CheckProfileUpdateFailure("Mot de passe incorrect"));
+            doThrow(new CheckProfileUpdateFailure("Mot de passe incorrect"))
+                    .when(userUpdateService).requestEmailChange("testuser", "new@example.com", "wrongPassword");
 
             // When & Then
-            mockMvc.perform(post("/profile/update-email")
+            mockMvc.perform(post("/profile/request-email-change")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                             .param("newEmail", "new@example.com")
@@ -249,23 +246,25 @@ class ProfileControllerTest {
     class UpdatePasswordTests {
         @Test
         @WithMockUser(username = "testuser")
-        void updatePassword_ShouldRedirectToProfile_WhenSuccessful() throws Exception {
+        void updatePassword_ShouldRedirectToConfirmAction_WhenSuccessful() throws Exception {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            doNothing().when(userUpdateService).updatePassword(testUser.username(), "currentPass", "newPassword123");
+            doNothing().when(userUpdateService).requestPasswordChange("testuser", "currentPass", "newPassword123");
 
             // When & Then
-            mockMvc.perform(post("/profile/update-password")
+            mockMvc.perform(post("/profile/request-password-change")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                             .param("currentPassword", "currentPass")
                             .param("newPassword", "newPassword123")
                             .param("confirmPassword", "newPassword123"))
                     .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrl("/profile"))
-                    .andExpect(flash().attribute("success", "Mot de passe modifié avec succès !"));
+                    // Redirection attendue vers la page de confirmation
+                    .andExpect(redirectedUrl("/profile/confirm-action"))
+                    .andExpect(flash().attribute("actionType", "PASSWORD_CHANGE"))
+                    .andExpect(flash().attributeExists("infoMessage"));
 
-            verify(userUpdateService).updatePassword(testUser.username(), "currentPass", "newPassword123");
+            verify(userUpdateService).requestPasswordChange(testUser.username(), "currentPass", "newPassword123");
         }
 
         @Test
@@ -274,10 +273,10 @@ class ProfileControllerTest {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
             doThrow(new CheckProfileUpdateFailure("Mot de passe actuel incorrect"))
-                    .when(userUpdateService).updatePassword(testUser.username(), "wrongPassword", "newPassword123");
+                    .when(userUpdateService).requestPasswordChange("testuser", "wrongPassword", "newPassword123");
 
             // When & Then
-            mockMvc.perform(post("/profile/update-password")
+            mockMvc.perform(post("/profile/request-password-change")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                             .param("currentPassword", "wrongPassword")
@@ -295,7 +294,7 @@ class ProfileControllerTest {
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
 
             // When & Then
-            mockMvc.perform(post("/profile/update-password")
+            mockMvc.perform(post("/profile/request-password-change")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                             .param("currentPassword", "currentPass")
@@ -303,9 +302,10 @@ class ProfileControllerTest {
                             .param("confirmPassword", "differentPassword"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(view().name("redirect:/profile"))
-                    .andExpect(flash().attributeExists("errorMessage"));
+                    // Votre contrôleur définit bien "error" dans ce cas précis
+                    .andExpect(flash().attributeExists("error"));
 
-            verify(userUpdateService, never()).updatePassword(any(), any(), any());
+            verify(userUpdateService, never()).requestPasswordChange(any(), any(), any());
         }
     }
 }

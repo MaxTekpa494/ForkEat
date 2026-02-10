@@ -37,7 +37,7 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+	public AuthenticationManager authenticationManager(HttpSecurity http) {
 		AuthenticationManagerBuilder authenticationManagerBuilder = http
 				.getSharedObject(AuthenticationManagerBuilder.class);
 		authenticationManagerBuilder.userDetailsService(customUserDetailsService).passwordEncoder(passwordEncoder);
@@ -46,7 +46,7 @@ public class SecurityConfig {
 
 	@Bean
 	@Order(1)
-	public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain apiFilterChain(HttpSecurity http) {
 		return http.securityMatcher("/api/**").csrf(AbstractHttpConfigurer::disable)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.exceptionHandling(ex -> ex
@@ -67,13 +67,17 @@ public class SecurityConfig {
 
 	@Bean
 	@Order(2)
-	public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain webFilterChain(HttpSecurity http) {
 		return http
 				// On garde CSRF désactivé pour le développement il faut pense a le réactiver
 				.csrf(AbstractHttpConfigurer::disable)
 
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/", "/recipes/**", "/auth/**", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
+						.requestMatchers("/", "/auth/**", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
+						.requestMatchers("/recipes/my").authenticated()
+						.requestMatchers("/recipes/create", "/recipes/*/edit", "/recipes/*/delete").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers("/wallet/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/moderator/**").hasRole("MODERATOR")
 						.requestMatchers("/profile/**").authenticated()
@@ -82,14 +86,14 @@ public class SecurityConfig {
 				.formLogin(form -> form
 						.loginPage("/auth/login")
 						.loginProcessingUrl("/auth/login")
-						.defaultSuccessUrl("/dashboard", true) // il faut mettre /recipes ici
+						.defaultSuccessUrl("/recipes", true)
 						.failureUrl("/auth/login?error=true")
 						.permitAll())
 
 				.oauth2Login(oauth2 -> oauth2
 						.loginPage("/auth/login")
 						.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-						.defaultSuccessUrl("/dashboard", true)
+						.defaultSuccessUrl("/recipes", true)
 						.failureUrl("/auth/login?error=true"))
 
 				.logout(logout -> logout

@@ -73,7 +73,8 @@ class DashboardControllerTest {
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
                 Instant.now(),
-                Instant.now()
+                Instant.now(),
+                false
         );
 
         // Bypass JWT filter
@@ -156,7 +157,8 @@ class DashboardControllerTest {
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
                 Instant.now(),
-                Instant.now()
+                Instant.now(),
+                false
                 );
 
         when(authPort.extractUsername()).thenReturn("otheruser");

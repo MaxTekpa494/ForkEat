@@ -8,6 +8,24 @@
 <body>
 <div layout:fragment="content">
 
+    <!-- Flash messages -->
+    <div class="container mx-auto px-4 mt-4" th:if="${success}">
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-check-circle text-green-500"></i>
+                <p class="text-green-700 text-sm" th:text="${success}"></p>
+            </div>
+        </div>
+    </div>
+    <div class="container mx-auto px-4 mt-4" th:if="${error}">
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4">
+            <div class="flex items-center space-x-3">
+                <i class="fas fa-exclamation-circle text-red-500"></i>
+                <p class="text-red-700 text-sm" th:text="${error}"></p>
+            </div>
+        </div>
+    </div>
+
     <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-12">
         <div class="container mx-auto px-4">
             <div class="flex items-center space-x-6">
@@ -71,8 +89,24 @@
                             </div>
 
                             <div>
-                                <label class="text-xs text-gray-500 uppercase font-bold tracking-wider">Email</label>
+                                <div class="flex items-center space-x-2">
+                                    <label class="text-xs text-gray-500 uppercase font-bold tracking-wider">Email</label>
+                                    <span th:if="${user.emailVerified}"
+                                          class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">
+                                        <i class="fas fa-check-circle mr-1"></i>Vérifié
+                                    </span>
+                                    <span th:unless="${user.emailVerified}"
+                                          class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold">
+                                        <i class="fas fa-exclamation-circle mr-1"></i>Non vérifié
+                                    </span>
+                                </div>
                                 <div class="text-secondary-900 font-medium mt-1" th:text="${user.email}">jean@exemple.com</div>
+                                <form th:unless="${user.emailVerified}" th:action="@{/profile/resend-confirmation}" method="post" class="mt-2">
+                                    <button type="submit"
+                                            class="text-sm text-primary-500 hover:text-primary-600 font-medium transition">
+                                        <i class="fas fa-paper-plane mr-1"></i>Renvoyer le lien de confirmation
+                                    </button>
+                                </form>
                             </div>
                         </div>
 
@@ -324,7 +358,7 @@
                 </button>
             </div>
 
-            <form th:action="@{/profile/update-email}" method="post" class="space-y-4">
+            <form th:action="@{/profile/request-email-change}" method="post" class="space-y-4">
                 <div>
                     <label for="newEmail" class="block text-sm font-medium text-secondary-900 mb-2">
                         Nouvel email
@@ -333,7 +367,8 @@
                            class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
 
-                <div>
+                <!-- For LOCAL users: current password -->
+                <div th:if="${user.authMode.name() == 'LOCAL'}">
                     <label for="currentPasswordEmail" class="block text-sm font-medium text-secondary-900 mb-2">
                         Mot de passe actuel (pour confirmation)
                     </label>
@@ -341,11 +376,39 @@
                            class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                 </div>
 
+                <!-- For GOOGLE users: must set a new password -->
+                <div th:if="${user.authMode.name() == 'GOOGLE'}" class="space-y-4">
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <div class="flex items-start space-x-3">
+                            <i class="fas fa-info-circle text-blue-600 mt-1"></i>
+                            <p class="text-sm text-blue-800">
+                                En changeant votre email, votre compte passera en mode local.
+                                Vous devez définir un mot de passe.
+                            </p>
+                        </div>
+                    </div>
+                    <div>
+                        <label for="newPasswordEmail" class="block text-sm font-medium text-secondary-900 mb-2">
+                            Nouveau mot de passe
+                        </label>
+                        <input type="password" id="newPasswordEmail" name="newPassword" required minlength="8"
+                               class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                        <p class="text-xs text-gray-500 mt-1">Minimum 8 caractères</p>
+                    </div>
+                    <div>
+                        <label for="confirmNewPasswordEmail" class="block text-sm font-medium text-secondary-900 mb-2">
+                            Confirmer le mot de passe
+                        </label>
+                        <input type="password" id="confirmNewPasswordEmail" name="confirmNewPassword" required minlength="8"
+                               class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    </div>
+                </div>
+
                 <div class="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
                     <div class="flex items-start space-x-3">
                         <i class="fas fa-exclamation-triangle text-yellow-600 mt-1"></i>
                         <p class="text-sm text-yellow-800">
-                            Après modification, vous devrez vous reconnecter avec votre nouveau email.
+                            Un code de vérification sera envoyé à votre email actuel pour confirmer ce changement.
                         </p>
                     </div>
                 </div>
@@ -374,7 +437,7 @@
                 </button>
             </div>
 
-            <form th:action="@{/profile/update-password}" method="post" class="space-y-4">
+            <form th:action="@{/profile/request-password-change}" method="post" class="space-y-4">
                 <div>
                     <label for="currentPasswordPwd" class="block text-sm font-medium text-secondary-900 mb-2">
                         Mot de passe actuel

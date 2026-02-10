@@ -68,7 +68,8 @@ class WalletWebControllerTest {
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
                 Instant.now(),
-                Instant.now()
+                Instant.now(),
+                false
         );
 
         when(authPort.extractUsername()).thenReturn("testuser");

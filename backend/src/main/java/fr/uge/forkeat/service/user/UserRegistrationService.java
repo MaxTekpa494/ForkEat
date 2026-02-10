@@ -30,12 +30,15 @@ public class UserRegistrationService {
   private final UserPersistence userPersistence;
   private final WalletService walletService;
   private final PasswordEncoder passwordEncoder;
+  private final EmailVerificationService emailVerificationService;
 
   UserRegistrationService(UserPersistence userPersistence, WalletService walletService,
-                          PasswordEncoder passwordEncoder) {
+                          PasswordEncoder passwordEncoder,
+                          EmailVerificationService emailVerificationService) {
     this.userPersistence = userPersistence;
     this.walletService = walletService;
     this.passwordEncoder = passwordEncoder;
+    this.emailVerificationService = emailVerificationService;
   }
 
   @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15) // ON VA REGARDER EN DETAIL PLUS TARD
@@ -60,12 +63,14 @@ public class UserRegistrationService {
             UserRole.MEMBER,
             UserStatus.ACTIVE,
             AuthMode.LOCAL,
-            Instant.now(), Instant.now()
+            Instant.now(), Instant.now(),
+            false
     );
 
     var savedUser = userPersistence.saveUser(user, passwordEncoder.encode(userRegister.password()));
     walletService.createWallet(savedUser.id());
-    return user;
+    emailVerificationService.sendEmailConfirmation(savedUser.id(), savedUser.email());
+    return savedUser;
   }
 
   @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
@@ -95,8 +100,10 @@ public class UserRegistrationService {
             UserRole.MEMBER,
 						UserStatus.ACTIVE,
 						authMode,
-            Instant.now(),// GOOGLE
-            Instant.now());
+            Instant.now(),
+            Instant.now(),
+            true
+    );
 
     var savedUser = userPersistence.saveUser(user, null);
     // Créer le wallet
@@ -125,7 +132,8 @@ public class UserRegistrationService {
             UserRole.MODERATOR,
             UserStatus.ACTIVE,
             AuthMode.LOCAL,
-            Instant.now(), Instant.now()
+            Instant.now(), Instant.now(),
+            true
     );
 
     var savedUser = userPersistence.saveUser(user, passwordEncoder.encode(userRegister.password()));

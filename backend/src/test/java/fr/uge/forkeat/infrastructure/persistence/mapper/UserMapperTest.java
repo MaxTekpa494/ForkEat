@@ -137,7 +137,8 @@ class UserMapperTest {
                     UserStatus.ACTIVE,
                     AuthMode.LOCAL,
                     Instant.now(),
-                    Instant.now()
+                    Instant.now(),
+                    false
             );
 
             // When
@@ -181,7 +182,8 @@ class UserMapperTest {
                     UserStatus.ACTIVE,
                     AuthMode.GOOGLE,
                     Instant.now(),
-                    Instant.now()
+                    Instant.now(),
+                    false
             );
 
             // When
