@@ -37,7 +37,7 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+	public AuthenticationManager authenticationManager(HttpSecurity http) {
 		AuthenticationManagerBuilder authenticationManagerBuilder = http
 				.getSharedObject(AuthenticationManagerBuilder.class);
 		authenticationManagerBuilder.userDetailsService(customUserDetailsService).passwordEncoder(passwordEncoder);
@@ -46,7 +46,7 @@ public class SecurityConfig {
 
 	@Bean
 	@Order(1)
-	public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain apiFilterChain(HttpSecurity http) {
 		return http.securityMatcher("/api/**").csrf(AbstractHttpConfigurer::disable)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.exceptionHandling(ex -> ex
@@ -56,10 +56,10 @@ public class SecurityConfig {
 							response.getWriter().write("{\"error\": \"Unauthorized\"}");
 						}))
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/api/auth/**").permitAll().requestMatchers("/*/open/*").permitAll()
-						.requestMatchers("/*/user/*").authenticated().requestMatchers("/*/moderator/*")
-						.hasRole("MODERATOR").requestMatchers("/*/admin/*").hasRole("ADMIN").anyRequest()
-						.hasRole("ADMIN"))
+						.requestMatchers("/api/auth/**").permitAll()
+						.requestMatchers("/*/user/*").authenticated().requestMatchers("/moderator/*").hasRole("MODERATOR")
+                        .requestMatchers("/*/admin/*").hasRole("ADMIN")
+                        .anyRequest().hasRole("ADMIN"))
 				.addFilterBefore(new JwtFilter(customUserDetailsService, jwtUtils),
 								 UsernamePasswordAuthenticationFilter.class)
 				.build();
@@ -67,15 +67,17 @@ public class SecurityConfig {
 
 	@Bean
 	@Order(2)
-	public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain webFilterChain(HttpSecurity http) {
 		return http
 				// On garde CSRF désactivé pour le développement il faut pense a le réactiver
 				.csrf(AbstractHttpConfigurer::disable)
 
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/", "/auth/**", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
-						.requestMatchers("/recipes/my").authenticated()
 						.requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
+						.requestMatchers("/recipes/my").authenticated()
+						.requestMatchers("/recipes/create", "/recipes/*/edit", "/recipes/*/delete").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers("/wallet/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/moderator/**").hasRole("MODERATOR")
 						.requestMatchers("/profile/**").authenticated()

@@ -68,8 +68,13 @@ public class GlobalWebExceptionHandler {
 	}
 
 	@ExceptionHandler(CheckProfileUpdateFailure.class)
-	//@ResponseStatus(HttpStatus.BAD_REQUEST)
 	public String HandleUpdatePasswordFailure(CheckProfileUpdateFailure ex, RedirectAttributes redirectAttributes){
+		redirectAttributes.addFlashAttribute("error", ex.getMessage());
+		return "redirect:/profile";
+	}
+
+	@ExceptionHandler(VerificationException.class)
+	public String handleVerificationException(VerificationException ex, RedirectAttributes redirectAttributes){
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
 		return "redirect:/profile";
 	}

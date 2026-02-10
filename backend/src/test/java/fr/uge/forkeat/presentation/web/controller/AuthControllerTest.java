@@ -3,12 +3,14 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.exception.RegisterFailure;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.model.*;
+import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRegister;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.port.AuthenticationPort; // <--- Import ajouté
+import fr.uge.forkeat.service.user.EmailVerificationService;
+import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -16,12 +18,15 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder; // <--- Import ajouté
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.UUID;
 
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -32,10 +37,20 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = false)
 class AuthControllerTest {
 
-    private final MockMvc mockMvc;
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private AuthenticationPort authenticationPort;
 
     @MockitoBean
     private UserRegistrationService userRegistrationService;
+
+    @MockitoBean
+    private EmailVerificationService emailVerificationService;
+
+    @MockitoBean
+    private UserQueryService userQueryService;
 
     @MockitoBean
     private JwtFilter jwtFilter;
@@ -43,11 +58,16 @@ class AuthControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
+    @MockitoBean
+    private JavaMailSender javaMailSender;
+
+    @MockitoBean
+    private PasswordEncoder passwordEncoder;
+
     @Autowired
     public AuthControllerTest(MockMvc mockMvc) {
         this.mockMvc = mockMvc;
     }
-
 
     private User createTestUser() {
         return new User(
@@ -60,13 +80,13 @@ class AuthControllerTest {
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
                 Instant.now(),
-                Instant.now()
+                Instant.now(),
+                false
         );
     }
 
     @Nested
     class LoginPageTests {
-
         @Test
         void loginPage_ShouldReturnLoginView_WhenNotAuthenticated() throws Exception {
             mockMvc.perform(get("/auth/login"))
@@ -77,7 +97,6 @@ class AuthControllerTest {
 
     @Nested
     class RegisterPageTests {
-
         @Test
         void registerPage_ShouldReturnRegisterView_WhenNotAuthenticated() throws Exception {
             mockMvc.perform(get("/auth/register"))
@@ -89,14 +108,11 @@ class AuthControllerTest {
 
     @Nested
     class RegisterTests {
-
         @Test
         void register_ShouldRedirectToLogin_WhenSuccessful() throws Exception {
             // Given
             var newUser = createTestUser();
-            when(userRegistrationService.registerUser(
-                   any(UserRegister.class)
-            )).thenReturn(newUser);
+            when(userRegistrationService.registerUser(any(UserRegister.class))).thenReturn(newUser);
 
             // When/Then
             mockMvc.perform(post("/auth/register")
@@ -110,7 +126,7 @@ class AuthControllerTest {
                             .param("confirmPassword", "password123")
                             .param("terms", "true"))
                     .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrl("/auth/login"))
+                    .andExpect(redirectedUrl("/auth/email-sent"))
                     .andExpect(flash().attributeExists("success"));
 
             verify(userRegistrationService).registerUser(any(UserRegister.class));
@@ -118,11 +134,9 @@ class AuthControllerTest {
 
         @Test
         void register_ShouldReturnRegisterView_WhenEmailAlreadyExists() throws Exception {
-            // Given
             when(userRegistrationService.registerUser(any(UserRegister.class)))
                     .thenThrow(new RegisterFailure("Cet email est déjà utilisé"));
 
-            // When/Then
             mockMvc.perform(post("/auth/register")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -140,11 +154,9 @@ class AuthControllerTest {
 
         @Test
         void register_ShouldReturnRegisterView_WhenUsernameAlreadyExists() throws Exception {
-            // Given
             when(userRegistrationService.registerUser(any(UserRegister.class)))
                     .thenThrow(new RegisterFailure("Ce nom d'utilisateur est déjà pris"));
 
-            // When/Then
             mockMvc.perform(post("/auth/register")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -162,11 +174,9 @@ class AuthControllerTest {
 
         @Test
         void register_ShouldReturnRegisterView_WhenResourceNotFound() throws Exception {
-            // Given
             when(userRegistrationService.registerUser(any(UserRegister.class)))
                     .thenThrow(new RegisterFailure("Resource not found"));
 
-            // When/Then
             mockMvc.perform(post("/auth/register")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -184,11 +194,9 @@ class AuthControllerTest {
 
         @Test
         void register_ShouldReturnRegisterView_WhenGenericException() throws Exception {
-            // Given
             when(userRegistrationService.registerUser(any(UserRegister.class)))
                     .thenThrow(new RegisterFailure("TEST"));
 
-            // When/Then
             mockMvc.perform(post("/auth/register")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
@@ -206,7 +214,6 @@ class AuthControllerTest {
 
         @Test
         void register_ShouldReturnRegisterView_WhenPasswordsDontMatch() throws Exception {
-            // When/Then
             mockMvc.perform(post("/auth/register")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)

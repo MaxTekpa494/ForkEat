@@ -42,7 +42,8 @@ class UserPersistenceAdapterTest {
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
                 Instant.now(),
-                Instant.now()
+                Instant.now(),
+                false
         );
     }
 

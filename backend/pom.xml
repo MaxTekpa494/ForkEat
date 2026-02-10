@@ -160,6 +160,14 @@
 			<scope>test</scope>
 		</dependency>
 
+        <!-- Dependency to send mails -->
+
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
+        </dependency>
+
+
         <!-- Dependencies for JWT Tokens -->
 
         <dependency>

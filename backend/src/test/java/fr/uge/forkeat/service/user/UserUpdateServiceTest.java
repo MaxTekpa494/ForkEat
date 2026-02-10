@@ -34,6 +34,9 @@ class UserUpdateServiceTest {
     @Mock
     private PasswordEncoder passwordEncoder;
 
+    @Mock
+    private EmailVerificationService emailVerificationService;
+
     @InjectMocks
     private UserUpdateService userUpdateService;
 
@@ -48,7 +51,8 @@ class UserUpdateServiceTest {
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
                 Instant.now(),
-                Instant.now()
+                Instant.now(),
+                false
         );
     }
 
@@ -63,7 +67,8 @@ class UserUpdateServiceTest {
                 UserStatus.ACTIVE,
                 AuthMode.GOOGLE,
                 Instant.now(),
-                Instant.now()
+                Instant.now(),
+                false
         );
     }
 
@@ -147,10 +152,10 @@ class UserUpdateServiceTest {
     }
 
     @Nested
-    class UpdateEmailTests {
+    class RequestEmailChangeTests {
 
         @Test
-        void updateEmail_ShouldUpdateEmail_WhenPasswordCorrect() {
+        void requestEmailChange_ShouldSendVerificationCode_WhenPasswordCorrect() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "old@example.com");
@@ -160,18 +165,18 @@ class UserUpdateServiceTest {
             when(passwordEncoder.matches("correctPassword", "storedHash")).thenReturn(true);
 
             when(userPersistence.existsByEmail("new@example.com")).thenReturn(false);
-            when(userPersistence.updateUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
             // When
-            User result = userUpdateService.updateEmail("testuser", "new@example.com", "correctPassword");
+            userUpdateService.requestEmailChange("testuser", "new@example.com", "correctPassword");
 
             // Then
-            assertEquals("new@example.com", result.email());
-            verify(userPersistence).updateUser(any(User.class));
+            // Verify verification email is sent, NOT user updated directly
+            verify(emailVerificationService).sendEmailChangeCode(userId, "old@example.com", "new@example.com");
+            verify(userPersistence, never()).updateUser(any(User.class));
         }
 
         @Test
-        void updateEmail_ShouldThrow_WhenPasswordIncorrect() {
+        void requestEmailChange_ShouldThrow_WhenPasswordIncorrect() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "old@example.com");
@@ -183,15 +188,15 @@ class UserUpdateServiceTest {
             // When/Then
             CheckProfileUpdateFailure exception = assertThrows(
                     CheckProfileUpdateFailure.class,
-                    () -> userUpdateService.updateEmail("testuser", "new@example.com", "wrongPassword")
+                    () -> userUpdateService.requestEmailChange("testuser", "new@example.com", "wrongPassword")
             );
 
             assertEquals("Incorrect password", exception.getMessage());
-            verify(userPersistence, never()).updateUser(any());
+            verify(emailVerificationService, never()).sendEmailChangeCode(any(), any(), any());
         }
 
         @Test
-        void updateEmail_ShouldThrow_WhenNewEmailAlreadyUsed() {
+        void requestEmailChange_ShouldThrow_WhenNewEmailAlreadyUsed() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "old@example.com");
@@ -204,19 +209,19 @@ class UserUpdateServiceTest {
             // When/Then
             CheckProfileUpdateFailure exception = assertThrows(
                     CheckProfileUpdateFailure.class,
-                    () -> userUpdateService.updateEmail("testuser", "taken@example.com", "correctPassword")
+                    () -> userUpdateService.requestEmailChange("testuser", "taken@example.com", "correctPassword")
             );
 
             assertEquals("Cet email est déjà utilisé", exception.getMessage());
-            verify(userPersistence, never()).updateUser(any());
+            verify(emailVerificationService, never()).sendEmailChangeCode(any(), any(), any());
         }
     }
 
     @Nested
-    class UpdatePasswordTests {
+    class RequestPasswordChangeTests {
 
         @Test
-        void updatePassword_ShouldUpdatePassword_WhenCurrentPasswordCorrect() {
+        void requestPasswordChange_ShouldSendVerificationCode_WhenCurrentPasswordCorrect() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "test@example.com");
@@ -229,14 +234,16 @@ class UserUpdateServiceTest {
             when(passwordEncoder.encode("newPassword123")).thenReturn("encodedNewPassword");
 
             // When
-            userUpdateService.updatePassword("testuser", "currentPassword", "newPassword123");
+            userUpdateService.requestPasswordChange("testuser", "currentPassword", "newPassword123");
 
             // Then
-            verify(userPersistence).saveUser(any(User.class), eq("encodedNewPassword"));
+            verify(emailVerificationService).sendPasswordChangeCode(userId, "test@example.com", "encodedNewPassword");
+            // Should NOT save user directly
+            verify(userPersistence, never()).saveUser(any(), anyString());
         }
 
         @Test
-        void updatePassword_ShouldThrow_WhenCurrentPasswordIncorrect() {
+        void requestPasswordChange_ShouldThrow_WhenCurrentPasswordIncorrect() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "test@example.com");
@@ -249,29 +256,30 @@ class UserUpdateServiceTest {
             // When/Then
             CheckProfileUpdateFailure exception = assertThrows(
                     CheckProfileUpdateFailure.class,
-                    () -> userUpdateService.updatePassword("testuser", "wrongPassword", "newPassword123")
+                    () -> userUpdateService.requestPasswordChange("testuser", "wrongPassword", "newPassword123")
             );
 
             assertEquals("Incorrect current password", exception.getMessage());
-            verify(userPersistence, never()).saveUser(any(), anyString());
+            verify(emailVerificationService, never()).sendPasswordChangeCode(any(), any(), any());
         }
 
         @Test
-        void updatePassword_ShouldThrow_WhenNewPasswordTooShort() {
+        void requestPasswordChange_ShouldThrow_WhenNewPasswordTooShort() {
             // When/Then
             CheckProfileUpdateFailure exception = assertThrows(
                     CheckProfileUpdateFailure.class,
-                    () -> userUpdateService.updatePassword("testuser", "currentPassword", "short")
+                    () -> userUpdateService.requestPasswordChange("testuser", "currentPassword", "short")
             );
 
             assertEquals("New password must be at least 8 characters", exception.getMessage());
 
             verifyNoInteractions(userQueryService);
             verifyNoInteractions(userPersistence);
+            verifyNoInteractions(emailVerificationService);
         }
 
         @Test
-        void updatePassword_ShouldThrow_WhenPasswordsAreSame() {
+        void requestPasswordChange_ShouldThrow_WhenPasswordsAreSame() {
             // Given
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "test@example.com");
@@ -284,31 +292,11 @@ class UserUpdateServiceTest {
             // When/Then
             CheckProfileUpdateFailure exception = assertThrows(
                     CheckProfileUpdateFailure.class,
-                    () -> userUpdateService.updatePassword("testuser", "currentPassword", "samePassword")
+                    () -> userUpdateService.requestPasswordChange("testuser", "currentPassword", "samePassword")
             );
 
             assertEquals("Passwords are the same", exception.getMessage());
-            verify(userPersistence, never()).saveUser(any(), anyString());
-        }
-
-        @Test
-        void updatePassword_ShouldAcceptPasswordWithExactly8Characters() {
-            // Given
-            var userId = UUID.randomUUID();
-            var existingUser = createTestUser(userId, "testuser", "test@example.com");
-
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
-            when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-
-            when(passwordEncoder.matches("current8", "storedHash")).thenReturn(true);
-            when(passwordEncoder.matches("newpass8", "storedHash")).thenReturn(false);
-            when(passwordEncoder.encode("newpass8")).thenReturn("encodedNew");
-
-            // When
-            userUpdateService.updatePassword("testuser", "current8", "newpass8");
-
-            // Then
-            verify(userPersistence).saveUser(any(User.class), eq("encodedNew"));
+            verify(emailVerificationService, never()).sendPasswordChangeCode(any(), any(), any());
         }
     }
 
@@ -330,7 +318,7 @@ class UserUpdateServiceTest {
             // Then
             verify(userPersistence).saveUser(argThat(user ->
                     user.authMode() == AuthMode.LOCAL &&
-                    user.username().equals("googleuser")
+                            user.username().equals("googleuser")
             ), eq("encodedPassword"));
         }
 
