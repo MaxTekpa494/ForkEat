@@ -37,7 +37,7 @@ public class SecurityConfig {
 	}
 
 	@Bean
-	public AuthenticationManager authenticationManager(HttpSecurity http) throws Exception {
+	public AuthenticationManager authenticationManager(HttpSecurity http) {
 		AuthenticationManagerBuilder authenticationManagerBuilder = http
 				.getSharedObject(AuthenticationManagerBuilder.class);
 		authenticationManagerBuilder.userDetailsService(customUserDetailsService).passwordEncoder(passwordEncoder);
@@ -46,7 +46,7 @@ public class SecurityConfig {
 
 	@Bean
 	@Order(1)
-	public SecurityFilterChain apiFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain apiFilterChain(HttpSecurity http) {
 		return http.securityMatcher("/api/**").csrf(AbstractHttpConfigurer::disable)
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.exceptionHandling(ex -> ex
@@ -67,7 +67,7 @@ public class SecurityConfig {
 
 	@Bean
 	@Order(2)
-	public SecurityFilterChain webFilterChain(HttpSecurity http) throws Exception {
+	public SecurityFilterChain webFilterChain(HttpSecurity http) {
 		return http
 				// On garde CSRF désactivé pour le développement il faut pense a le réactiver
 				.csrf(AbstractHttpConfigurer::disable)

@@ -48,5 +48,6 @@ public class VerificationTokenPersistenceAdapter implements VerificationTokenPer
         Objects.requireNonNull(type);
         Objects.requireNonNull(userId);
         repository.deleteByUserIdAndType(userId, type);
+        repository.flush();
     }
 }
