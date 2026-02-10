@@ -56,7 +56,7 @@ public class SecurityConfig {
 							response.getWriter().write("{\"error\": \"Unauthorized\"}");
 						}))
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/api/auth/**").permitAll().requestMatchers("/*/open/*").permitAll()
+						.requestMatchers("/api/auth/**").permitAll().requestMatchers("/api/recipes/**").permitAll()
 						.requestMatchers("/*/user/*").authenticated().requestMatchers("/*/moderator/*")
 						.hasRole("MODERATOR").requestMatchers("/*/admin/*").hasRole("ADMIN").anyRequest()
 						.hasRole("ADMIN"))
@@ -73,7 +73,7 @@ public class SecurityConfig {
 				.csrf(AbstractHttpConfigurer::disable)
 
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/", "/auth/**", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
+						.requestMatchers("/", "/recipes/**", "/auth/**", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/moderator/**").hasRole("MODERATOR")
 						.requestMatchers("/profile/**").authenticated()
