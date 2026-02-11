@@ -75,7 +75,8 @@ class RecipeEntityMapperTest {
 
     @Test
     void toDomain_shouldReturnNullWhenEntityIsNull() {
-        var recipe = RecipeEntityMapper.toDomain(null);
+        RecipeEntity entity = null;
+        var recipe = RecipeEntityMapper.toDomain(entity);
         assertNull(recipe);
     }
 

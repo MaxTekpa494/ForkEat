@@ -1,7 +1,12 @@
 package fr.uge.forkeat.presentation.dto.recipe;
 
+import java.util.Objects;
 import java.util.UUID;
 
 public record AllergenDTO(UUID id, String name, String severity) {
-  // LES VERIFS ...
+  public  AllergenDTO {
+      Objects.requireNonNull(id);
+      Objects.requireNonNull(name);
+      Objects.requireNonNull(severity);
+  }
 }

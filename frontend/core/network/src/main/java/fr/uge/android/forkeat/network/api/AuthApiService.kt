@@ -24,6 +24,4 @@ interface AuthApiService {
     @POST("api/auth/forgot-password/confirm-code")
      suspend fun sendForgottenPasswordCode(@Body request: ForgottenPasswordCodeRequest): Response<Unit>
 
-    @POST("FAKE_URL")
-    suspend fun sendNewPassword(@Body request: NewPasswordRequest): Response<Unit>
 }

@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -40,6 +41,8 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -64,6 +67,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import fr.uge.android.forkeat.designsystem.theme.Gray100
 import fr.uge.android.forkeat.designsystem.theme.Gray500
 import fr.uge.android.forkeat.designsystem.theme.Orange50
@@ -84,11 +88,10 @@ import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
 @Composable
 fun HomeScreen(
     onNavigateToLogin: () -> Unit = {},
-    onNavigateToRegister: () -> Unit = {},
     onNavigateToExplore: () -> Unit = {},
 ) {
     Scaffold(
-        topBar = { ForkEatTopBar(onNavigateToLogin = onNavigateToLogin, onNavigateToRegister = onNavigateToRegister) },
+        topBar = { ForkEatTopBar(onNavigateToLogin = onNavigateToLogin) },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -97,7 +100,7 @@ fun HomeScreen(
                 .padding(paddingValues)
         ) {
             HeroSection(
-                onCommencerClick = onNavigateToRegister,
+                onCommencerClick = onNavigateToLogin,
                 onExplorerClick = onNavigateToExplore,
             )
             FeaturesSection()
@@ -110,9 +113,14 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ForkEatTopBar(onNavigateToLogin: () -> Unit, onNavigateToRegister: () -> Unit) {
-    var menuExpanded by remember { mutableStateOf(false) }
+private fun ForkEatTopBar(
+    onNavigateToLogin: () -> Unit,
+    showSearchIcon: Boolean = false,
+    onSearchIconClick: (() -> Unit)? = null,
+    onNavigateToRegister: () -> Unit
 
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
         title = {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -147,6 +155,11 @@ private fun ForkEatTopBar(onNavigateToLogin: () -> Unit, onNavigateToRegister: (
             }
         },
         actions = {
+            if (showSearchIcon) {
+                IconButton(onClick = { onSearchIconClick?.invoke() }) {
+                    Icon(Icons.Default.Search, contentDescription = "Rechercher", tint = Secondary800)
+                }
+            }
             IconButton(onClick = { menuExpanded = !menuExpanded }) {
                 Icon(
                     imageVector = if (menuExpanded) Icons.Default.Close else Icons.Default.Menu,
@@ -489,6 +502,32 @@ private fun Footer() {
         )
     }
 }
+
+// Scaffold with top bar to reuse in other screens
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ForkEatScaffold(
+    navController: NavHostController? = null,
+    title: String = "ForkEat",
+    content: @Composable (PaddingValues) -> Unit,
+    showSearchIcon: Boolean = false,
+    onSearchIconClick: (() -> Unit)? = null
+) {
+    Scaffold(
+        topBar = {
+            ForkEatTopBar(
+                onNavigateToLogin = {
+                    navController?.navigate("login")
+                },
+                showSearchIcon = showSearchIcon,
+                onSearchIconClick = onSearchIconClick
+            )
+        }
+    ) { paddingValues ->
+        content(paddingValues)
+    }
+}
+
 
 // Preview
 

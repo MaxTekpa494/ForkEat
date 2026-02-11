@@ -38,6 +38,17 @@ public final class RecipeEntityMapper {
         );
     }
 
+    public static Allergen toDomain(AllergenEntity entity) {
+        if (entity == null) {
+            return null;
+        }
+        return new Allergen(
+                entity.getId(),
+                entity.getName(),
+                entity.getSeverity()
+        );
+    }
+
     /**
      * Convertit Recipe vers RecipeEntity
      */

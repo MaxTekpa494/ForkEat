@@ -21,18 +21,22 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
-    }
-    kotlinOptions {
-        jvmTarget = "11"
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
 }
 
+kotlin {
+    jvmToolchain(17)
+}
+
 dependencies {
+    api(project(":data:recipes"))
     implementation(libs.androidx.core.ktx)
     api(libs.retrofit)
-    api(libs.retrofit.converter.gson)
+    implementation(libs.kotlinx.serialization.json)
+    implementation(libs.retrofit.converter.kotlinx.serialization)
+    implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging.interceptor)
     testImplementation(libs.junit)
 }

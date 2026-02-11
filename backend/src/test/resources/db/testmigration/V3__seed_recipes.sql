@@ -1,0 +1,1 @@
+-- Intentionnellement vide : pas de données de seed en test

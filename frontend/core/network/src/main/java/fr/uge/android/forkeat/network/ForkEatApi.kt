@@ -1,6 +1,7 @@
 package fr.uge.android.forkeat.network
 
 import fr.uge.android.forkeat.network.api.AuthApiService
+import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -30,4 +31,5 @@ object ForkEatApi {
         .build()
 
     val authService: AuthApiService = retrofit.create(AuthApiService::class.java)
+    val recipeService: RecipeApiService = retrofit.create(RecipeApiService::class.java)
 }
