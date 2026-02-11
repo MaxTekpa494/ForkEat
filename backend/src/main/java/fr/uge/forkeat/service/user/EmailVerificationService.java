@@ -53,7 +53,7 @@ public class EmailVerificationService {
         var tokenValue = UUID.randomUUID().toString();
         var token = new VerificationToken(
                 UUID.randomUUID(), userId, tokenValue,
-                VerificationTokenType.EMAIL_CONFIRMATION, null,
+                VerificationTokenType.EMAIL_CONFIRMATION, null, null,
                 Instant.now().plus(EMAIL_CONFIRMATION_EXPIRY_HOURS, ChronoUnit.HOURS),
                 Instant.now()
         );
@@ -101,7 +101,7 @@ public class EmailVerificationService {
         var code = generateSixDigitCode();
         var token = new VerificationToken(
                 UUID.randomUUID(), userId, code,
-                VerificationTokenType.PASSWORD_CHANGE, hashedNewPassword,
+                VerificationTokenType.PASSWORD_CHANGE, null, hashedNewPassword,
                 Instant.now().plus(CODE_EXPIRY_MINUTES, ChronoUnit.MINUTES),
                 Instant.now()
         );
@@ -129,13 +129,18 @@ public class EmailVerificationService {
 
         var user = userPersistence.findById(userId)
                 .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
-        userPersistence.saveUser(user, token.payload());
+        userPersistence.saveUser(user, token.passwordHash());
 
         tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
     public void sendEmailChangeCode(UUID userId, String currentEmail, String newEmail) {
+        sendEmailChangeCode(userId, currentEmail, newEmail, null);
+    }
+
+    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
+    public void sendEmailChangeCode(UUID userId, String currentEmail, String newEmail, String hashedPassword) {
         if (userPersistence.existsByEmail(newEmail)) {
             throw new VerificationException("Cet email est déjà utilisé");
         }
@@ -145,7 +150,7 @@ public class EmailVerificationService {
         var code = generateSixDigitCode();
         var token = new VerificationToken(
                 UUID.randomUUID(), userId, code,
-                VerificationTokenType.EMAIL_CHANGE, newEmail,
+                VerificationTokenType.EMAIL_CHANGE, newEmail, hashedPassword,
                 Instant.now().plus(CODE_EXPIRY_MINUTES, ChronoUnit.MINUTES),
                 Instant.now()
         );
@@ -161,31 +166,26 @@ public class EmailVerificationService {
     public User confirmEmailChange(UUID userId, String code) {
         var validated = validateEmailChangeCode(userId, code);
         var user = validated.user();
+        var token = validated.token();
 
-        var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
-                validated.newEmail(), user.role(), user.status(), user.authMode(),
-                user.createdAt(), Instant.now(), user.emailVerified());
-        var result = userPersistence.updateUser(updatedUser);
-
-        tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE);
-        return result;
-    }
-
-    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
-    public User confirmEmailChangeWithPassword(UUID userId, String code, String hashedPassword) {
-        var validated = validateEmailChangeCode(userId, code);
-        var user = validated.user();
-
-        var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
-                validated.newEmail(), user.role(), user.status(), AuthMode.LOCAL,
-                user.createdAt(), Instant.now(), user.emailVerified());
-        var result = userPersistence.saveUser(updatedUser, hashedPassword);
+        User result;
+        if (token.passwordHash() != null) {
+            var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
+                    token.newEmail(), user.role(), user.status(), AuthMode.LOCAL,
+                    user.createdAt(), Instant.now(), user.emailVerified());
+            result = userPersistence.saveUser(updatedUser, token.passwordHash());
+        } else {
+            var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
+                    token.newEmail(), user.role(), user.status(), user.authMode(),
+                    user.createdAt(), Instant.now(), user.emailVerified());
+            result = userPersistence.updateUser(updatedUser);
+        }
 
         tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE);
         return result;
     }
 
-    private record ValidatedEmailChange(User user, String newEmail) {}
+    private record ValidatedEmailChange(User user, VerificationToken token) {}
 
     private ValidatedEmailChange validateEmailChangeCode(UUID userId, String code) {
         Objects.requireNonNull(code);
@@ -201,11 +201,10 @@ public class EmailVerificationService {
             throw new VerificationException("Code incorrect");
         }
 
-        var newEmail = token.payload();
         var user = userPersistence.findById(userId)
                 .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
 
-        return new ValidatedEmailChange(user, newEmail);
+        return new ValidatedEmailChange(user, token);
     }
 
     private void sendChangePasswordCodeMail(String email, String code){
