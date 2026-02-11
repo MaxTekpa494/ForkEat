@@ -16,7 +16,8 @@ public final class VerificationTokenEntityMapper {
                 entity.getUserId(),
                 entity.getToken(),
                 entity.getType(),
-                entity.getPayload(),
+                entity.getNewEmail(),
+                entity.getPasswordHash(),
                 entity.getExpiresAt(),
                 entity.getCreatedAt()
         );
@@ -29,7 +30,8 @@ public final class VerificationTokenEntityMapper {
         entity.setUserId(token.userId());
         entity.setToken(token.token());
         entity.setType(token.type());
-        entity.setPayload(token.payload());
+        entity.setNewEmail(token.newEmail());
+        entity.setPasswordHash(token.passwordHash());
         entity.setExpiresAt(token.expiresAt());
         return entity;
     }
