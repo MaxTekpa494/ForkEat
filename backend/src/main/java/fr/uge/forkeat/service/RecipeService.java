@@ -33,4 +33,8 @@ public class RecipeService {
     return recipePersistence.findByStatus(status, size, page);
   }
 
+  public Recipe createRecipe(Recipe recipe) {
+    return recipePersistence.save(recipe);
+  }
+
 }

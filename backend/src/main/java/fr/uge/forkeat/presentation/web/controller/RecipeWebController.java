@@ -1,13 +1,11 @@
 package fr.uge.forkeat.presentation.web.controller;
 
+import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.RecipeService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -22,6 +20,22 @@ public class RecipeWebController {
   public RecipeWebController(RecipeService recipeService) {
     this.recipeService = Objects.requireNonNull(recipeService);
   }
+
+  @PostMapping("/create")
+  public String pageCreateRecipe() {
+    return "recipes/create";
+  }
+
+  @PostMapping
+  public String createReicpe(RecipeDTO recipeDTO ,Model model) {
+    Objects.requireNonNull(recipeDTO);
+    var recipe = RecipeDTOMapper.toDomain(recipeDTO);
+    var savedRecipe = recipeService.createRecipe(recipe);
+    //model.addAttribute("recipe", RecipeDTOMapper.toDTO(savedRecipe));
+    return "redirect:/recipes/" + savedRecipe.id();
+  }
+
+
 
   @GetMapping
   public String listRecipes(

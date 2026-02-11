@@ -7,11 +7,7 @@ import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.service.RecipeService;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Objects;
 import java.util.UUID;
@@ -24,6 +20,14 @@ public final class RecipeRestController {
 
 	public RecipeRestController(RecipeService recipeService) {
 		this.recipeService = Objects.requireNonNull(recipeService);
+	}
+
+	@PostMapping
+	public ResponseEntity<HttpResponse<RecipeDTO>> createRecipe(@RequestBody RecipeDTO recipeDTO) {
+		Objects.requireNonNull(recipeDTO);
+		var recipe = RecipeDTOMapper.toDomain(recipeDTO);
+		var dto = RecipeDTOMapper.toDTO(recipeService.createRecipe(recipe));
+		return ResponseEntity.ok(new ItemResponse<>(dto));
 	}
 
 	// Pourquoi pas faire un findwithparent avec {recipe:..., parent:...}

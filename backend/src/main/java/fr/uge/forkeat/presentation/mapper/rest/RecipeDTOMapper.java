@@ -60,16 +60,16 @@ public final class RecipeDTOMapper {
     /**
      * Convertit RecipeDTO (présentation) vers Recipe (domaine)
      */
-    public static Recipe toDomain(RecipeDTO dto, String usernameAuthor) {
+    public static Recipe toDomain(RecipeDTO dto) {
         Objects.requireNonNull(dto);
-        Objects.requireNonNull(usernameAuthor);
-
+        Objects.requireNonNull(dto.username());
         return new Recipe(
                 dto.id() != null ? dto.id() : null,
                 dto.title(),
                 dto.summary(),
                 dto.parent() != null ? dto.parent().id() : null,
-                usernameAuthor,
+                //usernameAuthor,
+                dto.username(),
                 dto.preparationMinutes(),
                 dto.imageUrl(),
                 dto.status() != null ? RecipeStatus.valueOf(dto.status()) : RecipeStatus.DRAFT,
