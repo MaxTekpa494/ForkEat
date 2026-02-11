@@ -8,12 +8,14 @@ import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
@@ -32,12 +34,18 @@ import java.util.Objects;
 public class AuthWebController {
 
   private final UserRegistrationService userRegistrationService;
+  private final UserQueryService userQueryService;
+  private final PasswordEncoder passwordEncoder;
   private final EmailVerificationService emailVerificationService;
 
   public AuthWebController(UserRegistrationService userRegistrationService,
-                           EmailVerificationService emailVerificationService) {
+                           EmailVerificationService emailVerificationService,
+                           UserQueryService userQueryService,
+                           PasswordEncoder passwordEncoder) {
     this.userRegistrationService = Objects.requireNonNull(userRegistrationService);
     this.emailVerificationService = Objects.requireNonNull(emailVerificationService);
+    this.userQueryService = Objects.requireNonNull(userQueryService);
+    this.passwordEncoder = Objects.requireNonNull(passwordEncoder);
   }
 
   @GetMapping("/login")
@@ -47,6 +55,36 @@ public class AuthWebController {
     }
     return "layout/login";
   }
+
+    @GetMapping("/forgot-password")
+    public String forgotPassword(RedirectAttributes redirectAttributes) {
+        return "layout/forgot-password";
+    }
+
+
+    /*RedirectAttributes redirectAttributes*/
+    @PostMapping("/forgot-password-code")
+    public String forgotPasswordCode(
+            @RequestParam("email") String email,
+            @RequestParam("password") String password,
+            @RequestParam("confirmPassword") String confirmPassword,
+            HttpSession session) {
+        var user = userQueryService.getUserByEmail(email);
+        emailVerificationService.sendPasswordChangeCode(user.id(), user.email(), passwordEncoder.encode(password));
+        session.setAttribute("forgot-password-email", email);
+        return "layout/forgot-password-code";
+    }
+
+
+    @PostMapping("/forgot-password-verify-code")
+    public String forgotPasswordSendCode(
+            @RequestParam("verificationCode") String verificationCode,
+            HttpSession httpSession) {
+
+        var user = userQueryService.getUserByEmail(httpSession.getAttribute("forgot-password-email").toString());
+        emailVerificationService.confirmPasswordChange(user.id(), verificationCode);
+        return "layout/login";
+    }
 
   @GetMapping("/register")
   public String registerPage(Model model) {
