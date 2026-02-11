@@ -15,13 +15,11 @@ import org.springframework.web.bind.annotation.*;
 public class ProfileRestController {
 
     private final UserQueryService userQueryService;
-    private final UserUpdateService userUpdateService;
     private final EmailVerificationService emailVerificationService;
     private final PasswordEncoder passwordEncoder;
 
-    public ProfileRestController(UserQueryService userQueryService, UserUpdateService userUpdateService, EmailVerificationService emailVerificationService,  PasswordEncoder passwordEncoder) {
+    public ProfileRestController(UserQueryService userQueryService, EmailVerificationService emailVerificationService,  PasswordEncoder passwordEncoder) {
         this.userQueryService = userQueryService;
-        this.userUpdateService = userUpdateService;
         this.emailVerificationService = emailVerificationService;
         this.passwordEncoder = passwordEncoder;
     }
