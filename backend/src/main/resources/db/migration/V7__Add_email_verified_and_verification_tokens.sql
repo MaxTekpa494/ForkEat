@@ -24,7 +24,8 @@ CREATE TABLE verification_tokens (
     "user_id" UUID NOT NULL,
     "token" VARCHAR(255) NOT NULL,
     "type" verification_token_type NOT NULL,
-    "payload" TEXT,
+    "new_email" TEXT,
+    "password_hash" TEXT,
     "expires_at" TIMESTAMP NOT NULL,
     "created_at" TIMESTAMP NOT NULL DEFAULT NOW(),
     CONSTRAINT fk_verification_token_user
