@@ -16,7 +16,7 @@ public abstract class AbstractIntegrationTest {
     private static final String OFFSET_FILE_PATH = "debezium-offsets-test.dat";
 
     // Déclaration statique = Singleton
-    static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
+    protected static final PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
             .withDatabaseName("forkeat_test")
             .withUsername("test")
             .withPassword("test")

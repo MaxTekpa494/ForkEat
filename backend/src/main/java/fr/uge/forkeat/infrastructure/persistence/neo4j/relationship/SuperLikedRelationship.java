@@ -14,7 +14,7 @@ public class SuperLikedRelationship {
 
     @Id
     @GeneratedValue
-    private Long id;
+    private String id;
     private Instant date;
     private Integer amount;
     private UUID transactionId;
@@ -32,11 +32,11 @@ public class SuperLikedRelationship {
         this.transactionId = transactionId;
     }
 
-    public Long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(Long id) {
+    public void setId(String id) {
         this.id = id;
     }
 

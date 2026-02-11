@@ -1,5 +1,6 @@
 package fr.uge.forkeat.presentation.web.controller;
 
+import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
@@ -14,13 +15,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
 import java.util.HashMap;
 import java.util.List;
@@ -31,41 +27,28 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
-@Testcontainers
 @ActiveProfiles("test")
 @AutoConfigureMockMvc(addFilters = false)
 @Transactional
-class RecipeWebControllerIntegrationTest {
+class RecipeWebControllerIntegrationTest extends AbstractIntegrationTest {
 
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15")
-            .withDatabaseName("forkeat_test")
-            .withUsername("test")
-            .withPassword("test");
+    private final MockMvc mockMvc;
 
-    @DynamicPropertySource
-    static void configureProperties(DynamicPropertyRegistry registry) {
-        registry.add("spring.datasource.url", () -> postgres.getJdbcUrl() + "&stringtype=unspecified");
-        registry.add("spring.datasource.username", postgres::getUsername);
-        registry.add("spring.datasource.password", postgres::getPassword);
-    }
+    private final RecipeRepository recipeRepository;
 
-    @Autowired
-    private MockMvc mockMvc;
-
-    @Autowired
-    private RecipeRepository recipeRepository;
-
-    @Autowired
-    private UserRepository userRepository;
+    private final UserRepository userRepository;
 
     private UserEntity savedAuthor;
 
+    @Autowired
+    public RecipeWebControllerIntegrationTest(UserRepository userRepository, RecipeRepository recipeRepository, MockMvc mockMvc) {
+        this.userRepository = userRepository;
+        this.recipeRepository = recipeRepository;
+        this.mockMvc = mockMvc;
+    }
 
     @BeforeEach
     void setUp() {
-        recipeRepository.deleteAll();
-
         var author = new UserEntity();
         author.setUsername("chef_web");
         author.setEmail("chef@web.com");

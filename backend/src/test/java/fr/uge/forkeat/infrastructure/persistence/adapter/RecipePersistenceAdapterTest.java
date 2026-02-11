@@ -9,6 +9,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientR
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Allergen;
 import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
 import fr.uge.forkeat.service.model.recipe.Recipe;
@@ -17,10 +18,14 @@ import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+
+import org.springframework.data.domain.PageImpl;
+import org.springframework.data.domain.PageRequest;
 
 import java.time.Instant;
 import java.util.List;
@@ -290,6 +295,102 @@ class RecipePersistenceAdapterTest {
 
         assertNotNull(result);
         verify(ingredientRepository).findByNameIn(List.of("Farine"));
+    }
+
+    @Nested
+    class FullTextSearch {
+        @Test
+        void findByStatusAndSearch_shouldDelegateToRepository() {
+            var entity = createRecipeEntity(UUID.randomUUID(), "Tarte aux pommes", RecipeStatus.PUBLISHED);
+            var page = new PageImpl<>(List.of(entity), PageRequest.of(0, 12), 1);
+            when(recipeRepository.findByStatusAndFullTextSearch(RecipeStatus.PUBLISHED, "tarte", PageRequest.of(0, 12)))
+                    .thenReturn(page);
+
+            var result = adapter.findByStatusAndSearch("PUBLISHED", "tarte", 12, 0);
+
+            assertEquals(1, result.items().size());
+            assertEquals("Tarte aux pommes", result.items().getFirst().title());
+            assertEquals(1L, result.total());
+            verify(recipeRepository).findByStatusAndFullTextSearch(RecipeStatus.PUBLISHED, "tarte", PageRequest.of(0, 12));
+        }
+
+        @Test
+        void findByStatusAndSearch_shouldThrowWhenStatusIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.findByStatusAndSearch(null, "tarte", 12, 0));
+        }
+
+        @Test
+        void findByStatusAndSearch_shouldThrowWhenSearchIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.findByStatusAndSearch("PUBLISHED", null, 12, 0));
+        }
+
+        @Test
+        void findByStatusAndSearch_shouldMapEntitiesToDomain() {
+            var entity1 = createRecipeEntity(UUID.randomUUID(), "Recette 1", RecipeStatus.PUBLISHED);
+            var entity2 = createRecipeEntity(UUID.randomUUID(), "Recette 2", RecipeStatus.PUBLISHED);
+            var page = new PageImpl<>(List.of(entity1, entity2), PageRequest.of(0, 12), 2);
+            when(recipeRepository.findByStatusAndFullTextSearch(RecipeStatus.PUBLISHED, "recette", PageRequest.of(0, 12)))
+                    .thenReturn(page);
+
+            var result = adapter.findByStatusAndSearch("PUBLISHED", "recette", 12, 0);
+
+            assertEquals(2, result.items().size());
+            assertTrue(result.items().stream().allMatch(r -> r.status() == RecipeStatus.PUBLISHED));
+        }
+
+        @Test
+        void findByStatusAndSearchAndAllergens_shouldDelegateToRepository() {
+            var entity = createRecipeEntity(UUID.randomUUID(), "Salade", RecipeStatus.PUBLISHED);
+            var allergens = List.of("Gluten");
+            var page = new PageImpl<>(List.of(entity), PageRequest.of(0, 12), 1);
+            when(recipeRepository.findByStatusAndSearchAndAllergens(RecipeStatus.PUBLISHED, "salade", allergens, PageRequest.of(0, 12)))
+                    .thenReturn(page);
+
+            var result = adapter.findByStatusAndSearchAndAllergens("PUBLISHED", "salade", allergens, 12, 0);
+
+            assertEquals(1, result.items().size());
+            assertEquals(1L, result.total());
+            verify(recipeRepository).findByStatusAndSearchAndAllergens(RecipeStatus.PUBLISHED, "salade", allergens, PageRequest.of(0, 12));
+        }
+
+        @Test
+        void findByStatusAndSearchAndAllergens_shouldThrowWhenStatusIsNull() {
+            assertThrows(NullPointerException.class,
+                    () -> adapter.findByStatusAndSearchAndAllergens(null, "test", List.of("Gluten"), 12, 0));
+        }
+
+        @Test
+        void findByStatusAndSearchAndAllergens_shouldThrowWhenAllergensIsNull() {
+            assertThrows(NullPointerException.class,
+                    () -> adapter.findByStatusAndSearchAndAllergens("PUBLISHED", "test", null, 12, 0));
+        }
+    }
+
+    @Test
+    void findAllAllergens_shouldReturnMappedAllergens() {
+        var allergen1 = new AllergenEntity("Gluten", AllergenSeverity.HIGH);
+        allergen1.setId(UUID.randomUUID());
+        var allergen2 = new AllergenEntity("Lactose", AllergenSeverity.MEDIUM);
+        allergen2.setId(UUID.randomUUID());
+        when(allergenRepository.findAll()).thenReturn(List.of(allergen1, allergen2));
+
+        var result = adapter.findAllAllergens();
+
+        assertEquals(2, result.size());
+        assertEquals("Gluten", result.get(0).name());
+        assertEquals(AllergenSeverity.HIGH, result.get(0).severity());
+        assertEquals("Lactose", result.get(1).name());
+        verify(allergenRepository).findAll();
+    }
+
+    @Test
+    void findAllAllergens_shouldReturnEmptyListWhenNoAllergens() {
+        when(allergenRepository.findAll()).thenReturn(List.of());
+
+        var result = adapter.findAllAllergens();
+
+        assertTrue(result.isEmpty());
+        verify(allergenRepository).findAll();
     }
 
     @Test

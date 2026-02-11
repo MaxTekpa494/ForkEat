@@ -57,6 +57,15 @@ public final class RecipeDTOMapper {
         );
     }
 
+    public static AllergenDTO toDTO(Allergen allergen) {
+        Objects.requireNonNull(allergen);
+        return new AllergenDTO(
+                allergen.id(),
+                allergen.name(),
+                allergen.severity().name()
+        );
+    }
+
     /**
      * Convertit RecipeDTO (présentation) vers Recipe (domaine)
      */
