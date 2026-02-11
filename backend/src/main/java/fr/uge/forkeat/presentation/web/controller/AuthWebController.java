@@ -2,6 +2,7 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.web.form.RegisterFormDTO;
 import fr.uge.forkeat.service.exception.RegisterFailure;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
@@ -68,10 +69,18 @@ public class AuthWebController {
             @RequestParam("email") String email,
             @RequestParam("password") String password,
             @RequestParam("confirmPassword") String confirmPassword,
-            HttpSession session) {
-        var user = userQueryService.getUserByEmail(email);
-        emailVerificationService.sendPasswordChangeCode(user.id(), user.email(), passwordEncoder.encode(password));
-        session.setAttribute("forgot-password-email", email);
+            HttpSession session,
+            Model model,
+            HttpServletResponse response) {
+        try{
+            var user = userQueryService.getUserByEmail(email);
+            emailVerificationService.sendPasswordChangeCode(user.id(), user.email(), passwordEncoder.encode(password));
+            session.setAttribute("forgot-password-email", email);
+        }catch(ResourceNotFoundException e){
+            model.addAttribute("errorMessage", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return "layout/forgot-password";
+    }
         return "layout/forgot-password-code";
     }
 
@@ -79,10 +88,17 @@ public class AuthWebController {
     @PostMapping("/forgot-password-verify-code")
     public String forgotPasswordSendCode(
             @RequestParam("verificationCode") String verificationCode,
-            HttpSession httpSession) {
-
-        var user = userQueryService.getUserByEmail(httpSession.getAttribute("forgot-password-email").toString());
-        emailVerificationService.confirmPasswordChange(user.id(), verificationCode);
+            HttpSession httpSession,
+            Model model,
+            HttpServletResponse response) {
+        try {
+            var user = userQueryService.getUserByEmail(httpSession.getAttribute("forgot-password-email").toString());
+            emailVerificationService.confirmPasswordChange(user.id(), verificationCode);
+        }catch(VerificationException e){
+            model.addAttribute("errorMessage", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return "layout/forgot-password-code";
+        }
         return "layout/login";
     }
 
