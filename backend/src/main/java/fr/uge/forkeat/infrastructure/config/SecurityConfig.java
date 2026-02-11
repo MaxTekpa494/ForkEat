@@ -73,11 +73,13 @@ public class SecurityConfig {
 				.csrf(AbstractHttpConfigurer::disable)
 
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/", "/auth/**", "/login", "/register", "/css/**", "/js/**", "/images/**").permitAll()
+						.requestMatchers("/", "/auth/**", "/login", "/css/**", "/js/**", "/images/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
 						.requestMatchers("/recipes/my").authenticated()
-						.requestMatchers("/recipes/create", "/recipes/*/edit", "/recipes/*/delete").hasAuthority("EMAIL_VERIFIED")
-						.requestMatchers("/wallet/**").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers("/recipes/create", "/recipes/*/edit", "/recipes/*/delete").hasAuthority("EMAIL_VERIFIED") // edit et delete c pas EMAIL verified
+																																		// à corriger quand on les fait
+
+						.requestMatchers("/wallet/**").hasAuthority("EMAIL_VERIFIED") // à affiner une fois implementé
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/moderator/**").hasRole("MODERATOR")
 						.requestMatchers("/profile/**").authenticated()

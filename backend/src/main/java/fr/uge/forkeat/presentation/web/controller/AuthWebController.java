@@ -31,20 +31,13 @@ import java.util.Objects;
 @RequestMapping("/auth")
 public class AuthWebController {
 
-  private final Logger logger = LoggerFactory.getLogger(AuthWebController.class);
   private final UserRegistrationService userRegistrationService;
   private final EmailVerificationService emailVerificationService;
-  private final AuthenticationPort authPort;
-  private final UserQueryService userQueryService;
 
   public AuthWebController(UserRegistrationService userRegistrationService,
-                           EmailVerificationService emailVerificationService,
-                           AuthenticationPort authPort,
-                           UserQueryService userQueryService) {
+                           EmailVerificationService emailVerificationService) {
     this.userRegistrationService = Objects.requireNonNull(userRegistrationService);
     this.emailVerificationService = Objects.requireNonNull(emailVerificationService);
-    this.authPort = Objects.requireNonNull(authPort);
-    this.userQueryService = Objects.requireNonNull(userQueryService);
   }
 
   @GetMapping("/login")
