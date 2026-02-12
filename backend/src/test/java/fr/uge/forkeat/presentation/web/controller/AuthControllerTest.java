@@ -279,6 +279,23 @@ class AuthControllerTest {
         }
 
         @Test
+        void forgotPasswordCode_ShouldReturnVerifyCodeView_WhenPasswordIsUnder8Characters() throws Exception {
+            var user = new User(UUID.randomUUID(), "aziani", "Adel", "Ziani", "chef@forkeat.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
+
+            when(userQueryService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
+            when(passwordEncoder.encode("NewPassword1")).thenReturn("hashedPassword");
+            doNothing().when(emailVerificationService).sendPasswordChangeCode(user.id(), user.email(), "hashedPassword");
+
+            mockMvc.perform(post("/auth/forgot-password-code")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("email", "chef@forkeat.com")
+                            .param("password", "aa")
+                            .param("confirmPassword", "aa"))
+                    .andExpect(view().name("layout/forgot-password"));
+        }
+
+        @Test
         void forgotPasswordCode_ShouldReturnForgotPasswordView_WhenEmailNotFound() throws Exception {
             when(userQueryService.getUserByEmail("inconnu@forkeat.com"))
                     .thenThrow(new ResourceNotFoundException("Aucun compte n'est associé à cet email"));
@@ -330,6 +347,11 @@ class AuthControllerTest {
                     .andExpect(status().isBadRequest())
                     .andExpect(view().name("layout/forgot-password-code"))
                     .andExpect(model().attributeExists("errorMessage"));
+        }
+
+        @Test
+        void forgotPassword_ShouldReturnVerifyCodeView_WhenPasswordIsUnder8Characters() throws Exception {
+
         }
     }
 }
