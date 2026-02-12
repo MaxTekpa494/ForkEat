@@ -21,7 +21,7 @@ public class RecipeWebController {
   private final RecipeService recipeService;
 
   public RecipeWebController(RecipeService recipeService) {
-    this.recipeService = Objects.requireNonNull(recipeService);
+    this.recipeService = recipeService;
   }
 
   @PostMapping("/create")
@@ -30,7 +30,7 @@ public class RecipeWebController {
   }
 
   @PostMapping
-  public String createReicpe(RecipeDTO recipeDTO ,Model model) {
+  public String createRecipe(RecipeDTO recipeDTO ,Model model) {
     Objects.requireNonNull(recipeDTO);
     var recipe = RecipeDTOMapper.toDomain(recipeDTO);
     var savedRecipe = recipeService.createRecipe(recipe);
@@ -48,7 +48,8 @@ public class RecipeWebController {
       @RequestParam(name = "search", required = false) String search,
       @RequestParam(name = "allergens", required = false) List<String> allergens,
       Model model) {
-    
+
+    // UN CONTROLEUR VRAIMENT !!!!!!!!!!!
     PageResult<Recipe> pageResult;
     if (allergens != null && !allergens.isEmpty()) {
       pageResult = recipeService.findByStatusAndSearchAndAllergens(status, search, allergens, size, page);
