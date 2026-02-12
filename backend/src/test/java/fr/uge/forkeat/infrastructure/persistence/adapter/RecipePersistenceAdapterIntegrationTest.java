@@ -90,7 +90,7 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void save_shouldPersistRecipeWithIngredients() {
-        var ingredient = new IngredientEntity("Farine", "Cereale", false);
+        var ingredient = new IngredientEntity("Farine", "Céréale", false);
         ingredientRepository.save(ingredient);
 
         var recipe = new Recipe(

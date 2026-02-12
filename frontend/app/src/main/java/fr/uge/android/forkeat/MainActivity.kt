@@ -44,8 +44,8 @@ class MainActivity : ComponentActivity() {
                             onNavigateToRegister = { /* TODO: navigate to register */ },
                             onLoginSuccess = {
                                 // TODO: navigate to dashboard
-                                navController.navigate("home") {
-                                    popUpTo("home") { inclusive = true }
+                                navController.navigate("recipes") {
+                                    popUpTo("recipes") { inclusive = true }
                                 }
                             },
                         )

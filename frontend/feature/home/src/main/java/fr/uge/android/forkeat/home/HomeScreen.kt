@@ -67,6 +67,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.navigation.NavHostController
 import fr.uge.android.forkeat.designsystem.theme.Gray100
 import fr.uge.android.forkeat.designsystem.theme.Gray500
 import fr.uge.android.forkeat.designsystem.theme.Orange50
@@ -501,17 +502,25 @@ private fun Footer() {
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForkEatScaffold(
-  title: String = "ForkEat",
-  onNavigateToLogin: () -> Unit = {},
-  content: @Composable (PaddingValues) -> Unit,
-  showSearchIcon: Boolean = false,
-  onSearchIconClick: (() -> Unit)? = null
+    navController: NavHostController? = null,
+    title: String = "ForkEat",
+    content: @Composable (PaddingValues) -> Unit,
+    showSearchIcon: Boolean = false,
+    onSearchIconClick: (() -> Unit)? = null
 ) {
-  Scaffold(
-    topBar = { ForkEatTopBar(onNavigateToLogin = onNavigateToLogin, showSearchIcon = showSearchIcon, onSearchIconClick = onSearchIconClick) }
-  ) { paddingValues ->
-    content(paddingValues)
-  }
+    Scaffold(
+        topBar = {
+            ForkEatTopBar(
+                onNavigateToLogin = {
+                    navController?.navigate("login")
+                },
+                showSearchIcon = showSearchIcon,
+                onSearchIconClick = onSearchIconClick
+            )
+        }
+    ) { paddingValues ->
+        content(paddingValues)
+    }
 }
 
 
