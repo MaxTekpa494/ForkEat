@@ -26,6 +26,8 @@ rootProject.name = "ForkEat"
 include(":app")
 include(":feature:home")
 include(":feature:admin")
+include(":feature:dashboard")
+include(":feature:profile")
 include(":core:designsystem")
 include(":core:network")
 include(":data:recipes")

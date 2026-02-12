@@ -17,7 +17,6 @@ import java.util.logging.Logger;
 @Controller
 @RequestMapping("/recipes")
 public class RecipeWebController {
-  private final Logger logger = Logger.getLogger(RecipeWebController.class.getName());
   private final RecipeService recipeService;
 
   public RecipeWebController(RecipeService recipeService) {
@@ -41,7 +40,7 @@ public class RecipeWebController {
 
 
   @GetMapping
-  public String listRecipes(
+  public String listRecipes( // On peut faire un DTO ici @Max
       @RequestParam(name = "status", defaultValue = "PUBLISHED") String status,
       @RequestParam(name = "size", defaultValue = "12") int size,
       @RequestParam(name = "page", defaultValue = "0") int page,

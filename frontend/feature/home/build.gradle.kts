@@ -23,13 +23,17 @@ android {
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
+    compileOptions {
+        sourceCompatibility = JavaVersion.VERSION_23
+        targetCompatibility = JavaVersion.VERSION_23
+    }
     buildFeatures {
         compose = true
     }
 }
 
 kotlin {
-    jvmToolchain(17)
+    jvmToolchain(23)
 }
 
 dependencies {

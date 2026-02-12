@@ -171,7 +171,7 @@ class UserUpdateServiceTest {
 
             // Then
             // Verify verification email is sent, NOT user updated directly
-            verify(emailVerificationService).sendEmailChangeCode(userId, "old@example.com", "new@example.com");
+            verify(emailVerificationService).sendEmailChangeCode(userId, "old@example.com", "new@example.com", null);
             verify(userPersistence, never()).updateUser(any(User.class));
         }
 
@@ -192,7 +192,7 @@ class UserUpdateServiceTest {
             );
 
             assertEquals("Incorrect password", exception.getMessage());
-            verify(emailVerificationService, never()).sendEmailChangeCode(any(), any(), any());
+            verify(emailVerificationService, never()).sendEmailChangeCode(any(), any(), any(), any());
         }
 
         @Test
@@ -213,7 +213,7 @@ class UserUpdateServiceTest {
             );
 
             assertEquals("Cet email est déjà utilisé", exception.getMessage());
-            verify(emailVerificationService, never()).sendEmailChangeCode(any(), any(), any());
+            verify(emailVerificationService, never()).sendEmailChangeCode(any(), any(), any(), any());
         }
     }
 

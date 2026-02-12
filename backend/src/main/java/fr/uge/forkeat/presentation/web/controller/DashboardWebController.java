@@ -11,13 +11,13 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class DashboardWebController {
 
-	private final UserQueryService userQueryServic;
+	private final UserQueryService userQueryService;
 	private final WalletService walletService;
 	private final AuthenticationPort authPort;
 
 	public DashboardWebController(UserQueryService userQueryService, WalletService walletService,
 																AuthenticationPort authPort) {
-		this.userQueryServic = userQueryService;
+		this.userQueryService = userQueryService;
 		this.walletService = walletService;
 		this.authPort = authPort;
 	}
@@ -26,7 +26,7 @@ public class DashboardWebController {
 	public String dashboard(Authentication authentication, Model model) {
 		var username = authPort.extractUsername();
 
-		var user = userQueryServic.getUserByUsername(username);
+		var user = userQueryService.getUserByUsername(username);
 
 		var balance = walletService.getBalance(user.id());
 		model.addAttribute("balance", balance);

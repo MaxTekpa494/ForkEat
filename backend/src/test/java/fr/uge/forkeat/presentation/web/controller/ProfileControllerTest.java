@@ -21,7 +21,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -61,9 +60,6 @@ class ProfileControllerTest {
 
     @MockitoBean
     private JwtFilter jwtFilter;
-
-    @MockitoBean
-    private PasswordEncoder passwordEncoder;
 
     private User testUser;
 
@@ -206,20 +202,22 @@ class ProfileControllerTest {
         void updateEmail_ShouldRedirectToConfirmAction_WhenSuccessful() throws Exception {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            doNothing().when(userUpdateService).requestEmailChange("testuser", "new@example.com", "correctPassword");
+            doNothing().when(userUpdateService).requestEmailChange("testuser", "new@example.com", "correctPassword", "correctPassword");
 
             // When & Then
             mockMvc.perform(post("/profile/request-email-change")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                             .param("newEmail", "new@example.com")
-                            .param("currentPassword", "correctPassword"))
+                            .param("currentPassword", "correctPassword")
+                            .param("newPassword", "correctPassword")
+                            .param("confirmPassword", "correctPassword"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/profile/confirm-action"))
                     .andExpect(flash().attribute("actionType", "EMAIL_CHANGE"))
                     .andExpect(flash().attributeExists("infoMessage"));
 
-            verify(userUpdateService).requestEmailChange(testUser.username(), "new@example.com", "correctPassword");
+            verify(userUpdateService).requestEmailChange("testuser", "new@example.com", "correctPassword", "correctPassword");
         }
 
         @Test
@@ -227,15 +225,17 @@ class ProfileControllerTest {
         void updateEmail_ShouldRedirectToProfile_WhenPasswordIncorrect() throws Exception {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            doThrow(new CheckProfileUpdateFailure("Mot de passe incorrect"))
-                    .when(userUpdateService).requestEmailChange("testuser", "new@example.com", "wrongPassword");
+            doThrow(new CheckProfileUpdateFailure("Incorrect password"))
+                    .when(userUpdateService).requestEmailChange("testuser", "new@example.com", "wrongPassword", "wrongPassword");
 
             // When & Then
             mockMvc.perform(post("/profile/request-email-change")
                             .with(csrf())
                             .contentType(MediaType.APPLICATION_FORM_URLENCODED)
                             .param("newEmail", "new@example.com")
-                            .param("currentPassword", "wrongPassword"))
+                            .param("currentPassword", "wrongPassword")
+                            .param("newPassword", "wrongPassword")
+                            .param("confirmPassword", "wrongPassword"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/profile"))
                     .andExpect(flash().attributeExists("error"));

@@ -64,6 +64,14 @@ public class UserUpdateService {
           timeout = 10
   )
   public void requestEmailChange(String username, String newEmail, String currentPassword) {
+    requestEmailChange(username, newEmail, currentPassword, null);
+  }
+
+  @Transactional(
+          isolation = Isolation.REPEATABLE_READ,
+          timeout = 10
+  )
+  public void requestEmailChange(String username, String newEmail, String currentPassword, String newPassword) {
     var user = userQueryService.getUserByUsername(username);
 
     if (user.authMode() == AuthMode.LOCAL) {
@@ -77,7 +85,15 @@ public class UserUpdateService {
       throw new CheckProfileUpdateFailure("Cet email est déjà utilisé");
     }
 
-    emailVerificationService.sendEmailChangeCode(user.id(), user.email(), newEmail);
+    String hashedPassword = null;
+    if (user.authMode() == AuthMode.GOOGLE && newPassword != null) {
+      if (newPassword.length() < 8) {
+        throw new CheckProfileUpdateFailure("Le mot de passe doit contenir au moins 8 caractères");
+      }
+      hashedPassword = passwordEncoder.encode(newPassword);
+    }
+
+    emailVerificationService.sendEmailChangeCode(user.id(), user.email(), newEmail, hashedPassword);
   }
 
   @Transactional(

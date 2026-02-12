@@ -72,6 +72,8 @@ fun LoginScreen(
     onNavigateBack: () -> Unit = {},
     onNavigateToRegister: () -> Unit = {},
     onLoginSuccess: () -> Unit = {},
+    onForgotPassword: () -> Unit = {},
+    newUser: Boolean = false,
     viewModel: LoginViewModel = viewModel(),
 ) {
     var username by remember { mutableStateOf("") }
@@ -117,12 +119,21 @@ fun LoginScreen(
             Spacer(Modifier.height(16.dp))
 
             // Header
-            Text(
-                text = "Bon retour !",
-                fontSize = 28.sp,
-                fontWeight = FontWeight.Bold,
-                color = Secondary900,
-            )
+            if(newUser){
+                Text(
+                    text = "Vous êtes maintenant inscrit !",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Secondary900,
+                )
+            }else{
+                Text(
+                    text = "Bon retour !",
+                    fontSize = 28.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Secondary900,
+                )
+            }
             Spacer(Modifier.height(8.dp))
             Text(
                 text = "Connectez-vous pour retrouver vos recettes",
@@ -305,7 +316,7 @@ fun LoginScreen(
                     color = Secondary900,
                 )
                 Spacer(Modifier.weight(1f))
-                TextButton(onClick = { /* TODO */ }) {
+                TextButton(onClick = { onForgotPassword() }) {
                     Text(
                         "Mot de passe oubli\u00e9 ?",
                         fontSize = 13.sp,

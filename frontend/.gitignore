@@ -1,3 +1,17 @@
+# Gradle
+.gradle/
+build/
+*/build/
+
+# Kotlin/Java
+*.class
+*.log
+*.dex
+*.jar
+*.apk
+
+# IDE
+.idea/
 *.iml
 .gradle
 /local.properties
@@ -12,6 +26,9 @@
 /captures
 .externalNativeBuild
 .cxx
+*.hprof
+
+# Local files
 local.properties
 
 build/
