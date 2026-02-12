@@ -3,6 +3,8 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.exception.RegisterFailure;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRegister;
@@ -229,6 +231,105 @@ class AuthControllerTest {
                     .andExpect(model().attributeHasFieldErrors("registerForm", "confirmPassword"));
 
             verifyNoInteractions(userRegistrationService);
+        }
+
+
+        @Test
+        void forgotPassword_ShouldReturnForgotPasswordView() throws Exception {
+            mockMvc.perform(get("/auth/forgot-password"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("layout/forgot-password"));
+        }
+
+
+
+        @Test
+        void forgotPasswordCode_ShouldReturnVerifyCodeView_WhenEmailExists() throws Exception {
+            var user = new User(UUID.randomUUID(), "aziani", "Adel", "Ziani", "chef@forkeat.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
+
+            when(userQueryService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
+            when(passwordEncoder.encode("NewPassword1")).thenReturn("hashedPassword");
+            doNothing().when(emailVerificationService).sendPasswordChangeCode(user.id(), user.email(), "hashedPassword");
+
+            mockMvc.perform(post("/auth/forgot-password-code")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("email", "chef@forkeat.com")
+                            .param("password", "NewPassword1")
+                            .param("confirmPassword", "NewPassword1"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("layout/forgot-password-code"));
+        }
+
+        @Test
+        void forgotPasswordCode_ShouldStoreEmailInSession_WhenEmailExists() throws Exception {
+            var user = new User(UUID.randomUUID(), "aziani", "Adel", "Ziani", "chef@forkeat.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
+
+            when(userQueryService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
+            when(passwordEncoder.encode("NewPassword1")).thenReturn("hashedPassword");
+            doNothing().when(emailVerificationService).sendPasswordChangeCode(user.id(), user.email(), "hashedPassword");
+
+            mockMvc.perform(post("/auth/forgot-password-code")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("email", "chef@forkeat.com")
+                            .param("password", "NewPassword1")
+                            .param("confirmPassword", "NewPassword1"))
+                    .andExpect(request().sessionAttribute("forgot-password-email", "chef@forkeat.com"));
+        }
+
+        @Test
+        void forgotPasswordCode_ShouldReturnForgotPasswordView_WhenEmailNotFound() throws Exception {
+            when(userQueryService.getUserByEmail("inconnu@forkeat.com"))
+                    .thenThrow(new ResourceNotFoundException("Aucun compte n'est associé à cet email"));
+
+            mockMvc.perform(post("/auth/forgot-password-code")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("email", "inconnu@forkeat.com")
+                            .param("password", "NewPassword1")
+                            .param("confirmPassword", "NewPassword1"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(view().name("layout/forgot-password"))
+                    .andExpect(model().attributeExists("errorMessage"));
+        }
+
+
+
+        @Test
+        void forgotPasswordVerifyCode_ShouldReturnLoginView_WhenCodeIsValid() throws Exception {
+            var user = new User(UUID.randomUUID(), "aziani", "Adel", "Ziani", "chef@forkeat.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
+
+
+            when(userQueryService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
+            doNothing().when(emailVerificationService).confirmPasswordChange(user.id(), "123456");
+
+            mockMvc.perform(post("/auth/forgot-password-verify-code")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("verificationCode", "123456")
+                            .sessionAttr("forgot-password-email", "chef@forkeat.com"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("layout/login"));
+        }
+
+        @Test
+        void forgotPasswordVerifyCode_ShouldReturnVerifyCodeView_WhenCodeIsInvalid() throws Exception {
+            var user = new User(UUID.randomUUID(), "aziani", "Adel", "Ziani", "chef@forkeat.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
+
+
+            when(userQueryService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
+            doThrow(new VerificationException("Code incorrect ou expiré"))
+                    .when(emailVerificationService).confirmPasswordChange(user.id(), "000000");
+
+            mockMvc.perform(post("/auth/forgot-password-verify-code")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("verificationCode", "000000")
+                            .sessionAttr("forgot-password-email", "chef@forkeat.com"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(view().name("layout/forgot-password-code"))
+                    .andExpect(model().attributeExists("errorMessage"));
         }
     }
 }
