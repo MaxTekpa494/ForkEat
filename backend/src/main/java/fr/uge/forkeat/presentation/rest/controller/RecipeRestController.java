@@ -6,13 +6,14 @@ import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.model.PageResult;
+import fr.uge.forkeat.service.model.recipe.Recipe;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -21,9 +22,18 @@ import java.util.UUID;
 public final class RecipeRestController {
 
 	private final RecipeService recipeService;
+	private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
 	public RecipeRestController(RecipeService recipeService) {
-		this.recipeService = Objects.requireNonNull(recipeService);
+		this.recipeService = recipeService;
+	}
+
+	@PostMapping
+	public ResponseEntity<HttpResponse<RecipeDTO>> createRecipe(@RequestBody RecipeDTO recipeDTO) {
+		Objects.requireNonNull(recipeDTO);
+		var recipe = RecipeDTOMapper.toDomain(recipeDTO);
+		var dto = RecipeDTOMapper.toDTO(recipeService.createRecipe(recipe));
+		return ResponseEntity.ok(new ItemResponse<>(dto));
 	}
 
 	// Pourquoi pas faire un findwithparent avec {recipe:..., parent:...}
@@ -50,9 +60,21 @@ public final class RecipeRestController {
 	public ResponseEntity<HttpResponse<RecipeDTO>> getRecipes(
 			@RequestParam(name = "status", defaultValue = "PUBLISHED") String status,
 			@RequestParam(name = "size", defaultValue = "10") int size,
-			@RequestParam(name = "page", defaultValue = "0") int page) {
-		var pageResult = recipeService.findByStatus(status, size, page);
+			@RequestParam(name = "page", defaultValue = "0") int page,
+			@RequestParam(name = "search", required = false) String search,
+			@RequestParam(name = "allergens", required = false) List<String> allergens) {
+		PageResult<Recipe> pageResult;
+		if (allergens != null && !allergens.isEmpty()) {
+			pageResult = recipeService.findByStatusAndSearchAndAllergens(status, search, allergens, size, page);
+		} else if (search != null && !search.isBlank()) {
+			pageResult = recipeService.findByStatusAndSearch(status, search, size, page);
+		} else {
+			pageResult = recipeService.findByStatus(status, size, page);
+		}
+		logger.debug("Liste ingredients : {}", allergens);
 		var dtos = pageResult.items().stream().map(RecipeDTOMapper::toDTO).toList();
 		return ResponseEntity.ok(new ListResponse<>(dtos, pageResult.total()));
 	}
+
+
 }

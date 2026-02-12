@@ -51,4 +51,8 @@ public class RecipeService {
     return recipePersistence.findAllAllergens();
   }
 
+  public Recipe createRecipe(Recipe recipe) {
+    return recipePersistence.save(recipe);
+  }
+
 }

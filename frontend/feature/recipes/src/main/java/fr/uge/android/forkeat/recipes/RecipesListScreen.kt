@@ -49,7 +49,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.navigation.NavHostController
 import androidx.compose.material3.Icon
-import androidx.compose.material3.OutlinedTextField
 
 @Composable
 fun RecipesListScreen(
@@ -60,15 +59,18 @@ fun RecipesListScreen(
     onPageChange: (Int) -> Unit,
     errorMessage: String? = null,
     navController: NavHostController? = null,
-    onSearch: ((String) -> Unit)? = null
+    searchQuery: String = "",
+    onSearchQueryChange: (String) -> Unit = {},
+    onSearchSubmit: () -> Unit = {},
+    availableAllergens: List<String> = emptyList(),
+    selectedAllergens: Set<String> = emptySet(),
+    onAllergenToggle: (String) -> Unit = {},
+    onClearFilters: () -> Unit = {}
 ) {
     var selectedRecipe by remember { mutableStateOf<RecipeDTO?>(null) }
-    var showSearchField by remember { mutableStateOf(false) }
-    var searchText by remember { mutableStateOf("") }
     ForkEatScaffold(
         navController = navController,
-        showSearchIcon = true,
-        onSearchIconClick = { showSearchField = !showSearchField },
+        showSearchIcon = false,
         content = { paddingValues ->
             Column(
                 modifier = Modifier
@@ -77,30 +79,15 @@ fun RecipesListScreen(
                     .padding(paddingValues)
                     .padding(16.dp)
             ) {
-                if (showSearchField) {
-                    OutlinedTextField(
-                        value = searchText,
-                        onValueChange = {
-                            searchText = it
-                            onSearch?.invoke(it)
-                        },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(bottom = 8.dp),
-                        placeholder = { Text("Rechercher une recette...") },
-                        leadingIcon = {
-                            Icon(Icons.Default.Search, contentDescription = null)
-                        },
-                        shape = RoundedCornerShape(12.dp),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = Color(0xFFE5E7EB),
-                            focusedBorderColor = Primary500,
-                            unfocusedContainerColor = Color.White,
-                            focusedContainerColor = Color.White,
-                        ),
-                        singleLine = true
-                    )
-                }
+                RecipeSearchFilterBar(
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = onSearchQueryChange,
+                    onSearchSubmit = onSearchSubmit,
+                    availableAllergens = availableAllergens,
+                    selectedAllergens = selectedAllergens,
+                    onAllergenToggle = onAllergenToggle,
+                    onClearFilters = onClearFilters
+                )
                 if (errorMessage != null) {
                     Text(
                         text = errorMessage,

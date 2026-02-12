@@ -38,10 +38,12 @@ class RecipeServiceTest {
         now = Instant.now();
     }
 
-    @Test
-    void constructor_shouldThrowWhenPersistenceIsNull() {
-        assertThrows(NullPointerException.class, () -> new RecipeService(null));
-    }
+    // CE TEST N'EST PLUS PERTINENT CAR AVANT ON FAISAIT LES
+    // REQUIRENONNULL MAIS ON EN A PLUS BESION.
+//    @Test
+//    void constructor_shouldThrowWhenPersistenceIsNull() {
+//        assertThrows(NullPointerException.class, () -> new RecipeService(null));
+//    }
 
     @Test
     void findById_shouldReturnRecipeWhenFound() {
