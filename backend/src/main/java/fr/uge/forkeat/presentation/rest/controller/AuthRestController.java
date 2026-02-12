@@ -7,6 +7,7 @@ import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
 import fr.uge.forkeat.presentation.mapper.rest.UserDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
+import fr.uge.forkeat.service.exception.RegisterFailure;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.user.UserRegistrationService;
@@ -50,6 +51,9 @@ public class AuthRestController {
 	@PostMapping("/register")
 	public ResponseEntity<HttpResponse<UserDTO>> registerUser(@RequestBody UserRegisterDTO userRegisterDTO) {
 		Objects.requireNonNull(userRegisterDTO);
+        if(userRegisterDTO.password().length() < 8){
+            throw new RegisterFailure("The password must have at least 8 characters");
+        }
 		var user = userService.registerUser(UserDTOMapper.toUserRegister(userRegisterDTO));
 		var userDTO = UserDTOMapper.toDTO(user);
 		return ResponseEntity.ok(new ItemResponse<>(userDTO));

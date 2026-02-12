@@ -85,6 +85,7 @@ class AuthRestControllerTest {
             verify(userRegistrationService).registerUser(any());
         }
 
+
         @Test
         void shouldReturnBadRequestWhenRegistrationFails() throws Exception {
             var dto = new UserRegisterDTO("testuser", "Test", "User", "Password123", "taken@forkeat.fr");
@@ -98,6 +99,21 @@ class AuthRestControllerTest {
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error").value("Bad Request"))
                     .andExpect(jsonPath("$.message").value("Email already exists"));
+        }
+
+        @Test
+        void shouldReturnBadRequestWhenPasswordIsUnder8Characters() throws Exception {
+            var dto = new UserRegisterDTO("testuser", "Test", "User", "aa", "taken@forkeat.fr");
+
+            when(userRegistrationService.registerUser(any()))
+                    .thenThrow(new RegisterFailure("The password must have at least 8 characters"));
+
+            mockMvc.perform(post("/api/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(dto)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("Bad Request"))
+                    .andExpect(jsonPath("$.message").value("The password must have at least 8 characters"));
         }
     }
 
