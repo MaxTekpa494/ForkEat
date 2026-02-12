@@ -46,7 +46,8 @@ class MainActivity : ComponentActivity() {
                     composable("home") {
                         HomeScreen(
                             onNavigateToLogin = { navController.navigate("login") },
-                            onNavigateToRegister = { navController.navigate("register") }
+                            onNavigateToExplore = {navController.navigate("recipes")}
+                            //onNavigateToRegister = { navController.navigate("register") }
                         )
                     }
                     composable("login") {

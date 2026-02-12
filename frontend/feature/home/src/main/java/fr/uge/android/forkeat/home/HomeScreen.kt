@@ -91,7 +91,7 @@ fun HomeScreen(
     onNavigateToExplore: () -> Unit = {},
 ) {
     Scaffold(
-        topBar = { ForkEatTopBar(onNavigateToLogin = onNavigateToLogin) },
+        topBar = { ForkEatTopBar(onNavigateToLogin = onNavigateToLogin, onNavigateToRegister = onNavigateToExplore) },
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -518,6 +518,9 @@ fun ForkEatScaffold(
             ForkEatTopBar(
                 onNavigateToLogin = {
                     navController?.navigate("login")
+                },
+                onNavigateToRegister = {
+                    navController?.navigate("explore")
                 },
                 showSearchIcon = showSearchIcon,
                 onSearchIconClick = onSearchIconClick
