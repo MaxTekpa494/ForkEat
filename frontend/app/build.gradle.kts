@@ -43,6 +43,8 @@ dependencies {
   implementation(project(":core:designsystem"))
   implementation(project(":core:network"))
   implementation(project(":feature:home"))
+  implementation(project(":feature:dashboard"))
+  implementation(project(":feature:profile"))
   implementation(project(":feature:recipes"))
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)

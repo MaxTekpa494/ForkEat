@@ -116,7 +116,9 @@ fun HomeScreen(
 private fun ForkEatTopBar(
     onNavigateToLogin: () -> Unit,
     showSearchIcon: Boolean = false,
-    onSearchIconClick: (() -> Unit)? = null
+    onSearchIconClick: (() -> Unit)? = null,
+    onNavigateToRegister: () -> Unit
+
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
@@ -193,7 +195,10 @@ private fun ForkEatTopBar(
                 )
                 DropdownMenuItem(
                     text = { Text("S'inscrire", fontWeight = FontWeight.SemiBold, color = Primary500) },
-                    onClick = { menuExpanded = false },
+                    onClick = {
+                        menuExpanded = false
+                        onNavigateToRegister()
+                              },
                     leadingIcon = {
                         Icon(Icons.Default.PersonAdd, contentDescription = null, tint = Primary500)
                     },
