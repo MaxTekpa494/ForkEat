@@ -63,7 +63,6 @@ public class AuthWebController {
     }
 
 
-    /*RedirectAttributes redirectAttributes*/
     @PostMapping("/forgot-password-code")
     public String forgotPasswordCode(
             @RequestParam("email") String email,
@@ -72,6 +71,11 @@ public class AuthWebController {
             HttpSession session,
             Model model,
             HttpServletResponse response) {
+      if(password.length() < 8) {
+          model.addAttribute("errorMessage", "le mot de passe doit faire au moins 8 charactères");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          return "layout/forgot-password";
+      }
         try{
             var user = userQueryService.getUserByEmail(email);
             emailVerificationService.sendPasswordChangeCode(user.id(), user.email(), passwordEncoder.encode(password));
