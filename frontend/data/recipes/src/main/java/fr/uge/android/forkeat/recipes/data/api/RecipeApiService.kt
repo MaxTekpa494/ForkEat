@@ -10,6 +10,8 @@ interface RecipeApiService {
     suspend fun getRecipes(
         @Query("status") status: String = "PUBLISHED",
         @Query("size") size: Int = 10,
-        @Query("page") page: Int = 0
+        @Query("page") page: Int = 0,
+        @Query("search") search: String? = null,
+        @Query("allergens") allergens: List<String>? = null
     ): Response<RecipesListResponse>
 }

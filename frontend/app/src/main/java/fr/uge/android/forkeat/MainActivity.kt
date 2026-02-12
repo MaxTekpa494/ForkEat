@@ -56,6 +56,9 @@ class MainActivity : ComponentActivity() {
                         val currentPageState = recipesViewModel.currentPage.collectAsState()
                         val errorMessageState = recipesViewModel.errorMessage.collectAsState()
                         val pageSizeState = recipesViewModel.pageSize.collectAsState()
+                        val searchQueryState = recipesViewModel.searchQuery.collectAsState()
+                        val selectedAllergensState = recipesViewModel.selectedAllergens.collectAsState()
+                        val availableAllergensState = recipesViewModel.availableAllergens.collectAsState()
 
                         RecipesListScreen(
                             recipes = recipesState.value,
@@ -65,9 +68,13 @@ class MainActivity : ComponentActivity() {
                             onPageChange = { page -> recipesViewModel.loadRecipes(page) },
                             errorMessage = errorMessageState.value,
                             navController = navController,
-                            onSearch = { query ->
-                                // TODO: connecter à l'endpoint backend de recherche
-                            }
+                            searchQuery = searchQueryState.value,
+                            onSearchQueryChange = { query -> recipesViewModel.onSearchQueryChange(query) },
+                            onSearchSubmit = { recipesViewModel.onSearchSubmit() },
+                            availableAllergens = availableAllergensState.value,
+                            selectedAllergens = selectedAllergensState.value,
+                            onAllergenToggle = { allergen -> recipesViewModel.toggleAllergen(allergen) },
+                            onClearFilters = { recipesViewModel.clearFilters() }
                         )
                     }
                     composable("recipes/{id}") { backStackEntry ->
