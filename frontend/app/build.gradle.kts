@@ -30,19 +30,21 @@ android {
     compose = true
   }
   compileOptions {
-    sourceCompatibility = JavaVersion.VERSION_17
-    targetCompatibility = JavaVersion.VERSION_17
+    sourceCompatibility = JavaVersion.VERSION_23
+    targetCompatibility = JavaVersion.VERSION_23
   }
 }
 
 kotlin {
-  jvmToolchain(17)
+  jvmToolchain(23)
 }
 
 dependencies {
   implementation(project(":core:designsystem"))
   implementation(project(":core:network"))
   implementation(project(":feature:home"))
+  implementation(project(":feature:dashboard"))
+  implementation(project(":feature:profile"))
   implementation(project(":feature:recipes"))
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)

@@ -1,0 +1,2093 @@
+openapi: 3.0.0
+info:
+  title: API Plateforme de Partage de Recettes
+  description: API REST pour une plateforme de partage de recettes avec système de variantes, likes/super-likes, recherche LLM et gestion financière
+  version: 1.0.0
+  contact:
+    name: Équipe Backend
+    email: contact@recettes-platform.com
+
+servers:
+  - url: http://localhost:8080/api
+    description: Serveur de développement
+  - url: https://api.recettes-platform.com
+    description: Serveur de production
+
+tags:
+  - name: Authentication
+    description: Gestion de l'authentification et des comptes
+  - name: Recipes
+    description: Gestion des recettes de base et variantes
+  - name: Search
+    description: Recherche de recettes (mots-clés et LLM)
+  - name: Social
+    description: Interactions sociales (likes, follows, signalements)
+  - name: Wallet
+    description: Gestion du porte-monnaie et transactions
+  - name: Moderation
+    description: Modération des recettes
+  - name: Admin
+    description: Administration de la plateforme
+
+paths:
+  # ==================== AUTHENTICATION ====================
+  
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Créer un compte utilisateur
+      description: "User Story: En tant que visiteur, je peux créer un compte"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+                - username
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+                  format: password
+                  minLength: 8
+                username:
+                  type: string
+                  minLength: 3
+      responses:
+        '201':
+          description: Compte créé avec succès
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '400':
+          description: Données invalides
+        '409':
+          description: Email déjà utilisé
+
+  /auth/register/oauth:
+    post:
+      tags:
+        - Authentication
+      summary: Créer un compte via OAuth (Google/Facebook)
+      description: "User Story: En tant que visiteur, je peux m'inscrire via OAuth"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - provider
+                - token
+              properties:
+                provider:
+                  type: string
+                  enum: [google, facebook]
+                token:
+                  type: string
+      responses:
+        '201':
+          description: Compte créé via OAuth
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Se connecter avec email/mot de passe
+      description: "User Story: En tant que membre, je peux me connecter"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Connexion réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+        '401':
+          description: Identifiants invalides
+
+  /auth/login/oauth:
+    post:
+      tags:
+        - Authentication
+      summary: Se connecter via OAuth
+      description: "User Story: En tant que membre, je peux me connecter via OAuth"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - provider
+                - token
+              properties:
+                provider:
+                  type: string
+                  enum: [google, facebook]
+                token:
+                  type: string
+      responses:
+        '200':
+          description: Connexion OAuth réussie
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AuthResponse'
+
+  /auth/password/reset-request:
+    post:
+      tags:
+        - Authentication
+      summary: Demander une réinitialisation de mot de passe
+      description: "User Story: En tant que membre, je peux réinitialiser mon mot de passe"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - email
+              properties:
+                email:
+                  type: string
+                  format: email
+      responses:
+        '200':
+          description: Email de réinitialisation envoyé
+
+  /auth/password/reset:
+    post:
+      tags:
+        - Authentication
+      summary: Réinitialiser le mot de passe
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - token
+                - newPassword
+              properties:
+                token:
+                  type: string
+                newPassword:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Mot de passe réinitialisé
+
+  # ==================== RECIPES ====================
+
+  /recipes:
+    get:
+      tags:
+        - Recipes
+      summary: Lister les recettes (page d'accueil / feed personnalisé)
+      description: "User Stories: Consulter page d'accueil, consulter son feed personnalisé"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: sort
+          in: query
+          description: "Tri par popularité (likes/super-likes)"
+          schema:
+            type: string
+            enum: [recent, popular]
+            default: recent
+        - name: feedType
+          in: query
+          description: "Type de feed (all pour visiteur, personalized pour membre)"
+          schema:
+            type: string
+            enum: [all, personalized]
+            default: all
+      responses:
+        '200':
+          description: Liste de recettes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RecipePreview'
+                  totalElements:
+                    type: integer
+                  totalPages:
+                    type: integer
+
+    post:
+      tags:
+        - Recipes
+      summary: Créer une recette de base
+      description: "User Story: En tant que membre, je peux créer une recette de base"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - title
+                - ingredients
+                - preparationTime
+                - instructions
+              properties:
+                title:
+                  type: string
+                ingredients:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/IngredientInput'
+                preparationTime:
+                  type: integer
+                  description: Temps en minutes
+                instructions:
+                  type: string
+                  description: Texte formaté (HTML)
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Recette créée (en attente de validation)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+        '400':
+          description: Données invalides
+
+  /recipes/{id}:
+    get:
+      tags:
+        - Recipes
+      summary: Consulter le détail d'une recette
+      description: "User Story: Consulter le détail d'une recette de base ou variante"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Détails de la recette
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+        '404':
+          description: Recette introuvable
+
+    put:
+      tags:
+        - Recipes
+      summary: Modifier une recette non validée
+      description: "User Story: En tant que membre, je peux modifier une recette non encore validée"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                title:
+                  type: string
+                ingredients:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/IngredientInput'
+                preparationTime:
+                  type: integer
+                instructions:
+                  type: string
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Recette modifiée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+        '403':
+          description: Recette déjà validée ou non propriétaire
+        '404':
+          description: Recette introuvable
+
+    delete:
+      tags:
+        - Recipes
+      summary: Supprimer une recette
+      description: "User Story: En tant que membre, je peux supprimer une de mes recettes"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Recette supprimée
+        '403':
+          description: Non autorisé
+        '404':
+          description: Recette introuvable
+
+  /recipes/{id}/variants:
+    post:
+      tags:
+        - Recipes
+      summary: Créer une variante de recette
+      description: "User Story: En tant que membre, je peux créer une variante d'une recette existante"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: ID de la recette de base
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - title
+                - modifications
+              properties:
+                title:
+                  type: string
+                modifications:
+                  type: object
+                  properties:
+                    ingredientsToRemove:
+                      type: array
+                      items:
+                        type: integer
+                        format: int64
+                    ingredientsToAdd:
+                      type: array
+                      items:
+                        $ref: '#/components/schemas/IngredientInput'
+                    ingredientsToModify:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          id:
+                            type: integer
+                            format: int64
+                          newQuantity:
+                            type: number
+                          newUnit:
+                            type: string
+                    preparationTime:
+                      type: integer
+                      description: Nouveau temps si modifié
+                complementaryText:
+                  type: string
+                  description: Texte expliquant les modifications
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Variante créée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Recipe'
+
+  /recipes/my:
+    get:
+      tags:
+        - Recipes
+      summary: Consulter mes recettes créées
+      description: "User Story: En tant que membre, je peux consulter mes recettes créées"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: status
+          in: query
+          description: Filtrer par statut de validation
+          schema:
+            type: string
+            enum: [pending, validated, rejected]
+      responses:
+        '200':
+          description: Mes recettes
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Recipe'
+
+  # ==================== SEARCH ====================
+
+  /search/keywords:
+    get:
+      tags:
+        - Search
+      summary: Rechercher des recettes par mots-clés
+      description: "User Story: Rechercher une recette par mots-clés"
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Résultats de recherche
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  content:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RecipePreview'
+                  totalElements:
+                    type: integer
+
+  /search/llm:
+    post:
+      tags:
+        - Search
+      summary: Recherche intelligente avec LLM (10 centimes)
+      description: "User Story: En tant que membre, je peux effectuer une recherche intelligente avec LLM"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - query
+              properties:
+                query:
+                  type: string
+                  description: "Requête en langage naturel"
+                  example: "Je cherche un dessert pour Noël, assez classique et faisable en moins de 2h"
+      responses:
+        '200':
+          description: Résultats de la recherche LLM
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  results:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/RecipePreview'
+                  cost:
+                    type: number
+                    example: 0.10
+                  remainingBalance:
+                    type: number
+        '402':
+          description: Solde insuffisant
+        '400':
+          description: Requête invalide
+
+  # ==================== SOCIAL ====================
+
+  /recipes/{id}/like:
+    post:
+      tags:
+        - Social
+      summary: Liker une recette
+      description: "User Story: En tant que membre, je peux liker une recette"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Like ajouté
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalLikes:
+                    type: integer
+
+    delete:
+      tags:
+        - Social
+      summary: Retirer son like
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Like retiré
+
+  /recipes/{id}/super-like:
+    post:
+      tags:
+        - Social
+      summary: Super-liker une recette (1€ ou prix promo)
+      description: "User Story: En tant que membre, je peux super-liker une recette"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Super-like ajouté
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalSuperLikes:
+                    type: integer
+                  cost:
+                    type: number
+                    description: Coût réel (promo appliquée)
+                  remainingBalance:
+                    type: number
+        '402':
+          description: Solde insuffisant
+
+  /recipes/{id}/follow:
+    post:
+      tags:
+        - Social
+      summary: Suivre une recette
+      description: "User Story: En tant que membre, je peux suivre une recette"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Recette suivie
+
+    delete:
+      tags:
+        - Social
+      summary: Ne plus suivre une recette
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Recette plus suivie
+
+  /users/{id}/follow:
+    post:
+      tags:
+        - Social
+      summary: Suivre un utilisateur
+      description: "User Story: En tant que membre, je peux suivre un utilisateur"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Utilisateur suivi
+
+    delete:
+      tags:
+        - Social
+      summary: Ne plus suivre un utilisateur
+      description: "User Story: En tant que membre, je peux me désabonner d'un utilisateur"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Utilisateur plus suivi
+
+  /users/{id}:
+    get:
+      tags:
+        - Social
+      summary: Consulter le profil d'un auteur
+      description: "User Story: En tant que membre, je peux consulter le profil d'un auteur"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Profil utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+
+  /reports:
+    post:
+      tags:
+        - Social
+      summary: Signaler une recette ou un utilisateur
+      description: "User Stories: Signaler une recette/utilisateur + justifier le signalement"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - type
+                - targetId
+                - reason
+              properties:
+                type:
+                  type: string
+                  enum: [recipe, user]
+                targetId:
+                  type: integer
+                  format: int64
+                reason:
+                  type: string
+                  enum: [spam, inappropriate, plagiarism, offensive, abuse]
+                description:
+                  type: string
+                  description: Justification détaillée
+      responses:
+        '201':
+          description: Signalement créé
+
+  # ==================== WALLET ====================
+
+  /wallet:
+    get:
+      tags:
+        - Wallet
+      summary: Consulter le solde du porte-monnaie
+      description: "User Story: En tant que membre, je peux consulter le solde de mon porte-monnaie"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Solde du porte-monnaie
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  balance:
+                    type: number
+                    format: double
+                  currency:
+                    type: string
+                    example: EUR
+
+  /wallet/recharge:
+    post:
+      tags:
+        - Wallet
+      summary: Recharger le porte-monnaie via Stripe
+      description: "User Story: En tant que membre, je peux recharger mon porte-monnaie via Stripe"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+                - paymentMethodId
+              properties:
+                amount:
+                  type: number
+                  format: double
+                  minimum: 1.00
+                paymentMethodId:
+                  type: string
+                  description: Stripe Payment Method ID
+      responses:
+        '200':
+          description: Recharge effectuée
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  newBalance:
+                    type: number
+                  transactionId:
+                    type: string
+
+  /wallet/transactions:
+    get:
+      tags:
+        - Wallet
+      summary: Consulter l'historique des recharges et dépenses
+      description: "User Story: En tant que membre, je peux consulter l'historique de mes recharges"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [recharge, expense, earning]
+      responses:
+        '200':
+          description: Historique des transactions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Transaction'
+
+  /wallet/earnings:
+    get:
+      tags:
+        - Wallet
+      summary: Consulter mes gains mensuels et redistribution
+      description: "User Stories: Consulter mes gains + détail redistribution par recette + chaîne variantes"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: month
+          in: query
+          schema:
+            type: string
+            format: date
+            example: "2025-12"
+      responses:
+        '200':
+          description: Détails des gains
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalEarnings:
+                    type: number
+                  month:
+                    type: string
+                  recipeBreakdown:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        recipeId:
+                          type: integer
+                          format: int64
+                        recipeTitle:
+                          type: string
+                        superLikesReceived:
+                          type: integer
+                        directEarnings:
+                          type: number
+                          description: Gains directs (50% si variante)
+                        indirectEarnings:
+                          type: number
+                          description: Gains des variantes descendantes
+                        redistributionChain:
+                          type: array
+                          description: Chaîne de redistribution 50/50 récursif
+                          items:
+                            type: object
+                            properties:
+                              level:
+                                type: integer
+                              recipeId:
+                                type: integer
+                                format: int64
+                              percentage:
+                                type: number
+                              amount:
+                                type: number
+
+  /wallet/withdraw:
+    post:
+      tags:
+        - Wallet
+      summary: Retirer mes gains vers compte bancaire
+      description: "User Story: En tant que membre, je peux retirer mes gains vers mon compte bancaire"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - amount
+              properties:
+                amount:
+                  type: number
+                  format: double
+      responses:
+        '200':
+          description: Retrait demandé
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  withdrawalId:
+                    type: string
+                  status:
+                    type: string
+                    enum: [pending, completed, failed]
+                  estimatedDate:
+                    type: string
+                    format: date
+        '400':
+          description: Montant invalide ou RIB manquant
+        '402':
+          description: Solde insuffisant
+
+  # ==================== USER ACCOUNT ====================
+
+  /users/me:
+    get:
+      tags:
+        - Authentication
+      summary: Récupérer mes informations
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Informations utilisateur
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    put:
+      tags:
+        - Authentication
+      summary: Modifier mes informations personnelles
+      description: "User Story: En tant que membre, je peux modifier mes informations personnelles"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                email:
+                  type: string
+                  format: email
+                photo:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          description: Informations mises à jour
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+
+    delete:
+      tags:
+        - Authentication
+      summary: Supprimer mon compte
+      description: "User Story: En tant que membre, je peux supprimer mon compte"
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Compte supprimé
+
+  /users/me/password:
+    put:
+      tags:
+        - Authentication
+      summary: Modifier mon mot de passe
+      description: "User Story: En tant que membre, je peux modifier mon mot de passe"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - currentPassword
+                - newPassword
+              properties:
+                currentPassword:
+                  type: string
+                newPassword:
+                  type: string
+                  format: password
+      responses:
+        '200':
+          description: Mot de passe modifié
+        '401':
+          description: Mot de passe actuel incorrect
+
+  /users/me/rib:
+    put:
+      tags:
+        - Wallet
+      summary: Ajouter/modifier mon RIB
+      description: "User Stories: En tant que membre, je peux ajouter/modifier mon RIB"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - iban
+                - bic
+              properties:
+                iban:
+                  type: string
+                  pattern: '^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$'
+                bic:
+                  type: string
+                accountHolderName:
+                  type: string
+      responses:
+        '200':
+          description: RIB enregistré
+        '400':
+          description: IBAN/BIC invalide
+
+  /users/me/data:
+    get:
+      tags:
+        - Authentication
+      summary: Exporter mes données (RGPD)
+      description: "User Story: En tant que membre, je peux exporter mes données avant suppression"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Export JSON des données
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  user:
+                    $ref: '#/components/schemas/User'
+                  recipes:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Recipe'
+                  transactions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Transaction'
+
+  # ==================== MODERATION ====================
+
+  /moderation/recipes/pending:
+    get:
+      tags:
+        - Moderation
+      summary: Consulter les recettes en attente de validation
+      description: "User Story: En tant que modérateur, je peux consulter la liste des recettes en attente"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 0
+        - name: size
+          in: query
+          schema:
+            type: integer
+            default: 20
+        - name: authorId
+          in: query
+          description: Filtrer par auteur
+          schema:
+            type: integer
+            format: int64
+        - name: type
+          in: query
+          description: Filtrer par type
+          schema:
+            type: string
+            enum: [base, variant]
+      responses:
+        '200':
+          description: Recettes en attente
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Recipe'
+        '403':
+          description: Accès refusé (non modérateur)
+
+  /moderation/recipes/{id}/validate:
+    post:
+      tags:
+        - Moderation
+      summary: Valider une recette
+      description: "User Story: En tant que modérateur, je peux valider une recette"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Recette validée et publiée
+        '403':
+          description: Non autorisé
+        '404':
+          description: Recette introuvable
+
+  /moderation/recipes/{id}/reject:
+    post:
+      tags:
+        - Moderation
+      summary: Refuser une recette
+      description: "User Stories: Refuser une recette + ajouter motif de refus"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - reason
+              properties:
+                reason:
+                  type: string
+                  enum: [inappropriate, incomplete, plagiarism, quality, other]
+                message:
+                  type: string
+                  description: Message personnalisé pour l'auteur
+      responses:
+        '200':
+          description: Recette refusée
+        '403':
+          description: Non autorisé
+
+  /moderation/reports:
+    get:
+      tags:
+        - Moderation
+      summary: Consulter les recettes/utilisateurs signalés
+      description: "User Stories: Consulter recettes signalées + voir justifications"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: type
+          in: query
+          schema:
+            type: string
+            enum: [recipe, user]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, resolved]
+      responses:
+        '200':
+          description: Liste des signalements
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Report'
+
+  /moderation/reports/{id}/resolve:
+    post:
+      tags:
+        - Moderation
+      summary: Résoudre un signalement
+      description: "User Story: En tant que modérateur, je peux supprimer une recette signalée"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - action
+              properties:
+                action:
+                  type: string
+                  enum: [delete_content, suspend_user, dismiss]
+                message:
+                  type: string
+      responses:
+        '200':
+          description: Signalement traité
+
+  /moderation/history:
+    get:
+      tags:
+        - Moderation
+      summary: Consulter l'historique de mes décisions
+      description: "User Story: En tant que modérateur, je peux consulter l'historique de mes décisions"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Historique des décisions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      format: int64
+                    action:
+                      type: string
+                      enum: [validated, rejected, deleted]
+                    targetType:
+                      type: string
+                      enum: [recipe, user]
+                    targetId:
+                      type: integer
+                      format: int64
+                    timestamp:
+                      type: string
+                      format: date-time
+                    reason:
+                      type: string
+
+  # ==================== ADMIN ====================
+
+  /admin/dashboard:
+    get:
+      tags:
+        - Admin
+      summary: Consulter le dashboard financier global
+      description: "User Story: En tant qu'admin, je peux consulter le dashboard financier"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Dashboard administrateur
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  profitWallet:
+                    type: number
+                    description: Porte-monnaie des bénéfices (40%)
+                  redistributionWallet:
+                    type: number
+                    description: Porte-monnaie de redistribution (60%)
+                  totalUsers:
+                    type: integer
+                  totalRecipes:
+                    type: integer
+                  totalSuperLikes:
+                    type: integer
+                  llmUsageStats:
+                    type: object
+                    properties:
+                      totalQueries:
+                        type: integer
+                      totalRevenue:
+                        type: number
+        '403':
+          description: Accès refusé (non admin)
+
+  /admin/reports/recipes:
+    get:
+      tags:
+        - Admin
+      summary: Consulter le reporting détaillé par recette
+      description: "User Story: En tant qu'admin, je peux consulter le reporting par recette"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: recipeId
+          in: query
+          schema:
+            type: integer
+            format: int64
+        - name: month
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Reporting détaillé
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    recipeId:
+                      type: integer
+                      format: int64
+                    recipeTitle:
+                      type: string
+                    authorId:
+                      type: integer
+                      format: int64
+                    superLikesCount:
+                      type: integer
+                    totalRevenue:
+                      type: number
+                    platformShare:
+                      type: number
+                      description: 40% plateforme
+                    creatorShare:
+                      type: number
+                      description: 60% redistribution
+
+  /admin/reports/export:
+    get:
+      tags:
+        - Admin
+      summary: Exporter les données financières
+      description: "User Story: En tant qu'admin, je peux exporter les données financières (CSV/PDF)"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: format
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [csv, pdf]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date
+      responses:
+        '200':
+          description: Fichier d'export
+          content:
+            text/csv:
+              schema:
+                type: string
+                format: binary
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+
+  /admin/promotions:
+    get:
+      tags:
+        - Admin
+      summary: Consulter les promotions actives et à venir
+      description: "User Story: En tant qu'admin, je peux consulter les promotions"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Liste des promotions
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Promotion'
+
+    post:
+      tags:
+        - Admin
+      summary: Planifier une nouvelle promotion
+      description: "User Stories: Planifier promotion + définir prix/réduction/bonus + simulation rentabilité"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - startDate
+                - endDate
+                - type
+              properties:
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+                type:
+                  type: string
+                  enum: [price_reduction, bonus]
+                priceReduction:
+                  type: object
+                  properties:
+                    newPrice:
+                      type: number
+                      example: 0.50
+                bonus:
+                  type: object
+                  properties:
+                    freeEvery:
+                      type: integer
+                      example: 10
+                      description: 1 super-like gratuit tous les X
+      responses:
+        '201':
+          description: Promotion créée avec simulation de rentabilité
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/Promotion'
+                  - type: object
+                    properties:
+                      profitabilitySimulation:
+                        type: object
+                        properties:
+                          isProfitable:
+                            type: boolean
+                          estimatedPlatformShare:
+                            type: number
+                            description: Doit être >= 40%
+                          warning:
+                            type: string
+        '400':
+          description: Promotion non rentable ou deux promotions simultanées
+        '403':
+          description: Non autorisé
+
+  /admin/promotions/{id}:
+    put:
+      tags:
+        - Admin
+      summary: Modifier une promotion non active
+      description: "User Story: En tant qu'admin, je peux modifier une promotion non active"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                startDate:
+                  type: string
+                  format: date-time
+                endDate:
+                  type: string
+                  format: date-time
+                priceReduction:
+                  type: object
+                  properties:
+                    newPrice:
+                      type: number
+                bonus:
+                  type: object
+                  properties:
+                    freeEvery:
+                      type: integer
+      responses:
+        '200':
+          description: Promotion modifiée
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Promotion'
+        '403':
+          description: Promotion déjà active (modification interdite)
+
+    delete:
+      tags:
+        - Admin
+      summary: Supprimer une promotion non active
+      description: "User Story: En tant qu'admin, je peux supprimer une promotion non active"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '204':
+          description: Promotion supprimée
+        '403':
+          description: Promotion déjà active
+
+  /admin/super-like-price:
+    put:
+      tags:
+        - Admin
+      summary: Définir le prix de base des super-likes
+      description: "User Story: En tant qu'admin, je peux définir le prix de base des super-likes"
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - price
+              properties:
+                price:
+                  type: number
+                  format: double
+                  minimum: 0.01
+                  example: 1.00
+      responses:
+        '200':
+          description: Prix mis à jour
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  newPrice:
+                    type: number
+
+  /admin/users:
+    get:
+      tags:
+        - Admin
+      summary: Consulter la liste des utilisateurs
+      description: "User Story: En tant qu'admin, je peux consulter la liste des utilisateurs"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: role
+          in: query
+          schema:
+            type: string
+            enum: [member, moderator, admin]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [active, suspended]
+      responses:
+        '200':
+          description: Liste des utilisateurs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+
+  /admin/users/{id}/role:
+    put:
+      tags:
+        - Admin
+      summary: Attribuer/retirer le rôle modérateur
+      description: "User Story: En tant qu'admin, je peux attribuer/retirer le rôle modérateur"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - role
+              properties:
+                role:
+                  type: string
+                  enum: [member, moderator]
+      responses:
+        '200':
+          description: Rôle mis à jour
+
+  /admin/users/{id}/suspend:
+    post:
+      tags:
+        - Admin
+      summary: Suspendre un utilisateur
+      description: "User Story: En tant qu'admin, je peux suspendre un utilisateur"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                duration:
+                  type: integer
+                  description: Durée en jours (null = permanent)
+      responses:
+        '200':
+          description: Utilisateur suspendu
+
+  /admin/users/{id}/reactivate:
+    post:
+      tags:
+        - Admin
+      summary: Réactiver un utilisateur
+      description: "User Story: En tant qu'admin, je peux réactiver un utilisateur"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Utilisateur réactivé
+
+  /admin/logs:
+    get:
+      tags:
+        - Admin
+      summary: Consulter les logs d'activité
+      description: "User Story: En tant qu'admin, je peux consulter les logs d'activité"
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: action
+          in: query
+          schema:
+            type: string
+            enum: [user_created, recipe_published, promotion_created, user_suspended]
+        - name: startDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: endDate
+          in: query
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: Logs d'activité
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    id:
+                      type: integer
+                      format: int64
+                    timestamp:
+                      type: string
+                      format: date-time
+                    action:
+                      type: string
+                    userId:
+                      type: integer
+                      format: int64
+                    details:
+                      type: object
+
+  /admin/stats:
+    get:
+      tags:
+        - Admin
+      summary: Consulter les statistiques globales
+      description: "User Story: En tant qu'admin, je peux consulter les statistiques globales"
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Statistiques de la plateforme
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  totalUsers:
+                    type: integer
+                  activeUsers:
+                    type: integer
+                  totalRecipes:
+                    type: integer
+                  totalVariants:
+                    type: integer
+                  totalSuperLikes:
+                    type: integer
+                  totalRevenue:
+                    type: number
+                  llmQueries:
+                    type: integer
+
+# ==================== COMPONENTS ====================
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+  schemas:
+    User:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        username:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [member, moderator, admin]
+        photoUrl:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        hasRib:
+          type: boolean
+
+    UserProfile:
+      allOf:
+        - $ref: '#/components/schemas/User'
+        - type: object
+          properties:
+            recipesCount:
+              type: integer
+            followersCount:
+              type: integer
+            followingCount:
+              type: integer
+            totalLikesReceived:
+              type: integer
+            totalSuperLikesReceived:
+              type: integer
+            recipes:
+              type: array
+              items:
+                $ref: '#/components/schemas/RecipePreview'
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+
+    Recipe:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        author:
+          $ref: '#/components/schemas/User'
+        type:
+          type: string
+          enum: [base, variant]
+        baseRecipe:
+          type: object
+          description: Si variante, référence à la recette de base
+          properties:
+            id:
+              type: integer
+              format: int64
+            title:
+              type: string
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+        preparationTime:
+          type: integer
+          description: Temps en minutes
+        instructions:
+          type: string
+          description: HTML formaté
+        photoUrl:
+          type: string
+        likesCount:
+          type: integer
+        superLikesCount:
+          type: integer
+        status:
+          type: string
+          enum: [pending, validated, rejected]
+        rejectionReason:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        validatedAt:
+          type: string
+          format: date-time
+        modifications:
+          type: object
+          description: Si variante, détails des modifications
+          properties:
+            complementaryText:
+              type: string
+            ingredientsAdded:
+              type: array
+              items:
+                $ref: '#/components/schemas/Ingredient'
+            ingredientsRemoved:
+              type: array
+              items:
+                $ref: '#/components/schemas/Ingredient'
+            ingredientsModified:
+              type: array
+              items:
+                $ref: '#/components/schemas/Ingredient'
+            timeChange:
+              type: integer
+
+    RecipePreview:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        title:
+          type: string
+        author:
+          type: object
+          properties:
+            id:
+              type: integer
+              format: int64
+            username:
+              type: string
+        type:
+          type: string
+          enum: [base, variant]
+        photoUrl:
+          type: string
+        preparationTime:
+          type: integer
+        likesCount:
+          type: integer
+        superLikesCount:
+          type: integer
+        createdAt:
+          type: string
+          format: date-time
+
+    Ingredient:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        name:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        status:
+          type: string
+          enum: [normal, added, removed, modified]
+          description: Pour affichage des différences dans variantes
+
+    IngredientInput:
+      type: object
+      required:
+        - name
+        - quantity
+        - unit
+      properties:
+        name:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+
+    Transaction:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [recharge, super_like, llm_search, earning, withdrawal]
+        amount:
+          type: number
+        description:
+          type: string
+        timestamp:
+          type: string
+          format: date-time
+        relatedRecipeId:
+          type: integer
+          format: int64
+        promotionApplied:
+          type: string
+
+    Promotion:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        startDate:
+          type: string
+          format: date-time
+        endDate:
+          type: string
+          format: date-time
+        type:
+          type: string
+          enum: [price_reduction, bonus]
+        status:
+          type: string
+          enum: [scheduled, active, completed]
+        priceReduction:
+          type: object
+          properties:
+            originalPrice:
+              type: number
+            newPrice:
+              type: number
+        bonus:
+          type: object
+          properties:
+            freeEvery:
+              type: integer
+              description: "1 gratuit tous les X super-likes"
+        createdAt:
+          type: string
+          format: date-time
+
+    Report:
+      type: object
+      properties:
+        id:
+          type: integer
+          format: int64
+        type:
+          type: string
+          enum: [recipe, user]
+        targetId:
+          type: integer
+          format: int64
+        reportedBy:
+          $ref: '#/components/schemas/User'
+        reason:
+          type: string
+          enum: [spam, inappropriate, plagiarism, offensive, abuse]
+        description:
+          type: string
+        status:
+          type: string
+          enum: [pending, resolved]
+        createdAt:
+          type: string
+          format: date-time
+        resolvedAt:
+          type: string
+          format: date-time
+        resolvedBy:
+          type: integer
+          format: int64

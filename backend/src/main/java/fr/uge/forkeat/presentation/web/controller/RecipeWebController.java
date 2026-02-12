@@ -1,15 +1,13 @@
 package fr.uge.forkeat.presentation.web.controller;
 
+import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Recipe;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 import java.util.Objects;
@@ -22,8 +20,24 @@ public class RecipeWebController {
   private final RecipeService recipeService;
 
   public RecipeWebController(RecipeService recipeService) {
-    this.recipeService = Objects.requireNonNull(recipeService);
+    this.recipeService = recipeService;
   }
+
+  @PostMapping("/create")
+  public String pageCreateRecipe() {
+    return "recipes/create";
+  }
+
+  @PostMapping
+  public String createRecipe(RecipeDTO recipeDTO ,Model model) {
+    Objects.requireNonNull(recipeDTO);
+    var recipe = RecipeDTOMapper.toDomain(recipeDTO);
+    var savedRecipe = recipeService.createRecipe(recipe);
+    //model.addAttribute("recipe", RecipeDTOMapper.toDTO(savedRecipe));
+    return "redirect:/recipes/" + savedRecipe.id();
+  }
+
+
 
   @GetMapping
   public String listRecipes( // On peut faire un DTO ici @Max
@@ -33,7 +47,8 @@ public class RecipeWebController {
       @RequestParam(name = "search", required = false) String search,
       @RequestParam(name = "allergens", required = false) List<String> allergens,
       Model model) {
-    
+
+    // UN CONTROLEUR VRAIMENT !!!!!!!!!!!
     PageResult<Recipe> pageResult;
     if (allergens != null && !allergens.isEmpty()) {
       pageResult = recipeService.findByStatusAndSearchAndAllergens(status, search, allergens, size, page);
