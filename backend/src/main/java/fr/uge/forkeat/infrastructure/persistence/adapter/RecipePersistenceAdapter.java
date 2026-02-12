@@ -14,6 +14,7 @@ import fr.uge.forkeat.service.model.recipe.RecipeIngredient;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -54,7 +55,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
   @Override
   public PageResult<Recipe> findByStatus(String status, int size, int page) {
     Objects.requireNonNull(status);
-    var pageable = PageRequest.of(page, size);
+    var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
     var pageResult = recipeRepository.findByStatus(RecipeStatus.valueOf(status), pageable);
     var recipes = pageResult.getContent().stream()
             .map(RecipeEntityMapper::toDomain)
