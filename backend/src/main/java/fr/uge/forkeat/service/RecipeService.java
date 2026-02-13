@@ -9,6 +9,7 @@ import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.Objects;
@@ -21,6 +22,10 @@ public class RecipeService {
 
   public RecipeService(RecipePersistence recipePersistence) {
     this.recipePersistence = Objects.requireNonNull(recipePersistence);
+  }
+
+  public Recipe createRecipe(Recipe recipe, MultipartFile image) {
+    return recipePersistence.save(recipe);
   }
 
   public Recipe findById(UUID id) {
@@ -49,8 +54,5 @@ public class RecipeService {
     return recipePersistence.findAllAllergens();
   }
 
-  public Recipe createRecipe(Recipe recipe) {
-    return recipePersistence.save(recipe);
-  }
 
 }

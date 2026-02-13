@@ -2,7 +2,7 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
-import fr.uge.forkeat.service.exception.RegisterFailure;
+import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.model.AuthMode;

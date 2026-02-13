@@ -1,17 +1,11 @@
 package fr.uge.forkeat.presentation.rest;
 
-import fr.uge.forkeat.service.exception.DuplicateTransactionException;
-import fr.uge.forkeat.service.exception.RecipeNotFoundException;
-import fr.uge.forkeat.service.exception.RegisterFailure;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.exception.VerificationException;
+import fr.uge.forkeat.service.exception.*;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import fr.uge.forkeat.service.exception.StripEventException;
-import fr.uge.forkeat.service.exception.WalletNotFoundException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -66,8 +60,14 @@ public class GlobalRestExceptionHandler {
             .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
   }
 
-  @ExceptionHandler(RegisterFailure.class)
-  public ResponseEntity<Map<String, Object>> handleRegisterFailure(RegisterFailure e) {
+  @ExceptionHandler(RegisterFailureException.class)
+  public ResponseEntity<Map<String, Object>> handleRegisterFailure(RegisterFailureException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+  }
+
+  @ExceptionHandler(ImageUploadException.class)
+  public ResponseEntity<Map<String, Object>> handleImageUploadException(ImageUploadException e) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
   }

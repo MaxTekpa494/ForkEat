@@ -1,6 +1,6 @@
 package fr.uge.forkeat.service.user;
 
-import fr.uge.forkeat.service.exception.CheckProfileUpdateFailure;
+import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.persistence.UserPersistence;
@@ -38,7 +38,7 @@ public class UserUpdateService {
 
     if (!user.username().equals(newUsername)) {
       if (userPersistence.existsByUsername(newUsername)) {
-        throw new CheckProfileUpdateFailure("Ce nom d'utilisateur est déjà pris");
+        throw new CheckProfileUpdateFailureException("Ce nom d'utilisateur est déjà pris");
       }
     }
 
@@ -77,18 +77,18 @@ public class UserUpdateService {
     if (user.authMode() == AuthMode.LOCAL) {
       var storedHash = userPersistence.findPasswordHashByUsername(username);
       if (!passwordEncoder.matches(currentPassword, storedHash)) {
-        throw new CheckProfileUpdateFailure("Incorrect password");
+        throw new CheckProfileUpdateFailureException("Incorrect password");
       }
     }
 
     if (!user.email().equals(newEmail) && userPersistence.existsByEmail(newEmail)) {
-      throw new CheckProfileUpdateFailure("Cet email est déjà utilisé");
+      throw new CheckProfileUpdateFailureException("Cet email est déjà utilisé");
     }
 
     String hashedPassword = null;
     if (user.authMode() == AuthMode.GOOGLE && newPassword != null) {
       if (newPassword.length() < 8) {
-        throw new CheckProfileUpdateFailure("Le mot de passe doit contenir au moins 8 caractères");
+        throw new CheckProfileUpdateFailureException("Le mot de passe doit contenir au moins 8 caractères");
       }
       hashedPassword = passwordEncoder.encode(newPassword);
     }
@@ -106,18 +106,18 @@ public class UserUpdateService {
     Objects.requireNonNull(newPassword);
 
     if (newPassword.length() < 8) {
-      throw new CheckProfileUpdateFailure("New password must be at least 8 characters");
+      throw new CheckProfileUpdateFailureException("New password must be at least 8 characters");
     }
 
     var user = userQueryService.getUserByUsername(username);
     var storedHash = userPersistence.findPasswordHashByUsername(username);
 
     if (!passwordEncoder.matches(currentPassword, storedHash)) {
-      throw new CheckProfileUpdateFailure("Incorrect current password");
+      throw new CheckProfileUpdateFailureException("Incorrect current password");
     }
 
     if (passwordEncoder.matches(newPassword, storedHash)) {
-      throw new CheckProfileUpdateFailure("Passwords are the same");
+      throw new CheckProfileUpdateFailureException("Passwords are the same");
     }
 
     var hashedNewPassword = passwordEncoder.encode(newPassword);
@@ -133,13 +133,13 @@ public class UserUpdateService {
     Objects.requireNonNull(newPassword);
 
     if (newPassword.length() < 8) {
-      throw new CheckProfileUpdateFailure("New password must be at least 8 characters");
+      throw new CheckProfileUpdateFailureException("New password must be at least 8 characters");
     }
 
     var user = userQueryService.getUserByUsername(username);
 
     if (user.authMode() != AuthMode.GOOGLE) {
-      throw new CheckProfileUpdateFailure("This user already has a local password");
+      throw new CheckProfileUpdateFailureException("This user already has a local password");
     }
 
     var updatedUser = new User(

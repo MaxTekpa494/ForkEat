@@ -6,7 +6,7 @@ import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.presentation.dto.user.UserLoginDTO;
 import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
-import fr.uge.forkeat.service.exception.RegisterFailure;
+import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
@@ -27,7 +27,6 @@ import org.springframework.test.web.servlet.MockMvc;
 import java.time.Instant;
 import java.util.UUID;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -91,7 +90,7 @@ class AuthRestControllerTest {
             var dto = new UserRegisterDTO("testuser", "Test", "User", "Password123", "taken@forkeat.fr");
 
             when(userRegistrationService.registerUser(any()))
-                    .thenThrow(new RegisterFailure("Email already exists"));
+                    .thenThrow(new RegisterFailureException("Email already exists"));
 
             mockMvc.perform(post("/api/auth/register")
                             .contentType(MediaType.APPLICATION_JSON)

@@ -32,7 +32,7 @@ public class RecipeWebController {
   public String createRecipe(RecipeDTO recipeDTO ,Model model) {
     Objects.requireNonNull(recipeDTO);
     var recipe = RecipeDTOMapper.toDomain(recipeDTO);
-    var savedRecipe = recipeService.createRecipe(recipe);
+    var savedRecipe = recipeService.createRecipe(recipe, null); // L'image à null pour l'instant
     //model.addAttribute("recipe", RecipeDTOMapper.toDTO(savedRecipe));
     return "redirect:/recipes/" + savedRecipe.id();
   }
