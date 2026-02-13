@@ -59,16 +59,16 @@ public class GlobalWebExceptionHandler {
 		return "error/409";
 	}
 
-	@ExceptionHandler(RegisterFailure.class)
+	@ExceptionHandler(RegisterFailureException.class)
 	@ResponseStatus(HttpStatus.BAD_REQUEST)
-	public String HandleRegisterFailure(RegisterFailure ex, Model model) {
+	public String HandleRegisterFailure(RegisterFailureException ex, Model model) {
 		model.addAttribute("errorMessage", ex.getMessage());
 		model.addAttribute("pageTitle", "Erreur lors de l'inscription");
 		return "layout/register";
 	}
 
-	@ExceptionHandler(CheckProfileUpdateFailure.class)
-	public String HandleUpdatePasswordFailure(CheckProfileUpdateFailure ex, RedirectAttributes redirectAttributes){
+	@ExceptionHandler(CheckProfileUpdateFailureException.class)
+	public String HandleUpdatePasswordFailure(CheckProfileUpdateFailureException ex, RedirectAttributes redirectAttributes){
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
 		return "redirect:/profile";
 	}
@@ -77,6 +77,12 @@ public class GlobalWebExceptionHandler {
 	public String handleVerificationException(VerificationException ex, RedirectAttributes redirectAttributes){
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
 		return "redirect:/profile";
+	}
+
+	@ExceptionHandler(ImageUploadException.class)
+	public String handleImageUploadException(ImageUploadException ex, RedirectAttributes redirectAttributes){
+		redirectAttributes.addFlashAttribute("error", ex.getMessage());
+		return "redirect:/recipes/create";
 	}
 
 }
