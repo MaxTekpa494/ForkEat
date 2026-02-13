@@ -13,6 +13,7 @@ import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
@@ -73,168 +74,187 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
         now = Instant.now();
     }
 
-    @Test
-    void save_shouldPersistRecipeInDatabase() {
-        var recipe = createRecipe(UUID.randomUUID(), "Tarte aux pommes", RecipeStatus.DRAFT);
+    @Nested
+    class Save {
 
-        var saved = adapter.save(recipe);
+        @Test
+        void shouldPersistRecipeInDatabase() {
+            var recipe = createRecipe(UUID.randomUUID(), "Tarte aux pommes", RecipeStatus.DRAFT);
 
-        assertNotNull(saved);
-        assertEquals("Tarte aux pommes", saved.title());
+            var saved = adapter.save(recipe);
 
-        // Verify it's actually in the database
-        var fromDb = recipeRepository.findById(saved.id());
-        assertTrue(fromDb.isPresent());
-        assertEquals("Tarte aux pommes", fromDb.get().getTitle());
+            assertNotNull(saved);
+            assertEquals("Tarte aux pommes", saved.title());
+
+            var fromDb = recipeRepository.findById(saved.id());
+            assertTrue(fromDb.isPresent());
+            assertEquals("Tarte aux pommes", fromDb.get().getTitle());
+        }
+
+        @Test
+        void shouldPersistRecipeWithIngredients() {
+            var ingredient = new IngredientEntity("Farine", "Céréale", false);
+            ingredientRepository.save(ingredient);
+
+            var recipe = new Recipe(
+                    UUID.randomUUID(), "Gateau", "Un bon gateau", null, "chef_integration",
+                    60, null, RecipeStatus.DRAFT,
+                    List.of(new RecipeStep(1, "Melanger")),
+                    List.of(new RecipeIngredient("Farine", 250.0, "g")),
+                    List.of(), Map.of(), now, now
+            );
+
+            var saved = adapter.save(recipe);
+
+            var fromDb = recipeRepository.findById(saved.id());
+            assertTrue(fromDb.isPresent());
+            assertEquals(1, fromDb.get().getIngredients().size());
+            assertEquals("Farine", fromDb.get().getIngredients().getFirst().getIngredient().getName());
+        }
+
+        @Test
+        void shouldPersistRecipeWithAllergens() {
+            var allergen = new AllergenEntity("Gluten", AllergenSeverity.HIGH);
+            var savedAllergen = allergenRepository.save(allergen);
+
+            var recipe = new Recipe(
+                    UUID.randomUUID(), "Pain", "Du bon pain", null, "chef_integration",
+                    120, null, RecipeStatus.DRAFT, List.of(), List.of(),
+                    List.of(new Allergen(savedAllergen.getId(), "Gluten", AllergenSeverity.HIGH)),
+                    Map.of(), now, now
+            );
+
+            var saved = adapter.save(recipe);
+
+            var fromDb = recipeRepository.findById(saved.id());
+            assertTrue(fromDb.isPresent());
+            assertEquals(1, fromDb.get().getAllergens().size());
+            assertEquals("Gluten", fromDb.get().getAllergens().getFirst().getAllergen().getName());
+        }
+
+        @Test
+        void shouldPersistRecipeWithParent() {
+            var parentRecipe = createRecipe(UUID.randomUUID(), "Recette originale", RecipeStatus.PUBLISHED);
+            var savedParent = adapter.save(parentRecipe);
+
+            var variantRecipe = new Recipe(
+                    UUID.randomUUID(), "Variante", "Une variante", savedParent.id(), "chef_integration",
+                    30, null, RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now
+            );
+
+            var savedVariant = adapter.save(variantRecipe);
+
+            assertEquals(savedParent.id(), savedVariant.parentId());
+            assertTrue(savedVariant.isVariant());
+
+            var fromDb = recipeRepository.findById(savedVariant.id());
+            assertTrue(fromDb.isPresent());
+            assertNotNull(fromDb.get().getParent());
+            assertEquals(savedParent.id(), fromDb.get().getParent().getId());
+        }
+
+        @Test
+        void shouldUpdateExistingRecipe() {
+            var recipeId = UUID.randomUUID();
+            var original = createRecipe(recipeId, "Titre original", RecipeStatus.DRAFT);
+            adapter.save(original);
+
+            var updated = new Recipe(
+                    recipeId, "Titre modifie", "Summary modifie", null, "chef_integration",
+                    45, "https://image.com/new.jpg", RecipeStatus.PUBLISHED,
+                    List.of(), List.of(), List.of(), Map.of(), now, now
+            );
+            var result = adapter.save(updated);
+
+            assertEquals("Titre modifie", result.title());
+            assertEquals(RecipeStatus.PUBLISHED, result.status());
+
+            var fromDb = recipeRepository.findById(recipeId);
+            assertTrue(fromDb.isPresent());
+            assertEquals("Titre modifie", fromDb.get().getTitle());
+        }
     }
 
-    @Test
-    void save_shouldPersistRecipeWithIngredients() {
-        var ingredient = new IngredientEntity("Farine", "Céréale", false);
-        ingredientRepository.save(ingredient);
+    @Nested
+    class FindById {
 
-        var recipe = new Recipe(
-                UUID.randomUUID(), "Gateau", "Un bon gateau", null, "chef_integration",
-                60, null, RecipeStatus.DRAFT,
-                List.of(new RecipeStep(1, "Melanger")),
-                List.of(new RecipeIngredient("Farine", 250.0, "g")),
-                List.of(), Map.of(), now, now
-        );
+        @Test
+        void shouldReturnPersistedRecipe() {
+            var recipe = createRecipe(UUID.randomUUID(), "Quiche Lorraine", RecipeStatus.PUBLISHED);
+            var saved = adapter.save(recipe);
 
-        var saved = adapter.save(recipe);
+            var found = adapter.findById(saved.id());
 
-        var fromDb = recipeRepository.findById(saved.id());
-        assertTrue(fromDb.isPresent());
-        assertEquals(1, fromDb.get().getIngredients().size());
-        assertEquals("Farine", fromDb.get().getIngredients().getFirst().getIngredient().getName());
+            assertTrue(found.isPresent());
+            assertEquals("Quiche Lorraine", found.get().title());
+            assertEquals(RecipeStatus.PUBLISHED, found.get().status());
+        }
+
+        @Test
+        void shouldReturnEmptyForNonExistentId() {
+            var found = adapter.findById(UUID.randomUUID());
+
+            assertTrue(found.isEmpty());
+        }
     }
 
-    @Test
-    void save_shouldPersistRecipeWithAllergens() {
-        var allergen = new AllergenEntity("Gluten", AllergenSeverity.HIGH);
-        var savedAllergen = allergenRepository.save(allergen);
+    @Nested
+    class FindByStatus {
 
-        var recipe = new Recipe(
-                UUID.randomUUID(), "Pain", "Du bon pain", null, "chef_integration",
-                120, null, RecipeStatus.DRAFT, List.of(), List.of(),
-                List.of(new Allergen(savedAllergen.getId(), "Gluten", AllergenSeverity.HIGH)),
-                Map.of(), now, now
-        );
+        @Test
+        void shouldReturnOnlyMatchingRecipes() {
+            var initialPublished = adapter.findByStatus(RecipeStatus.PUBLISHED);
+            var initialDrafts = adapter.findByStatus(RecipeStatus.DRAFT);
+            adapter.save(createRecipe(UUID.randomUUID(), "Draft 1", RecipeStatus.DRAFT));
+            adapter.save(createRecipe(UUID.randomUUID(), "Draft 2", RecipeStatus.DRAFT));
+            adapter.save(createRecipe(UUID.randomUUID(), "Published", RecipeStatus.PUBLISHED));
 
-        var saved = adapter.save(recipe);
+            var drafts = adapter.findByStatus(RecipeStatus.DRAFT);
+            var published = adapter.findByStatus(RecipeStatus.PUBLISHED);
 
-        var fromDb = recipeRepository.findById(saved.id());
-        assertTrue(fromDb.isPresent());
-        assertEquals(1, fromDb.get().getAllergens().size());
-        assertEquals("Gluten", fromDb.get().getAllergens().getFirst().getAllergen().getName());
+            assertEquals(initialDrafts.size() + 2, drafts.size());
+            assertTrue(drafts.stream().allMatch(r -> r.status() == RecipeStatus.DRAFT));
+            assertEquals(initialPublished.size() + 1, published.size());
+            assertEquals(RecipeStatus.PUBLISHED, published.getFirst().status());
+        }
     }
 
-    @Test
-    void save_shouldPersistRecipeWithParent() {
-        var parentRecipe = createRecipe(UUID.randomUUID(), "Recette originale", RecipeStatus.PUBLISHED);
-        var savedParent = adapter.save(parentRecipe);
+    @Nested
+    class FindByAuthorId {
 
-        var variantRecipe = new Recipe(
-                UUID.randomUUID(), "Variante", "Une variante", savedParent.id(), "chef_integration",
-                30, null, RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now
-        );
+        @Test
+        void shouldReturnAuthorRecipes() {
+            adapter.save(createRecipe(UUID.randomUUID(), "Recette 1", RecipeStatus.DRAFT));
+            adapter.save(createRecipe(UUID.randomUUID(), "Recette 2", RecipeStatus.PUBLISHED));
 
-        var savedVariant = adapter.save(variantRecipe);
+            var recipes = adapter.findByAuthorId(savedAuthor.getId());
 
-        assertEquals(savedParent.id(), savedVariant.parentId());
-        assertTrue(savedVariant.isVariant());
+            assertEquals(2, recipes.size());
+        }
 
-        var fromDb = recipeRepository.findById(savedVariant.id());
-        assertTrue(fromDb.isPresent());
-        assertNotNull(fromDb.get().getParent());
-        assertEquals(savedParent.id(), fromDb.get().getParent().getId());
+        @Test
+        void shouldReturnEmptyForUnknownAuthor() {
+            adapter.save(createRecipe(UUID.randomUUID(), "Recette", RecipeStatus.DRAFT));
+
+            var recipes = adapter.findByAuthorId(UUID.randomUUID());
+
+            assertTrue(recipes.isEmpty());
+        }
     }
 
-    @Test
-    void findById_shouldReturnPersistedRecipe() {
-        var recipe = createRecipe(UUID.randomUUID(), "Quiche Lorraine", RecipeStatus.PUBLISHED);
-        var saved = adapter.save(recipe);
+    @Nested
+    class DeleteById {
 
-        var found = adapter.findById(saved.id());
+        @Test
+        void shouldRemoveRecipeFromDatabase() {
+            var recipe = createRecipe(UUID.randomUUID(), "A supprimer", RecipeStatus.DRAFT);
+            var saved = adapter.save(recipe);
 
-        assertTrue(found.isPresent());
-        assertEquals("Quiche Lorraine", found.get().title());
-        assertEquals(RecipeStatus.PUBLISHED, found.get().status());
-    }
+            adapter.deleteById(saved.id());
 
-    @Test
-    void findById_shouldReturnEmptyForNonExistentId() {
-        var found = adapter.findById(UUID.randomUUID());
-
-        assertTrue(found.isEmpty());
-    }
-
-    @Test
-    void findByStatus_shouldReturnOnlyMatchingRecipes() {
-        var initialPublished = adapter.findByStatus("PUBLISHED");
-        var initialDrafts = adapter.findByStatus("DRAFT");
-        adapter.save(createRecipe(UUID.randomUUID(), "Draft 1", RecipeStatus.DRAFT));
-        adapter.save(createRecipe(UUID.randomUUID(), "Draft 2", RecipeStatus.DRAFT));
-        adapter.save(createRecipe(UUID.randomUUID(), "Published", RecipeStatus.PUBLISHED));
-
-        var drafts = adapter.findByStatus("DRAFT");
-        var published = adapter.findByStatus("PUBLISHED");
-
-        assertEquals(initialDrafts.size() + 2, drafts.size());
-        assertTrue(drafts.stream().allMatch(r -> r.status() == RecipeStatus.DRAFT));
-        assertEquals(initialPublished.size() + 1, published.size());
-        assertEquals(RecipeStatus.PUBLISHED, published.getFirst().status());
-    }
-
-    @Test
-    void findByAuthorId_shouldReturnAuthorRecipes() {
-        adapter.save(createRecipe(UUID.randomUUID(), "Recette 1", RecipeStatus.DRAFT));
-        adapter.save(createRecipe(UUID.randomUUID(), "Recette 2", RecipeStatus.PUBLISHED));
-
-        var recipes = adapter.findByAuthorId(savedAuthor.getId());
-
-        assertEquals(2, recipes.size());
-    }
-
-    @Test
-    void findByAuthorId_shouldReturnEmptyForUnknownAuthor() {
-        adapter.save(createRecipe(UUID.randomUUID(), "Recette", RecipeStatus.DRAFT));
-
-        var recipes = adapter.findByAuthorId(UUID.randomUUID());
-
-        assertTrue(recipes.isEmpty());
-    }
-
-    @Test
-    void deleteById_shouldRemoveRecipeFromDatabase() {
-        var recipe = createRecipe(UUID.randomUUID(), "A supprimer", RecipeStatus.DRAFT);
-        var saved = adapter.save(recipe);
-
-        adapter.deleteById(saved.id());
-
-        var found = recipeRepository.findById(saved.id());
-        assertTrue(found.isEmpty());
-    }
-
-    @Test
-    void save_shouldUpdateExistingRecipe() {
-        var recipeId = UUID.randomUUID();
-        var original = createRecipe(recipeId, "Titre original", RecipeStatus.DRAFT);
-        adapter.save(original);
-
-        var updated = new Recipe(
-                recipeId, "Titre modifie", "Summary modifie", null, "chef_integration",
-                45, "https://image.com/new.jpg", RecipeStatus.PUBLISHED,
-                List.of(), List.of(), List.of(), Map.of(), now, now
-        );
-        var result = adapter.save(updated);
-
-        assertEquals("Titre modifie", result.title());
-        assertEquals(RecipeStatus.PUBLISHED, result.status());
-
-        var fromDb = recipeRepository.findById(recipeId);
-        assertTrue(fromDb.isPresent());
-        assertEquals("Titre modifie", fromDb.get().getTitle());
+            var found = recipeRepository.findById(saved.id());
+            assertTrue(found.isEmpty());
+        }
     }
 
     private Recipe createRecipe(UUID id, String title, RecipeStatus status) {

@@ -48,29 +48,6 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
             LEFT JOIN ri.ingredient i
             WHERE r.status = :status
             AND (
-                function('ts_match', CONCAT(r.title, ' ', COALESCE(r.summary, '')), :search) = true
-                OR function('ts_match', COALESCE(i.name, ''), :search) = true
-            )
-            GROUP BY r.id
-            ORDER BY
-                CASE
-                    WHEN function('ts_match', r.title, :search) = true THEN 1
-                    ELSE 2
-                END,
-                function('ts_rank', CONCAT(r.title, ' ', COALESCE(r.summary, '')), :search) DESC
-            """)
-    Page<RecipeEntity> findByStatusAndFullTextSearch(
-            @Param("status") RecipeStatus status,
-            @Param("search") String search,
-            Pageable pageable
-    );
-
-    @Query("""
-            SELECT r FROM RecipeEntity r
-            LEFT JOIN r.ingredients ri
-            LEFT JOIN ri.ingredient i
-            WHERE r.status = :status
-            AND (
                 COALESCE(:search, '') = ''
                 OR function('ts_match', CONCAT(r.title, ' ', COALESCE(r.summary, '')), :search) = true
                 OR function('ts_match', COALESCE(i.name, ''), :search) = true
@@ -90,9 +67,10 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
                 CASE
                     WHEN COALESCE(:search, '') != '' THEN function('ts_rank', CONCAT(r.title, ' ', COALESCE(r.summary, '')), :search)
                     ELSE 0
-                END DESC
+                END DESC,
+                r.createdAt DESC
             """)
-    Page<RecipeEntity> findByStatusAndSearchAndAllergens(
+    Page<RecipeEntity> searchRecipes(
             @Param("status") RecipeStatus status,
             @Param("search") String search,
             @Param("allergens") List<String> allergens,

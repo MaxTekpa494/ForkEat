@@ -3,6 +3,8 @@ package fr.uge.forkeat.service.persistence;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Allergen;
 import fr.uge.forkeat.service.model.recipe.Recipe;
+import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
+import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 
 import java.util.List;
 import java.util.Optional;
@@ -12,13 +14,11 @@ public interface RecipePersistence {
 
   Optional<Recipe> findById(UUID id);
 
-  List<Recipe> findByStatus(String status);
+  List<Recipe> findByStatus(RecipeStatus status);
 
-  PageResult<Recipe> findByStatus(String status, int size, int page);
+  PageResult<Recipe> findByStatus(RecipeStatus status, int size, int page);
 
-  PageResult<Recipe> findByStatusAndSearch(String status, String search, int size, int page);
-
-  PageResult<Recipe> findByStatusAndSearchAndAllergens(String status, String search, List<String> allergens, int size, int page);
+  PageResult<Recipe> searchRecipes(RecipeSearchCriteria criteria);
 
   List<Recipe> findByAuthorId(UUID authorId);
 

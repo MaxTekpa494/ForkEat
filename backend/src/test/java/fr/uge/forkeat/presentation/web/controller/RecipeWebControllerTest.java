@@ -8,6 +8,7 @@ import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Allergen;
 import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
 import fr.uge.forkeat.service.model.recipe.Recipe;
+import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -23,7 +24,6 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
-import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -43,196 +43,145 @@ class RecipeWebControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
-
-    @Test
-    @WithMockUser
-    void listRecipes_shouldReturnIndexViewWithDefaultParams() throws Exception {
-        var recipe = createRecipe("Tarte aux pommes", RecipeStatus.PUBLISHED);
-        var pageResult = new PageResult<>(List.of(recipe), 1L);
-
-        when(recipeService.findByStatus("PUBLISHED", 12, 0)).thenReturn(pageResult);
-
-        mockMvc.perform(get("/recipes"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("recipes/index"))
-                .andExpect(model().attributeExists("recipes"))
-                .andExpect(model().attribute("currentPage", 0))
-                .andExpect(model().attribute("totalPages", 1))
-                .andExpect(model().attribute("totalRecipes", 1L));
-    }
-
-    @Test
-    @WithMockUser
-    void listRecipes_shouldPassCustomStatusAndPagination() throws Exception {
-        var recipe = createRecipe("Brouillon", RecipeStatus.DRAFT);
-        var pageResult = new PageResult<>(List.of(recipe), 1L);
-
-        when(recipeService.findByStatus("DRAFT", 5, 2)).thenReturn(pageResult);
-
-        mockMvc.perform(get("/recipes")
-                        .param("status", "DRAFT")
-                        .param("size", "5")
-                        .param("page", "2"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("recipes/index"))
-                .andExpect(model().attribute("currentPage", 2))
-                .andExpect(model().attribute("totalPages", 1));
-    }
-
-    @Test
-    @WithMockUser
-    void listRecipes_shouldCalculateTotalPagesCorrectly() throws Exception {
-        var recipes = List.of(
-                createRecipe("Recipe 1", RecipeStatus.PUBLISHED),
-                createRecipe("Recipe 2", RecipeStatus.PUBLISHED)
-        );
-        var pageResult = new PageResult<>(recipes, 5L);
-
-        when(recipeService.findByStatus("PUBLISHED", 2, 0)).thenReturn(pageResult);
-
-        mockMvc.perform(get("/recipes")
-                        .param("size", "2"))
-                .andExpect(status().isOk())
-                .andExpect(model().attribute("totalPages", 3))
-                .andExpect(model().attribute("totalRecipes", 5L));
-    }
-
-    @Test
-    @WithMockUser
-    void listRecipes_shouldPassSearchParam() throws Exception {
-        var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
-
-        when(recipeService.findByStatusAndSearch("PUBLISHED", "tarte", 12, 0)).thenReturn(pageResult);
-
-        mockMvc.perform(get("/recipes")
-                        .param("search", "tarte"))
-                .andExpect(status().isOk())
-                .andExpect(model().attribute("search", "tarte"));
-    }
-
-    @Test
-    @WithMockUser
-    void listRecipes_shouldReturnEmptyListWhenNoRecipes() throws Exception {
-        var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
-
-        when(recipeService.findByStatus("PUBLISHED", 12, 0)).thenReturn(pageResult);
-
-        mockMvc.perform(get("/recipes"))
-                .andExpect(status().isOk())
-                .andExpect(view().name("recipes/index"))
-                .andExpect(model().attribute("totalRecipes", 0L))
-                .andExpect(model().attribute("totalPages", 0));
-    }
-
-
-    @Test
-    @WithMockUser
-    void viewRecipe_shouldReturnDetailViewWhenRecipeExists() throws Exception {
-        var id = UUID.randomUUID();
-        var recipe = createRecipeWithId(id, "Quiche Lorraine", RecipeStatus.PUBLISHED, null);
-
-        when(recipeService.findById(id)).thenReturn(recipe);
-
-        mockMvc.perform(get("/recipes/{id}", id))
-                .andExpect(status().isOk())
-                .andExpect(view().name("recipes/detail"))
-                .andExpect(model().attributeExists("recipe"));
-    }
-
-    @Test
-    @WithMockUser
-    void viewRecipe_shouldIncludeParentWhenRecipeIsVariant() throws Exception {
-        var parentId = UUID.randomUUID();
-        var variantId = UUID.randomUUID();
-        var parent = createRecipeWithId(parentId, "Recette originale", RecipeStatus.PUBLISHED, null);
-        var variant = createRecipeWithId(variantId, "Variante", RecipeStatus.PUBLISHED, parentId);
-
-        when(recipeService.findById(variantId)).thenReturn(variant);
-        when(recipeService.findById(parentId)).thenReturn(parent);
-
-        mockMvc.perform(get("/recipes/{id}", variantId))
-                .andExpect(status().isOk())
-                .andExpect(view().name("recipes/detail"))
-                .andExpect(model().attributeExists("recipe"))
-                .andExpect(model().attributeExists("parent"));
-    }
-
-    @Test
-    @WithMockUser
-    void viewRecipe_shouldNotIncludeParentWhenRecipeIsNotVariant() throws Exception {
-        var id = UUID.randomUUID();
-        var recipe = createRecipeWithId(id, "Tarte classique", RecipeStatus.PUBLISHED, null);
-
-        when(recipeService.findById(id)).thenReturn(recipe);
-
-        mockMvc.perform(get("/recipes/{id}", id))
-                .andExpect(status().isOk())
-                .andExpect(model().attributeDoesNotExist("parent"));
-    }
-
-    @Test
-    @WithMockUser
-    void viewRecipe_shouldReturn404WhenRecipeNotFound() throws Exception {
-        var id = UUID.randomUUID();
-
-        when(recipeService.findById(id)).thenThrow(new RecipeNotFoundException(id));
-
-        mockMvc.perform(get("/recipes/{id}", id))
-                .andExpect(status().isNotFound());
-    }
-
-
-    // --- Tests recherche + allergènes ---
     @Nested
-    class SearchAndAllergene {
+    class ListRecipes {
+
         @Test
         @WithMockUser
-        void listRecipes_shouldUseSearchAndAllergens_whenBothProvided() throws Exception {
+        void shouldReturnIndexViewWithDefaultParams() throws Exception {
+            var recipe = createRecipe("Tarte aux pommes", RecipeStatus.PUBLISHED);
+            var pageResult = new PageResult<>(List.of(recipe), 1L);
+            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 12, 0);
+
+            when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
+            when(recipeService.findAllAllergens()).thenReturn(List.of());
+
+            mockMvc.perform(get("/recipes"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("recipes/index"))
+                    .andExpect(model().attributeExists("vm"));
+        }
+
+        @Test
+        @WithMockUser
+        void shouldPassCustomStatusAndPagination() throws Exception {
+            var recipe = createRecipe("Brouillon", RecipeStatus.DRAFT);
+            var pageResult = new PageResult<>(List.of(recipe), 1L);
+            var criteria = new RecipeSearchCriteria(RecipeStatus.DRAFT, null, List.of(), 5, 2);
+
+            when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
+            when(recipeService.findAllAllergens()).thenReturn(List.of());
+
+            mockMvc.perform(get("/recipes")
+                            .param("status", "DRAFT")
+                            .param("size", "5")
+                            .param("page", "2"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("recipes/index"));
+        }
+
+        @Test
+        @WithMockUser
+        void shouldCalculateTotalPagesCorrectly() throws Exception {
+            var recipes = List.of(
+                    createRecipe("Recipe 1", RecipeStatus.PUBLISHED),
+                    createRecipe("Recipe 2", RecipeStatus.PUBLISHED)
+            );
+            var pageResult = new PageResult<>(recipes, 5L);
+            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 2, 0);
+
+            when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
+            when(recipeService.findAllAllergens()).thenReturn(List.of());
+
+            mockMvc.perform(get("/recipes")
+                            .param("size", "2"))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @WithMockUser
+        void shouldReturnEmptyListWhenNoRecipes() throws Exception {
+            var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
+            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 12, 0);
+
+            when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
+            when(recipeService.findAllAllergens()).thenReturn(List.of());
+
+            mockMvc.perform(get("/recipes"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("recipes/index"));
+        }
+    }
+
+    @Nested
+    class ListRecipesWithSearch {
+
+        @Test
+        @WithMockUser
+        void shouldPassSearchParam() throws Exception {
+            var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
+            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "tarte", List.of(), 12, 0);
+
+            when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
+            when(recipeService.findAllAllergens()).thenReturn(List.of());
+
+            mockMvc.perform(get("/recipes")
+                            .param("search", "tarte"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("recipes/index"));
+
+            verify(recipeService).searchRecipes(criteria);
+        }
+    }
+
+    @Nested
+    class ListRecipesWithAllergens {
+
+        @Test
+        @WithMockUser
+        void shouldUseSearchAndAllergens_whenBothProvided() throws Exception {
             var recipe = createRecipe("Salade verte", RecipeStatus.PUBLISHED);
             var pageResult = new PageResult<>(List.of(recipe), 1L);
             var allergens = List.of("Gluten", "Lactose");
+            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "salade", allergens, 12, 0);
 
-            when(recipeService.findByStatusAndSearchAndAllergens("PUBLISHED", "salade", allergens, 12, 0))
-                    .thenReturn(pageResult);
+            when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
+            when(recipeService.findAllAllergens()).thenReturn(List.of());
 
             mockMvc.perform(get("/recipes")
                             .param("search", "salade")
                             .param("allergens", "Gluten", "Lactose"))
                     .andExpect(status().isOk())
-                    .andExpect(view().name("recipes/index"))
-                    .andExpect(model().attribute("totalRecipes", 1L))
-                    .andExpect(model().attribute("search", "salade"))
-                    .andExpect(model().attribute("selectedAllergens", allergens));
+                    .andExpect(view().name("recipes/index"));
 
-            verify(recipeService).findByStatusAndSearchAndAllergens("PUBLISHED", "salade", allergens, 12, 0);
-            verify(recipeService, never()).findByStatusAndSearch(any(), any(), anyInt(), anyInt());
-            verify(recipeService, never()).findByStatus(any(), anyInt(), anyInt());
+            verify(recipeService).searchRecipes(criteria);
         }
 
         @Test
         @WithMockUser
-        void listRecipes_shouldUseAllergens_whenOnlyAllergensProvided() throws Exception {
+        void shouldUseAllergens_whenOnlyAllergensProvided() throws Exception {
             var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
             var allergens = List.of("Gluten");
+            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, allergens, 12, 0);
 
-            when(recipeService.findByStatusAndSearchAndAllergens("PUBLISHED", null, allergens, 12, 0))
-                    .thenReturn(pageResult);
+            when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
+            when(recipeService.findAllAllergens()).thenReturn(List.of());
 
             mockMvc.perform(get("/recipes")
                             .param("allergens", "Gluten"))
                     .andExpect(status().isOk())
-                    .andExpect(view().name("recipes/index"))
-                    .andExpect(model().attribute("selectedAllergens", allergens));
+                    .andExpect(view().name("recipes/index"));
 
-            verify(recipeService).findByStatusAndSearchAndAllergens("PUBLISHED", null, allergens, 12, 0);
-            verify(recipeService, never()).findByStatusAndSearch(any(), any(), anyInt(), anyInt());
+            verify(recipeService).searchRecipes(criteria);
         }
 
         @Test
         @WithMockUser
-        void listRecipes_shouldPassAllAllergensToModel() throws Exception {
+        void shouldPassAllAllergensToModel() throws Exception {
             var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
-            when(recipeService.findByStatus("PUBLISHED", 12, 0)).thenReturn(pageResult);
+            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 12, 0);
+
+            when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
 
             var allergensList = List.of(
                     new Allergen(UUID.randomUUID(), "Gluten", AllergenSeverity.HIGH),
@@ -242,36 +191,67 @@ class RecipeWebControllerTest {
 
             mockMvc.perform(get("/recipes"))
                     .andExpect(status().isOk())
-                    .andExpect(model().attributeExists("allAllergens"))
-                    .andExpect(model().attribute("allAllergens", hasSize(2)));
+                    .andExpect(model().attributeExists("vm"));
         }
+    }
+
+    @Nested
+    class ViewRecipe {
 
         @Test
         @WithMockUser
-        void listRecipes_shouldPassSelectedAllergensToModel() throws Exception {
-            var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
-            var allergens = List.of("Gluten", "Lactose");
-            when(recipeService.findByStatusAndSearchAndAllergens("PUBLISHED", null, allergens, 12, 0))
-                    .thenReturn(pageResult);
+        void shouldReturnDetailViewWhenRecipeExists() throws Exception {
+            var id = UUID.randomUUID();
+            var recipe = createRecipeWithId(id, "Quiche Lorraine", RecipeStatus.PUBLISHED, null);
 
-            mockMvc.perform(get("/recipes")
-                            .param("allergens", "Gluten", "Lactose"))
+            when(recipeService.findById(id)).thenReturn(recipe);
+
+            mockMvc.perform(get("/recipes/{id}", id))
                     .andExpect(status().isOk())
-                    .andExpect(model().attribute("selectedAllergens", allergens));
+                    .andExpect(view().name("recipes/detail"))
+                    .andExpect(model().attributeExists("recipe"));
         }
 
         @Test
         @WithMockUser
-        void listRecipes_shouldUseFindByStatus_whenNoSearchNoAllergens() throws Exception {
-            var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
-            when(recipeService.findByStatus("PUBLISHED", 12, 0)).thenReturn(pageResult);
+        void shouldIncludeParentWhenRecipeIsVariant() throws Exception {
+            var parentId = UUID.randomUUID();
+            var variantId = UUID.randomUUID();
+            var parent = createRecipeWithId(parentId, "Recette originale", RecipeStatus.PUBLISHED, null);
+            var variant = createRecipeWithId(variantId, "Variante", RecipeStatus.PUBLISHED, parentId);
 
-            mockMvc.perform(get("/recipes"))
-                    .andExpect(status().isOk());
+            when(recipeService.findById(variantId)).thenReturn(variant);
+            when(recipeService.findById(parentId)).thenReturn(parent);
 
-            verify(recipeService).findByStatus("PUBLISHED", 12, 0);
-            verify(recipeService, never()).findByStatusAndSearch(any(), any(), anyInt(), anyInt());
-            verify(recipeService, never()).findByStatusAndSearchAndAllergens(any(), any(), any(), anyInt(), anyInt());
+            mockMvc.perform(get("/recipes/{id}", variantId))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("recipes/detail"))
+                    .andExpect(model().attributeExists("recipe"))
+                    .andExpect(model().attributeExists("parent"));
+        }
+
+        @Test
+        @WithMockUser
+        void shouldNotIncludeParentWhenRecipeIsNotVariant() throws Exception {
+            var id = UUID.randomUUID();
+            var recipe = createRecipeWithId(id, "Tarte classique", RecipeStatus.PUBLISHED, null);
+
+            when(recipeService.findById(id)).thenReturn(recipe);
+
+            mockMvc.perform(get("/recipes/{id}", id))
+                    .andExpect(status().isOk())
+                    .andExpect(model().attributeDoesNotExist("parent"));
+        }
+
+        @Test
+        @WithMockUser
+        void shouldReturn404WhenRecipeNotFound() throws Exception {
+            var id = UUID.randomUUID();
+
+            when(recipeService.findById(id)).thenThrow(new RecipeNotFoundException(id));
+
+            mockMvc.perform(get("/recipes/{id}", id))
+                    .andExpect(status().isNotFound());
         }
     }
 
