@@ -1,18 +1,18 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
+import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
+import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.RecipeService;
-import fr.uge.forkeat.service.model.PageResult;
-import fr.uge.forkeat.service.model.recipe.Recipe;
+import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
+import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-import java.util.logging.Logger;
 
 @Controller
 @RequestMapping("/recipes")
@@ -37,48 +37,32 @@ public class RecipeWebController {
     return "redirect:/recipes/" + savedRecipe.id();
   }
 
-
-
   @GetMapping
-  public String listRecipes( // On peut faire un DTO ici @Max
-      @RequestParam(name = "status", defaultValue = "PUBLISHED") String status,
-      @RequestParam(name = "size", defaultValue = "12") int size,
-      @RequestParam(name = "page", defaultValue = "0") int page,
-      @RequestParam(name = "search", required = false) String search,
-      @RequestParam(name = "allergens", required = false) List<String> allergens,
-      Model model) {
-
-    // UN CONTROLEUR VRAIMENT !!!!!!!!!!!
-    PageResult<Recipe> pageResult;
-    if (allergens != null && !allergens.isEmpty()) {
-      pageResult = recipeService.findByStatusAndSearchAndAllergens(status, search, allergens, size, page);
-    } else if (search != null && !search.isBlank()) {
-      pageResult = recipeService.findByStatusAndSearch(status, search, size, page);
-    } else {
-      pageResult = recipeService.findByStatus(status, size, page);
-    }
-    
+  public String listRecipes(RecipeSearchDTO form, Model model) {
+    var criteria = new RecipeSearchCriteria(
+            RecipeStatus.valueOf(form.getStatus()), form.getSearch(), form.getAllergens(), form.getSize(), form.getPage());
+    var pageResult = recipeService.searchRecipes(criteria);
     var recipes = pageResult.items().stream()
         .map(RecipeDTOMapper::toDTO)
         .toList();
-
     var allAllergens = recipeService.findAllAllergens().stream()
             .map(RecipeDTOMapper::toDTO)
             .toList();
-
-    model.addAttribute("recipes", recipes);
-    model.addAttribute("currentPage", page);
-    model.addAttribute("totalPages", (int) Math.ceil((double) pageResult.total() / size));
-    model.addAttribute("totalRecipes", pageResult.total());
-    model.addAttribute("search", search);
-    model.addAttribute("selectedAllergens", allergens);
-    model.addAttribute("allAllergens", allAllergens);
-
+    var viewModel = new RecipeListViewModel(
+            recipes,
+            form.getPage(),
+            (int) Math.ceil((double) pageResult.total() / form.getSize()),
+            pageResult.total(),
+            form.getSearch(),
+            form.getAllergens(),
+            allAllergens
+    );
+    model.addAttribute("vm", viewModel);
     return "recipes/index";
   }
 
   @GetMapping("/{id}")
-  public String viewRecipe(@PathVariable("id") UUID id, Model model) {
+  public String viewRecipe(@PathVariable UUID id, Model model) {
     Objects.requireNonNull(id);
     var recipe = recipeService.findById(id);
     var recipeDTO = RecipeDTOMapper.toDTO(recipe);

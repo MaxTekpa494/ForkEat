@@ -1,7 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeEntityMapper;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.AllergenRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientRepository;
@@ -11,6 +10,7 @@ import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Allergen;
 import fr.uge.forkeat.service.model.recipe.Recipe;
 import fr.uge.forkeat.service.model.recipe.RecipeIngredient;
+import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import org.springframework.data.domain.PageRequest;
@@ -30,33 +30,31 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
   public RecipePersistenceAdapter(RecipeRepository recipeRepository, UserRepository userRepository,
                                   AllergenRepository allergenRepository, IngredientRepository ingredientRepository
   ) {
-    this.recipeRepository = Objects.requireNonNull(recipeRepository); // Est-ce qu'on doit mettre les required non null
-    this.userRepository = Objects.requireNonNull(userRepository);
-    this.allergenRepository = Objects.requireNonNull(allergenRepository);
-    this.ingredientRepository = Objects.requireNonNull(ingredientRepository);
+    this.recipeRepository = recipeRepository;
+    this.userRepository = userRepository;
+    this.allergenRepository = allergenRepository;
+    this.ingredientRepository = ingredientRepository;
   }
-
 
   @Override
   public Optional<Recipe> findById(UUID id) {
-    Objects.requireNonNull(id); // ??? Voir si on fait les requireNonNull
+    Objects.requireNonNull(id);
     return recipeRepository.findById(id).map(RecipeEntityMapper::toDomain);
   }
 
   @Override
-  public List<Recipe> findByStatus(String status) {
-    // Objects.requireNonNull(status) ???
-    return recipeRepository.findByStatus(RecipeStatus.valueOf(status)) // Ici faudra voir comment postgresql fait la conversion
+  public List<Recipe> findByStatus(RecipeStatus status) {
+    return recipeRepository.findByStatus(status)
             .stream()
             .map(RecipeEntityMapper::toDomain)
             .toList();
   }
 
   @Override
-  public PageResult<Recipe> findByStatus(String status, int size, int page) {
+  public PageResult<Recipe> findByStatus(RecipeStatus status, int size, int page) {
     Objects.requireNonNull(status);
     var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-    var pageResult = recipeRepository.findByStatus(RecipeStatus.valueOf(status), pageable);
+    var pageResult = recipeRepository.findByStatus(status, pageable);
     var recipes = pageResult.getContent().stream()
             .map(RecipeEntityMapper::toDomain)
             .toList();
@@ -64,23 +62,10 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
   }
 
   @Override
-  public PageResult<Recipe> findByStatusAndSearch(String status, String search, int size, int page) {
-    Objects.requireNonNull(status);
-    Objects.requireNonNull(search);
-    var pageable = PageRequest.of(page, size);
-    var pageResult = recipeRepository.findByStatusAndFullTextSearch(RecipeStatus.valueOf(status), search, pageable);
-    var recipes = pageResult.getContent().stream()
-            .map(RecipeEntityMapper::toDomain)
-            .toList();
-    return new PageResult<>(recipes, pageResult.getTotalElements());
-  }
-
-  @Override
-  public PageResult<Recipe> findByStatusAndSearchAndAllergens(String status, String search, List<String> allergens, int size, int page) {
-    Objects.requireNonNull(status);
-    Objects.requireNonNull(allergens);
-    var pageable = PageRequest.of(page, size);
-    var pageResult = recipeRepository.findByStatusAndSearchAndAllergens(RecipeStatus.valueOf(status), search, allergens, pageable);
+  public PageResult<Recipe> searchRecipes(RecipeSearchCriteria criteria) {
+    Objects.requireNonNull(criteria);
+    var pageable = PageRequest.of(criteria.page(), criteria.size());
+    var pageResult = recipeRepository.searchRecipes(criteria.status(), criteria.search(), criteria.allergens(), pageable);
     var recipes = pageResult.getContent().stream()
             .map(RecipeEntityMapper::toDomain)
             .toList();

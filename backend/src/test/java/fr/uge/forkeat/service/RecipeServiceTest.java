@@ -5,6 +5,7 @@ import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Allergen;
 import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
 import fr.uge.forkeat.service.model.recipe.Recipe;
+import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import org.junit.jupiter.api.BeforeEach;
@@ -38,152 +39,152 @@ class RecipeServiceTest {
         now = Instant.now();
     }
 
-    // CE TEST N'EST PLUS PERTINENT CAR AVANT ON FAISAIT LES
-    // REQUIRENONNULL MAIS ON EN A PLUS BESION.
-//    @Test
-//    void constructor_shouldThrowWhenPersistenceIsNull() {
-//        assertThrows(NullPointerException.class, () -> new RecipeService(null));
-//    }
+    @Nested
+    class FindById {
 
-    @Test
-    void findById_shouldReturnRecipeWhenFound() {
-        var recipeId = UUID.randomUUID();
-        var recipe = createRecipe(recipeId, "Tarte aux pommes", RecipeStatus.PUBLISHED);
-        when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
+        @Test
+        void shouldReturnRecipeWhenFound() {
+            var recipeId = UUID.randomUUID();
+            var recipe = createRecipe(recipeId, "Tarte aux pommes", RecipeStatus.PUBLISHED);
+            when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
 
-        var result = recipeService.findById(recipeId);
+            var result = recipeService.findById(recipeId);
 
-        assertNotNull(result);
-        assertEquals(recipeId, result.id());
-        assertEquals("Tarte aux pommes", result.title());
-        verify(recipePersistence).findById(recipeId);
-    }
+            assertNotNull(result);
+            assertEquals(recipeId, result.id());
+            assertEquals("Tarte aux pommes", result.title());
+            verify(recipePersistence).findById(recipeId);
+        }
 
-    @Test
-    void findById_shouldThrowRecipeNotFoundExceptionWhenNotFound() {
-        var recipeId = UUID.randomUUID();
-        when(recipePersistence.findById(recipeId)).thenReturn(Optional.empty());
+        @Test
+        void shouldThrowRecipeNotFoundExceptionWhenNotFound() {
+            var recipeId = UUID.randomUUID();
+            when(recipePersistence.findById(recipeId)).thenReturn(Optional.empty());
 
-        var exception = assertThrows(RecipeNotFoundException.class,
-                () -> recipeService.findById(recipeId));
+            var exception = assertThrows(RecipeNotFoundException.class,
+                    () -> recipeService.findById(recipeId));
 
-        assertEquals(recipeId, exception.getRecipeId());
-        verify(recipePersistence).findById(recipeId);
-    }
-
-    @Test
-    void findByStatus_shouldReturnRecipesWithMatchingStatus() {
-        var recipe1 = createRecipe(UUID.randomUUID(), "Recette 1", RecipeStatus.PUBLISHED);
-        var recipe2 = createRecipe(UUID.randomUUID(), "Recette 2", RecipeStatus.PUBLISHED);
-        when(recipePersistence.findByStatus("PUBLISHED")).thenReturn(List.of(recipe1, recipe2));
-
-        var result = recipeService.findByStatus("PUBLISHED");
-
-        assertEquals(2, result.size());
-        assertTrue(result.stream().allMatch(r -> r.status() == RecipeStatus.PUBLISHED));
-        verify(recipePersistence).findByStatus("PUBLISHED");
-    }
-
-    @Test
-    void findByStatus_shouldReturnEmptyListWhenNoRecipesMatch() {
-        when(recipePersistence.findByStatus("DRAFT")).thenReturn(List.of());
-
-        var result = recipeService.findByStatus("DRAFT");
-
-        assertTrue(result.isEmpty());
-        verify(recipePersistence).findByStatus("DRAFT");
-    }
-
-    @Test
-    void findByStatus_shouldReturnDraftRecipes() {
-        var draftRecipe = createRecipe(UUID.randomUUID(), "Brouillon", RecipeStatus.DRAFT);
-        when(recipePersistence.findByStatus("DRAFT")).thenReturn(List.of(draftRecipe));
-
-        var result = recipeService.findByStatus("DRAFT");
-
-        assertEquals(1, result.size());
-        assertEquals(RecipeStatus.DRAFT, result.getFirst().status());
+            assertEquals(recipeId, exception.getRecipeId());
+            verify(recipePersistence).findById(recipeId);
+        }
     }
 
     @Nested
-    class Search {
+    class FindByStatus {
+
         @Test
-        void findByStatusAndSearch_shouldDelegateToPersistence() {
+        void shouldReturnRecipesWithMatchingStatus() {
+            var recipe1 = createRecipe(UUID.randomUUID(), "Recette 1", RecipeStatus.PUBLISHED);
+            var recipe2 = createRecipe(UUID.randomUUID(), "Recette 2", RecipeStatus.PUBLISHED);
+            when(recipePersistence.findByStatus(RecipeStatus.PUBLISHED)).thenReturn(List.of(recipe1, recipe2));
+
+            var result = recipeService.findByStatus(RecipeStatus.PUBLISHED);
+
+            assertEquals(2, result.size());
+            assertTrue(result.stream().allMatch(r -> r.status() == RecipeStatus.PUBLISHED));
+            verify(recipePersistence).findByStatus(RecipeStatus.PUBLISHED);
+        }
+
+        @Test
+        void shouldReturnEmptyListWhenNoRecipesMatch() {
+            when(recipePersistence.findByStatus(RecipeStatus.DRAFT)).thenReturn(List.of());
+
+            var result = recipeService.findByStatus(RecipeStatus.DRAFT);
+
+            assertTrue(result.isEmpty());
+            verify(recipePersistence).findByStatus(RecipeStatus.DRAFT);
+        }
+
+        @Test
+        void shouldReturnDraftRecipes() {
+            var draftRecipe = createRecipe(UUID.randomUUID(), "Brouillon", RecipeStatus.DRAFT);
+            when(recipePersistence.findByStatus(RecipeStatus.DRAFT)).thenReturn(List.of(draftRecipe));
+
+            var result = recipeService.findByStatus(RecipeStatus.DRAFT);
+
+            assertEquals(1, result.size());
+            assertEquals(RecipeStatus.DRAFT, result.getFirst().status());
+        }
+    }
+
+    @Nested
+    class SearchRecipes {
+
+        @Test
+        void shouldDelegateToPersistence() {
             var recipe = createRecipe(UUID.randomUUID(), "Tarte", RecipeStatus.PUBLISHED);
             var pageResult = new PageResult<>(List.of(recipe), 1L);
-            when(recipePersistence.findByStatusAndSearch("PUBLISHED", "tarte", 12, 0)).thenReturn(pageResult);
+            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "tarte", List.of(), 12, 0);
+            when(recipePersistence.searchRecipes(criteria)).thenReturn(pageResult);
 
-            var result = recipeService.findByStatusAndSearch("PUBLISHED", "tarte", 12, 0);
+            var result = recipeService.searchRecipes(criteria);
 
             assertEquals(1, result.items().size());
             assertEquals("Tarte", result.items().getFirst().title());
-            verify(recipePersistence).findByStatusAndSearch("PUBLISHED", "tarte", 12, 0);
+            verify(recipePersistence).searchRecipes(criteria);
         }
 
         @Test
-        void findByStatusAndSearch_shouldThrowWhenStatusIsNull() {
+        void shouldThrowWhenCriteriaIsNull() {
             assertThrows(NullPointerException.class,
-                    () -> recipeService.findByStatusAndSearch(null, "tarte", 12, 0));
+                    () -> recipeService.searchRecipes(null));
         }
 
         @Test
-        void findByStatusAndSearch_shouldThrowWhenSearchIsNull() {
-            assertThrows(NullPointerException.class,
-                    () -> recipeService.findByStatusAndSearch("PUBLISHED", null, 12, 0));
-        }
-
-        @Test
-        void findByStatusAndSearchAndAllergens_shouldDelegateToPersistence() {
+        void shouldWorkWithAllergens() {
             var recipe = createRecipe(UUID.randomUUID(), "Salade", RecipeStatus.PUBLISHED);
             var pageResult = new PageResult<>(List.of(recipe), 1L);
             var allergens = List.of("Gluten", "Lactose");
-            when(recipePersistence.findByStatusAndSearchAndAllergens("PUBLISHED", "salade", allergens, 12, 0))
-                    .thenReturn(pageResult);
+            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "salade", allergens, 12, 0);
+            when(recipePersistence.searchRecipes(criteria)).thenReturn(pageResult);
 
-            var result = recipeService.findByStatusAndSearchAndAllergens("PUBLISHED", "salade", allergens, 12, 0);
+            var result = recipeService.searchRecipes(criteria);
 
             assertEquals(1, result.items().size());
-            verify(recipePersistence).findByStatusAndSearchAndAllergens("PUBLISHED", "salade", allergens, 12, 0);
+            verify(recipePersistence).searchRecipes(criteria);
         }
 
         @Test
-        void findByStatusAndSearchAndAllergens_shouldThrowWhenStatusIsNull() {
-            assertThrows(NullPointerException.class,
-                    () -> recipeService.findByStatusAndSearchAndAllergens(null, "test", List.of("Gluten"), 12, 0));
+        void shouldWorkWithNullSearch() {
+            var recipe = createRecipe(UUID.randomUUID(), "Recette", RecipeStatus.PUBLISHED);
+            var pageResult = new PageResult<>(List.of(recipe), 1L);
+            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 12, 0);
+            when(recipePersistence.searchRecipes(criteria)).thenReturn(pageResult);
+
+            var result = recipeService.searchRecipes(criteria);
+
+            assertEquals(1, result.items().size());
+            verify(recipePersistence).searchRecipes(criteria);
+        }
+    }
+
+    @Nested
+    class FindAllAllergens {
+
+        @Test
+        void shouldDelegateToPersistence() {
+            var allergens = List.of(
+                    new Allergen(UUID.randomUUID(), "Gluten", AllergenSeverity.HIGH),
+                    new Allergen(UUID.randomUUID(), "Lactose", AllergenSeverity.MEDIUM)
+            );
+            when(recipePersistence.findAllAllergens()).thenReturn(allergens);
+
+            var result = recipeService.findAllAllergens();
+
+            assertEquals(2, result.size());
+            assertEquals("Gluten", result.getFirst().name());
+            verify(recipePersistence).findAllAllergens();
         }
 
         @Test
-        void findByStatusAndSearchAndAllergens_shouldThrowWhenAllergensIsNull() {
-            assertThrows(NullPointerException.class,
-                    () -> recipeService.findByStatusAndSearchAndAllergens("PUBLISHED", "test", null, 12, 0));
+        void shouldReturnEmptyListWhenNone() {
+            when(recipePersistence.findAllAllergens()).thenReturn(List.of());
+
+            var result = recipeService.findAllAllergens();
+
+            assertTrue(result.isEmpty());
+            verify(recipePersistence).findAllAllergens();
         }
-    }
-
-    // --- Tests findAllAllergens ---
-
-    @Test
-    void findAllAllergens_shouldDelegateToPersistence() {
-        var allergens = List.of(
-                new Allergen(UUID.randomUUID(), "Gluten", AllergenSeverity.HIGH),
-                new Allergen(UUID.randomUUID(), "Lactose", AllergenSeverity.MEDIUM)
-        );
-        when(recipePersistence.findAllAllergens()).thenReturn(allergens);
-
-        var result = recipeService.findAllAllergens();
-
-        assertEquals(2, result.size());
-        assertEquals("Gluten", result.getFirst().name());
-        verify(recipePersistence).findAllAllergens();
-    }
-
-    @Test
-    void findAllAllergens_shouldReturnEmptyListWhenNone() {
-        when(recipePersistence.findAllAllergens()).thenReturn(List.of());
-
-        var result = recipeService.findAllAllergens();
-
-        assertTrue(result.isEmpty());
-        verify(recipePersistence).findAllAllergens();
     }
 
     private Recipe createRecipe(UUID id, String title, RecipeStatus status) {

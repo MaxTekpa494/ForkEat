@@ -4,6 +4,8 @@ import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Allergen;
 import fr.uge.forkeat.service.model.recipe.Recipe;
+import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
+import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -26,25 +28,21 @@ public class RecipeService {
             .orElseThrow(() -> new RecipeNotFoundException(id));
   }
 
-  public List<Recipe> findByStatus(String status) {
+  public List<Recipe> findByStatus(RecipeStatus status) {
     return recipePersistence.findByStatus(status);
   }
 
-  public PageResult<Recipe> findByStatus(String status, int size, int page) {
+  public PageResult<Recipe> findByStatus(RecipeStatus status, int size, int page) {
     Objects.requireNonNull(status);
+    if (size <= 0 || page < 0) {
+      throw new IllegalArgumentException("Invalid page or size");
+    }
     return recipePersistence.findByStatus(status, size, page);
   }
 
-  public PageResult<Recipe> findByStatusAndSearch(String status, String search, int size, int page) {
-    Objects.requireNonNull(status);
-    Objects.requireNonNull(search);
-    return recipePersistence.findByStatusAndSearch(status, search, size, page);
-  }
-
-  public PageResult<Recipe> findByStatusAndSearchAndAllergens(String status, String search, List<String> allergens, int size, int page) {
-    Objects.requireNonNull(allergens);
-    Objects.requireNonNull(status);
-    return recipePersistence.findByStatusAndSearchAndAllergens(status, search, allergens, size, page);
+  public PageResult<Recipe> searchRecipes(RecipeSearchCriteria criteria) {
+    Objects.requireNonNull(criteria);
+    return recipePersistence.searchRecipes(criteria);
   }
 
   public List<Allergen> findAllAllergens() {
