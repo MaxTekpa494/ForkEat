@@ -41,8 +41,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -68,6 +66,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
+import androidx.navigation.compose.rememberNavController
 import fr.uge.android.forkeat.designsystem.theme.Gray100
 import fr.uge.android.forkeat.designsystem.theme.Gray500
 import fr.uge.android.forkeat.designsystem.theme.Orange50
@@ -87,11 +86,11 @@ import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToLogin: () -> Unit = {},
+    navController: NavHostController,
     onNavigateToExplore: () -> Unit = {},
 ) {
-    Scaffold(
-        topBar = { ForkEatTopBar(onNavigateToLogin = onNavigateToLogin, onNavigateToRegister = onNavigateToExplore) },
+    ForkEatScaffold(
+      navController = navController
     ) { paddingValues ->
         Column(
             modifier = Modifier
@@ -100,7 +99,7 @@ fun HomeScreen(
                 .padding(paddingValues)
         ) {
             HeroSection(
-                onCommencerClick = onNavigateToLogin,
+                onCommencerClick = { navController.navigate("login") },
                 onExplorerClick = onNavigateToExplore,
             )
             FeaturesSection()
@@ -115,8 +114,6 @@ fun HomeScreen(
 @Composable
 private fun ForkEatTopBar(
     onNavigateToLogin: () -> Unit,
-    showSearchIcon: Boolean = false,
-    onSearchIconClick: (() -> Unit)? = null,
     onNavigateToRegister: () -> Unit
 
 ) {
@@ -155,11 +152,6 @@ private fun ForkEatTopBar(
             }
         },
         actions = {
-            if (showSearchIcon) {
-                IconButton(onClick = { onSearchIconClick?.invoke() }) {
-                    Icon(Icons.Default.Search, contentDescription = "Rechercher", tint = Secondary800)
-                }
-            }
             IconButton(onClick = { menuExpanded = !menuExpanded }) {
                 Icon(
                     imageVector = if (menuExpanded) Icons.Default.Close else Icons.Default.Menu,
@@ -508,10 +500,7 @@ private fun Footer() {
 @Composable
 fun ForkEatScaffold(
     navController: NavHostController? = null,
-    title: String = "ForkEat",
-    content: @Composable (PaddingValues) -> Unit,
-    showSearchIcon: Boolean = false,
-    onSearchIconClick: (() -> Unit)? = null
+    content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
         topBar = {
@@ -520,15 +509,11 @@ fun ForkEatScaffold(
                     navController?.navigate("login")
                 },
                 onNavigateToRegister = {
-                    navController?.navigate("explore")
+                    navController?.navigate("register")
                 },
-                showSearchIcon = showSearchIcon,
-                onSearchIconClick = onSearchIconClick
             )
         }
-    ) { paddingValues ->
-        content(paddingValues)
-    }
+    ) { paddingValues -> content(paddingValues) }
 }
 
 
@@ -537,5 +522,5 @@ fun ForkEatScaffold(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun HomeScreenPreview() {
-    HomeScreen()
+    HomeScreen(navController = rememberNavController())
 }
