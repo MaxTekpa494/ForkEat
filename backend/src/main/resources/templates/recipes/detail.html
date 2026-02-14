@@ -37,27 +37,43 @@
                 <div class="p-8">
                     <h1 class="font-display font-bold text-3xl md:text-4xl text-secondary-900 mb-4"
                         th:text="${recipe.title}">Titre de la recette</h1>
+                    <form th:action="${hasLiked} ? @{/recipes/{id}/unlike(id=${recipe.id})} : @{/recipes/{id}/like(id=${recipe.id})}" method="post">
+                        <button
+                            class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 text-sm font-semibold cursor-pointer transition-all duration-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50"
+                    th:classappend="${hasLiked == true} ? ' border-red-500 text-red-500 bg-red-50 liked' : ''"
+                    th:attr="data-recipe-id=${recipe.id}"
+                    aria-label="J'aime cette recette">
+                        <!--onclick="toggleLike(this)"-->
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                     viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"
+                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                     class="transition-transform duration-200">
+                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                </svg>
+                <span th:text="${nbLike ?: 0}">0</span>
+            </button>
+                    </form>
 
-                    <div class="flex items-center space-x-6 text-secondary-500 mb-6">
-                        <div class="flex items-center space-x-2">
-                            <div class="w-8 h-8 bg-secondary-800 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                                <span th:text="${#strings.toUpperCase(#strings.substring(recipe.username, 0, 1))}">U</span>
-                            </div>
-                            <span class="text-sm font-medium" th:text="${recipe.username}">Utilisateur</span>
-                        </div>
-                        <span class="text-sm">
-                            <i class="fas fa-clock mr-1 text-primary-500"></i>
-                            <span th:text="${recipe.preparationMinutes + ' min'}">30 min</span>
-                        </span>
+            <div class="flex items-center space-x-6 text-secondary-500 mb-6">
+                <div class="flex items-center space-x-2">
+                    <div class="w-8 h-8 bg-secondary-800 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                        <span th:text="${#strings.toUpperCase(#strings.substring(recipe.username, 0, 1))}">U</span>
                     </div>
+                    <span class="text-sm font-medium" th:text="${recipe.username}">Utilisateur</span>
+                </div>
+                <span class="text-sm">
+                    <i class="fas fa-clock mr-1 text-primary-500"></i>
+                    <span th:text="${recipe.preparationMinutes + ' min'}">30 min</span>
+                </span>
+            </div>
 
-                    <p th:if="${recipe.summary != null and !recipe.summary.isEmpty()}"
-                       class="text-secondary-600 text-lg mb-8"
-                       th:text="${recipe.summary}">
-                        Description de la recette
-                    </p>
+            <p th:if="${recipe.summary != null and !recipe.summary.isEmpty()}"
+               class="text-secondary-600 text-lg mb-8"
+               th:text="${recipe.summary}">
+                Description de la recette
+            </p>
 
-                    <!-- Allergènes -->
+            <!-- Allergènes -->
                     <div th:if="${!recipe.allergens.isEmpty()}" class="mb-8">
                         <h2 class="font-display font-bold text-xl text-secondary-900 mb-4">
                             <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>Allergènes

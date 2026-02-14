@@ -18,8 +18,8 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
 
     @Query("""
             MATCH (r:Recipe {id: $recipeId})
-            OPTIONAL MATCH (r)<-[:LIKED]-()
-            RETURN count(*) AS nbLike
+            OPTIONAL MATCH (r)<-[l:LIKED]-()
+            RETURN count(l)
             """)
     long nbLike(@Param("recipeId") UUID recipeId);
 }

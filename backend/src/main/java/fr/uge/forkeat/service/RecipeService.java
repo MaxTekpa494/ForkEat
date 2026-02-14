@@ -53,4 +53,9 @@ public class RecipeService {
     return recipePersistence.save(recipe);
   }
 
+  public long nbLike(UUID recipeId){
+      return this.recipePersistence.nbLike(recipeId);
+
+  }
+
 }

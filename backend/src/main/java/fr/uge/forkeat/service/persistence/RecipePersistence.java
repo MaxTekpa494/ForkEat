@@ -28,4 +28,5 @@ public interface RecipePersistence {
 
   void deleteById(UUID id);
 
+  long nbLike(UUID recipeId);
 }

@@ -1,6 +1,7 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeEntityMapper;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.AllergenRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientRepository;
@@ -26,14 +27,17 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
   private final UserRepository userRepository;
   private final AllergenRepository allergenRepository;
   private final IngredientRepository ingredientRepository;
+  private final Neo4jRecipeRepository neo4jRecipeRepository;
 
   public RecipePersistenceAdapter(RecipeRepository recipeRepository, UserRepository userRepository,
                                   AllergenRepository allergenRepository, IngredientRepository ingredientRepository
+                                  ,Neo4jRecipeRepository neo4jRecipeRepository
   ) {
     this.recipeRepository = recipeRepository;
     this.userRepository = userRepository;
     this.allergenRepository = allergenRepository;
     this.ingredientRepository = ingredientRepository;
+    this.neo4jRecipeRepository = neo4jRecipeRepository;
   }
 
   @Override
@@ -122,4 +126,9 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
   public void deleteById(UUID id) {
     recipeRepository.deleteById(id);
   }
+
+    @Override
+    public long nbLike(UUID recipeId) {
+        return neo4jRecipeRepository.nbLike(recipeId);
+    }
 }

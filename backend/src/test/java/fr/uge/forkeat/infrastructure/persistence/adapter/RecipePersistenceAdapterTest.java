@@ -1,5 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
+import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
@@ -50,6 +51,9 @@ class RecipePersistenceAdapterTest {
     private AllergenRepository allergenRepository;
 
     @Mock
+    private Neo4jRecipeRepository neo4jRecipeRepository;
+
+    @Mock
     private IngredientRepository ingredientRepository;
 
     private RecipePersistenceAdapter adapter;
@@ -58,7 +62,7 @@ class RecipePersistenceAdapterTest {
 
     @BeforeEach
     void setUp() {
-        adapter = new RecipePersistenceAdapter(recipeRepository, userRepository, allergenRepository, ingredientRepository);
+        adapter = new RecipePersistenceAdapter(recipeRepository, userRepository, allergenRepository, ingredientRepository, neo4jRecipeRepository);
         now = Instant.now();
 
         author = new UserEntity();

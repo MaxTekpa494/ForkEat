@@ -11,6 +11,7 @@ import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.user.UserQueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -59,6 +60,7 @@ public final class RecipeRestController {
 		// demander le parent
 		// avec un findParent(recipeID) ou findById(parentId)
 		Objects.requireNonNull(id);
+
 		var recipe = recipeService.findById(id);
 		RecipeDTO recipeParentDTO = null;
 		if (recipe.isVariant()) {
