@@ -2,7 +2,6 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jUserRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
@@ -10,7 +9,6 @@ import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -113,8 +111,8 @@ public class UserPersistenceAdapter implements UserPersistence {
     }
 
     @Override
-    public boolean likeRecipe(UUID userId, UUID recipeId) {
-        return neo4jUserRepository.likeRecipe(userId, recipeId);
+    public void likeRecipe(UUID userId, UUID recipeId) {
+        neo4jUserRepository.likeRecipe(userId, recipeId);
 
     }
 }

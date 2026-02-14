@@ -26,7 +26,7 @@ public interface UserPersistence {
 
     boolean hasLikedRecipe(UUID userId, UUID recipeId);
 
-    boolean likeRecipe(UUID userId, UUID recipeId);
+    void likeRecipe(UUID userId, UUID recipeId);
 
 
 }

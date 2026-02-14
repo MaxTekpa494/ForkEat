@@ -27,8 +27,6 @@ public class UserService {
 
     @Transactional("neo4jTransactionManager")
     public void likeRecipe(UUID userId, UUID recipeId){
-        if(!this.userPersistence.likeRecipe(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId))){
-            throw new AlreadyLikedException("The user has already liked the recipe");
-        }
+        this.userPersistence.likeRecipe(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
     }
 }
