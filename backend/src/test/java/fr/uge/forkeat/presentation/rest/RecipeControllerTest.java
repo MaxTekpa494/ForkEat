@@ -5,6 +5,8 @@ import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.presentation.rest.controller.RecipeRestController;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.UserService;
+import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Recipe;
@@ -32,12 +34,18 @@ class RecipeControllerTest {
     @Mock
     private RecipeService recipeService;
 
+    @Mock
+    private UserService userService;
+
+    @Mock
+    private UserQueryService userQueryService;
+
     private RecipeRestController recipeController;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeController = new RecipeRestController(recipeService);
+        recipeController = new RecipeRestController(recipeService, userService, userQueryService);
         now = Instant.now();
     }
 

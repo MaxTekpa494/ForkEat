@@ -23,4 +23,10 @@ public interface UserPersistence {
 	String findPasswordHashByUsername(String username);
 
 	void updateEmailVerified(UUID userId, boolean emailVerified);
+
+    boolean hasLikedRecipe(UUID userId, UUID recipeId);
+
+    void likeRecipe(UUID userId, UUID recipeId);
+
+
 }

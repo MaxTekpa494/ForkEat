@@ -1,10 +1,12 @@
 package fr.uge.forkeat.infrastructure.persistence.neo4j.node;
 
 import fr.uge.forkeat.infrastructure.persistence.neo4j.relationship.*;
+import io.jsonwebtoken.lang.InstantiationException;
 import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.Node;
 import org.springframework.data.neo4j.core.schema.Relationship;
 
+import java.time.Instant;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.UUID;
@@ -52,4 +54,8 @@ public class UserNode {
         this.id = id;
     }
 
+    public void addLike(RecipeNode recipe) {
+        var relation = new LikedRelationship(recipe, Instant.now());
+        likedRecipes.add(relation);
+    }
 }

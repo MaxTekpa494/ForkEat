@@ -1,5 +1,6 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
+import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
@@ -7,11 +8,18 @@ import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.user.UserQueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Objects;
@@ -22,10 +30,15 @@ import java.util.UUID;
 public final class RecipeRestController {
 
 	private final RecipeService recipeService;
+    private final UserService userService;
+    private final UserQueryService userQueryService;
+
 	private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
-	public RecipeRestController(RecipeService recipeService) {
+	public RecipeRestController(RecipeService recipeService, UserService userService, UserQueryService userQueryService) {
 		this.recipeService = recipeService;
+        this.userService = userService;
+        this.userQueryService = userQueryService;
 	}
 
 	@PostMapping
@@ -66,4 +79,11 @@ public final class RecipeRestController {
 		return ResponseEntity.ok(new ListResponse<>(dtos, pageResult.total()));
 	}
 
+    @PostMapping("/{id}/like")
+    public ResponseEntity<?> likeRecipe(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
+
+        var user = this.userQueryService.getUserByUsername(userDetails.getUsername());
+        this.userService.likeRecipe(user.id(), id);
+        return ResponseEntity.ok().build();
+    }
 }

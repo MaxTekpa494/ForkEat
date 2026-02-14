@@ -1,5 +1,7 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
+import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jUserRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
@@ -19,8 +21,14 @@ public class UserPersistenceAdapter implements UserPersistence {
 
 	private final UserRepository userRepository;
 
-	public UserPersistenceAdapter(UserRepository userRepository) {
+    private final Neo4jUserRepository neo4jUserRepository;
+
+    private final Neo4jRecipeRepository neo4jRecipeRepository;
+
+	public UserPersistenceAdapter(UserRepository userRepository, Neo4jUserRepository neo4jUserRepository, Neo4jRecipeRepository neo4jRecipeRepository) {
 		this.userRepository = Objects.requireNonNull(userRepository);
+        this.neo4jUserRepository = Objects.requireNonNull(neo4jUserRepository);
+        this.neo4jRecipeRepository = Objects.requireNonNull(neo4jRecipeRepository);
 	}
 
 	@Override
@@ -97,4 +105,25 @@ public class UserPersistenceAdapter implements UserPersistence {
 		entity.setEmailVerified(emailVerified);
 		userRepository.save(entity);
 	}
+
+    @Override
+    public boolean hasLikedRecipe(UUID userId, UUID recipeId) {
+        return this.neo4jUserRepository.hasLiked(userId, recipeId);
+
+    }
+
+
+    @Transactional("neo4jTransactionManager")
+    @Override
+    public void likeRecipe(UUID userId, UUID recipeId) {
+        var user = neo4jUserRepository.findById(userId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+
+        var recipe = neo4jRecipeRepository.findById(recipeId)
+                .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with id: " + recipeId));
+
+        user.addLike(recipe);
+
+        neo4jUserRepository.save(user);
+    }
 }
