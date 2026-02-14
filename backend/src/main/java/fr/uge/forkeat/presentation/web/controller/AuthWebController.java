@@ -1,7 +1,7 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.web.form.RegisterFormDTO;
-import fr.uge.forkeat.service.exception.RegisterFailure;
+import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.port.AuthenticationPort;
@@ -130,7 +130,7 @@ public class AuthWebController {
 
     try {
       userRegistrationService.registerUser(UserFormDTOMapper.toUserRegister(form));
-    } catch (RegisterFailure e) {
+    } catch (RegisterFailureException e) {
       model.addAttribute("errorMessage", e.getMessage());
       response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
       return "layout/register";

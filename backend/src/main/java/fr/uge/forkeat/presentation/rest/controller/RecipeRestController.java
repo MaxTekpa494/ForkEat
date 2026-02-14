@@ -32,7 +32,7 @@ public final class RecipeRestController {
 	public ResponseEntity<HttpResponse<RecipeDTO>> createRecipe(@RequestBody RecipeDTO recipeDTO) {
 		Objects.requireNonNull(recipeDTO);
 		var recipe = RecipeDTOMapper.toDomain(recipeDTO);
-		var dto = RecipeDTOMapper.toDTO(recipeService.createRecipe(recipe));
+		var dto = RecipeDTOMapper.toDTO(recipeService.createRecipe(recipe, null));
 		return ResponseEntity.ok(new ItemResponse<>(dto));
 	}
 

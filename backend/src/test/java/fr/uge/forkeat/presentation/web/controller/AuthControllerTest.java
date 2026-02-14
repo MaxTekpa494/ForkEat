@@ -2,7 +2,7 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
-import fr.uge.forkeat.service.exception.RegisterFailure;
+import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -137,7 +137,7 @@ class AuthControllerTest {
         @Test
         void register_ShouldReturnRegisterView_WhenEmailAlreadyExists() throws Exception {
             when(userRegistrationService.registerUser(any(UserRegister.class)))
-                    .thenThrow(new RegisterFailure("Cet email est déjà utilisé"));
+                    .thenThrow(new RegisterFailureException("Cet email est déjà utilisé"));
 
             mockMvc.perform(post("/auth/register")
                             .with(csrf())
@@ -157,7 +157,7 @@ class AuthControllerTest {
         @Test
         void register_ShouldReturnRegisterView_WhenUsernameAlreadyExists() throws Exception {
             when(userRegistrationService.registerUser(any(UserRegister.class)))
-                    .thenThrow(new RegisterFailure("Ce nom d'utilisateur est déjà pris"));
+                    .thenThrow(new RegisterFailureException("Ce nom d'utilisateur est déjà pris"));
 
             mockMvc.perform(post("/auth/register")
                             .with(csrf())
@@ -177,7 +177,7 @@ class AuthControllerTest {
         @Test
         void register_ShouldReturnRegisterView_WhenResourceNotFound() throws Exception {
             when(userRegistrationService.registerUser(any(UserRegister.class)))
-                    .thenThrow(new RegisterFailure("Resource not found"));
+                    .thenThrow(new RegisterFailureException("Resource not found"));
 
             mockMvc.perform(post("/auth/register")
                             .with(csrf())
@@ -197,7 +197,7 @@ class AuthControllerTest {
         @Test
         void register_ShouldReturnRegisterView_WhenGenericException() throws Exception {
             when(userRegistrationService.registerUser(any(UserRegister.class)))
-                    .thenThrow(new RegisterFailure("TEST"));
+                    .thenThrow(new RegisterFailureException("TEST"));
 
             mockMvc.perform(post("/auth/register")
                             .with(csrf())

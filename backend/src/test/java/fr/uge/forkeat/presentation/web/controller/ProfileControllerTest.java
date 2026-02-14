@@ -2,7 +2,7 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
-import fr.uge.forkeat.service.exception.CheckProfileUpdateFailure;
+import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
@@ -178,7 +178,7 @@ class ProfileControllerTest {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
             when(userUpdateService.updateProfile("testuser", "takenusername", "First", "Last"))
-                    .thenThrow(new CheckProfileUpdateFailure("Ce nom d'utilisateur est déjà pris"));
+                    .thenThrow(new CheckProfileUpdateFailureException("Ce nom d'utilisateur est déjà pris"));
 
             // When & Then
             mockMvc.perform(post("/profile/update")
@@ -225,7 +225,7 @@ class ProfileControllerTest {
         void updateEmail_ShouldRedirectToProfile_WhenPasswordIncorrect() throws Exception {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            doThrow(new CheckProfileUpdateFailure("Incorrect password"))
+            doThrow(new CheckProfileUpdateFailureException("Incorrect password"))
                     .when(userUpdateService).requestEmailChange("testuser", "new@example.com", "wrongPassword", "wrongPassword");
 
             // When & Then
@@ -272,7 +272,7 @@ class ProfileControllerTest {
         void updatePassword_ShouldReturnProfileView_WhenCurrentPasswordIncorrect() throws Exception {
             // Given
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            doThrow(new CheckProfileUpdateFailure("Mot de passe actuel incorrect"))
+            doThrow(new CheckProfileUpdateFailureException("Mot de passe actuel incorrect"))
                     .when(userUpdateService).requestPasswordChange("testuser", "wrongPassword", "newPassword123");
 
             // When & Then
