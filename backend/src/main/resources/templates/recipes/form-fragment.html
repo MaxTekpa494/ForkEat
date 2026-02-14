@@ -1,0 +1,441 @@
+<!--<!DOCTYPE html>-->
+<!--<html xmlns:th="http://www.thymeleaf.org">-->
+<!--
+  Fragment réutilisable pour le formulaire de recette.
+  Utilisé pour : création, édition, création de variante.
+
+  Variables attendues dans le model :
+  - formAction   : URL du POST (ex: "/recipes", "/recipes/{id}/edit")
+  - formTitle    : Titre affiché (ex: "Créer une recette")
+  - username     : Username de l'auteur (injecté depuis l'auth)
+  - allAllergens : List<AllergenDTO> (allergènes de la BDD)
+  - allIngredientNames : List<String> (noms d'ingrédients de la BDD)
+  - recipe       : RecipeDTO (optionnel, pour pré-remplissage en édition)
+  - parentId     : UUID (optionnel, pour les variantes)
+-->
+
+<div th:fragment="recipeForm">
+    <!--          enctype="multipart/form-data"-->
+
+<!--<form id="recipeForm" class="space-y-8" th:data-action="@{${formAction}}">-->
+    <form id="recipeForm"
+          th:action="@{${formAction}}"
+          method="POST"
+          enctype="multipart/form-data"
+          class="space-y-8">
+
+    <!-- Champs cachés -->
+    <input type="hidden" name="username" th:value="${username}">
+    <input type="hidden" name="status" value="DRAFT">
+    <input th:if="${parentId != null}" type="hidden" name="parent.id" th:value="${parentId}">
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- SECTION 1 : Informations générales     -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+        <h2 class="font-display font-bold text-xl text-secondary-900 mb-6 flex items-center">
+            <i class="fas fa-pen-fancy text-primary-500 mr-3"></i>
+            Informations générales
+        </h2>
+
+        <div class="space-y-5">
+            <!-- Titre -->
+            <div>
+                <label for="title" class="block text-sm font-medium text-secondary-900 mb-1">
+                    Titre de la recette <span class="text-primary-500">*</span>
+                </label>
+                <input id="title" name="title" type="text" required
+                       th:value="${recipe != null ? recipe.title : ''}"
+                       placeholder="Ex : Tarte aux pommes de mamie"
+                       class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+            </div>
+
+            <!-- Description -->
+            <div>
+                <label for="summary" class="block text-sm font-medium text-secondary-900 mb-1">
+                    Description <span class="text-primary-500">*</span>
+                </label>
+                <textarea id="summary" name="summary" rows="4" required
+                          placeholder="Décrivez votre recette en quelques phrases..."
+                          class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none"
+                          th:text="${recipe != null ? recipe.summary : ''}"></textarea>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+                <!-- Temps de préparation -->
+                <div>
+                    <label for="preparationMinutes" class="block text-sm font-medium text-secondary-900 mb-1">
+                        <i class="fas fa-clock text-primary-500 mr-1"></i>
+                        Temps de préparation (min)
+                    </label>
+                    <input id="preparationMinutes" name="preparationMinutes" type="number" min="0"
+                           th:value="${recipe != null ? recipe.preparationMinutes : 0}"
+                           placeholder="30"
+                           class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                </div>
+
+                <!-- Image -->
+                <div>
+                    <label for="image" class="block text-sm font-medium text-secondary-900 mb-1">
+                        <i class="fas fa-camera text-primary-500 mr-1"></i>
+                        Photo du plat
+                    </label>
+                    <input id="image" name="image" type="file" accept="image/*"
+                           class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-600 hover:file:bg-primary-100 transition cursor-pointer">
+                    <!-- Aperçu image existante (édition) -->
+                    <div th:if="${recipe != null and recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}" class="mt-2">
+                        <img th:src="${recipe.imageUrl}" alt="Image actuelle"
+                             class="h-20 w-20 object-cover rounded-lg border border-gray-200">
+                        <p class="text-xs text-gray-400 mt-1">Image actuelle. Uploadez une nouvelle pour la remplacer.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- SECTION 2 : Ingrédients                -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+        <h2 class="font-display font-bold text-xl text-secondary-900 mb-6 flex items-center">
+            <i class="fas fa-carrot text-primary-500 mr-3"></i>
+            Ingrédients
+        </h2>
+
+        <!-- Datalist pour l'autocomplétion des ingrédients -->
+        <datalist id="ingredientSuggestions">
+            <option th:each="name : ${allIngredientNames}" th:value="${name}"></option>
+        </datalist>
+
+        <div id="ingredientsList" class="space-y-3">
+            <!-- Lignes préremplies (édition) -->
+            <th:block th:if="${recipe != null and recipe.ingredients != null}">
+                <div th:each="ing, iterStat : ${recipe.ingredients}" class="ingredient-row flex items-center gap-3">
+                    <input type="text" th:name="'ingredients[' + ${iterStat.index} + '].name'"
+                           th:value="${ing.name}" list="ingredientSuggestions" required
+                           placeholder="Nom de l'ingrédient"
+                           class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                    <input type="number" th:name="'ingredients[' + ${iterStat.index} + '].quantity'"
+                           th:value="${ing.quantity}" min="0" step="0.1" required
+                           placeholder="Qté"
+                           class="w-24 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                    <select th:name="'ingredients[' + ${iterStat.index} + '].unit'" required
+                            class="w-28 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
+                        <option value="" disabled>Unité</option>
+                        <option value="g" th:selected="${ing.unit == 'g'}">g</option>
+                        <option value="kg" th:selected="${ing.unit == 'kg'}">kg</option>
+                        <option value="ml" th:selected="${ing.unit == 'ml'}">ml</option>
+                        <option value="L" th:selected="${ing.unit == 'L'}">L</option>
+                        <option value="tsp" th:selected="${ing.unit == 'tsp'}">c. à café</option>
+                        <option value="tbsp" th:selected="${ing.unit == 'tbsp'}">c. à soupe</option>
+                        <option value="pcs" th:selected="${ing.unit == 'pcs'}">pièce(s)</option>
+                        <option value="pinch" th:selected="${ing.unit == 'pinch'}">pincée</option>
+                    </select>
+                    <button type="button" onclick="removeRow(this, 'ingredient')"
+                            class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </th:block>
+        </div>
+
+        <button type="button" onclick="addIngredient()"
+                class="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-full transition">
+            <i class="fas fa-plus mr-2"></i>
+            Ajouter un ingrédient
+        </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- SECTION 3 : Étapes de préparation      -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+        <h2 class="font-display font-bold text-xl text-secondary-900 mb-6 flex items-center">
+            <i class="fas fa-list-ol text-primary-500 mr-3"></i>
+            Étapes de préparation
+        </h2>
+
+        <div id="stepsList" class="space-y-4">
+            <!-- Étapes préremplies (édition) -->
+            <th:block th:if="${recipe != null and recipe.steps != null}">
+                <div th:each="step, iterStat : ${recipe.steps}" class="step-row flex items-start gap-3">
+                    <input type="hidden" th:name="'steps[' + ${iterStat.index} + '].stepNumber'"
+                           th:value="${iterStat.index + 1}">
+                    <span class="step-number flex-shrink-0 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center font-bold text-sm mt-2.5"
+                          th:text="${iterStat.index + 1}">1</span>
+                    <textarea th:name="'steps[' + ${iterStat.index} + '].instruction'"
+                              rows="2" required
+                              placeholder="Décrivez cette étape..."
+                              class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none"
+                              th:text="${step.instruction}"></textarea>
+                    <button type="button" onclick="removeRow(this, 'step')"
+                            class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition mt-2">
+                        <i class="fas fa-trash-alt"></i>
+                    </button>
+                </div>
+            </th:block>
+        </div>
+
+        <button type="button" onclick="addStep()"
+                class="mt-4 inline-flex items-center px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-full transition">
+            <i class="fas fa-plus mr-2"></i>
+            Ajouter une étape
+        </button>
+    </div>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- SECTION 4 : Allergènes                 -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+        <h2 class="font-display font-bold text-xl text-secondary-900 mb-6 flex items-center">
+            <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
+            Allergènes
+        </h2>
+        <p class="text-sm text-gray-500 mb-4">Sélectionnez les allergènes présents dans votre recette.</p>
+
+        <div id="allergenCheckboxes" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            <th:block th:each="allergen, iterStat : ${allAllergens}">
+                <label class="allergen-label flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-primary-300 hover:bg-primary-50/50 transition">
+                    <input type="checkbox"
+                           class="allergen-checkbox h-4 w-4 text-primary-600 focus:ring-primary-500 border-gray-300 rounded"
+                           th:data-id="${allergen.id}"
+                           th:data-name="${allergen.name}"
+                           th:data-severity="${allergen.severity}"
+                           onchange="updateAllergenFields()"
+                           th:checked="${selectedAllergenIds != null and selectedAllergenIds.contains(allergen.id)}">
+                    <span class="ml-3 text-sm">
+                        <span class="font-medium text-secondary-900" th:text="${allergen.name}">Allergène</span>
+                        <span class="text-xs ml-1 px-1.5 py-0.5 rounded-full"
+                              th:classappend="${allergen.severity == 'CRITICAL'} ? 'bg-red-100 text-red-700' : (${allergen.severity == 'HIGH'} ? 'bg-orange-100 text-orange-700' : (${allergen.severity == 'MEDIUM'} ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'))"
+                              th:text="${allergen.severity}">MEDIUM</span>
+                    </span>
+                </label>
+            </th:block>
+        </div>
+
+        <!-- Champs cachés pour les allergènes sélectionnés (remplis par JS) -->
+        <div id="allergenHiddenFields"></div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- SECTION 5 : Régimes alimentaires       -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
+        <h2 class="font-display font-bold text-xl text-secondary-900 mb-6 flex items-center">
+            <i class="fas fa-leaf text-green-500 mr-3"></i>
+            Régimes alimentaires
+        </h2>
+        <p class="text-sm text-gray-500 mb-4">Indiquez les régimes alimentaires compatibles avec cette recette.</p>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
+                <input type="checkbox" name="dietaryFlags[vegan]" value="true"
+                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['vegan'] == true}"
+                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                <span class="ml-3 text-sm font-medium text-secondary-900">Vegan</span>
+            </label>
+            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
+                <input type="checkbox" name="dietaryFlags[vegetarian]" value="true"
+                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['vegetarian'] == true}"
+                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                <span class="ml-3 text-sm font-medium text-secondary-900">Végétarien</span>
+            </label>
+            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
+                <input type="checkbox" name="dietaryFlags[gluten-free]" value="true"
+                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['gluten-free'] == true}"
+                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                <span class="ml-3 text-sm font-medium text-secondary-900">Sans gluten</span>
+            </label>
+            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
+                <input type="checkbox" name="dietaryFlags[dairy-free]" value="true"
+                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['dairy-free'] == true}"
+                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                <span class="ml-3 text-sm font-medium text-secondary-900">Sans lactose</span>
+            </label>
+            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
+                <input type="checkbox" name="dietaryFlags[halal]" value="true"
+                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['halal'] == true}"
+                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                <span class="ml-3 text-sm font-medium text-secondary-900">Halal</span>
+            </label>
+            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
+                <input type="checkbox" name="dietaryFlags[kosher]" value="true"
+                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['kosher'] == true}"
+                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                <span class="ml-3 text-sm font-medium text-secondary-900">Casher</span>
+            </label>
+            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
+                <input type="checkbox" name="dietaryFlags[nut-free]" value="true"
+                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['nut-free'] == true}"
+                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                <span class="ml-3 text-sm font-medium text-secondary-900">Sans noix</span>
+            </label>
+            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
+                <input type="checkbox" name="dietaryFlags[low-carb]" value="true"
+                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['low-carb'] == true}"
+                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
+                <span class="ml-3 text-sm font-medium text-secondary-900">Low-carb</span>
+            </label>
+        </div>
+    </div>
+
+    <!-- ═══════════════════════════════════════ -->
+    <!-- Bouton de soumission                   -->
+    <!-- ═══════════════════════════════════════ -->
+    <div class="flex justify-end gap-4">
+        <a th:href="@{/recipes}"
+           class="px-6 py-3 text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition">
+            Annuler
+        </a>
+        <button type="submit" id="submitBtn"
+                class="px-8 py-3 text-sm font-bold text-white bg-primary-500 hover:bg-primary-600 rounded-full shadow-lg shadow-primary-500/30 transition transform hover:-translate-y-0.5">
+            <i class="fas fa-paper-plane mr-2"></i>
+            <span th:text="${formTitle != null and formTitle.contains('Modifier')} ? 'Enregistrer les modifications' : 'Publier la recette'">
+                Publier la recette
+            </span>
+        </button>
+    </div>
+
+</form>
+
+<!-- ═══════════════════════════════════════════ -->
+<!-- JavaScript pour la gestion dynamique       -->
+<!-- ═══════════════════════════════════════════ -->
+<script th:inline="javascript">
+    /*<![CDATA[*/
+
+    // ── Ingrédients ──────────────────────────
+    function addIngredient() {
+        var list = document.getElementById('ingredientsList');
+        var rows = list.querySelectorAll('.ingredient-row');
+        var idx = rows.length;
+
+        var div = document.createElement('div');
+        div.className = 'ingredient-row flex items-center gap-3 animate-fadeInUp';
+        div.innerHTML =
+            '<input type="text" name="ingredients[' + idx + '].name" list="ingredientSuggestions" required ' +
+            '       placeholder="Nom de l\'ingrédient" ' +
+            '       class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">' +
+            '<input type="number" name="ingredients[' + idx + '].quantity" min="0" step="0.1" required ' +
+            '       placeholder="Qté" ' +
+            '       class="w-24 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">' +
+            '<select name="ingredients[' + idx + '].unit" required ' +
+            '        class="w-28 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">' +
+            '  <option value="" disabled selected>Unité</option>' +
+            '  <option value="g">g</option>' +
+            '  <option value="kg">kg</option>' +
+            '  <option value="ml">ml</option>' +
+            '  <option value="L">L</option>' +
+            '  <option value="tsp">c. à café</option>' +
+            '  <option value="tbsp">c. à soupe</option>' +
+            '  <option value="pcs">pièce(s)</option>' +
+            '  <option value="pinch">pincée</option>' +
+            '</select>' +
+            '<button type="button" onclick="removeRow(this, \'ingredient\')" ' +
+            '        class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">' +
+            '  <i class="fas fa-trash-alt"></i>' +
+            '</button>';
+        list.appendChild(div);
+    }
+
+    // ── Étapes ───────────────────────────────
+    function addStep() {
+        var list = document.getElementById('stepsList');
+        var rows = list.querySelectorAll('.step-row');
+        var idx = rows.length;
+        var num = idx + 1;
+
+        var div = document.createElement('div');
+        div.className = 'step-row flex items-start gap-3 animate-fadeInUp';
+        div.innerHTML =
+            '<input type="hidden" name="steps[' + idx + '].stepNumber" value="' + num + '">' +
+            '<span class="step-number flex-shrink-0 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center font-bold text-sm mt-2.5">' + num + '</span>' +
+            '<textarea name="steps[' + idx + '].instruction" rows="2" required ' +
+            '          placeholder="Décrivez cette étape..." ' +
+            '          class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none"></textarea>' +
+            '<button type="button" onclick="removeRow(this, \'step\')" ' +
+            '        class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition mt-2">' +
+            '  <i class="fas fa-trash-alt"></i>' +
+            '</button>';
+        list.appendChild(div);
+    }
+
+    // ── Supprimer une ligne ──────────────────
+    function removeRow(btn, type) {
+        var row = btn.closest('.' + type + '-row');
+        row.style.opacity = '0';
+        row.style.transform = 'translateX(20px)';
+        row.style.transition = 'all 0.3s ease';
+        setTimeout(function() {
+            row.remove();
+            if (type === 'ingredient') reindexIngredients();
+            if (type === 'step') reindexSteps();
+        }, 300);
+    }
+
+    // ── Réindexer les ingrédients ────────────
+    function reindexIngredients() {
+        var rows = document.querySelectorAll('#ingredientsList .ingredient-row');
+        rows.forEach(function(row, i) {
+            var inputs = row.querySelectorAll('input, select');
+            inputs.forEach(function(input) {
+                var name = input.getAttribute('name');
+                if (name) {
+                    input.setAttribute('name', name.replace(/ingredients\[\d+\]/, 'ingredients[' + i + ']'));
+                }
+            });
+        });
+    }
+
+    // ── Réindexer les étapes ─────────────────
+    function reindexSteps() {
+        var rows = document.querySelectorAll('#stepsList .step-row');
+        rows.forEach(function(row, i) {
+            var num = i + 1;
+            // Mettre à jour le numéro affiché
+            var badge = row.querySelector('.step-number');
+            if (badge) badge.textContent = num;
+            // Mettre à jour les noms et valeurs
+            var inputs = row.querySelectorAll('input, textarea');
+            inputs.forEach(function(input) {
+                var name = input.getAttribute('name');
+                if (name) {
+                    input.setAttribute('name', name.replace(/steps\[\d+\]/, 'steps[' + i + ']'));
+                }
+                if (input.type === 'hidden' && name && name.includes('stepNumber')) {
+                    input.value = num;
+                }
+            });
+        });
+    }
+
+    // ── Allergènes : sync checkboxes → hidden fields ──
+    function updateAllergenFields() {
+        var container = document.getElementById('allergenHiddenFields');
+        container.innerHTML = '';
+        var checkboxes = document.querySelectorAll('.allergen-checkbox:checked');
+        checkboxes.forEach(function(cb, i) {
+            container.innerHTML +=
+                '<input type="hidden" name="allergens[' + i + '].id" value="' + cb.dataset.id + '">' +
+                '<input type="hidden" name="allergens[' + i + '].name" value="' + cb.dataset.name + '">' +
+                '<input type="hidden" name="allergens[' + i + '].severity" value="' + cb.dataset.severity + '">';
+        });
+    }
+
+    // ── Réindexer tout avant soumission ──────
+    document.getElementById('recipeForm').addEventListener('submit', function(e) {
+        reindexIngredients();
+        reindexSteps();
+        updateAllergenFields();
+    });
+
+    // Init : sync les allergènes cochés au chargement
+    document.addEventListener('DOMContentLoaded', function() {
+        updateAllergenFields();
+    });
+
+    /*]]>*/
+</script>
+
+</div>
+<!--</html>-->

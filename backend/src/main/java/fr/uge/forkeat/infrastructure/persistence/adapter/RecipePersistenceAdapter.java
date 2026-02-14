@@ -89,6 +89,15 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
   }
 
   @Override
+  public List<String> findAllIngredientNames() {
+    return ingredientRepository.findAll().stream()
+            .map(e -> e.getName())
+            .distinct()
+            .sorted()
+            .toList();
+  }
+
+  @Override
   public Recipe save(Recipe recipe) {
     Objects.requireNonNull(recipe);
 

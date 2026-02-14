@@ -3,7 +3,7 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.presentation.dto.user.ChangePasswordConfirmCodeDTO;
 import fr.uge.forkeat.presentation.dto.user.ChangePasswordDTO;
-import fr.uge.forkeat.service.exception.RegisterFailure;
+import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.user.UserUpdateService;
@@ -28,7 +28,7 @@ public class ProfileRestController {
     @PostMapping("/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody ChangePasswordDTO changePasswordDTO) {
         if(changePasswordDTO.password().length() < 8){
-            throw new RegisterFailure("The password must have at least 8 characters");
+            throw new RegisterFailureException("The password must have at least 8 characters");
         }
         var user = userQueryService.getUserByEmail(changePasswordDTO.email());
         emailVerificationService.sendPasswordChangeCode(user.id(), user.email(), passwordEncoder.encode(changePasswordDTO.password()));

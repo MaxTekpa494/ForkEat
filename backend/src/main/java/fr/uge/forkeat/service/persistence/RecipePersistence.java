@@ -24,6 +24,8 @@ public interface RecipePersistence {
 
   List<Allergen> findAllAllergens();
 
+  List<String> findAllIngredientNames();
+
   Recipe save(Recipe recipe);
 
   void deleteById(UUID id);

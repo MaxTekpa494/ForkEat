@@ -8,6 +8,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
+import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
@@ -43,7 +44,7 @@ public class R2StorageService {
   }
 
   // folder -> toujours /recipes pour l'instant
-  public String uploadImage(MultipartFile file, String folder) throws IOException {
+  public String uploadImage(MultipartFile file, String folder){ //throws IOException {
     validateImage(file);
     var fileExtension = getFileExtension.apply(file.getOriginalFilename());
     var key = folder + "/" + UUID.randomUUID() + fileExtension;
@@ -56,12 +57,28 @@ public class R2StorageService {
               .build();
       s3Client.putObject(putRequest, RequestBody.fromBytes(file.getBytes())); // Faudrait voir comment gerer l'IOException exception ici
       logger.info("Image uploaded to S3 bucket: {}", key);
-      return publicUrl + key;
-    } catch (S3Exception e) {
+      logger.info("Public URL: {}", publicUrl +"/" + key);
+      return publicUrl +"/" + key;
+    } catch (S3Exception | IOException e) { // Peut-être gerer differemment les deux exceptions ???
       logger.error("Failed to upload image to R2", e);
       throw new ImageUploadException("Failed to upload image", e);
     }
+  }
 
+
+
+  public void deleteImage(String imageUrl) {
+    try {
+      var key = imageUrl.replace(publicUrl + "/", "");
+      var deleteRequest = DeleteObjectRequest.builder()
+              .bucket(bucketName)
+              .key(key)
+              .build();
+      s3Client.deleteObject(deleteRequest);
+      logger.info("Image deleted successfully from R2: {}", key);
+    } catch (S3Exception e) {
+      logger.error("Failed to delete image from R2: {}", imageUrl, e);
+    }
   }
 
   private void validateImage(MultipartFile file) {

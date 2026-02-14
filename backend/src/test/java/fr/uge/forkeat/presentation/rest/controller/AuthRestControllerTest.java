@@ -105,7 +105,7 @@ class AuthRestControllerTest {
             var dto = new UserRegisterDTO("testuser", "Test", "User", "aa", "taken@forkeat.fr");
 
             when(userRegistrationService.registerUser(any()))
-                    .thenThrow(new RegisterFailure("The password must have at least 8 characters"));
+                    .thenThrow(new RegisterFailureException("The password must have at least 8 characters"));
 
             mockMvc.perform(post("/api/auth/register")
                             .contentType(MediaType.APPLICATION_JSON)

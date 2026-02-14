@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Créer une recette - ForkEat</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <!-- Hero section -->
+    <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
+        <div class="container mx-auto px-4 max-w-3xl text-center">
+            <h1 class="font-display font-bold text-3xl md:text-4xl mb-3" th:text="${formTitle}">
+                Créer une recette
+            </h1>
+            <p class="text-secondary-200 text-lg">
+                Partagez votre savoir-faire culinaire avec la communauté ForkEat.
+            </p>
+        </div>
+    </section>
+
+    <!-- Formulaire -->
+    <section class="py-12 bg-surface">
+        <div class="container mx-auto px-4 max-w-3xl">
+
+            <!-- Message d'erreur global -->
+            <div th:if="${errorMessage}" class="mb-6 rounded-xl bg-red-50 border border-red-200 p-4">
+                <div class="flex items-center">
+                    <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>
+                    <p th:text="${errorMessage}" class="text-sm text-red-700"></p>
+                </div>
+            </div>
+
+            <!-- Inclusion du fragment formulaire -->
+            <div th:replace="~{recipes/form-fragment :: recipeForm}"></div>
+
+        </div>
+    </section>
+
+</div>
+</body>
+</html>

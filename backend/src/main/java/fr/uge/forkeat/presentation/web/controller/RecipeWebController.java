@@ -7,35 +7,62 @@ import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.port.AuthenticationPort;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Objects;
-import java.util.UUID;
+import java.util.*;
 
 @Controller
 @RequestMapping("/recipes")
 public class RecipeWebController {
   private final RecipeService recipeService;
+  private final AuthenticationPort authPort;
 
-  public RecipeWebController(RecipeService recipeService) {
+  private final Logger logger = LoggerFactory.getLogger(RecipeWebController.class);
+
+  public RecipeWebController(RecipeService recipeService, AuthenticationPort authPort) {
     this.recipeService = recipeService;
+    this.authPort = authPort;
   }
 
-  @PostMapping("/create")
-  public String pageCreateRecipe() {
+  @GetMapping("/create")
+  public String pageCreateRecipe(Model model) {
+    var allAllergens = recipeService.findAllAllergens().stream()
+            .map(RecipeDTOMapper::toDTO)
+            .toList();
+    var allIngredientNames = recipeService.findAllIngredientNames();
+    var username = authPort.extractUsername();
+
+    model.addAttribute("allAllergens", allAllergens);
+    model.addAttribute("allIngredientNames", allIngredientNames);
+    model.addAttribute("selectedAllergenIds", Set.of());
+    model.addAttribute("username", username);
+    model.addAttribute("formAction", "/recipes");
+    model.addAttribute("formTitle", "Créer une recette");
     return "recipes/create";
   }
 
   @PostMapping
-  public String createRecipe(RecipeDTO recipeDTO ,Model model) {
+  public String createRecipe(@ModelAttribute RecipeDTO recipeDTO,
+                             @RequestPart(value="image", required=false) MultipartFile image,
+                             Model model) {
     Objects.requireNonNull(recipeDTO);
-    var recipe = RecipeDTOMapper.toDomain(recipeDTO);
-    var savedRecipe = recipeService.createRecipe(recipe, null); // L'image à null pour l'instant
-    //model.addAttribute("recipe", RecipeDTOMapper.toDTO(savedRecipe));
+    logger.info("Creating recipe 1 {}", recipeDTO);
+    var username = authPort.extractUsername();
+    var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
+    logger.info("Creating recipe 2 {}", recipe);
+    logger.info("Creating recipe 3 {}", image);
+    var savedRecipe = recipeService.createRecipe(recipe, image);
     return "redirect:/recipes/" + savedRecipe.id();
   }
+
+
 
   @GetMapping
   public String listRecipes(RecipeSearchDTO form, Model model) {
