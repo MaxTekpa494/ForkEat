@@ -85,4 +85,11 @@ public final class RecipeRestController {
         this.userService.likeRecipe(user.id(), id);
         return ResponseEntity.ok().build();
     }
+
+    @DeleteMapping("/{id}/like")
+    public ResponseEntity<?> unlikeRecipe(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
+        var user = this.userQueryService.getUserByUsername(userDetails.getUsername());
+        this.userService.unlikeRecipe(user.id(), id);
+        return ResponseEntity.ok().build();
+    }
 }

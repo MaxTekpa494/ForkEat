@@ -113,6 +113,10 @@ public class UserPersistenceAdapter implements UserPersistence {
     @Override
     public void likeRecipe(UUID userId, UUID recipeId) {
         neo4jUserRepository.likeRecipe(userId, recipeId);
+    }
 
+    @Override
+    public void unlikeRecipe(UUID userId, UUID recipeId){
+        neo4jUserRepository.unlikeRecipe(userId, recipeId);
     }
 }

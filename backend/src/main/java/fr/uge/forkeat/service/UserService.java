@@ -29,4 +29,9 @@ public class UserService {
     public void likeRecipe(UUID userId, UUID recipeId){
         this.userPersistence.likeRecipe(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
     }
+
+    @Transactional("neo4jTransactionManager")
+    public void unlikeRecipe(UUID userId, UUID recipeId){
+        this.userPersistence.unlikeRecipe(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
+    }
 }

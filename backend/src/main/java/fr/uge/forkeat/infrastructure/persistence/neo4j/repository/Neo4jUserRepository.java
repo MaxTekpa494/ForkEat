@@ -34,4 +34,12 @@ public interface Neo4jUserRepository extends Neo4jRepository<UserNode, UUID> {
             """)
     void likeRecipe(@Param("userId") UUID userId, @Param("recipeId") UUID recipeId);
 
+
+    @Query("""
+            MATCH (u:User {id: $userId})
+            MATCH (r:Recipe {id: $recipeId})
+            MATCH (u)-[l:LIKED]->(r)
+            DELETE (l)
+            """)
+    void unlikeRecipe(@Param("userId") UUID userId, @Param("recipeId") UUID recipeId);
 }
