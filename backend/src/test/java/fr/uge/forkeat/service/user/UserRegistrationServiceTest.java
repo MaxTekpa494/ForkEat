@@ -1,7 +1,7 @@
 package fr.uge.forkeat.service.user;
 
 import fr.uge.forkeat.service.WalletService;
-import fr.uge.forkeat.service.exception.RegisterFailure;
+import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.model.user.*;
@@ -89,8 +89,8 @@ class UserRegistrationServiceTest {
     void registerUser_ShouldThrow_WhenEmailAlreadyExists() {
       when(userPersistence.existsByEmail("existing@example.com")).thenReturn(true);
 
-      RegisterFailure exception = assertThrows(
-              RegisterFailure.class,
+      RegisterFailureException exception = assertThrows(
+              RegisterFailureException.class,
               () -> userRegistrationService.registerUser(
                       new UserRegister("newuser", "John", "Doe", "password", "existing@example.com")
               )
@@ -106,8 +106,8 @@ class UserRegistrationServiceTest {
       when(userPersistence.existsByEmail("new@example.com")).thenReturn(false);
       when(userPersistence.existsByUsername("existinguser")).thenReturn(true);
 
-      RegisterFailure exception = assertThrows(
-              RegisterFailure.class,
+      RegisterFailureException exception = assertThrows(
+              RegisterFailureException.class,
               () -> userRegistrationService.registerUser(
                       new UserRegister("existinguser", "John", "Doe", "password", "new@example.com")
               )

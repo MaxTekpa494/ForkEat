@@ -1,7 +1,7 @@
 package fr.uge.forkeat.service.user;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.exception.CheckProfileUpdateFailure;
+import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
 import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
@@ -128,8 +128,8 @@ class UserUpdateServiceTest {
             when(userPersistence.existsByUsername("takenusername")).thenReturn(true);
 
             // When/Then
-            CheckProfileUpdateFailure exception = assertThrows(
-                    CheckProfileUpdateFailure.class,
+            CheckProfileUpdateFailureException exception = assertThrows(
+                    CheckProfileUpdateFailureException.class,
                     () -> userUpdateService.updateProfile("oldusername", "takenusername", "First", "Last")
             );
 
@@ -186,8 +186,8 @@ class UserUpdateServiceTest {
             when(passwordEncoder.matches("wrongPassword", "storedHash")).thenReturn(false);
 
             // When/Then
-            CheckProfileUpdateFailure exception = assertThrows(
-                    CheckProfileUpdateFailure.class,
+            CheckProfileUpdateFailureException exception = assertThrows(
+                    CheckProfileUpdateFailureException.class,
                     () -> userUpdateService.requestEmailChange("testuser", "new@example.com", "wrongPassword")
             );
 
@@ -207,8 +207,8 @@ class UserUpdateServiceTest {
             when(userPersistence.existsByEmail("taken@example.com")).thenReturn(true);
 
             // When/Then
-            CheckProfileUpdateFailure exception = assertThrows(
-                    CheckProfileUpdateFailure.class,
+            CheckProfileUpdateFailureException exception = assertThrows(
+                    CheckProfileUpdateFailureException.class,
                     () -> userUpdateService.requestEmailChange("testuser", "taken@example.com", "correctPassword")
             );
 
@@ -254,8 +254,8 @@ class UserUpdateServiceTest {
             when(passwordEncoder.matches("wrongPassword", "storedHash")).thenReturn(false);
 
             // When/Then
-            CheckProfileUpdateFailure exception = assertThrows(
-                    CheckProfileUpdateFailure.class,
+            CheckProfileUpdateFailureException exception = assertThrows(
+                    CheckProfileUpdateFailureException.class,
                     () -> userUpdateService.requestPasswordChange("testuser", "wrongPassword", "newPassword123")
             );
 
@@ -266,8 +266,8 @@ class UserUpdateServiceTest {
         @Test
         void requestPasswordChange_ShouldThrow_WhenNewPasswordTooShort() {
             // When/Then
-            CheckProfileUpdateFailure exception = assertThrows(
-                    CheckProfileUpdateFailure.class,
+            CheckProfileUpdateFailureException exception = assertThrows(
+                    CheckProfileUpdateFailureException.class,
                     () -> userUpdateService.requestPasswordChange("testuser", "currentPassword", "short")
             );
 
@@ -290,8 +290,8 @@ class UserUpdateServiceTest {
             when(passwordEncoder.matches("samePassword", "storedHash")).thenReturn(true);
 
             // When/Then
-            CheckProfileUpdateFailure exception = assertThrows(
-                    CheckProfileUpdateFailure.class,
+            CheckProfileUpdateFailureException exception = assertThrows(
+                    CheckProfileUpdateFailureException.class,
                     () -> userUpdateService.requestPasswordChange("testuser", "currentPassword", "samePassword")
             );
 
@@ -325,8 +325,8 @@ class UserUpdateServiceTest {
         @Test
         void setPasswordForOAuthUser_ShouldThrow_WhenPasswordTooShort() {
             // When/Then
-            CheckProfileUpdateFailure exception = assertThrows(
-                    CheckProfileUpdateFailure.class,
+            CheckProfileUpdateFailureException exception = assertThrows(
+                    CheckProfileUpdateFailureException.class,
                     () -> userUpdateService.setPasswordForOAuthUser("googleuser", "short")
             );
 
@@ -344,8 +344,8 @@ class UserUpdateServiceTest {
             when(userQueryService.getUserByUsername("localuser")).thenReturn(localUser);
 
             // When/Then
-            CheckProfileUpdateFailure exception = assertThrows(
-                    CheckProfileUpdateFailure.class,
+            CheckProfileUpdateFailureException exception = assertThrows(
+                    CheckProfileUpdateFailureException.class,
                     () -> userUpdateService.setPasswordForOAuthUser("localuser", "newPassword123")
             );
 

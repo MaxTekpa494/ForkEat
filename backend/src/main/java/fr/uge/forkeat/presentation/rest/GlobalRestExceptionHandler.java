@@ -60,8 +60,14 @@ public class GlobalRestExceptionHandler {
             .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
   }
 
-  @ExceptionHandler(RegisterFailure.class)
-  public ResponseEntity<Map<String, Object>> handleRegisterFailure(RegisterFailure e) {
+  @ExceptionHandler(RegisterFailureException.class)
+  public ResponseEntity<Map<String, Object>> handleRegisterFailure(RegisterFailureException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+  }
+
+  @ExceptionHandler(ImageUploadException.class)
+  public ResponseEntity<Map<String, Object>> handleImageUploadException(ImageUploadException e) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
             .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
   }

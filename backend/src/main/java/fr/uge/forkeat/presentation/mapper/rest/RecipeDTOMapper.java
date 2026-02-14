@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.UUID;
 
 @Component
 public final class RecipeDTOMapper {
@@ -35,6 +36,17 @@ public final class RecipeDTOMapper {
                 recipe.createdAt(),
                 recipe.updatedAt()
         );
+    }
+
+    public static RecipeDTO recipeDTOWithUser(RecipeDTO recipeDTO, String username) {
+        Objects.requireNonNull(recipeDTO);
+        return new RecipeDTO(recipeDTO.id(), recipeDTO.title(),
+                recipeDTO.summary(), recipeDTO.parent(),
+                username, recipeDTO.preparationMinutes(),
+                recipeDTO.imageUrl(), recipeDTO.status(),
+                recipeDTO.steps(), recipeDTO.ingredients(),
+                recipeDTO.allergens(), recipeDTO.dietaryFlags(),
+                recipeDTO.createdAt(), recipeDTO.updatedAt());
     }
 
     public static RecipeDTO toDTO(Recipe recipe) {
@@ -73,7 +85,7 @@ public final class RecipeDTOMapper {
         Objects.requireNonNull(dto);
         Objects.requireNonNull(dto.username());
         return new Recipe(
-                dto.id() != null ? dto.id() : null,
+                dto.id() != null ? dto.id() : UUID.randomUUID(),
                 dto.title(),
                 dto.summary(),
                 dto.parent() != null ? dto.parent().id() : null,

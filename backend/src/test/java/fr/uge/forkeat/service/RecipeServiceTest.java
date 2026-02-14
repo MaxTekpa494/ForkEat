@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.infrastructure.storage.R2StorageService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Allergen;
@@ -21,7 +22,11 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.springframework.web.multipart.MultipartFile;
+
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -29,13 +34,15 @@ class RecipeServiceTest {
 
     @Mock
     private RecipePersistence recipePersistence;
+    @Mock
+    private R2StorageService storageService;
 
     private RecipeService recipeService;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeService = new RecipeService(recipePersistence);
+        recipeService = new RecipeService(recipePersistence, storageService);
         now = Instant.now();
     }
 
@@ -155,6 +162,105 @@ class RecipeServiceTest {
 
             assertEquals(1, result.items().size());
             verify(recipePersistence).searchRecipes(criteria);
+        }
+    }
+
+    @Nested
+    class CreateRecipe {
+
+        @Test
+        void shouldSaveRecipeWithoutImage() {
+            var recipeId = UUID.randomUUID();
+            var recipe = createRecipe(recipeId, "Tarte aux pommes", RecipeStatus.DRAFT);
+            when(recipePersistence.save(any(Recipe.class))).thenReturn(recipe);
+
+            var result = recipeService.createRecipe(recipe, null);
+
+            assertNotNull(result);
+            assertEquals(recipeId, result.id());
+            verify(storageService, never()).uploadImage(any(), any());
+            verify(recipePersistence).save(any(Recipe.class));
+        }
+
+        @Test
+        void shouldSaveRecipeWithImage() {
+            var recipeId = UUID.randomUUID();
+            var recipe = createRecipe(recipeId, "Quiche Lorraine", RecipeStatus.DRAFT);
+            var image = mock(MultipartFile.class);
+            when(image.isEmpty()).thenReturn(false);
+            when(storageService.uploadImage(image, "recipes")).thenReturn("https://cloudflare.com/recipes/maxtekpa.jpg");
+            var expectedRecipe = new Recipe(
+                    recipeId, "Quiche Lorraine", "Summary for Quiche Lorraine", null,
+                    "chef_test", 30, "https://cloudflare.com/recipes/pidali.jpg",
+                    RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now
+            );
+            when(recipePersistence.save(any(Recipe.class))).thenReturn(expectedRecipe);
+
+            var result = recipeService.createRecipe(recipe, image);
+
+            assertNotNull(result);
+            assertEquals("https://cloudflare.com/recipes/pidali.jpg", result.imageUrl());
+            verify(storageService).uploadImage(image, "recipes");
+            verify(recipePersistence).save(any(Recipe.class));
+        }
+
+        @Test
+        void shouldSaveRecipeWithEmptyImage() {
+            var recipeId = UUID.randomUUID();
+            var recipe = createRecipe(recipeId, "Salade", RecipeStatus.DRAFT);
+            var image = mock(MultipartFile.class);
+            when(image.isEmpty()).thenReturn(true);
+            when(recipePersistence.save(any(Recipe.class))).thenReturn(recipe);
+
+            var result = recipeService.createRecipe(recipe, image);
+
+            assertNotNull(result);
+            assertNull(result.imageUrl());
+            verify(storageService, never()).uploadImage(any(), any());
+            verify(recipePersistence).save(any(Recipe.class));
+        }
+    }
+
+    @Nested
+    class DeleteById {
+
+        @Test
+        void shouldDeleteRecipeWithoutImage() {
+            var recipeId = UUID.randomUUID();
+            var recipe = createRecipe(recipeId, "Tarte", RecipeStatus.PUBLISHED);
+            when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
+
+            recipeService.deleteById(recipeId);
+
+            verify(storageService, never()).deleteImage(any());
+            verify(recipePersistence).deleteById(recipeId);
+        }
+
+        @Test
+        void shouldDeleteRecipeAndImage() {
+            var recipeId = UUID.randomUUID();
+            var recipe = new Recipe(
+                    recipeId, "Quiche", "Summary", null, "chef_test", 30,
+                    "https://cdn.example.com/recipes/img.jpg", RecipeStatus.PUBLISHED,
+                    List.of(), List.of(), List.of(), Map.of(), now, now
+            );
+            when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
+
+            recipeService.deleteById(recipeId);
+
+            verify(storageService).deleteImage("https://cdn.example.com/recipes/img.jpg");
+            verify(recipePersistence).deleteById(recipeId);
+        }
+
+        @Test
+        void shouldThrowWhenRecipeNotFound() {
+            var recipeId = UUID.randomUUID();
+            when(recipePersistence.findById(recipeId)).thenReturn(Optional.empty());
+
+            assertThrows(RecipeNotFoundException.class, () -> recipeService.deleteById(recipeId));
+
+            verify(recipePersistence, never()).deleteById(any());
+            verify(storageService, never()).deleteImage(any());
         }
     }
 

@@ -1,9 +1,7 @@
 package fr.uge.forkeat.service.user;
 
-import fr.uge.forkeat.presentation.mapper.web.UserFormDTOMapper;
 import fr.uge.forkeat.service.WalletService;
-import fr.uge.forkeat.service.exception.RegisterFailure;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRegister;
@@ -21,7 +19,6 @@ import java.time.Instant;
 import java.util.Objects;
 import java.util.Random;
 import java.util.UUID;
-import java.util.random.RandomGenerator;
 
 @Service
 public class UserRegistrationService {
@@ -46,12 +43,12 @@ public class UserRegistrationService {
     Objects.requireNonNull(userRegister);
     if (userPersistence.existsByEmail(userRegister.email())) { // Max ici il vaut mieux crée une Exception
       // personnalisée
-      throw new RegisterFailure("This email is already in use");
+      throw new RegisterFailureException("This email is already in use");
     }
 
     // Vérifier si le username existe déjà
     if (userPersistence.existsByUsername(userRegister.username())) {
-      throw new RegisterFailure("This username is already taken");
+      throw new RegisterFailureException("This username is already taken");
     }
 
     logger.info("Registering user: " + userRegister);
@@ -116,11 +113,11 @@ public class UserRegistrationService {
   public User registerModerator(UserRegister userRegister) {
     Objects.requireNonNull(userRegister);
     if (userPersistence.existsByEmail(userRegister.email())) {
-      throw new RegisterFailure("This email is already in use");
+      throw new RegisterFailureException("This email is already in use");
     }
 
     if (userPersistence.existsByUsername(userRegister.username())) {
-      throw new RegisterFailure("This username is already taken");
+      throw new RegisterFailureException("This username is already taken");
     }
 
     logger.info("Registering moderator: " + userRegister);
