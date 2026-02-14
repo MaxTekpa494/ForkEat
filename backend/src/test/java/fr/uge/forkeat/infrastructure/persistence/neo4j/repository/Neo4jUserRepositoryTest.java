@@ -12,6 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 import java.util.concurrent.*;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataNeo4jTest
@@ -31,6 +32,7 @@ class Neo4jUserRepositoryTest {
 
     private UUID userId1;
     private UUID userId2;
+    private UUID userId3;
     private UUID recipeId1;
     private UUID recipeId2;
 
@@ -43,6 +45,7 @@ class Neo4jUserRepositoryTest {
 
         userId1 = UUID.randomUUID();
         userId2 = UUID.randomUUID();
+        userId3 = UUID.randomUUID();
         recipeId1 = UUID.randomUUID();
         recipeId2 = UUID.randomUUID();
     }
@@ -64,6 +67,118 @@ class Neo4jUserRepositoryTest {
 
         assertTrue(userRepository.hasLiked(userId1, recipeId1), "Like relationship should exist");
     }
+
+    @Test
+    @DisplayName("Multiple users can like the same recipe")
+    void multipleUsersCanLikeSameRecipe() {
+        createUser(userId1);
+        createUser(userId2);
+        createRecipe(recipeId1);
+        // When
+        userRepository.likeRecipe(userId1, recipeId1);
+        userRepository.likeRecipe(userId2, recipeId1);
+
+        // Then
+        long likeCount =recipeRepository.nbLike(recipeId1);
+        assertThat(likeCount).isEqualTo(2L);
+    }
+
+
+    @Test
+    @DisplayName("A user can like multiple recipes")
+    void userCanLikeMultipleRecipes() {
+        // Given
+        createUser(userId1);
+        createRecipe(recipeId1);
+        createRecipe(recipeId2);
+
+        // When
+        userRepository.likeRecipe(userId1, recipeId1);
+        userRepository.likeRecipe(userId1, recipeId2);
+
+        // Then
+        long userLikeCount = countLikes(userId1, recipeId1);
+        long userLikeCount2 = countLikes(userId1, recipeId2);
+        assertThat(userLikeCount).isEqualTo(1L);
+        assertThat(userLikeCount2).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("Should delete relation")
+    void shouldDeleteExistingLikedRelationship() {
+
+        createUser(userId1);
+        createRecipe(recipeId1);
+        // Given
+        userRepository.likeRecipe(userId1, recipeId1);
+        assertThat(userRepository.hasLiked(userId1, recipeId1)).isTrue();
+
+        // When
+        userRepository.unlikeRecipe(userId1, recipeId1);
+
+        // Then
+        boolean hasLiked = userRepository.hasLiked(userId1, recipeId1);
+        assertThat(hasLiked).isFalse();
+    }
+
+    @Test
+    @DisplayName("Should be idempotent , should not throw error")
+    void shouldBeIdempotent() {
+
+        createUser(userId1);
+        createRecipe(recipeId1);
+
+        // Given
+        userRepository.likeRecipe(userId1, recipeId1);
+
+        // When/Then - ne devrait pas lancer d'exception
+        Assertions.assertDoesNotThrow(() -> {
+            userRepository.unlikeRecipe(userId1, recipeId1);
+            userRepository.unlikeRecipe(userId1, recipeId1);
+        });
+
+        boolean hasLiked = userRepository.hasLiked(userId1, recipeId1);
+        assertThat(hasLiked).isFalse();
+    }
+
+
+    @Test
+    @DisplayName("Should not affect other relations")
+    void shouldNotAffectOtherRelationships() {
+        // Given
+        createUser(userId1);
+        createUser(userId2);
+        createRecipe(recipeId1);
+
+        userRepository.likeRecipe(userId1, recipeId1);
+        userRepository.likeRecipe(userId2, recipeId1);
+
+        // When
+        userRepository.unlikeRecipe(userId1, recipeId1);
+
+        // Then
+        assertThat(userRepository.hasLiked(userId1, recipeId1)).isFalse();
+        assertThat(userRepository.hasLiked(userId2, recipeId1)).isTrue();
+        assertThat(recipeRepository.nbLike(recipeId1)).isEqualTo(1L);
+    }
+
+    @Test
+    @DisplayName("Should not remove recipe or user")
+    void shouldNotDeleteUserOrRecipe() {
+       createUser(userId1);
+       createRecipe(recipeId1);
+
+        // Given
+        userRepository.likeRecipe(userId1, recipeId1);
+
+        // When
+        userRepository.unlikeRecipe(userId1, recipeId1);
+
+        // Then
+        assertThat(userRepository.findById(userId1)).isPresent();
+        assertThat(recipeRepository.findById(recipeId1)).isPresent();
+    }
+
 
     @Test
     @DisplayName("Should return false when like already exists")
@@ -219,6 +334,45 @@ class Neo4jUserRepositoryTest {
         assertFalse(user.isPresent(), "Should return empty for non-existent user");
     }
 
+    @Test
+    @DisplayName("Scénario complet: Like -> Unlike -> Like")
+    void completeLikeUnlikeLikeScenario() {
+        createUser(userId1);
+        createRecipe(recipeId1);
+
+        // Like
+        userRepository.likeRecipe(userId1, recipeId1);
+        assertThat(userRepository.hasLiked(userId1, recipeId1)).isTrue();
+
+        // Unlike
+        userRepository.unlikeRecipe(userId1, recipeId1);
+        assertThat(userRepository.hasLiked(userId1, recipeId1)).isFalse();
+
+        // Like again
+        userRepository.likeRecipe(userId1, recipeId1);
+        assertThat(userRepository.hasLiked(userId1, recipeId1)).isTrue();
+    }
+
+    @Test
+    @DisplayName("Statistiques des likes - compter correctement après plusieurs opérations")
+    void likeStatisticsAfterMultipleOperations() {
+        // Given
+        createUser(userId1);
+        createUser(userId2);
+        createUser(userId3);
+        createRecipe(recipeId1);
+
+        // When
+        userRepository.likeRecipe(userId1, recipeId1);
+        userRepository.likeRecipe(userId2, recipeId1);
+        userRepository.likeRecipe(userId3, recipeId1);
+        userRepository.unlikeRecipe(userId2, recipeId1);
+
+        // Then
+        long likeCount = recipeRepository.nbLike(recipeId1);
+        assertThat(likeCount).isEqualTo(2L);
+    }
+
     // Helper methods
 
     private void createUser(UUID uuid) {
@@ -236,7 +390,6 @@ class Neo4jUserRepositoryTest {
     }
 
     private long countLikes(UUID userId, UUID recipeId) {
-        //return recipeRepository.nbLike(recipeId);
         try (Session session = driver.session()) {
             var result = session.run("""        
                     MATCH (r:Recipe {id: $recipeId})
