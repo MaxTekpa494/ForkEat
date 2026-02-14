@@ -53,9 +53,4 @@ public class UserNode {
     public void setId(UUID id) {
         this.id = id;
     }
-
-    public void addLike(RecipeNode recipe) {
-        var relation = new LikedRelationship(recipe, Instant.now());
-        likedRecipes.add(relation);
-    }
 }

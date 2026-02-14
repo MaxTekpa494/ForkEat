@@ -1,6 +1,7 @@
 package fr.uge.forkeat.service;
 
 
+import fr.uge.forkeat.service.exception.AlreadyLikedException;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -24,10 +25,10 @@ public class UserService {
         return passwordEncoder.matches(rawPassword, hashedPassword);
     }
 
-    @Transactional()
+    @Transactional("neo4jTransactionManager")
     public void likeRecipe(UUID userId, UUID recipeId){
-        //if(!this.userPersistence.hasLikedRecipe(userId, recipeId)){
-            this.userPersistence.likeRecipe(userId, recipeId);
-        //}
+        if(!this.userPersistence.likeRecipe(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId))){
+            throw new AlreadyLikedException("The user has already liked the recipe");
+        }
     }
 }

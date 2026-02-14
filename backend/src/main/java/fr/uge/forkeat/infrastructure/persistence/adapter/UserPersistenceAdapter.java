@@ -112,18 +112,9 @@ public class UserPersistenceAdapter implements UserPersistence {
 
     }
 
-
-    @Transactional("neo4jTransactionManager")
     @Override
-    public void likeRecipe(UUID userId, UUID recipeId) {
-        var user = neo4jUserRepository.findById(userId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+    public boolean likeRecipe(UUID userId, UUID recipeId) {
+        return neo4jUserRepository.likeRecipe(userId, recipeId);
 
-        var recipe = neo4jRecipeRepository.findById(recipeId)
-                .orElseThrow(() -> new ResourceNotFoundException("Recipe not found with id: " + recipeId));
-
-        user.addLike(recipe);
-
-        neo4jUserRepository.save(user);
     }
 }

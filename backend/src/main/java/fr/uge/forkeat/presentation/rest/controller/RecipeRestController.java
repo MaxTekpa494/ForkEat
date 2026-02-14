@@ -81,7 +81,6 @@ public final class RecipeRestController {
 
     @PostMapping("/{id}/like")
     public ResponseEntity<?> likeRecipe(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
-
         var user = this.userQueryService.getUserByUsername(userDetails.getUsername());
         this.userService.likeRecipe(user.id(), id);
         return ResponseEntity.ok().build();

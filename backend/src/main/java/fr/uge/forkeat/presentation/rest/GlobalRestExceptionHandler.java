@@ -1,17 +1,11 @@
 package fr.uge.forkeat.presentation.rest;
 
-import fr.uge.forkeat.service.exception.DuplicateTransactionException;
-import fr.uge.forkeat.service.exception.RecipeNotFoundException;
-import fr.uge.forkeat.service.exception.RegisterFailure;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.exception.VerificationException;
+import fr.uge.forkeat.service.exception.*;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
-import fr.uge.forkeat.service.exception.StripEventException;
-import fr.uge.forkeat.service.exception.WalletNotFoundException;
 
 import java.time.Instant;
 import java.util.Map;
@@ -72,4 +66,9 @@ public class GlobalRestExceptionHandler {
             .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
   }
 
+  @ExceptionHandler(AlreadyLikedException.class)
+    public ResponseEntity<Map<String, Object>> handleAlreadyLikedException(AlreadyLikedException e) {
+      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+              .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+  }
 }

@@ -20,13 +20,23 @@ public interface Neo4jUserRepository extends Neo4jRepository<UserNode, UUID> {
         RETURN EXISTS((p1)-[:LIKED]->(p2))
         """)
     boolean hasLiked(
-            @Param("from") UUID userId,
-            @Param("to") UUID recipeId
+            @Param("userId") UUID userId,
+            @Param("recipeId") UUID recipeId
     );
 
     @NonNull
     @Override
     Optional<UserNode> findById(UUID id);
 
+    @Query("""
+            MATCH (u:User {id: $userId})
+            MATCH (r:Recipe {id: $recipeId})
+            MERGE (u)-[l:LIKED]->(r)
+            ON CREATE SET l._isCreated = true
+            WITH l, l._isCreated IS NOT NULL AS wasCreated
+            REMOVE l._isCreated
+            RETURN wasCreated
+            """)
+    boolean likeRecipe(@Param("userId") UUID userId, @Param("recipeId") UUID recipeId);
 
 }
