@@ -6,21 +6,31 @@ import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.presentation.rest.controller.RecipeRestController;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.UserService;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
-import fr.uge.forkeat.service.model.recipe.Recipe;
-import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -55,8 +65,8 @@ class RecipeControllerTest {
         @Test
         void shouldReturnRecipeWhenFound() {
             var recipeId = UUID.randomUUID();
-            var recipe = createRecipe(recipeId, "Tarte aux pommes", null, RecipeStatus.PUBLISHED);
-            when(recipeService.findById(recipeId)).thenReturn(recipe);
+            var recipe = createRecipeWithMetadata(recipeId, "Tarte aux pommes", null, RecipeStatus.PUBLISHED);
+            when(recipeService.findRecipeWithMetaDataById(recipeId)).thenReturn(recipe);
 
             var response = recipeController.getRecipe(recipeId);
 
@@ -64,7 +74,7 @@ class RecipeControllerTest {
             assertInstanceOf(ItemResponse.class, response.getBody());
             var itemResponse = (ItemResponse<?>) response.getBody();
             assertNotNull(itemResponse.resource());
-            verify(recipeService).findById(recipeId);
+            verify(recipeService).findRecipeWithMetaDataById(recipeId);
         }
 
         @Test
@@ -72,9 +82,9 @@ class RecipeControllerTest {
             var parentId = UUID.randomUUID();
             var childId = UUID.randomUUID();
             var parentRecipe = createRecipe(parentId, "Recette originale", null, RecipeStatus.PUBLISHED);
-            var childRecipe = createRecipe(childId, "Variante", parentId, RecipeStatus.DRAFT);
+            var childRecipe = createRecipeWithMetadata(childId, "Variante", parentId, RecipeStatus.DRAFT);
 
-            when(recipeService.findById(childId)).thenReturn(childRecipe);
+            when(recipeService.findRecipeWithMetaDataById(childId)).thenReturn(childRecipe);
             when(recipeService.findById(parentId)).thenReturn(parentRecipe);
 
             var response = recipeController.getRecipe(childId);
@@ -82,29 +92,29 @@ class RecipeControllerTest {
             assertEquals(HttpStatus.OK, response.getStatusCode());
             var itemResponse = (ItemResponse<?>) response.getBody();
             assertNotNull(itemResponse);
-            verify(recipeService).findById(childId);
+            verify(recipeService).findRecipeWithMetaDataById(childId);
             verify(recipeService).findById(parentId);
         }
 
         @Test
         void shouldNotFetchParentWhenNotVariant() {
             var recipeId = UUID.randomUUID();
-            var recipe = createRecipe(recipeId, "Recette simple", null, RecipeStatus.PUBLISHED);
-            when(recipeService.findById(recipeId)).thenReturn(recipe);
+            var recipe = createRecipeWithMetadata(recipeId, "Recette simple", null, RecipeStatus.PUBLISHED);
+            when(recipeService.findRecipeWithMetaDataById(recipeId)).thenReturn(recipe);
 
             recipeController.getRecipe(recipeId);
 
-            verify(recipeService, times(1)).findById(recipeId);
+            verify(recipeService, times(1)).findRecipeWithMetaDataById(recipeId);
             verifyNoMoreInteractions(recipeService);
         }
 
         @Test
         void shouldPropagateExceptionWhenNotFound() {
             var recipeId = UUID.randomUUID();
-            when(recipeService.findById(recipeId)).thenThrow(new RecipeNotFoundException(recipeId));
+            when(recipeService.findRecipeWithMetaDataById(recipeId)).thenThrow(new RecipeNotFoundException(recipeId));
 
             assertThrows(RecipeNotFoundException.class, () -> recipeController.getRecipe(recipeId));
-            verify(recipeService).findById(recipeId);
+            verify(recipeService).findRecipeWithMetaDataById(recipeId);
         }
     }
 
@@ -273,6 +283,68 @@ class RecipeControllerTest {
         }
     }
 
+    @Nested
+    class LikeUnlikeRecipe{
+        @Test
+        void ShouldReturnOkWhenLikeGoesWell() {
+            var user = createUser(UUID.randomUUID());
+            when(userQueryService.getUserByUsername(any())).thenReturn(user);
+            doNothing().when(userService).likeRecipe(any(), any());
+
+            var response = recipeController.likeRecipe(UUID.randomUUID(), getUserDetails());
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+        }
+
+        @Test
+        void ShouldReturnOkWhenUnLikeGoesWell() {
+            var user = createUser(UUID.randomUUID());
+            when(userQueryService.getUserByUsername(any())).thenReturn(user);
+            doNothing().when(userService).unlikeRecipe(any(), any());
+
+            var response = recipeController.unlikeRecipe(UUID.randomUUID(), getUserDetails());
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+        }
+
+        @Test
+        void ShouldReturnErrorWhenUserUnFoundWhenLike() {
+            var user = createUser(UUID.randomUUID());
+            when(userQueryService.getUserByUsername(any())).thenThrow(new ResourceNotFoundException("User not found with username: PaxGPT"));
+
+            assertThrows(ResourceNotFoundException.class, ()->recipeController.likeRecipe(UUID.randomUUID(), getUserDetails()));
+        }
+
+        @Test
+        void ShouldReturnErrorWhenUserUnFoundWhenUnlike() {
+            var user = createUser(UUID.randomUUID());
+            when(userQueryService.getUserByUsername(any())).thenThrow(new ResourceNotFoundException("User not found with username: PaxGPT"));
+
+            assertThrows(ResourceNotFoundException.class, ()->recipeController.unlikeRecipe(UUID.randomUUID(), getUserDetails()));
+        }
+
+        @Test
+        void ShouldReturnErrorWhenRecipeNotFoundWhenLike() {
+            var user = createUser(UUID.randomUUID());
+            when(userQueryService.getUserByUsername(any())).thenReturn(user);
+            when(recipeService.findById(any())).thenThrow(new ResourceNotFoundException("Recipe not found with username: PaxGPT"));
+            assertThrows(ResourceNotFoundException.class, () -> recipeController.likeRecipe(UUID.randomUUID(), getUserDetails()));
+        }
+
+        @Test
+        void ShouldReturnErrorWhenRecipeNotFoundWheUnlike() {
+            var user = createUser(UUID.randomUUID());
+            when(userQueryService.getUserByUsername(any())).thenReturn(user);
+            when(recipeService.findById(any())).thenThrow(new ResourceNotFoundException("Recipe not found with username: PaxGPT"));
+            assertThrows(ResourceNotFoundException.class, () -> recipeController.unlikeRecipe(UUID.randomUUID(), getUserDetails()));
+        }
+
+    }
+
+
+
+    private User createUser(UUID id){
+        return new User(id, "PaxGPT", "Pax", "Pekpa", "a@gmail.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
+    }
+
     private Recipe createRecipe(UUID id, String title, UUID parentId, RecipeStatus status) {
         return new Recipe(
                 id,
@@ -290,5 +362,31 @@ class RecipeControllerTest {
                 now,
                 now
         );
+    }
+
+    private RecipeWithMetaData createRecipeWithMetadata(UUID id, String title, UUID parentId, RecipeStatus status) {
+        return new RecipeWithMetaData(
+                createRecipe(id, title, parentId, status),
+                new RecipeMetaData(0)
+        );
+    }
+
+    public UserDetails getUserDetails(){
+        return new UserDetails() {
+            @Override
+            public Collection<? extends GrantedAuthority> getAuthorities() {
+                return List.of();
+            }
+
+            @Override
+            public String getPassword() {
+                return "aa";
+            }
+
+            @Override
+            public @NotNull String getUsername() {
+                return "PaxGPT";
+            }
+        };
     }
 }

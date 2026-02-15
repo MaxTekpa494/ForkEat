@@ -2,6 +2,7 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
+import fr.uge.forkeat.presentation.dto.recipe.RecipeWithMetaDataDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
@@ -53,7 +54,7 @@ public final class RecipeRestController {
 	// Pourquoi pas faire un findwithparent avec {recipe:..., parent:...}
 	// Un endpoint recipe avec juste {recipe:...}
 	@GetMapping("/{id}")
-	public ResponseEntity<HttpResponse<RecipeDTO>> getRecipe(@PathVariable UUID id) {
+	public ResponseEntity<HttpResponse<RecipeWithMetaDataDTO>> getRecipe(@PathVariable UUID id) {
 		// findByIdWithParent (parce que c'est une recipe seule), quand c'est une liste
 		// de recettes, on les prend les recettes seules sans leurs parents.
 		// Finalement, je pense qu'on devrait toujours laisser le choix au controller de
@@ -61,13 +62,13 @@ public final class RecipeRestController {
 		// avec un findParent(recipeID) ou findById(parentId)
 		Objects.requireNonNull(id);
 
-		var recipe = recipeService.findById(id);
+		var recipe = recipeService.findRecipeWithMetaDataById(id);
 		RecipeDTO recipeParentDTO = null;
 		if (recipe.isVariant()) {
 			var parent = recipeService.findById(recipe.parentId());
 			recipeParentDTO = RecipeDTOMapper.toDTO(parent);
 		}
-		var dto = RecipeDTOMapper.toDTO(recipe, recipeParentDTO);
+		var dto = RecipeDTOMapper.toRecipeWithMetaDataDTO(recipe, recipeParentDTO);
 		return ResponseEntity.ok(new ItemResponse<>(dto));
 	}
 
@@ -84,6 +85,7 @@ public final class RecipeRestController {
     @PostMapping("/{id}/like")
     public ResponseEntity<?> likeRecipe(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
         var user = this.userQueryService.getUserByUsername(userDetails.getUsername());
+        this.recipeService.findById(id);
         this.userService.likeRecipe(user.id(), id);
         return ResponseEntity.ok().build();
     }
@@ -91,6 +93,7 @@ public final class RecipeRestController {
     @DeleteMapping("/{id}/like")
     public ResponseEntity<?> unlikeRecipe(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
         var user = this.userQueryService.getUserByUsername(userDetails.getUsername());
+        this.recipeService.findById(id);
         this.userService.unlikeRecipe(user.id(), id);
         return ResponseEntity.ok().build();
     }
