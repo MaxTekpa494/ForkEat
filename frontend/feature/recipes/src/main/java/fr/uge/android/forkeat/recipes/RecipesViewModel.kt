@@ -8,12 +8,15 @@ import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 class RecipesViewModel : ViewModel() {
     private val api: RecipeApiService = ForkEatApi.recipeService
 
     private val _recipes = MutableStateFlow<List<RecipeDTO>>(emptyList())
     val recipes: StateFlow<List<RecipeDTO>> = _recipes
+
+    private val _recipeIds = mutableSetOf<UUID>()
 
     private val _totalCount = MutableStateFlow(0)
     val totalCount: StateFlow<Int> = _totalCount
@@ -36,13 +39,11 @@ class RecipesViewModel : ViewModel() {
     private val _availableAllergens = MutableStateFlow<List<String>>(emptyList())
     val availableAllergens: StateFlow<List<String>> = _availableAllergens
 
+    private val _isLoading = MutableStateFlow(false)
+    val isLoading: StateFlow<Boolean> = _isLoading
+
     init {
         loadRecipes(0)
-    }
-
-    fun setPageSize(size: Int) {
-        _pageSize.value = size
-        loadRecipes(_currentPage.value, size)
     }
 
     fun onSearchQueryChange(query: String) {
@@ -70,8 +71,9 @@ class RecipesViewModel : ViewModel() {
         loadRecipes(0)
     }
 
-    fun loadRecipes(page: Int, size: Int = _pageSize.value) {
+    fun loadRecipes(page: Int, size: Int = _pageSize.value, append: Boolean = false) {
         viewModelScope.launch {
+            _isLoading.value = true
             try {
                 val search = _searchQuery.value.ifBlank { null }
                 val allergens = _selectedAllergens.value.toList().ifEmpty { null }
@@ -83,7 +85,17 @@ class RecipesViewModel : ViewModel() {
                 )
                 if (response.isSuccessful) {
                     val body = response.body()
-                    _recipes.value = body?.resources ?: emptyList()
+                    if (append) {
+                        val current = _recipes.value.toMutableList()
+                        val newRecipes = (body?.resources ?: emptyList()).filter { _recipeIds.add(it.id) }
+                        val allRecipes = current + newRecipes
+                        _recipes.value = if (body?.total != null) allRecipes.take(body.total) else allRecipes
+                    } else {
+                        val newList = body?.resources ?: emptyList()
+                        _recipes.value = newList
+                        _recipeIds.clear()
+                        _recipeIds.addAll(newList.map { it.id })
+                    }
                     _totalCount.value = body?.total ?: 0
                     _currentPage.value = page
                     _errorMessage.value = null
@@ -98,7 +110,18 @@ class RecipesViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Le serveur est indisponible, veuillez réessayer plus tard."
+            } finally {
+              _isLoading.value = false
             }
+        }
+    }
+
+    fun loadMoreRecipes() {
+        if(_isLoading.value || _recipes.value.size >= _totalCount.value) return
+
+        val nextPage = _currentPage.value + 1
+        if (_recipes.value.size < _totalCount.value) {
+            loadRecipes(nextPage, append = true)
         }
     }
 
