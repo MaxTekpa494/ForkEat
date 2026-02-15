@@ -44,7 +44,7 @@ public class UserServiceTest {
 
         @Test
         public void UnlikeShouldBeOk() {
-            doNothing().when(userPersistence).likeRecipe(any(), any());
+            doNothing().when(userPersistence).unlikeRecipe(any(), any());
             userService.unlikeRecipe(UUID.randomUUID(), UUID.randomUUID());
         }
     }
