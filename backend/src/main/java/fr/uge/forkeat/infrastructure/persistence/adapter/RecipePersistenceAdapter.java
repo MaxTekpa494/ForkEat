@@ -8,11 +8,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientR
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.service.model.PageResult;
-import fr.uge.forkeat.service.model.recipe.Allergen;
-import fr.uge.forkeat.service.model.recipe.Recipe;
-import fr.uge.forkeat.service.model.recipe.RecipeIngredient;
-import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
@@ -44,6 +40,17 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
   public Optional<Recipe> findById(UUID id) {
     Objects.requireNonNull(id);
     return recipeRepository.findById(id).map(RecipeEntityMapper::toDomain);
+  }
+
+  @Override
+  public Optional<RecipeWithMetaData> findRecipeWithMetaDataById(UUID id){
+      Objects.requireNonNull(id);
+      var recipe = recipeRepository.findById(id).map(RecipeEntityMapper::toDomain);
+      if(recipe.isEmpty()){
+          return Optional.empty();
+      }
+      var metaData = new RecipeMetaData(nbLike(id));
+      return Optional.of(new RecipeWithMetaData(recipe.get(), metaData));
   }
 
   @Override
@@ -136,8 +143,8 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     recipeRepository.deleteById(id);
   }
 
-    @Override
-    public long nbLike(UUID recipeId) {
-        return neo4jRecipeRepository.nbLike(recipeId);
-    }
+
+  private long nbLike(UUID recipeId) {
+      return neo4jRecipeRepository.nbLike(recipeId);
+  }
 }

@@ -107,15 +107,15 @@ public class RecipeWebController {
         user = this.userQueryService.getUserByUsername(userDetails.getUsername());
     }
 
-    var recipe = recipeService.findById(id);
-    var recipeDTO = RecipeDTOMapper.toDTO(recipe);
+    var recipe = recipeService.findRecipeWithMetaDataById(id);
+    var recipeDTO = RecipeDTOMapper.toRecipeWithMetaDataDTO(recipe);
 
     if (recipe.isVariant()) {
       var parent = recipeService.findById(recipe.parentId());
       var parentDTO = RecipeDTOMapper.toDTO(parent);
       model.addAttribute("parent", parentDTO);
     }
-    model.addAttribute("nbLike", this.recipeService.nbLike(recipe.id()));
+
     if(user != null){
         model.addAttribute("hasLiked", this.userService.hasLikedRecipe(user.id(), id));
     }

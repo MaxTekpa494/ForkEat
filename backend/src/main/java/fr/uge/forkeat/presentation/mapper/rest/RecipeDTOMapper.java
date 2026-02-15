@@ -1,9 +1,6 @@
 package fr.uge.forkeat.presentation.mapper.rest;
 
-import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeIngredientDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeStepDTO;
+import fr.uge.forkeat.presentation.dto.recipe.*;
 import fr.uge.forkeat.service.model.recipe.*;
 import org.springframework.stereotype.Component;
 
@@ -163,5 +160,45 @@ public final class RecipeDTOMapper {
                         AllergenSeverity.valueOf(dto.severity())
                 ))
                 .toList();
+    }
+
+    public static RecipeWithMetaDataDTO toRecipeWithMetaDataDTO(RecipeWithMetaData recipeWithMetaData, RecipeDTO parentDTO) {
+        return new RecipeWithMetaDataDTO(
+                recipeWithMetaData.id(),
+                recipeWithMetaData.title(),
+                recipeWithMetaData.summary(),
+                parentDTO,
+                recipeWithMetaData.usernameAuthor(),
+                recipeWithMetaData.preparationMinutes(),
+                recipeWithMetaData.imageUrl(),
+                recipeWithMetaData.status().name(),
+                toStepDTOs(recipeWithMetaData.stepByStepInstructions()),
+                toIngredientDTOs(recipeWithMetaData.ingredients()),
+                toAllergenDTOs(recipeWithMetaData.allergens()),
+                recipeWithMetaData.dietaryFlags(),
+                recipeWithMetaData.createdAt(),
+                recipeWithMetaData.updatedAt(),
+                recipeWithMetaData.nbLike()
+        );
+    }
+
+    public static RecipeWithMetaDataDTO toRecipeWithMetaDataDTO(RecipeWithMetaData recipeWithMetaData) {
+        return new RecipeWithMetaDataDTO(
+                recipeWithMetaData.id(),
+                recipeWithMetaData.title(),
+                recipeWithMetaData.summary(),
+                null,
+                recipeWithMetaData.usernameAuthor(),
+                recipeWithMetaData.preparationMinutes(),
+                recipeWithMetaData.imageUrl(),
+                recipeWithMetaData.status().name(),
+                toStepDTOs(recipeWithMetaData.stepByStepInstructions()),
+                toIngredientDTOs(recipeWithMetaData.ingredients()),
+                toAllergenDTOs(recipeWithMetaData.allergens()),
+                recipeWithMetaData.dietaryFlags(),
+                recipeWithMetaData.createdAt(),
+                recipeWithMetaData.updatedAt(),
+                recipeWithMetaData.nbLike()
+        );
     }
 }

@@ -1,10 +1,7 @@
 package fr.uge.forkeat.service.persistence;
 
 import fr.uge.forkeat.service.model.PageResult;
-import fr.uge.forkeat.service.model.recipe.Allergen;
-import fr.uge.forkeat.service.model.recipe.Recipe;
-import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.*;
 
 import java.util.List;
 import java.util.Optional;
@@ -30,5 +27,6 @@ public interface RecipePersistence {
 
   void deleteById(UUID id);
 
-  long nbLike(UUID recipeId);
+  Optional<RecipeWithMetaData> findRecipeWithMetaDataById(UUID id);
+
 }

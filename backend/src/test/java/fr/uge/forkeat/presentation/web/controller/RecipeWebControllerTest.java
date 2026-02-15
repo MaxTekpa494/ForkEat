@@ -6,11 +6,7 @@ import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
-import fr.uge.forkeat.service.model.recipe.Allergen;
-import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
-import fr.uge.forkeat.service.model.recipe.Recipe;
-import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.junit.jupiter.api.Nested;
@@ -214,9 +210,9 @@ class RecipeWebControllerTest {
         @WithMockUser
         void shouldReturnDetailViewWhenRecipeExists() throws Exception {
             var id = UUID.randomUUID();
-            var recipe = createRecipeWithId(id, "Quiche Lorraine", RecipeStatus.PUBLISHED, null);
+            var recipe = createRecipeWithMetaDataWithId(id, "Quiche Lorraine", RecipeStatus.PUBLISHED, null);
 
-            when(recipeService.findById(id)).thenReturn(recipe);
+            when(recipeService.findRecipeWithMetaDataById(id)).thenReturn(recipe);
 
             mockMvc.perform(get("/recipes/{id}", id))
                     .andExpect(status().isOk())
@@ -230,9 +226,9 @@ class RecipeWebControllerTest {
             var parentId = UUID.randomUUID();
             var variantId = UUID.randomUUID();
             var parent = createRecipeWithId(parentId, "Recette originale", RecipeStatus.PUBLISHED, null);
-            var variant = createRecipeWithId(variantId, "Variante", RecipeStatus.PUBLISHED, parentId);
+            var variant = createRecipeWithMetaDataWithId(variantId, "Variante", RecipeStatus.PUBLISHED, parentId);
 
-            when(recipeService.findById(variantId)).thenReturn(variant);
+            when(recipeService.findRecipeWithMetaDataById(variantId)).thenReturn(variant);
             when(recipeService.findById(parentId)).thenReturn(parent);
 
             mockMvc.perform(get("/recipes/{id}", variantId))
@@ -246,9 +242,9 @@ class RecipeWebControllerTest {
         @WithMockUser
         void shouldNotIncludeParentWhenRecipeIsNotVariant() throws Exception {
             var id = UUID.randomUUID();
-            var recipe = createRecipeWithId(id, "Tarte classique", RecipeStatus.PUBLISHED, null);
+            var recipe = createRecipeWithMetaDataWithId(id, "Tarte classique", RecipeStatus.PUBLISHED, null);
 
-            when(recipeService.findById(id)).thenReturn(recipe);
+            when(recipeService.findRecipeWithMetaDataById(id)).thenReturn(recipe);
 
             mockMvc.perform(get("/recipes/{id}", id))
                     .andExpect(status().isOk())
@@ -260,7 +256,7 @@ class RecipeWebControllerTest {
         void shouldReturn404WhenRecipeNotFound() throws Exception {
             var id = UUID.randomUUID();
 
-            when(recipeService.findById(id)).thenThrow(new RecipeNotFoundException(id));
+            when(recipeService.findRecipeWithMetaDataById(id)).thenThrow(new RecipeNotFoundException(id));
 
             mockMvc.perform(get("/recipes/{id}", id))
                     .andExpect(status().isNotFound());
@@ -287,6 +283,13 @@ class RecipeWebControllerTest {
                 Map.of(),
                 null,
                 null
+        );
+    }
+
+    private RecipeWithMetaData createRecipeWithMetaDataWithId(UUID id, String title, RecipeStatus status, UUID parentId) {
+        return new RecipeWithMetaData(
+                createRecipeWithId(id, title, status, parentId),
+                new RecipeMetaData(0)
         );
     }
 }

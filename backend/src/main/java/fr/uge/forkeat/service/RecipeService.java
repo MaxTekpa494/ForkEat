@@ -3,10 +3,7 @@ package fr.uge.forkeat.service;
 import fr.uge.forkeat.infrastructure.storage.R2StorageService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
-import fr.uge.forkeat.service.model.recipe.Allergen;
-import fr.uge.forkeat.service.model.recipe.Recipe;
-import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,6 +70,11 @@ public class RecipeService {
             .orElseThrow(() -> new RecipeNotFoundException(id));
   }
 
+  public RecipeWithMetaData findRecipeWithMetaDataById(UUID id) {
+      return recipePersistence.findRecipeWithMetaDataById(id)
+              .orElseThrow(() -> new RecipeNotFoundException(id));
+  }
+
   public List<Recipe> findByStatus(RecipeStatus status) {
     return recipePersistence.findByStatus(status);
   }
@@ -99,9 +101,8 @@ public class RecipeService {
   }
 
 
-  public long nbLike(UUID recipeId){
+  /*public long nbLike(UUID recipeId){
       return this.recipePersistence.nbLike(recipeId);
-
-  }
+  }*/
 
 }
