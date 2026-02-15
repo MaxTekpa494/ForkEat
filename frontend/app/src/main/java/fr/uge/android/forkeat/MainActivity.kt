@@ -103,20 +103,18 @@ class MainActivity : ComponentActivity() {
                     composable("recipes") {
                         val recipesState = recipesViewModel.recipes.collectAsState()
                         val totalCountState = recipesViewModel.totalCount.collectAsState()
-                        val currentPageState = recipesViewModel.currentPage.collectAsState()
                         val errorMessageState = recipesViewModel.errorMessage.collectAsState()
-                        val pageSizeState = recipesViewModel.pageSize.collectAsState()
                         val searchQueryState = recipesViewModel.searchQuery.collectAsState()
                         val selectedAllergensState = recipesViewModel.selectedAllergens.collectAsState()
                         val availableAllergensState = recipesViewModel.availableAllergens.collectAsState()
+                        val isLoadingState = recipesViewModel.isLoading.collectAsState()
 
                         RecipesListScreen(
                             recipes = recipesState.value,
                             totalCount = totalCountState.value,
-                            currentPage = currentPageState.value,
-                            pageSize = pageSizeState.value,
-                            onPageChange = { page -> recipesViewModel.loadRecipes(page) },
+                            onLoadMore = { recipesViewModel.loadMoreRecipes() },
                             errorMessage = errorMessageState.value,
+                            isLoading = isLoadingState.value,
                             navController = navController,
                             searchQuery = searchQueryState.value,
                             onSearchQueryChange = { query -> recipesViewModel.onSearchQueryChange(query) },
