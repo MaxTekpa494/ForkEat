@@ -59,6 +59,41 @@ public class RecipeService {
   }
 
   @Transactional
+  public Recipe updateRecipe(UUID id, Recipe updatedRecipe, MultipartFile image) {
+    var existingRecipe = findById(id);
+
+    var imageUrl = existingRecipe.imageUrl();
+    if (image != null && !image.isEmpty()) {
+      if (existingRecipe.imageUrl() != null) {
+        storageService.deleteImage(existingRecipe.imageUrl());
+        logger.info("Old image deleted for recipe {}", id);
+      }
+      imageUrl = storageService.uploadImage(image, "recipes");
+      logger.info("New image uploaded for recipe {}", id);
+    }
+
+    var recipeToSave = new Recipe(
+            id,
+            updatedRecipe.title(),
+            updatedRecipe.summary(),
+            existingRecipe.parentId(),
+            existingRecipe.usernameAuthor(),
+            updatedRecipe.preparationMinutes(),
+            imageUrl,
+            updatedRecipe.status(),
+            updatedRecipe.stepByStepInstructions(),
+            updatedRecipe.ingredients(),
+            updatedRecipe.allergens(),
+            updatedRecipe.dietaryFlags(),
+            existingRecipe.createdAt(),
+            updatedRecipe.updatedAt()
+    );
+
+    logger.info("Recipe {} updated", id);
+    return recipePersistence.update(id, recipeToSave);
+  }
+
+  @Transactional
   public void deleteById(UUID id) {
     var recipe = findById(id);
     if(recipe.imageUrl() != null){
@@ -98,5 +133,8 @@ public class RecipeService {
     return recipePersistence.findAllIngredientNames();
   }
 
+  public List<Recipe> findByAuthorUsername(String authorUsername) {
+    return recipePersistence.findByAuthorUsername(authorUsername);
+  }
 
 }
