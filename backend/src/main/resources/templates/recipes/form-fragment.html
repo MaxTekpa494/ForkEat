@@ -202,7 +202,7 @@
                            th:data-name="${allergen.name}"
                            th:data-severity="${allergen.severity}"
                            onchange="updateAllergenFields()"
-                           th:checked="${selectedAllergenIds != null and selectedAllergenIds.contains(allergen.id)}">
+                           th:checked="${recipe != null and recipe.allergens != null and #lists.contains(recipe.allergens.![id], allergen.id)}">
                     <span class="ml-3 text-sm">
                         <span class="font-medium text-secondary-900" th:text="${allergen.name}">Allergène</span>
                         <span class="text-xs ml-1 px-1.5 py-0.5 rounded-full"

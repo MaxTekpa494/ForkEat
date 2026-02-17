@@ -63,6 +63,20 @@ public class RecipeWebController {
   }
 
 
+  @GetMapping("/my-recipes")
+  public String myRecipes(Model model) {
+    var username = authPort.extractUsername();
+    var myRecipes = recipeService.findByAuthorUsername(username);
+    var recipesDTO = myRecipes.stream()
+            .map(RecipeDTOMapper::toDTO)
+            .toList();
+
+    model.addAttribute("recipes", recipesDTO);
+    model.addAttribute("username", username);
+    return "recipes/my-recipes";
+  }
+
+
 
   @GetMapping
   public String listRecipes(RecipeSearchDTO form, Model model) {
@@ -100,7 +114,71 @@ public class RecipeWebController {
       model.addAttribute("parent", parentDTO);
     }
 
+    var currentUser = authPort.extractUsername();
+    var isOwner = currentUser != null && currentUser.equals(recipe.usernameAuthor());
+
     model.addAttribute("recipe", recipeDTO);
+    model.addAttribute("isOwner", isOwner);
+    logger.info("Recipe {} viewed by {}", recipe, currentUser);
     return "recipes/detail";
+  }
+
+  @PostMapping("/{id}/delete")
+  public String deleteRecipe(@PathVariable UUID id) {
+    var currentUser = authPort.extractUsername();
+    var recipe = recipeService.findById(id);
+
+    if (!currentUser.equals(recipe.usernameAuthor())) {
+      throw new IllegalStateException("Vous ne pouvez pas supprimer une recette qui ne vous appartient pas");
+    }
+
+    recipeService.deleteById(id);
+    return "redirect:/recipes/my-recipes";
+  }
+
+  @GetMapping("/{id}/edit")
+  public String editRecipe(@PathVariable UUID id, Model model) {
+    var currentUser = authPort.extractUsername();
+    var recipe = recipeService.findById(id);
+    logger.info("Editing recipe {}", recipe);
+    if (!currentUser.equals(recipe.usernameAuthor())) {
+      model.addAttribute("errorMessage", "Vous ne pouvez pas modifier une recette qui ne vous appartient pas");
+      model.addAttribute("pageTitle", "Accès non autorisé");
+      return "error/404";
+    }
+
+    var recipeDTO = RecipeDTOMapper.toDTO(recipe);
+    var allAllergens = recipeService.findAllAllergens().stream()
+            .map(RecipeDTOMapper::toDTO)
+            .toList();
+    var allIngredientNames = recipeService.findAllIngredientNames();
+
+    model.addAttribute("recipe", recipeDTO);
+    model.addAttribute("allAllergens", allAllergens);
+    model.addAttribute("allIngredientNames", allIngredientNames);
+    model.addAttribute("username", currentUser);
+    model.addAttribute("formAction", "/recipes/" + id + "/edit");
+    model.addAttribute("formTitle", "Modifier la recette");
+
+    return "recipes/edit";
+  }
+
+  @PostMapping("/{id}/edit")
+  public String updateRecipe(@PathVariable UUID id,
+                              @ModelAttribute RecipeDTO recipeDTO,
+                              @RequestPart(value="image", required=false) MultipartFile image,
+                              Model model) {
+    var currentUser = authPort.extractUsername();
+    var existingRecipe = recipeService.findById(id);
+
+    if (!currentUser.equals(existingRecipe.usernameAuthor())) {
+      throw new IllegalStateException("Vous ne pouvez pas modifier une recette qui ne vous appartient pas");
+    }
+
+    logger.info("Updating recipe {}", id);
+    var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, currentUser));
+    var updatedRecipe = recipeService.updateRecipe(id, recipe, image);
+    logger.info("Recipe {} updated", updatedRecipe);
+    return "redirect:/recipes/" + updatedRecipe.id();
   }
 }
