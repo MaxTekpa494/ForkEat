@@ -1,12 +1,8 @@
 package fr.uge.android.forkeat.recipes.data.dto
 
-import kotlinx.serialization.Serializable
 import java.util.UUID
-import kotlin.time.ExperimentalTime
 import kotlin.time.Instant
 
-@OptIn(ExperimentalTime::class)
-@Serializable
 data class RecipeDTO(
   val id: UUID,
   val title: String,
@@ -20,6 +16,6 @@ data class RecipeDTO(
   val ingredients: List<RecipeIngredientDTO>,
   val allergens: List<AllergenDTO>,
   val dietaryFlags: Map<String, Boolean>,
-  val createdAt: String,
-  val updatedAt: String
+  val createdAt: Instant,
+  val updatedAt: Instant
 )

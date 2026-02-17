@@ -25,6 +25,7 @@ import java.util.UUID
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.BorderStroke
+import kotlin.time.Instant
 
 @Composable
 fun RecipeDetailScreen(recipe: RecipeDTO, onBack: () -> Unit) {
@@ -57,14 +58,14 @@ fun RecipeDetailScreen(recipe: RecipeDTO, onBack: () -> Unit) {
             Text(recipe.summary, style = Typography.bodyMedium)
             Spacer(Modifier.height(16.dp))
             // Allergènes
-            if (!recipe.allergens.isNullOrEmpty()) {
+            if (recipe.allergens.isNotEmpty()) {
                 Text("Allergènes", style = Typography.titleMedium, color = Color(0xFFFFC107))
                 Spacer(Modifier.height(4.dp))
-                AllergenBadges(recipe.allergens ?: emptyList())
+                AllergenBadges(recipe.allergens)
                 Spacer(Modifier.height(8.dp))
             }
             // Ingrédients
-            if (!recipe.ingredients.isNullOrEmpty()) {
+            if (recipe.ingredients.isNotEmpty()) {
                 Text("Ingrédients", style = Typography.titleMedium, color = Primary500)
                 Spacer(Modifier.height(4.dp))
                 Column {
@@ -75,7 +76,7 @@ fun RecipeDetailScreen(recipe: RecipeDTO, onBack: () -> Unit) {
                 Spacer(Modifier.height(8.dp))
             }
             // Préparation
-            if (!recipe.steps.isNullOrEmpty()) {
+            if (recipe.steps.isNotEmpty()) {
                 Text("Préparation", style = Typography.titleMedium, color = Secondary700)
                 Spacer(Modifier.height(4.dp))
                 Column {
@@ -220,8 +221,8 @@ fun PreviewRecipeDetailScreen() {
             "vegan" to false,
             "sans gluten" to false
         ),
-        createdAt = "2026-02-10T12:00:00Z",
-        updatedAt = "2026-02-10T12:00:00Z"
+        createdAt = Instant.parse("2026-02-10T12:00:00Z"),
+        updatedAt = Instant.parse("2026-02-10T12:00:00Z")
     )
     RecipeDetailScreen(recipe = exampleRecipe, onBack = {})
 }

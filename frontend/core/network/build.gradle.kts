@@ -34,8 +34,6 @@ dependencies {
     api(project(":data:recipes"))
     implementation(libs.androidx.core.ktx)
     api(libs.retrofit)
-    implementation(libs.kotlinx.serialization.json)
-    implementation(libs.retrofit.converter.kotlinx.serialization)
     implementation(libs.retrofit.converter.gson)
     implementation(libs.okhttp.logging.interceptor)
     testImplementation(libs.junit)
