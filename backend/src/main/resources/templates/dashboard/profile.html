@@ -167,7 +167,9 @@
                                 </button>
                             </div>
 
-                            <div class="flex items-center justify-between p-4 bg-surface rounded-xl">
+                            <!-- Mot de passe : LOCAL -->
+                            <div th:if="${user.authMode.name() == 'LOCAL'}"
+                                 class="flex items-center justify-between p-4 bg-surface rounded-xl">
                                 <div>
                                     <div class="font-medium text-secondary-900">Mot de passe</div>
                                     <div class="text-sm text-gray-500">••••••••</div>
@@ -175,6 +177,25 @@
                                 <button onclick="openPasswordModal()"
                                         class="text-primary-500 hover:text-primary-600 font-medium transition">
                                     Modifier
+                                </button>
+                            </div>
+
+                            <!-- Mot de passe : GOOGLE -->
+                            <div th:if="${user.authMode.name() == 'GOOGLE'}"
+                                 class="p-4 bg-blue-50 border border-blue-200 rounded-xl">
+                                <div class="flex items-start space-x-3 mb-3">
+                                    <i class="fas fa-google text-blue-600 mt-1"></i>
+                                    <div>
+                                        <div class="font-medium text-secondary-900">Connexion Google</div>
+                                        <div class="text-sm text-gray-600">
+                                            Votre compte est connecté via Google. Définissez un mot de passe
+                                            pour pouvoir également vous connecter avec votre email.
+                                        </div>
+                                    </div>
+                                </div>
+                                <button onclick="openSetPasswordModal()"
+                                        class="text-primary-500 hover:text-primary-600 font-medium text-sm transition">
+                                    <i class="fas fa-key mr-1"></i>Définir un mot de passe
                                 </button>
                             </div>
 
@@ -349,6 +370,58 @@
         </div>
     </section>
 
+    <!-- Modal Définir mot de passe (Google → LOCAL) -->
+    <div id="setPasswordModal" class="hidden fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="font-display font-bold text-xl text-secondary-900">Définir un mot de passe</h3>
+                <button onclick="closeSetPasswordModal()" class="text-gray-400 hover:text-gray-600">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-4 mb-4">
+                <div class="flex items-start space-x-3">
+                    <i class="fas fa-info-circle text-blue-600 mt-1"></i>
+                    <p class="text-sm text-blue-800">
+                        Après avoir défini un mot de passe, vous pourrez vous connecter avec
+                        votre email et mot de passe, <strong>en plus</strong> de Google.
+                    </p>
+                </div>
+            </div>
+
+            <form th:action="@{/profile/set-password}" method="post" class="space-y-4">
+                <div>
+                    <label for="setNewPassword" class="block text-sm font-medium text-secondary-900 mb-2">
+                        Nouveau mot de passe
+                    </label>
+                    <input type="password" id="setNewPassword" name="newPassword" required minlength="8"
+                           class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                    <p class="text-xs text-gray-500 mt-1">Minimum 8 caractères, 1 majuscule, 1 chiffre</p>
+                </div>
+
+                <div>
+                    <label for="setConfirmPassword" class="block text-sm font-medium text-secondary-900 mb-2">
+                        Confirmer le mot de passe
+                    </label>
+                    <input type="password" id="setConfirmPassword" name="confirmPassword" required minlength="8"
+                           class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500">
+                </div>
+
+                <div class="flex space-x-3 pt-4">
+                    <button type="submit"
+                            class="flex-1 bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-full font-bold transition">
+                        Définir le mot de passe
+                    </button>
+                    <button type="button" onclick="closeSetPasswordModal()"
+                            class="px-6 py-3 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full font-bold transition">
+                        Annuler
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
     <div id="emailModal" class="hidden fixed inset-0 bg-black/50 z-[300] flex items-center justify-center p-4">
         <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl">
             <div class="flex items-center justify-between mb-6">
@@ -516,6 +589,14 @@
             document.getElementById('passwordModal').classList.add('hidden');
         }
 
+        function openSetPasswordModal() {
+            document.getElementById('setPasswordModal').classList.remove('hidden');
+        }
+
+        function closeSetPasswordModal() {
+            document.getElementById('setPasswordModal').classList.add('hidden');
+        }
+
         document.getElementById('emailModal')?.addEventListener('click', function(e) {
             if (e.target === this) closeEmailModal();
         });
@@ -524,10 +605,15 @@
             if (e.target === this) closePasswordModal();
         });
 
+        document.getElementById('setPasswordModal')?.addEventListener('click', function(e) {
+            if (e.target === this) closeSetPasswordModal();
+        });
+
         document.addEventListener('keydown', function(e) {
             if (e.key === 'Escape') {
                 closeEmailModal();
                 closePasswordModal();
+                closeSetPasswordModal();
             }
         });
     </script>
