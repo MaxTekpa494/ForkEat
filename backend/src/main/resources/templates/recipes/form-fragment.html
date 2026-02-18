@@ -27,7 +27,7 @@
     <!-- Champs cachés -->
     <input type="hidden" name="username" th:value="${username}">
     <input type="hidden" name="status" value="DRAFT">
-    <input th:if="${parentId != null}" type="hidden" name="parent.id" th:value="${parentId}">
+    <input th:if="${parentId != null}" type="hidden" name="parentId" th:value="${parentId}">
 
     <!-- ═══════════════════════════════════════ -->
     <!-- SECTION 1 : Informations générales     -->
@@ -81,12 +81,16 @@
                         Photo du plat
                     </label>
                     <input id="image" name="image" type="file" accept="image/*"
+                           onchange="previewImage(this)"
                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-600 hover:file:bg-primary-100 transition cursor-pointer">
-                    <!-- Aperçu image existante (édition) -->
-                    <div th:if="${recipe != null and recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}" class="mt-2">
-                        <img th:src="${recipe.imageUrl}" alt="Image actuelle"
+                    <!-- Aperçu image -->
+                    <div id="imagePreviewContainer" class="mt-2"
+                         th:style="${recipe != null and recipe.imageUrl != null and !recipe.imageUrl.isEmpty()} ? '' : 'display:none'">
+                        <img id="imagePreview"
+                             th:src="${recipe != null and recipe.imageUrl != null} ? ${recipe.imageUrl} : ''"
+                             alt="Aperçu"
                              class="h-20 w-20 object-cover rounded-lg border border-gray-200">
-                        <p class="text-xs text-gray-400 mt-1">Image actuelle. Uploadez une nouvelle pour la remplacer.</p>
+                        <p id="imagePreviewLabel" class="text-xs text-gray-400 mt-1">Image actuelle. Uploadez une nouvelle pour la remplacer.</p>
                     </div>
                 </div>
             </div>
@@ -202,7 +206,7 @@
                            th:data-name="${allergen.name}"
                            th:data-severity="${allergen.severity}"
                            onchange="updateAllergenFields()"
-                           th:checked="${recipe != null and recipe.allergens != null and #lists.contains(recipe.allergens.![id], allergen.id)}">
+                           th:checked="${#lists.contains(selectedAllergenIds, allergen.id)}">
                     <span class="ml-3 text-sm">
                         <span class="font-medium text-secondary-900" th:text="${allergen.name}">Allergène</span>
                         <span class="text-xs ml-1 px-1.5 py-0.5 rounded-full"
@@ -303,6 +307,22 @@
 <!-- ═══════════════════════════════════════════ -->
 <script th:inline="javascript">
     /*<![CDATA[*/
+
+    // ── Aperçu image ─────────────────────────
+    function previewImage(input) {
+        var container = document.getElementById('imagePreviewContainer');
+        var preview = document.getElementById('imagePreview');
+        var label = document.getElementById('imagePreviewLabel');
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                label.textContent = 'Nouvelle image sélectionnée.';
+                container.style.display = '';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
 
     // ── Ingrédients ──────────────────────────
     function addIngredient() {

@@ -39,19 +39,27 @@
                         <h1 class="font-display font-bold text-3xl md:text-4xl text-secondary-900"
                             th:text="${recipe.title}">Titre de la recette</h1>
 
-                        <div th:if="${isOwner}" class="flex items-center gap-2 ml-4">
-                            <a th:href="@{/recipes/{id}/edit(id=${recipe.id})}"
-                               class="flex items-center space-x-2 bg-secondary-800 hover:bg-secondary-700 text-white px-4 py-2 rounded-lg font-medium transition text-sm shadow-sm">
-                                <i class="fas fa-edit"></i>
-                                <span>Modifier</span>
+                        <div class="flex items-center gap-2 ml-4">
+                            <a th:if="${isAuthenticated}"
+                               th:href="@{/recipes/create-variant(id=${recipe.id},title=${recipe.title},username=${recipe.username})}"
+                               class="flex items-center space-x-2 bg-primary-50 hover:bg-primary-100 text-primary-600 px-4 py-2 rounded-lg font-medium transition text-sm border border-primary-200">
+                                <i class="fas fa-code-branch"></i>
+                                <span>Créer une variante</span>
                             </a>
-                            <button onclick="confirmDelete()"
-                                    th:attr="data-recipe-id=${recipe.id}, data-recipe-title=${recipe.title}"
-                                    id="delete-btn"
-                                    class="flex items-center space-x-2 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg font-medium transition text-sm border border-red-200">
-                                <i class="fas fa-trash"></i>
-                                <span>Supprimer</span>
-                            </button>
+                            <th:block th:if="${isOwner}">
+                                <a th:href="@{/recipes/{id}/edit(id=${recipe.id})}"
+                                   class="flex items-center space-x-2 bg-secondary-800 hover:bg-secondary-700 text-white px-4 py-2 rounded-lg font-medium transition text-sm shadow-sm">
+                                    <i class="fas fa-edit"></i>
+                                    <span>Modifier</span>
+                                </a>
+                                <button onclick="confirmDelete()"
+                                        th:attr="data-recipe-id=${recipe.id}, data-recipe-title=${recipe.title}"
+                                        id="delete-btn"
+                                        class="flex items-center space-x-2 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg font-medium transition text-sm border border-red-200">
+                                    <i class="fas fa-trash"></i>
+                                    <span>Supprimer</span>
+                                </button>
+                            </th:block>
                         </div>
                     </div>
 
