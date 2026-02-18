@@ -1,5 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
+import fr.uge.forkeat.service.model.TransactionStatus; // Import TransactionStatus
 import fr.uge.forkeat.service.model.TransactionType;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
@@ -19,11 +20,14 @@ public class TransactionEntity {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "source_wallet_id")
     private WalletEntity sourceWallet;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "destination_wallet_id")
     private WalletEntity destinationWallet;
+
     @Column(name = "amount", nullable = false)
     private Long amount;
+
     @Column(name = "stripe_transaction_id")
     private String stripeTransactionID;
 
@@ -31,6 +35,12 @@ public class TransactionEntity {
     @JdbcTypeCode(SqlTypes.NAMED_ENUM)
     @Column(name = "type", nullable = false)
     private TransactionType transactionType;
+
+    @Enumerated(EnumType.STRING)
+    @JdbcTypeCode(SqlTypes.NAMED_ENUM)
+    @Column(name = "status", nullable = false)
+    private TransactionStatus status; // Utile pour le retrait avec Stripe
+
     @Column(name = "created_at")
     private Instant createdAt;
 
@@ -38,12 +48,13 @@ public class TransactionEntity {
 
     public TransactionEntity(WalletEntity sourceWallet, WalletEntity destinationWallet,
                              Long amount, String stripeTransactionID,
-                             TransactionType transactionType, Instant createdAt) {
+                             TransactionType transactionType, TransactionStatus status, Instant createdAt) {
         this.sourceWallet = sourceWallet;
         this.destinationWallet = destinationWallet;
         this.amount = amount;
         this.stripeTransactionID = stripeTransactionID;
         this.transactionType = transactionType;
+        this.status = status; // Initialize status
         this.createdAt = createdAt;
     }
 
@@ -53,7 +64,12 @@ public class TransactionEntity {
         if(id == null){
             id = UUID.randomUUID();
         }
-        createdAt = Instant.now();
+        if(createdAt == null) {
+            createdAt = Instant.now();
+        }
+        if(status == null) {
+            status = TransactionStatus.PENDING;
+        }
     }
 
     public UUID getId() {
@@ -105,6 +121,14 @@ public class TransactionEntity {
 
     public void setTransactionType(TransactionType transactionType) {
         this.transactionType = transactionType;
+    }
+
+    public TransactionStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(TransactionStatus status) {
+        this.status = status;
     }
 
     public Instant getCreatedAt() {
