@@ -11,6 +11,9 @@ import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.user.GoogleTokenVerificationService;
+import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -49,6 +52,12 @@ class AuthRestControllerTest {
     private JwtFilter jwtFilter;
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+    @MockitoBean
+    private GoogleTokenVerificationService googleTokenVerificationService;
+    @MockitoBean
+    private UserQueryService userQueryService;
+    @MockitoBean
+    private AuthenticationPort authPort;
 
     @Autowired
     AuthRestControllerTest(MockMvc mockMvc) {

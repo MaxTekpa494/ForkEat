@@ -85,15 +85,14 @@ public class UserUpdateService {
       throw new CheckProfileUpdateFailureException("Cet email est déjà utilisé");
     }
 
-    String hashedPassword = null;
-    if (user.authMode() == AuthMode.GOOGLE && newPassword != null) {
+    boolean switchingToLocal = user.authMode() == AuthMode.GOOGLE && newPassword != null;
+    if (switchingToLocal) {
       if (newPassword.length() < 8) {
         throw new CheckProfileUpdateFailureException("Le mot de passe doit contenir au moins 8 caractères");
       }
-      hashedPassword = passwordEncoder.encode(newPassword);
     }
 
-    emailVerificationService.sendEmailChangeCode(user.id(), user.email(), newEmail, hashedPassword);
+    emailVerificationService.sendEmailChangeCode(user.id(), user.email(), newEmail, switchingToLocal);
   }
 
   @Transactional(
@@ -120,8 +119,7 @@ public class UserUpdateService {
       throw new CheckProfileUpdateFailureException("Passwords are the same");
     }
 
-    var hashedNewPassword = passwordEncoder.encode(newPassword);
-    emailVerificationService.sendPasswordChangeCode(user.id(), user.email(), hashedNewPassword);
+    emailVerificationService.sendPasswordChangeCode(user.id(), user.email());
   }
 
   @Transactional(

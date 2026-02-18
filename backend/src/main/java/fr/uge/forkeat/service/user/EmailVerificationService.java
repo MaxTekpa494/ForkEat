@@ -53,7 +53,7 @@ public class EmailVerificationService {
         var tokenValue = UUID.randomUUID().toString();
         var token = new VerificationToken(
                 UUID.randomUUID(), userId, tokenValue,
-                VerificationTokenType.EMAIL_CONFIRMATION, null, null,
+                VerificationTokenType.EMAIL_CONFIRMATION, null,
                 Instant.now().plus(EMAIL_CONFIRMATION_EXPIRY_HOURS, ChronoUnit.HOURS),
                 Instant.now()
         );
@@ -88,20 +88,18 @@ public class EmailVerificationService {
     }
 
     /**
-     *  Send a code to reset the password by mail to the mail indicated
-     * @param userId The ID of the user
-     * @param email The email of the user
-     * @param hashedNewPassword the hashed password
+     * Send a code to reset the password by mail to the mail indicated.
+     * The password is NOT stored in the token — it will be provided at confirmation time.
      */
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
-    public void sendPasswordChangeCode(UUID userId, String email, String hashedNewPassword) {
+    public void sendPasswordChangeCode(UUID userId, String email) {
 
         tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
 
         var code = generateSixDigitCode();
         var token = new VerificationToken(
                 UUID.randomUUID(), userId, code,
-                VerificationTokenType.PASSWORD_CHANGE, null, hashedNewPassword,
+                VerificationTokenType.PASSWORD_CHANGE, null,
                 Instant.now().plus(CODE_EXPIRY_MINUTES, ChronoUnit.MINUTES),
                 Instant.now()
         );
@@ -112,8 +110,9 @@ public class EmailVerificationService {
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
-    public void confirmPasswordChange(UUID userId, String code) {
+    public void confirmPasswordChange(UUID userId, String code, String hashedNewPassword) {
         Objects.requireNonNull(code);
+        Objects.requireNonNull(hashedNewPassword);
 
         var token = tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE)
                 .orElseThrow(() -> new VerificationException("Aucun changement de mot de passe en attente"));
@@ -129,18 +128,18 @@ public class EmailVerificationService {
 
         var user = userPersistence.findById(userId)
                 .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
-        userPersistence.saveUser(user, token.passwordHash());
+        userPersistence.saveUser(user, hashedNewPassword);
 
         tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
     public void sendEmailChangeCode(UUID userId, String currentEmail, String newEmail) {
-        sendEmailChangeCode(userId, currentEmail, newEmail, null);
+        sendEmailChangeCode(userId, currentEmail, newEmail, false);
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
-    public void sendEmailChangeCode(UUID userId, String currentEmail, String newEmail, String hashedPassword) {
+    public void sendEmailChangeCode(UUID userId, String currentEmail, String newEmail, boolean switchingToLocal) {
         if (userPersistence.existsByEmail(newEmail)) {
             throw new VerificationException("Cet email est déjà utilisé");
         }
@@ -150,7 +149,7 @@ public class EmailVerificationService {
         var code = generateSixDigitCode();
         var token = new VerificationToken(
                 UUID.randomUUID(), userId, code,
-                VerificationTokenType.EMAIL_CHANGE, newEmail, hashedPassword,
+                VerificationTokenType.EMAIL_CHANGE, newEmail,
                 Instant.now().plus(CODE_EXPIRY_MINUTES, ChronoUnit.MINUTES),
                 Instant.now()
         );
@@ -164,16 +163,21 @@ public class EmailVerificationService {
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
     public User confirmEmailChange(UUID userId, String code) {
+        return confirmEmailChange(userId, code, null);
+    }
+
+    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
+    public User confirmEmailChange(UUID userId, String code, String hashedPassword) {
         var validated = validateEmailChangeCode(userId, code);
         var user = validated.user();
         var token = validated.token();
 
         User result;
-        if (token.passwordHash() != null) {
+        if (hashedPassword != null) {
             var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
                     token.newEmail(), user.role(), user.status(), AuthMode.LOCAL,
                     user.createdAt(), Instant.now(), user.emailVerified());
-            result = userPersistence.saveUser(updatedUser, token.passwordHash());
+            result = userPersistence.saveUser(updatedUser, hashedPassword);
         } else {
             var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
                     token.newEmail(), user.role(), user.status(), user.authMode(),

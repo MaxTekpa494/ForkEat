@@ -1,6 +1,7 @@
 package fr.uge.forkeat.infrastructure.config;
 
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import io.jsonwebtoken.ExpiredJwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,10 +34,18 @@ public class JwtFilter extends OncePerRequestFilter {
         // Extract the username of the token
         if (token != null && token.startsWith("Bearer ")) {
             tokenBody =  token.substring(7);
-            username = jwtUtils.extractUsername(tokenBody);
+            try {
+                username = jwtUtils.extractUsername(tokenBody);
+            } catch (ExpiredJwtException e) {
+                // Token expired: don't authenticate, but let the filter chain continue.
+                // Spring Security will decide based on permitAll() vs authenticated().
+                response.setHeader("X-Token-Expired", "true");
+                filterChain.doFilter(request, response);
+                return;
+            }
         }
 
-        //We recup the userDetails
+        // We recup the userDetails
         if(username != null && SecurityContextHolder.getContext().getAuthentication() == null){
             var userDetails = customUserDetailsService.loadUserByUsername(username);
 
