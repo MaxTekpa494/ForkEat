@@ -4,10 +4,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.AllergenRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.recipe.Allergen;
 import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
@@ -17,6 +14,7 @@ import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -52,13 +50,25 @@ class RecipePersistenceAdapterTest {
     @Mock
     private IngredientRepository ingredientRepository;
 
+    @Mock
+    private RecipeIngredientRepository recipeIngredientRepository;
+    @Mock
+    private RecipeAllergenRepository recipeAllergenRepository;
+
+    @Mock
+    private EntityManager entityManager;
+
     private RecipePersistenceAdapter adapter;
     private UserEntity author;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        adapter = new RecipePersistenceAdapter(recipeRepository, userRepository, allergenRepository, ingredientRepository);
+        adapter = new RecipePersistenceAdapter(
+                recipeRepository, userRepository,
+                allergenRepository, ingredientRepository,
+                recipeAllergenRepository, recipeIngredientRepository,
+                entityManager);
         now = Instant.now();
 
         author = new UserEntity();
@@ -386,6 +396,204 @@ class RecipePersistenceAdapterTest {
             adapter.deleteById(recipeId);
 
             verify(recipeRepository).deleteById(recipeId);
+        }
+    }
+
+    @Nested
+    class Update {
+
+        @Test
+        void shouldUpdateRecipeSuccessfully() {
+            var recipeId = UUID.randomUUID();
+            var existingEntity = createRecipeEntity(recipeId, "Old Title", RecipeStatus.DRAFT);
+            var updatedRecipe = new Recipe(
+                    recipeId, "Updated Title", "Updated summary", null, "chef_test",
+                    45, "http://new-image.jpg", RecipeStatus.PUBLISHED,
+                    List.of(new fr.uge.forkeat.service.model.recipe.RecipeStep(1, "New step")),
+                    List.of(), List.of(), Map.of("vegan", true), now, now
+            );
+
+            when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
+            when(allergenRepository.findAllById(any())).thenReturn(List.of());
+            when(ingredientRepository.findByNameIn(any())).thenReturn(List.of());
+            when(recipeRepository.save(any(RecipeEntity.class))).thenReturn(existingEntity);
+
+            var result = adapter.update(recipeId, updatedRecipe);
+
+            assertNotNull(result);
+            assertEquals("Updated Title", result.title());
+            assertEquals("Updated summary", result.summary());
+            assertEquals(45, result.preparationMinutes());
+            assertEquals(RecipeStatus.PUBLISHED, result.status());
+            verify(recipeAllergenRepository).deleteByRecipeId(recipeId);
+            verify(recipeIngredientRepository).deleteByRecipeId(recipeId);
+            verify(entityManager).flush();
+            verify(entityManager).clear();
+            verify(recipeRepository).save(any(RecipeEntity.class));
+        }
+
+        @Test
+        void shouldThrowWhenRecipeNotFound() {
+            var recipeId = UUID.randomUUID();
+            var recipe = createRecipe(recipeId, "Test", RecipeStatus.DRAFT);
+
+            when(recipeRepository.findById(recipeId)).thenReturn(Optional.empty());
+
+            assertThrows(IllegalStateException.class, () -> adapter.update(recipeId, recipe));
+            verify(recipeAllergenRepository).deleteByRecipeId(recipeId);
+            verify(recipeIngredientRepository).deleteByRecipeId(recipeId);
+        }
+
+        @Test
+        void shouldThrowWhenIdIsNull() {
+            var recipe = createRecipe(UUID.randomUUID(), "Test", RecipeStatus.DRAFT);
+
+            assertThrows(NullPointerException.class, () -> adapter.update(null, recipe));
+        }
+
+        @Test
+        void shouldThrowWhenRecipeIsNull() {
+            var recipeId = UUID.randomUUID();
+
+            assertThrows(NullPointerException.class, () -> adapter.update(recipeId, null));
+        }
+
+        @Test
+        void shouldUpdateRecipeWithNewIngredients() {
+            var recipeId = UUID.randomUUID();
+            var existingEntity = createRecipeEntity(recipeId, "Recipe", RecipeStatus.DRAFT);
+
+            var existingIngredient = new IngredientEntity("Farine", "Cereale", false);
+            existingIngredient.setId(UUID.randomUUID());
+
+            var updatedRecipe = new Recipe(
+                    recipeId, "Recipe", "Summary", null, "chef_test",
+                    30, null, RecipeStatus.DRAFT,
+                    List.of(),
+                    List.of(
+                            new RecipeIngredient("Farine", 250.0, "g"),
+                            new RecipeIngredient("Nouvel Ingredient", 100.0, "g")
+                    ),
+                    List.of(), Map.of(), now, now
+            );
+
+            when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
+            when(ingredientRepository.findByNameIn(List.of("Farine", "Nouvel Ingredient")))
+                    .thenReturn(List.of(existingIngredient));
+            when(allergenRepository.findAllById(any())).thenReturn(List.of());
+            when(recipeRepository.save(any(RecipeEntity.class))).thenReturn(existingEntity);
+
+            var newIngredient = new IngredientEntity("Nouvel Ingredient", "Non catégorisé", false);
+            newIngredient.setId(UUID.randomUUID());
+            when(ingredientRepository.save(any(IngredientEntity.class))).thenReturn(newIngredient);
+
+            var result = adapter.update(recipeId, updatedRecipe);
+
+            assertNotNull(result);
+            verify(recipeIngredientRepository).deleteByRecipeId(recipeId);
+            verify(entityManager).flush();
+            verify(entityManager).clear();
+        }
+
+        @Test
+        void shouldUpdateRecipeWithAllergens() {
+            var recipeId = UUID.randomUUID();
+            var allergenId = UUID.randomUUID();
+            var existingEntity = createRecipeEntity(recipeId, "Recipe", RecipeStatus.DRAFT);
+            var allergenEntity = new AllergenEntity("Gluten", AllergenSeverity.HIGH);
+            allergenEntity.setId(allergenId);
+
+            var updatedRecipe = new Recipe(
+                    recipeId, "Recipe", "Summary", null, "chef_test",
+                    30, null, RecipeStatus.DRAFT,
+                    List.of(), List.of(),
+                    List.of(new Allergen(allergenId, "Gluten", AllergenSeverity.HIGH)),
+                    Map.of(), now, now
+            );
+
+            when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
+            when(allergenRepository.findAllById(List.of(allergenId))).thenReturn(List.of(allergenEntity));
+            when(ingredientRepository.findByNameIn(any())).thenReturn(List.of());
+            when(recipeRepository.save(any(RecipeEntity.class))).thenReturn(existingEntity);
+
+            var result = adapter.update(recipeId, updatedRecipe);
+
+            assertNotNull(result);
+            verify(recipeAllergenRepository).deleteByRecipeId(recipeId);
+            verify(allergenRepository).findAllById(List.of(allergenId));
+        }
+
+        @Test
+        void shouldPreserveParentIdWhenUpdating() {
+            var recipeId = UUID.randomUUID();
+            var parentId = UUID.randomUUID();
+            var existingEntity = createRecipeEntity(recipeId, "Variant", RecipeStatus.DRAFT);
+            var parentEntity = createRecipeEntity(parentId, "Parent", RecipeStatus.PUBLISHED);
+            existingEntity.setParent(parentEntity);
+
+            var updatedRecipe = new Recipe(
+                    recipeId, "Updated Variant", "New summary", parentId, "chef_test",
+                    30, null, RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now
+            );
+
+            when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
+            when(allergenRepository.findAllById(any())).thenReturn(List.of());
+            when(ingredientRepository.findByNameIn(any())).thenReturn(List.of());
+            when(recipeRepository.save(any(RecipeEntity.class))).thenReturn(existingEntity);
+
+            var result = adapter.update(recipeId, updatedRecipe);
+
+            assertNotNull(result);
+            assertEquals(parentId, result.parentId());
+        }
+
+        @Test
+        void shouldDeleteOldRelationsBeforeUpdating() {
+            var recipeId = UUID.randomUUID();
+            var existingEntity = createRecipeEntity(recipeId, "Recipe", RecipeStatus.DRAFT);
+            var updatedRecipe = createRecipe(recipeId, "Updated", RecipeStatus.DRAFT);
+
+            when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
+            when(allergenRepository.findAllById(any())).thenReturn(List.of());
+            when(ingredientRepository.findByNameIn(any())).thenReturn(List.of());
+            when(recipeRepository.save(any(RecipeEntity.class))).thenReturn(existingEntity);
+
+            adapter.update(recipeId, updatedRecipe);
+
+            var inOrder = inOrder(recipeAllergenRepository, recipeIngredientRepository, entityManager, recipeRepository);
+            inOrder.verify(recipeAllergenRepository).deleteByRecipeId(recipeId);
+            inOrder.verify(recipeIngredientRepository).deleteByRecipeId(recipeId);
+            inOrder.verify(entityManager).flush();
+            inOrder.verify(entityManager).clear();
+            inOrder.verify(recipeRepository).findById(recipeId);
+            inOrder.verify(recipeRepository).save(any(RecipeEntity.class));
+        }
+
+        @Test
+        void shouldUpdateStepsCorrectly() {
+            var recipeId = UUID.randomUUID();
+            var existingEntity = createRecipeEntity(recipeId, "Recipe", RecipeStatus.DRAFT);
+
+            var updatedRecipe = new Recipe(
+                    recipeId, "Recipe", "Summary", null, "chef_test",
+                    30, null, RecipeStatus.DRAFT,
+                    List.of(
+                            new fr.uge.forkeat.service.model.recipe.RecipeStep(1, "Step 1"),
+                            new fr.uge.forkeat.service.model.recipe.RecipeStep(2, "Step 2"),
+                            new fr.uge.forkeat.service.model.recipe.RecipeStep(3, "Step 3")
+                    ),
+                    List.of(), List.of(), Map.of(), now, now
+            );
+
+            when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
+            when(allergenRepository.findAllById(any())).thenReturn(List.of());
+            when(ingredientRepository.findByNameIn(any())).thenReturn(List.of());
+            when(recipeRepository.save(any(RecipeEntity.class))).thenReturn(existingEntity);
+
+            var result = adapter.update(recipeId, updatedRecipe);
+
+            assertNotNull(result);
+            assertEquals(3, result.stepByStepInstructions().size());
         }
     }
 

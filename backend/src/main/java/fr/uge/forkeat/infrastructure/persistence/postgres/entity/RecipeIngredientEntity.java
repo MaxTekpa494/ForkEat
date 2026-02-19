@@ -86,15 +86,30 @@ public class RecipeIngredientEntity {
         this.unit = unit;
     }
 
+    // FAUX EGALEMENT : AU MOINS ÇA FAIT DES REVISIONS
+//    @Override
+//    public boolean equals(Object o) {
+//        if (this == o) return true;
+//        if (!(o instanceof RecipeIngredientEntity that)) return false;
+//        return id != null && id.equals(that.id);
+//    }
+//
+//    @Override
+//    public int hashCode() {
+//        return Objects.hashCode(id);
+//    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof RecipeIngredientEntity that)) return false;
-        return id != null && id.equals(that.id);
+
+        return Objects.equals(recipe, that.recipe) &&
+                Objects.equals(ingredient, that.ingredient);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        return Objects.hash(recipe, ingredient);
     }
 }
