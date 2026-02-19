@@ -59,15 +59,31 @@ public class RecipeAllergenEntity {
         this.allergen = allergen;
     }
 
+    // FAUX, ÇA PROVOQUE DES ERREURS AU MOMENT DES COMPARAISONS ...
+//    @Override
+//    public boolean equals(Object o) {
+//        if (this == o) return true;
+//        if (!(o instanceof RecipeAllergenEntity that)) return false;
+//        return id != null && id.equals(that.id);
+//    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (!(o instanceof RecipeAllergenEntity that)) return false;
-        return id != null && id.equals(that.id);
+
+        return Objects.equals(recipe, that.recipe) &&
+                Objects.equals(allergen, that.allergen);
     }
+
+    // FAUX C'EST U
+//    @Override
+//    public int hashCode() {
+//        return Objects.hashCode(id);
+//    }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(id);
+        return Objects.hash(recipe, allergen);
     }
 }
