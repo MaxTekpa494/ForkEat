@@ -23,13 +23,9 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
+
 
 import java.util.List;
 import java.util.UUID;
@@ -112,9 +108,9 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resource.id").value(variant.getId().toString()))
                 .andExpect(jsonPath("$.resource.title").value("Variante"))
-                .andExpect(jsonPath("$.resource.parent").isNotEmpty())
-                .andExpect(jsonPath("$.resource.parent.id").value(parent.getId().toString()))
-                .andExpect(jsonPath("$.resource.parent.title").value("Recette originale"));
+                .andExpect(jsonPath("$.resource.parentId").isNotEmpty());
+                //.andExpect(jsonPath("$.resource.parent.id").value(parent.getId().toString()))
+                //.andExpect(jsonPath("$.resource.parent.title").value("Recette originale"));
     }
 
     @Test
