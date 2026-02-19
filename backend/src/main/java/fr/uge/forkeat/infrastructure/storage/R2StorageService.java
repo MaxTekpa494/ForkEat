@@ -1,23 +1,23 @@
 package fr.uge.forkeat.infrastructure.storage;
 
 import fr.uge.forkeat.service.exception.ImageUploadException;
+import fr.uge.forkeat.service.model.ImageUpload;
+import fr.uge.forkeat.service.port.StoragePort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.DeleteObjectRequest;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
 import software.amazon.awssdk.services.s3.model.S3Exception;
 
-import java.io.IOException;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
 
 @Service
-public class R2StorageService {
+public class R2StorageService implements StoragePort {
 
   private static final Logger logger = LoggerFactory.getLogger(R2StorageService.class);
 
@@ -43,30 +43,30 @@ public class R2StorageService {
     this.sizeLimit = sizeLimit;
   }
 
-  // folder -> toujours /recipes pour l'instant
-  public String uploadImage(MultipartFile file, String folder){ //throws IOException {
-    validateImage(file);
-    var fileExtension = getFileExtension.apply(file.getOriginalFilename());
-    var key = folder + "/" + UUID.randomUUID() + fileExtension;
 
-    try {
-      var putRequest = PutObjectRequest.builder().bucket(bucketName)
+
+  @Override
+  public String uploadImage(ImageUpload image, String folder) {
+    validateImage(image);
+    var extension = getFileExtension.apply(image.originalFilename());
+    var key = folder + "/" + UUID.randomUUID() + extension;
+    try{
+      var putRequest = PutObjectRequest.builder()
+              .bucket(bucketName)
               .key(key)
-              .contentType(file.getContentType())
-              .contentLength(file.getSize())
+              .contentType(image.contentType())
+              .contentLength((long) image.bytes().length)
               .build();
-      s3Client.putObject(putRequest, RequestBody.fromBytes(file.getBytes())); // Faudrait voir comment gerer l'IOException exception ici
+      s3Client.putObject(putRequest, RequestBody.fromBytes(image.bytes()));
       logger.info("Image uploaded to S3 bucket: {}", key);
-      logger.info("Public URL: {}", publicUrl +"/" + key);
-      return publicUrl +"/" + key;
-    } catch (S3Exception | IOException e) { // Peut-être gerer differemment les deux exceptions ???
+      return publicUrl + "/" + key;
+    }catch(S3Exception e){
       logger.error("Failed to upload image to R2", e);
       throw new ImageUploadException("Failed to upload image", e);
     }
   }
 
-
-
+  @Override
   public void deleteImage(String imageUrl) {
     try {
       var key = imageUrl.replace(publicUrl + "/", "");
@@ -81,17 +81,17 @@ public class R2StorageService {
     }
   }
 
-  private void validateImage(MultipartFile file) {
-    if (file == null || file.isEmpty()) {
+  private void validateImage(ImageUpload file) {
+    if (file == null) {
       throw new IllegalArgumentException("File cannot be empty");
     }
 
-    var contentType = file.getContentType();
+    var contentType = file.contentType();
     if (contentType == null || !contentType.startsWith("image/")) {
       throw new IllegalArgumentException("File must be an image");
     }
 
-    if (file.getSize() > sizeLimit * 1024 * 1024) {
+    if (file.bytes().length > sizeLimit * 1024 * 1024) {
       throw new IllegalArgumentException("File size must be less than 5 MB");
     }
   }

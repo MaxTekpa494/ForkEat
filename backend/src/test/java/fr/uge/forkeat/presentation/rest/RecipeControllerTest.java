@@ -60,22 +60,20 @@ class RecipeControllerTest {
         }
 
         @Test
-        void shouldReturnRecipeWithParentWhenVariant() {
+        void shouldReturnRecipeWithParentIdWhenVariant() {
             var parentId = UUID.randomUUID();
             var childId = UUID.randomUUID();
-            var parentRecipe = createRecipe(parentId, "Recette originale", null, RecipeStatus.PUBLISHED);
             var childRecipe = createRecipe(childId, "Variante", parentId, RecipeStatus.DRAFT);
 
             when(recipeService.findById(childId)).thenReturn(childRecipe);
-            when(recipeService.findById(parentId)).thenReturn(parentRecipe);
 
             var response = recipeController.getRecipe(childId);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             var itemResponse = (ItemResponse<?>) response.getBody();
             assertNotNull(itemResponse);
-            verify(recipeService).findById(childId);
-            verify(recipeService).findById(parentId);
+            verify(recipeService, times(1)).findById(childId);
+            verifyNoMoreInteractions(recipeService);
         }
 
         @Test

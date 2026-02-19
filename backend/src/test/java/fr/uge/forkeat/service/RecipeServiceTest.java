@@ -1,7 +1,7 @@
 package fr.uge.forkeat.service;
 
-import fr.uge.forkeat.infrastructure.storage.R2StorageService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Allergen;
 import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
@@ -9,6 +9,7 @@ import fr.uge.forkeat.service.model.recipe.Recipe;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.port.StoragePort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -22,11 +23,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
-import org.springframework.web.multipart.MultipartFile;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -35,7 +33,7 @@ class RecipeServiceTest {
     @Mock
     private RecipePersistence recipePersistence;
     @Mock
-    private R2StorageService storageService;
+    private StoragePort storageService;
 
     private RecipeService recipeService;
     private Instant now;
@@ -186,37 +184,20 @@ class RecipeServiceTest {
         void shouldSaveRecipeWithImage() {
             var recipeId = UUID.randomUUID();
             var recipe = createRecipe(recipeId, "Quiche Lorraine", RecipeStatus.DRAFT);
-            var image = mock(MultipartFile.class);
-            when(image.isEmpty()).thenReturn(false);
-            when(storageService.uploadImage(image, "recipes")).thenReturn("https://cloudflare.com/recipes/maxtekpa.jpg");
+            var newImage = new ImageUpload(new byte[]{1, 2, 3}, "image/jpeg", "quiche.jpg");
+            when(storageService.uploadImage(newImage, "recipes")).thenReturn("https://cloudflare.com/recipes/maxtekpa.jpg");
             var expectedRecipe = new Recipe(
                     recipeId, "Quiche Lorraine", "Summary for Quiche Lorraine", null,
-                    "chef_test", 30, "https://cloudflare.com/recipes/pidali.jpg",
+                    "chef_test", 30, "https://cloudflare.com/recipes/maxtekpa.jpg",
                     RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now
             );
             when(recipePersistence.save(any(Recipe.class))).thenReturn(expectedRecipe);
 
-            var result = recipeService.createRecipe(recipe, image);
+            var result = recipeService.createRecipe(recipe, newImage);
 
             assertNotNull(result);
-            assertEquals("https://cloudflare.com/recipes/pidali.jpg", result.imageUrl());
-            verify(storageService).uploadImage(image, "recipes");
-            verify(recipePersistence).save(any(Recipe.class));
-        }
-
-        @Test
-        void shouldSaveRecipeWithEmptyImage() {
-            var recipeId = UUID.randomUUID();
-            var recipe = createRecipe(recipeId, "Salade", RecipeStatus.DRAFT);
-            var image = mock(MultipartFile.class);
-            when(image.isEmpty()).thenReturn(true);
-            when(recipePersistence.save(any(Recipe.class))).thenReturn(recipe);
-
-            var result = recipeService.createRecipe(recipe, image);
-
-            assertNotNull(result);
-            assertNull(result.imageUrl());
-            verify(storageService, never()).uploadImage(any(), any());
+            assertEquals("https://cloudflare.com/recipes/maxtekpa.jpg", result.imageUrl());
+            verify(storageService).uploadImage(newImage, "recipes");
             verify(recipePersistence).save(any(Recipe.class));
         }
     }
