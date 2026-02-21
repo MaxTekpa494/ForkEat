@@ -171,7 +171,7 @@ class UserUpdateServiceTest {
 
             // Then
             // Verify verification email is sent, NOT user updated directly
-            verify(emailVerificationService).sendEmailChangeCode(userId, "old@example.com", "new@example.com", null);
+            verify(emailVerificationService).sendEmailChangeCode(userId, "old@example.com", "new@example.com", false);
             verify(userPersistence, never()).updateUser(any(User.class));
         }
 
@@ -192,7 +192,7 @@ class UserUpdateServiceTest {
             );
 
             assertEquals("Incorrect password", exception.getMessage());
-            verify(emailVerificationService, never()).sendEmailChangeCode(any(), any(), any(), any());
+            verify(emailVerificationService, never()).sendEmailChangeCode(any(), any(), any(), anyBoolean());
         }
 
         @Test
@@ -213,7 +213,7 @@ class UserUpdateServiceTest {
             );
 
             assertEquals("Cet email est déjà utilisé", exception.getMessage());
-            verify(emailVerificationService, never()).sendEmailChangeCode(any(), any(), any(), any());
+            verify(emailVerificationService, never()).sendEmailChangeCode(any(), any(), any(), anyBoolean());
         }
     }
 
@@ -231,13 +231,12 @@ class UserUpdateServiceTest {
 
             when(passwordEncoder.matches("currentPassword", "storedHash")).thenReturn(true);
             when(passwordEncoder.matches("newPassword123", "storedHash")).thenReturn(false);
-            when(passwordEncoder.encode("newPassword123")).thenReturn("encodedNewPassword");
 
             // When
             userUpdateService.requestPasswordChange("testuser", "currentPassword", "newPassword123");
 
             // Then
-            verify(emailVerificationService).sendPasswordChangeCode(userId, "test@example.com", "encodedNewPassword");
+            verify(emailVerificationService).sendPasswordChangeCode(userId, "test@example.com");
             // Should NOT save user directly
             verify(userPersistence, never()).saveUser(any(), anyString());
         }
@@ -260,7 +259,7 @@ class UserUpdateServiceTest {
             );
 
             assertEquals("Incorrect current password", exception.getMessage());
-            verify(emailVerificationService, never()).sendPasswordChangeCode(any(), any(), any());
+            verify(emailVerificationService, never()).sendPasswordChangeCode(any(), any());
         }
 
         @Test
@@ -296,7 +295,7 @@ class UserUpdateServiceTest {
             );
 
             assertEquals("Passwords are the same", exception.getMessage());
-            verify(emailVerificationService, never()).sendPasswordChangeCode(any(), any(), any());
+            verify(emailVerificationService, never()).sendPasswordChangeCode(any(), any());
         }
     }
 

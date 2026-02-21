@@ -17,19 +17,35 @@ import org.springframework.stereotype.Component;
 
 @Component
 public class StripePaymentGatewayAdapter implements PaymentGateway {
+    // MVC
+    @Value("${app.webSuccessUrl}")
+    private String webSuccessUrl;
+    @Value("${app.webCancelUrl}")
+    private String webCancelUrl;
 
-    @Value("${app.front.url}")
-    private String frontUrl; // Temporaire
+    // ANDROID
+    @Value("${app.androidSuccessUrl}")
+    private String androidSuccessUrl;
+    @Value("${app.androidCancelUrl}")
+    private String androidCancelUrl;
 
     @Override
     public PaymentResponse initiatePayment(PaymentRequest request) {
         var amountInCents = request.amount();
 
+        var successUrl = webSuccessUrl;
+        var cancelUrl = webCancelUrl;
+
+        if ("android".equals(request.source())) {
+            successUrl = androidSuccessUrl;
+            cancelUrl = androidCancelUrl;
+        }
+
         //CONSTRUCTION DE LA REQUÊTE STRIPE
         var params = SessionCreateParams.builder()
                 .setMode(SessionCreateParams.Mode.PAYMENT)
-                .setSuccessUrl(frontUrl + "/payment/success")
-                .setCancelUrl(frontUrl + "/payment/cancel")
+                .setSuccessUrl(successUrl)
+                .setCancelUrl(cancelUrl)
                 .setCustomerEmail(request.email())
                 .putMetadata("userId", String.valueOf(request.userId()))
 
@@ -48,9 +64,7 @@ public class StripePaymentGatewayAdapter implements PaymentGateway {
         //APPEL A L'API STRIPE
         try {
             var session = Session.create(params);
-
             return new PaymentResponse(session.getUrl(), session.getId());
-
         } catch (StripeException e) {
             throw new PaymentException("Erreur lors de la communication avec Stripe", e);
         }

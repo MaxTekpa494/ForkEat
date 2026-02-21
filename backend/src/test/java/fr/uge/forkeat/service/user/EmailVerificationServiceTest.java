@@ -57,8 +57,8 @@ class EmailVerificationServiceTest {
     }
 
     private VerificationToken createToken(UUID userId, VerificationTokenType type, String tokenValue,
-                                           String newEmail, String passwordHash, Instant expiresAt) {
-        return new VerificationToken(UUID.randomUUID(), userId, tokenValue, type, newEmail, passwordHash, expiresAt, Instant.now());
+                                           String newEmail, Instant expiresAt) {
+        return new VerificationToken(UUID.randomUUID(), userId, tokenValue, type, newEmail, expiresAt, Instant.now());
     }
 
     // ========== SEND EMAIL CONFIRMATION ==========
@@ -112,7 +112,7 @@ class EmailVerificationServiceTest {
         void shouldConfirmEmailWithValidToken() {
             var userId = UUID.randomUUID();
             var token = createToken(userId, VerificationTokenType.EMAIL_CONFIRMATION, "valid-token",
-                    null, null, Instant.now().plus(1, ChronoUnit.HOURS));
+                    null, Instant.now().plus(1, ChronoUnit.HOURS));
 
             when(tokenPersistence.findByToken("valid-token")).thenReturn(Optional.of(token));
 
@@ -133,7 +133,7 @@ class EmailVerificationServiceTest {
         void shouldThrowWhenTokenExpired() {
             var userId = UUID.randomUUID();
             var token = createToken(userId, VerificationTokenType.EMAIL_CONFIRMATION, "expired",
-                    null, null, Instant.now().minus(1, ChronoUnit.HOURS));
+                    null, Instant.now().minus(1, ChronoUnit.HOURS));
 
             when(tokenPersistence.findByToken("expired")).thenReturn(Optional.of(token));
 
@@ -146,7 +146,7 @@ class EmailVerificationServiceTest {
         void shouldThrowWhenWrongTokenType() {
             var userId = UUID.randomUUID();
             var token = createToken(userId, VerificationTokenType.PASSWORD_CHANGE, "wrong-type",
-                    null, null, Instant.now().plus(1, ChronoUnit.HOURS));
+                    null, Instant.now().plus(1, ChronoUnit.HOURS));
 
             when(tokenPersistence.findByToken("wrong-type")).thenReturn(Optional.of(token));
 
@@ -164,14 +164,13 @@ class EmailVerificationServiceTest {
             var userId = UUID.randomUUID();
             when(tokenPersistence.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-            service.sendPasswordChangeCode(userId, "test@forkeat.fr", "hashed-new-pw");
+            service.sendPasswordChangeCode(userId, "test@forkeat.fr");
 
             verify(tokenPersistence).deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
 
             var captor = ArgumentCaptor.forClass(VerificationToken.class);
             verify(tokenPersistence).save(captor.capture());
             assertEquals(VerificationTokenType.PASSWORD_CHANGE, captor.getValue().type());
-            assertEquals("hashed-new-pw", captor.getValue().passwordHash());
         }
 
         @Test
@@ -179,7 +178,7 @@ class EmailVerificationServiceTest {
             var userId = UUID.randomUUID();
             when(tokenPersistence.save(any())).thenAnswer(inv -> inv.getArgument(0));
 
-            service.sendPasswordChangeCode(userId, "test@forkeat.fr", "hashed-pw");
+            service.sendPasswordChangeCode(userId, "test@forkeat.fr");
 
             verify(mailService).send(eq("test@forkeat.fr"), any(), any());
         }
@@ -195,14 +194,14 @@ class EmailVerificationServiceTest {
             var userId = UUID.randomUUID();
             var user = createUser(userId);
             var token = createToken(userId, VerificationTokenType.PASSWORD_CHANGE, "123456",
-                    null, "new-hashed-pw", Instant.now().plus(10, ChronoUnit.MINUTES));
+                    null, Instant.now().plus(10, ChronoUnit.MINUTES));
 
             when(tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE))
                     .thenReturn(Optional.of(token));
             when(userPersistence.findById(userId)).thenReturn(Optional.of(user));
             when(userPersistence.saveUser(any(), eq("new-hashed-pw"))).thenReturn(user);
 
-            service.confirmPasswordChange(userId, "123456");
+            service.confirmPasswordChange(userId, "123456", "new-hashed-pw");
 
             verify(userPersistence).saveUser(any(), eq("new-hashed-pw"));
             verify(tokenPersistence).deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
@@ -214,19 +213,19 @@ class EmailVerificationServiceTest {
             when(tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE))
                     .thenReturn(Optional.empty());
 
-            assertThrows(VerificationException.class, () -> service.confirmPasswordChange(userId, "123456"));
+            assertThrows(VerificationException.class, () -> service.confirmPasswordChange(userId, "123456", "hashed-pw"));
         }
 
         @Test
         void shouldThrowWhenCodeExpired() {
             var userId = UUID.randomUUID();
             var token = createToken(userId, VerificationTokenType.PASSWORD_CHANGE, "123456",
-                    null, "pw", Instant.now().minus(1, ChronoUnit.HOURS));
+                    null, Instant.now().minus(1, ChronoUnit.HOURS));
 
             when(tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE))
                     .thenReturn(Optional.of(token));
 
-            assertThrows(VerificationException.class, () -> service.confirmPasswordChange(userId, "123456"));
+            assertThrows(VerificationException.class, () -> service.confirmPasswordChange(userId, "123456", "hashed-pw"));
             verify(tokenPersistence).deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
         }
 
@@ -234,12 +233,12 @@ class EmailVerificationServiceTest {
         void shouldThrowWhenWrongCode() {
             var userId = UUID.randomUUID();
             var token = createToken(userId, VerificationTokenType.PASSWORD_CHANGE, "123456",
-                    null, "pw", Instant.now().plus(10, ChronoUnit.MINUTES));
+                    null, Instant.now().plus(10, ChronoUnit.MINUTES));
 
             when(tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE))
                     .thenReturn(Optional.of(token));
 
-            assertThrows(VerificationException.class, () -> service.confirmPasswordChange(userId, "000000"));
+            assertThrows(VerificationException.class, () -> service.confirmPasswordChange(userId, "000000", "hashed-pw"));
         }
     }
 
@@ -294,7 +293,7 @@ class EmailVerificationServiceTest {
             var userId = UUID.randomUUID();
             var user = createUser(userId);
             var token = createToken(userId, VerificationTokenType.EMAIL_CHANGE, "654321",
-                    "new@forkeat.fr", null, Instant.now().plus(10, ChronoUnit.MINUTES));
+                    "new@forkeat.fr", Instant.now().plus(10, ChronoUnit.MINUTES));
 
             when(tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE))
                     .thenReturn(Optional.of(token));
@@ -321,7 +320,7 @@ class EmailVerificationServiceTest {
         void shouldThrowWhenExpired() {
             var userId = UUID.randomUUID();
             var token = createToken(userId, VerificationTokenType.EMAIL_CHANGE, "654321",
-                    "new@forkeat.fr", null, Instant.now().minus(1, ChronoUnit.HOURS));
+                    "new@forkeat.fr", Instant.now().minus(1, ChronoUnit.HOURS));
 
             when(tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE))
                     .thenReturn(Optional.of(token));
@@ -333,7 +332,7 @@ class EmailVerificationServiceTest {
         void shouldThrowWhenWrongCode() {
             var userId = UUID.randomUUID();
             var token = createToken(userId, VerificationTokenType.EMAIL_CHANGE, "654321",
-                    "new@forkeat.fr", null, Instant.now().plus(10, ChronoUnit.MINUTES));
+                    "new@forkeat.fr", Instant.now().plus(10, ChronoUnit.MINUTES));
 
             when(tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE))
                     .thenReturn(Optional.of(token));
@@ -348,18 +347,18 @@ class EmailVerificationServiceTest {
     class ConfirmEmailChangeWithPasswordTests {
 
         @Test
-        void shouldUpdateEmailAndAuthModeWhenTokenHasPasswordHash() {
+        void shouldUpdateEmailAndAuthModeWhenPasswordHashProvided() {
             var userId = UUID.randomUUID();
             var user = createUser(userId);
             var token = createToken(userId, VerificationTokenType.EMAIL_CHANGE, "654321",
-                    "new@forkeat.fr", "hashed-pw", Instant.now().plus(10, ChronoUnit.MINUTES));
+                    "new@forkeat.fr", Instant.now().plus(10, ChronoUnit.MINUTES));
 
             when(tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE))
                     .thenReturn(Optional.of(token));
             when(userPersistence.findById(userId)).thenReturn(Optional.of(user));
             when(userPersistence.saveUser(any(), eq("hashed-pw"))).thenAnswer(inv -> inv.getArgument(0));
 
-            var result = service.confirmEmailChange(userId, "654321");
+            var result = service.confirmEmailChange(userId, "654321", "hashed-pw");
 
             assertNotNull(result);
 

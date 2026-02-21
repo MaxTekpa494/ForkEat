@@ -56,10 +56,13 @@ public class SecurityConfig {
 							response.getWriter().write("{\"error\": \"Unauthorized\"}");
 						}))
 				.authorizeHttpRequests(auth -> auth
+						.requestMatchers("/api/auth/me").authenticated()
 						.requestMatchers("/api/auth/**").permitAll().requestMatchers("/api/recipes/**").permitAll()
+						.requestMatchers("/api/wallet/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/*/user/*").authenticated().requestMatchers("/*/moderator/*")
 						.hasRole("MODERATOR").requestMatchers("/*/admin/*").hasRole("ADMIN").anyRequest()
 						.hasRole("ADMIN"))
+				.addFilterBefore(new RateLimitFilter(), UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(new JwtFilter(customUserDetailsService, jwtUtils),
 								 UsernamePasswordAuthenticationFilter.class)
 				.build();
@@ -79,11 +82,14 @@ public class SecurityConfig {
 						.requestMatchers("/recipes/create", "/recipes/*/edit", "/recipes/*/delete").hasAuthority("EMAIL_VERIFIED") // edit et delete c pas EMAIL verified
 																																		// à corriger quand on les fait
 
-						.requestMatchers("/wallet/**").hasAuthority("EMAIL_VERIFIED") // à affiner une fois implementé
+						.requestMatchers("/wallet/webhooks/**").permitAll()
+						.requestMatchers("/wallet/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/moderator/**").hasRole("MODERATOR")
 						.requestMatchers("/profile/**").authenticated()
 						.anyRequest().authenticated())
+
+				.addFilterBefore(new RateLimitFilter(), UsernamePasswordAuthenticationFilter.class)
 
 				.formLogin(form -> form
 						.loginPage("/auth/login")

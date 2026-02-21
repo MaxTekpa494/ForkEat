@@ -45,20 +45,12 @@ fun ProfileScreen(
     val newPassword by profileViewModel.newPassword.collectAsState()
     val confirmNewPassword by profileViewModel.confirmNewPassword.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Mon Profil") }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF5F5F5)) // Mimic bg-surface
-                .verticalScroll(rememberScrollState())
-        ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5))
+            .verticalScroll(rememberScrollState())
+    ) {
             // Profile Header Section
             ProfileHeader(uiState = uiState)
 
@@ -69,30 +61,14 @@ fun ProfileScreen(
                     .padding(16.dp),
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Column(Modifier.weight(2f)) {
-                        ProfileInformationCard(uiState, profileViewModel)
-                        Spacer(Modifier.height(16.dp))
-                        SecurityCard(uiState, profileViewModel)
-                        Spacer(Modifier.height(16.dp))
-                        ActiveSessionsCard()
-                        Spacer(Modifier.height(16.dp))
-                        DangerZoneCard(profileViewModel)
-                    }
-                    Column(Modifier.weight(1f)) {
-                        MyStatisticsCard(uiState)
-                        Spacer(Modifier.height(16.dp))
-                        MembershipLevelCard()
-                        Spacer(Modifier.height(16.dp))
-                        QuickActionsProfileCard(profileViewModel)
-                    }
-                }
+                ProfileInformationCard(uiState, profileViewModel)
+                SecurityCard(uiState, profileViewModel)
+                MyStatisticsCard(uiState)
+                MembershipLevelCard()
+                ActiveSessionsCard()
+                DangerZoneCard(profileViewModel)
             }
         }
-    }
 
     if (uiState.showEmailModal) {
         EmailModificationModal(

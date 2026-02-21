@@ -8,6 +8,7 @@ import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.exception.ImageUploadException;
+import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
@@ -17,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.*;
@@ -110,7 +112,11 @@ public class RecipeWebController {
     Objects.requireNonNull(id);
     var recipe = recipeService.findById(id);
     var recipeDTO = RecipeDTOMapper.toDTO(recipe);
-
+    var currentUser = authPort.extractUsername();
+    if(!recipe.status().equals(RecipeStatus.PUBLISHED) && !currentUser.equals(recipe.usernameAuthor())){
+      //throw new IllegalArgumentException("Can only view published recipes or your own recipes.");
+      throw new RecipeNotFoundException(id);
+    }
     if (recipe.isVariant()) {
       var parent = recipeService.findById(recipe.parentId());
       var parentDTO = RecipeDTOMapper.toDTO(parent);
@@ -118,7 +124,6 @@ public class RecipeWebController {
       model.addAttribute("diff", RecipeDiff.compute(parentDTO, recipeDTO));
     }
 
-    var currentUser = authPort.extractUsername();
     var isOwner = currentUser != null && currentUser.equals(recipe.usernameAuthor());
     var hasActiveDietaryFlags = recipeDTO.dietaryFlags() != null &&
         recipeDTO.dietaryFlags().values().stream().anyMatch(Boolean.TRUE::equals);

@@ -59,9 +59,9 @@ public class SecurityTests extends AbstractIntegrationTest {
         admin.setAuthMode(AuthMode.LOCAL);
         userRepository.save(admin);
 
-        var user = new UserRegisterDTO("S1dAli", "SidAli", "Cherrati", "password1", "sidali@gmail.com");
+        var user = new UserRegisterDTO("S1dAli", "SidAli", "Cherrati", "Password1", "sidali@gmail.com");
 
-        var userLogin = new UserLoginDTO("S1dAli", "password1");
+        var userLogin = new UserLoginDTO("S1dAli", "Password1");
 
 
         var objectMapper = new ObjectMapper();
@@ -100,7 +100,7 @@ public class SecurityTests extends AbstractIntegrationTest {
 
 
         //We try to create a moderator
-        var moderatorDTO = new UserRegisterDTO("modo", "Max", "Tekpa", "password1", "modo@gmail.com");
+        var moderatorDTO = new UserRegisterDTO("modo", "Max", "Tekpa", "Password1", "modo@gmail.com");
         mockMvc.perform(post("/api/admin/register")
                         .header("Authorization", tokenAdmin)
                         .contentType(MediaType.APPLICATION_JSON)

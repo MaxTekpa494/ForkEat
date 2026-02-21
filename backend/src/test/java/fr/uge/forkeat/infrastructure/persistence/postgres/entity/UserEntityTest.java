@@ -7,8 +7,8 @@ import fr.uge.forkeat.service.model.user.UserStatus;
 import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -60,7 +60,9 @@ class UserEntityTest extends AbstractIntegrationTest {
         user.setStatus(UserStatus.ACTIVE);
         user.setAuthMode(AuthMode.LOCAL);
 
-        var bankInfo = new BankInfoEntity("BNP Paribas", "FR7612345678901234567890123", "BNPAFRPP", user);
+        // Updated BankInfoEntity constructor call
+        var externalAccountId = "ext_acct_abc123";
+        var bankInfo = new BankInfoEntity("BNP Paribas", externalAccountId, user);
         user.setBankInfo(bankInfo);
 
         entityManager.persist(user);
@@ -69,7 +71,7 @@ class UserEntityTest extends AbstractIntegrationTest {
         assertNotNull(user.getId());
         assertNotNull(user.getBankInfo());
         assertNotNull(user.getBankInfo().getId());
-        assertEquals("FR7612345678901234567890123", user.getBankInfo().getIban());
+        assertEquals(externalAccountId, user.getBankInfo().getExternalAccountId()); // Changed assertion
     }
 
     @Test

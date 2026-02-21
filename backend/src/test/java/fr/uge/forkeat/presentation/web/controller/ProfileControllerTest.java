@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -54,6 +55,9 @@ class ProfileControllerTest {
 
     @MockitoBean
     private JavaMailSender javaMailSender;
+
+    @MockitoBean
+    private PasswordEncoder passwordEncoder;
 
     @MockitoBean
     private EmailVerificationService emailVerificationService;
@@ -149,8 +153,7 @@ class ProfileControllerTest {
                     testUser.authMode(),
                     testUser.createdAt(),
                     testUser.updatedAt(),
-                    false
-            );
+                    false);
 
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
             when(userUpdateService.updateProfile("testuser","newusername", "NewFirst", "NewLast"))
