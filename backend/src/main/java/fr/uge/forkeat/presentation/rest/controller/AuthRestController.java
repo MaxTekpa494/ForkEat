@@ -1,6 +1,5 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
-import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.presentation.dto.user.GoogleIdTokenRequestDTO;
 import fr.uge.forkeat.presentation.dto.user.UserDTO;
 import fr.uge.forkeat.presentation.dto.user.UserLoginDTO;
@@ -42,17 +41,15 @@ public class AuthRestController {
 
 	private final UserRegistrationService userService;
 	private final AuthenticationManager authenticationManager;
-	private final JwtUtils jwtUtils;
 	private final GoogleTokenVerificationService googleTokenVerificationService;
 	private final UserQueryService userQueryService;
 	private final AuthenticationPort authPort;
 
 	public AuthRestController(UserRegistrationService userService, AuthenticationManager authenticationManager,
-			JwtUtils jwtUtils, GoogleTokenVerificationService googleTokenVerificationService,
+			GoogleTokenVerificationService googleTokenVerificationService,
 			UserQueryService userQueryService, AuthenticationPort authPort) {
 		this.userService = userService;
 		this.authenticationManager = authenticationManager;
-		this.jwtUtils = jwtUtils;
 		this.googleTokenVerificationService = googleTokenVerificationService;
 		this.userQueryService = userQueryService;
 		this.authPort = authPort;
@@ -83,7 +80,7 @@ public class AuthRestController {
 			authenticationManager
 					.authenticate(new UsernamePasswordAuthenticationToken(userLogin.username(), userLogin.password()));
 			var authData = new HashMap<String, String>();
-			authData.put("token", jwtUtils.generateToken(userLogin.username()));
+			authData.put("token", authPort.generateToken(userLogin.username()));
 			authData.put("type", "Bearer");
 			return ResponseEntity.ok(authData);
 		} catch (AuthenticationException e) {
@@ -120,7 +117,7 @@ public class AuthRestController {
 					AuthMode.GOOGLE);
 
 			var authData = new HashMap<String, String>();
-			authData.put("token", jwtUtils.generateToken(user.username()));
+			authData.put("token", authPort.generateToken(user.username()));
 			authData.put("type", "Bearer");
 			return ResponseEntity.ok(authData);
 		} catch (Exception e) {
