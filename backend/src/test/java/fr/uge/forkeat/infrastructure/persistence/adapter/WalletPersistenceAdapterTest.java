@@ -6,19 +6,20 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.TransactionRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.Transaction;
 import fr.uge.forkeat.service.model.TransactionType;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.model.user.Wallet;
+import fr.uge.forkeat.service.model.TransactionStatus; // New import
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.transaction.TransactionStatus;
+// import org.springframework.transaction.TransactionStatus; // Removed, conflicting with domain model
 
 import java.time.Instant;
 import java.util.Optional;
@@ -68,13 +69,15 @@ class WalletPersistenceAdapterTest {
         return wallet;
     }
 
-    private TransactionEntity createTransactionEntity(UUID id, String stripeId) {
+    // Updated helper method
+    private TransactionEntity createTransactionEntity(UUID id, String stripeId, TransactionStatus status) {
         var entity = new TransactionEntity();
         entity.setId(id);
         entity.setStripeTransactionID(stripeId);
         entity.setAmount(1000L);
         entity.setTransactionType(TransactionType.RECHARGE);
         entity.setCreatedAt(Instant.now());
+        entity.setStatus(status); // Set status
         return entity;
     }
 
@@ -192,6 +195,7 @@ class WalletPersistenceAdapterTest {
         assertTrue(result.isPresent());
         assertEquals(walletId, result.get().id());
         assertEquals(userId, result.get().userId());
+        assertEquals(1000L, result.get().balance());
         verify(walletRepository).findById(walletId);
     }
 
@@ -240,24 +244,26 @@ class WalletPersistenceAdapterTest {
     @Test
     void saveTransaction_ShouldLinkBothWallets_WhenBothIdsPresent() {
         // Given
-        var transactionId = UUID.randomUUID();
+        var transactionId = UUID.randomUUID(); // Generate ID for Transaction record
         var sourceWalletId = UUID.randomUUID();
         var destWalletId = UUID.randomUUID();
         var sourceUserId = UUID.randomUUID();
         var destUserId = UUID.randomUUID();
 
         var transaction = new Transaction(
+                transactionId, // Pass ID
                 sourceWalletId,
                 destWalletId,
                 1000L,
                 TransactionType.REDISTRIBUTION,
                 Instant.now(),
-                "stripe_123"
-                );
+                "stripe_123",
+                TransactionStatus.PENDING // New argument
+        );
 
         var sourceWallet = createWalletEntity(sourceWalletId, sourceUserId, 5000L);
         var destWallet = createWalletEntity(destWalletId, destUserId, 2000L);
-        var savedEntity = createTransactionEntity(transactionId, "stripe_123");
+        var savedEntity = createTransactionEntity(transactionId, "stripe_123", TransactionStatus.PENDING); // Updated call
 
         when(walletRepository.getReferenceById(sourceWalletId)).thenReturn(sourceWallet);
         when(walletRepository.getReferenceById(destWalletId)).thenReturn(destWallet);
@@ -281,17 +287,19 @@ class WalletPersistenceAdapterTest {
     @Test
     void saveTransaction_ShouldNotLinkWallets_WhenBothIdsNull() {
         // Given
-        var transactionId = UUID.randomUUID();
+        var transactionId = UUID.randomUUID(); // Generate ID for Transaction record
         var transaction = new Transaction(
+                transactionId, // Pass ID
                 null,
                 null,
                 1000L,
                 TransactionType.RECHARGE,
                 Instant.now(),
-                "stripe_456"
-                );
+                "stripe_456",
+                TransactionStatus.PENDING // New argument
+        );
 
-        var savedEntity = createTransactionEntity(transactionId, "stripe_456");
+        var savedEntity = createTransactionEntity(transactionId, "stripe_456", TransactionStatus.PENDING); // Updated call
 
         when(transactionRepository.save(any(TransactionEntity.class))).thenReturn(savedEntity);
 
@@ -310,21 +318,23 @@ class WalletPersistenceAdapterTest {
     @Test
     void saveTransaction_ShouldLinkOnlyDestination_WhenOnlyDestIdPresent() {
         // Given
-        var transactionId = UUID.randomUUID();
+        var transactionId = UUID.randomUUID(); // Generate ID for Transaction record
         var destWalletId = UUID.randomUUID();
         var destUserId = UUID.randomUUID();
 
         var transaction = new Transaction(
+                transactionId, // Pass ID
                 null,
                 destWalletId,
                 1000L,
                 TransactionType.REDISTRIBUTION,
                 Instant.now(),
-                "stripe_789"
+                "stripe_789",
+                TransactionStatus.PENDING // New argument
         );
 
         var destWallet = createWalletEntity(destWalletId, destUserId, 2000L);
-        var savedEntity = createTransactionEntity(transactionId, "stripe_789");
+        var savedEntity = createTransactionEntity(transactionId, "stripe_789", TransactionStatus.PENDING); // Updated call
 
         when(walletRepository.getReferenceById(destWalletId)).thenReturn(destWallet);
         when(transactionRepository.save(any(TransactionEntity.class))).thenReturn(savedEntity);
@@ -350,7 +360,7 @@ class WalletPersistenceAdapterTest {
         var walletId = UUID.randomUUID();
         var walletEntity = createWalletEntity(walletId, userId, 1000L);
 
-        when(walletRepository.findByUserId(userId)).thenReturn(Optional.of(walletEntity));
+        when(walletRepository.findByUserIdReadOnly(userId)).thenReturn(Optional.of(walletEntity));
 
         // When
         var result = adapter.findByUserId(userId);
@@ -359,23 +369,22 @@ class WalletPersistenceAdapterTest {
         assertTrue(result.isPresent());
         assertEquals(walletId, result.get().id());
         assertEquals(userId, result.get().userId());
-        verify(walletRepository, times(2)).findByUserId(userId);
+        assertEquals(1000L, result.get().balance());
+        verify(walletRepository).findByUserIdReadOnly(userId);
     }
 
     @Test
-    void findByUserId_ShouldThrowException_WhenNotFound() {
+    void findByUserId_ShouldReturnEmpty_WhenNotFound() {
         // Given
         var userId = UUID.randomUUID();
-        when(walletRepository.findByUserId(userId)).thenReturn(Optional.empty());
+        when(walletRepository.findByUserIdReadOnly(userId)).thenReturn(Optional.empty());
 
-        // When/Then
-        ResourceNotFoundException exception = assertThrows(
-                ResourceNotFoundException.class,
-                () -> adapter.findByUserId(userId)
-        );
+        // When
+        var result = adapter.findByUserId(userId);
 
-        assertTrue(exception.getMessage().contains(userId.toString()));
-        verify(walletRepository).findByUserId(userId);
+        // Then
+        assertTrue(result.isEmpty());
+        verify(walletRepository).findByUserIdReadOnly(userId);
     }
 
     @Test

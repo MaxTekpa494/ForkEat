@@ -24,7 +24,6 @@ class UserDTOMapperTest {
 
   @Test
   void toDTO_shouldConvertUserToDTO() {
-    var walletId = UUID.randomUUID();
     var dto = UserDTOMapper.toDTO(testUser);
 
     assertNotNull(dto);
@@ -69,7 +68,7 @@ class UserDTOMapperTest {
   void toWalletDTO_shouldConvertWallet() {
     var id = UUID.randomUUID();
     var now = Instant.now();
-    var wallet = new Wallet(id, id, 2500L, now);
+    var wallet = new Wallet(id, testUser.id(), 2500L, now); // Fixed userId argument
 
     var dto = WalletDTOMapper.toDTO(wallet);
 
@@ -87,58 +86,19 @@ class UserDTOMapperTest {
     assertEquals(0L, dto.balance());
   }
 
+  // Removed all previous toBankInfoDTO tests as they are obsolete
+  // New test for BankInfo
   @Test
-  void toBankInfoDTO_shouldConvertBankInfo() {
-    var bankInfo = new BankInfo(testUser.id(), "Société Générale", "FR7611111222223333344444555", "SOGEFRPP");
+  void toBankInfoResponseDTO_shouldConvertBankInfo() {
+    var externalAccountId = "ext_acct_test123";
+    var bankInfo = new BankInfo(testUser.id(), "Société Générale", externalAccountId);
 
-    var dto = BankInfoDTOMapper.toDTO(bankInfo);
+    var dto = BankInfoDTOMapper.toResponseDTO(bankInfo); // Changed method call
 
     assertNotNull(dto);
+    assertEquals(testUser.id(), dto.userId());
     assertEquals("Société Générale", dto.bankName());
-    assertEquals("SOGEFRPP", dto.bic());
-  }
-
-  @Test
-  void toBankInfoDTO_shouldMaskIbanCorrectly() {
-    var bankInfo = new BankInfo(testUser.id(), "BNP", "FR7612345678901234567890123", "BNPAFRPP");
-
-    var dto = BankInfoDTOMapper.toDTO(bankInfo);
-
-    assertEquals("FR76****0123", dto.maskedIban());
-  }
-
-  @Test
-  void toBankInfoDTO_shouldMaskShortIban() {
-    var bankInfo = new BankInfo(testUser.id(), "Test Bank", "FR761234", "TESTFRPP");
-
-    var dto = BankInfoDTOMapper.toDTO(bankInfo);
-
-    assertEquals("****", dto.maskedIban());
-  }
-
-  @Test
-  void toBankInfoDTO_shouldMaskExactly8CharacterIban() {
-    var bankInfo = new BankInfo(testUser.id(), "Test Bank", "12345678", "TESTFRPP");
-
-    var dto = BankInfoDTOMapper.toDTO(bankInfo);
-
-    assertEquals("****", dto.maskedIban());
-  }
-
-  @Test
-  void toBankInfoDTO_shouldMaskIbanWith9Characters() {
-    var bankInfo = new BankInfo(testUser.id(), "Test Bank", "123456789", "TESTFRPP");
-
-    var dto = BankInfoDTOMapper.toDTO(bankInfo);
-
-    assertEquals("1234****6789", dto.maskedIban());
-  }
-
-  @Test
-  void toBankInfoDTO_shouldHandleNullIban() {
-    // Note: BankInfo requiert iban non null, donc ce cas ne devrait pas arriver
-    // mais le mapper le gère gracieusement via le constructeur
-    assertThrows(NullPointerException.class, () -> new BankInfo(UUID.randomUUID(), "Test Bank", null, "TESTFRPP"));
+    assertEquals(externalAccountId, dto.externalAccountId());
   }
 
   @Test
@@ -150,7 +110,7 @@ class UserDTOMapperTest {
     var walletUpdatedAt = Instant.parse("2024-06-19T09:00:00Z");
 
     var wallet = new Wallet(walletId, userId, 15000L, walletUpdatedAt);
-    var bankInfo = new BankInfo(userId, "Caisse d'Épargne", "FR7612345678901234567890189", "CEPAFRPP");
+    var bankInfo = new BankInfo(userId, "Caisse d'Épargne", "ext_acct_ce123"); // Updated BankInfo constructor
 
     var user = new User(userId, "admin_user", "Jean", "Dupont", "jean.dupont@example.com", UserRole.ADMIN,
             UserStatus.ACTIVE, AuthMode.GOOGLE, createdAt, updatedAt, false);
@@ -166,14 +126,6 @@ class UserDTOMapperTest {
     assertEquals("GOOGLE", dto.authMode());
     assertEquals(createdAt, dto.createdAt());
     assertEquals(updatedAt, dto.updatedAt());
-
-    // Wallet
-
-    var bankInfoDTO = BankInfoDTOMapper.toDTO(bankInfo);
-    // BankInfo
-    assertEquals("Caisse d'Épargne", bankInfoDTO.bankName());
-    assertEquals("FR76****0189", bankInfoDTO.maskedIban());
-    assertEquals("CEPAFRPP", bankInfoDTO.bic());
   }
 
   @Test
@@ -200,14 +152,11 @@ class UserDTOMapperTest {
     assertEquals("MODERATOR", dto.role());
   }
 
-  private User createUserWithBankInfoAndWallet(BankInfo bankInfo, Wallet wallet) {
-    return new User(UUID.randomUUID(), "test_user", "Test", "User", "test@test.com", UserRole.MEMBER,
-            UserStatus.ACTIVE, AuthMode.LOCAL, Instant.now(), Instant.now(), false);
-  }
+  // Removed createUserWithBankInfoAndWallet as it's not directly used for tests after refactoring
 
   private User createUserWithRole(UserRole role) {
-    return new User(UUID.randomUUID(), "test_user", "Test", "User", "test@test.com", role, UserStatus.ACTIVE,
-            AuthMode.LOCAL, Instant.now(), Instant.now(), false);
+    return new User(UUID.randomUUID(), "test_user", "Test", "User", "test@test.com", role,
+            UserStatus.ACTIVE, AuthMode.LOCAL, Instant.now(), Instant.now(), false);
   }
 
   private User createUserWithStatus(UserStatus status) {

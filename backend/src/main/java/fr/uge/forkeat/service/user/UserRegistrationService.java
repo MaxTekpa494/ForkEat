@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service.user;
 
+import fr.uge.forkeat.service.PasswordValidator;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -50,6 +51,8 @@ public class UserRegistrationService {
     if (userPersistence.existsByUsername(userRegister.username())) {
       throw new RegisterFailureException("This username is already taken");
     }
+
+    PasswordValidator.validate(userRegister.password());
 
     logger.info("Registering user: " + userRegister);
     var user = new User(UUID.randomUUID(),

@@ -41,8 +41,7 @@ class UserQueryServiceTest {
                 AuthMode.LOCAL,
                 Instant.now(),
                 Instant.now(),
-                false
-                );
+                false);
     }
 
     @Nested

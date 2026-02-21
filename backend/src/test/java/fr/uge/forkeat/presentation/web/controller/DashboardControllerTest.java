@@ -158,8 +158,7 @@ class DashboardControllerTest {
                 AuthMode.LOCAL,
                 Instant.now(),
                 Instant.now(),
-                false
-                );
+                false);
 
         when(authPort.extractUsername()).thenReturn("otheruser");
         when(userQueryService.getUserByUsername("otheruser")).thenReturn(otherUser);
