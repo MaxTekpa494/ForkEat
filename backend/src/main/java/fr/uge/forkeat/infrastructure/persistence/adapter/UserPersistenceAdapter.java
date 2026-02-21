@@ -97,4 +97,5 @@ public class UserPersistenceAdapter implements UserPersistence {
 		entity.setEmailVerified(emailVerified);
 		userRepository.save(entity);
 	}
+
 }
