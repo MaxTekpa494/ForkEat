@@ -2,7 +2,10 @@ package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 
-public record PasswordValidator() {
+public class PasswordValidator {
+
+    private PasswordValidator() {}
+
     /**
      * Validates that a password meets complexity requirements:
      * - At least 8 characters
