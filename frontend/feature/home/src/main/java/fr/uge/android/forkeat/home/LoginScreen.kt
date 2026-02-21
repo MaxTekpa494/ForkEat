@@ -53,6 +53,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -76,6 +77,7 @@ fun LoginScreen(
     newUser: Boolean = false,
     viewModel: LoginViewModel = viewModel(),
 ) {
+    val context = LocalContext.current
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var passwordVisible by remember { mutableStateOf(false) }
@@ -167,8 +169,9 @@ fun LoginScreen(
 
             // Google OAuth2 button
             OutlinedButton(
-                onClick = { /* TODO: Google OAuth2 */ },
+                onClick = { viewModel.loginWithGoogle(context) },
                 modifier = Modifier.fillMaxWidth(),
+                enabled = !uiState.isLoading,
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(2.dp, Color(0xFFE5E7EB)),
                 colors = ButtonDefaults.outlinedButtonColors(
