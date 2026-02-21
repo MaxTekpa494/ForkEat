@@ -1,6 +1,7 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
+import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
@@ -59,6 +60,7 @@ public class RecipeWebController {
     var username = authPort.extractUsername();
     var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
     logger.info("Creating recipe 2 {}", recipe);
+    logger.info("Creating recipe status 2 {}", recipe.status());
     logger.info("Creating recipe 3 {}", image);
     var savedRecipe = recipeService.createRecipe(recipe, toImageUpload(image));
     return "redirect:/recipes/" + savedRecipe.id();
@@ -113,14 +115,18 @@ public class RecipeWebController {
       var parent = recipeService.findById(recipe.parentId());
       var parentDTO = RecipeDTOMapper.toDTO(parent);
       model.addAttribute("parent", parentDTO);
+      model.addAttribute("diff", RecipeDiff.compute(parentDTO, recipeDTO));
     }
 
     var currentUser = authPort.extractUsername();
     var isOwner = currentUser != null && currentUser.equals(recipe.usernameAuthor());
+    var hasActiveDietaryFlags = recipeDTO.dietaryFlags() != null &&
+        recipeDTO.dietaryFlags().values().stream().anyMatch(Boolean.TRUE::equals);
     logger.info("Recipe {} viewed by {}", recipe, currentUser);
     model.addAttribute("recipe", recipeDTO);
     model.addAttribute("isOwner", isOwner);
     model.addAttribute("isAuthenticated", currentUser != null);
+    model.addAttribute("hasActiveDietaryFlags", hasActiveDietaryFlags);
     logger.info("Recipe {} viewed by {}", recipe, currentUser);
     return "recipes/detail";
   }
