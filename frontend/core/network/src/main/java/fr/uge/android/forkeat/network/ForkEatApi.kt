@@ -22,13 +22,13 @@ import kotlin.time.Instant
 
 class InstantAdapter : JsonSerializer<Instant>, JsonDeserializer<Instant> {
 
-  override fun serialize(src: Instant, typeOfSrc: Type, context: JsonSerializationContext): JsonElement {
-    return JsonPrimitive(src.toString())
-  }
+    override fun serialize(src: Instant, typeOfSrc: Type, context: JsonSerializationContext): JsonElement {
+        return JsonPrimitive(src.toString())
+    }
 
-  override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): Instant {
-    return Instant.parse(json.asString)
-  }
+    override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): Instant {
+        return Instant.parse(json.asString)
+    }
 }
 
 object ForkEatApi {
@@ -43,12 +43,19 @@ object ForkEatApi {
         tokenManager = TokenManager(context.applicationContext)
     }
 
+    fun isLoggedIn(): Boolean = tokenManager?.isLoggedIn() ?: false
+
+    fun logout() {
+        tokenManager?.clearToken()
+    }
+
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
-  private val loggingInterceptor = HttpLoggingInterceptor().apply {
-    level = HttpLoggingInterceptor.Level.BODY
-  }
+
+    private val gson: Gson = GsonBuilder()
+        .registerTypeAdapter(Instant::class.java, InstantAdapter())
+        .create()
 
     private val okHttpClient by lazy {
         OkHttpClient.Builder()
@@ -65,33 +72,16 @@ object ForkEatApi {
             .readTimeout(15, TimeUnit.SECONDS)
             .build()
     }
-  private val okHttpClient = OkHttpClient.Builder()
-    .addInterceptor(loggingInterceptor)
-    .connectTimeout(15, TimeUnit.SECONDS)
-    .readTimeout(15, TimeUnit.SECONDS)
-    .build()
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()
             .baseUrl(BASE_URL)
             .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
+            .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
 
     val authService: AuthApiService by lazy { retrofit.create(AuthApiService::class.java) }
     val recipeService: RecipeApiService by lazy { retrofit.create(RecipeApiService::class.java) }
     val walletService: WalletApiService by lazy { retrofit.create(WalletApiService::class.java) }
-  val gson: Gson = GsonBuilder()
-    .registerTypeAdapter(Instant::class.java, InstantAdapter())
-    .create()
-
-  private val retrofit: Retrofit = Retrofit.Builder()
-    .baseUrl(BASE_URL)
-    .client(okHttpClient)
-    .addConverterFactory(GsonConverterFactory.create(gson))
-    .build()
-
-  val authService: AuthApiService = retrofit.create(AuthApiService::class.java)
-  val recipeService: RecipeApiService = retrofit.create(RecipeApiService::class.java)
 }

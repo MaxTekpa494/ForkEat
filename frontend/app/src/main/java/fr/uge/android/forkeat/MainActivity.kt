@@ -189,6 +189,8 @@ class MainActivity : ComponentActivity() {
                             errorMessage = errorMessageState.value,
                             isLoading = isLoadingState.value,
                             navController = navController,
+                            isLoggedIn = isLoggedIn,
+                            onLogout = logout,
                             searchQuery = searchQueryState.value,
                             onSearchQueryChange = { query -> recipesViewModel.onSearchQueryChange(query) },
                             onSearchSubmit = { recipesViewModel.onSearchSubmit() },

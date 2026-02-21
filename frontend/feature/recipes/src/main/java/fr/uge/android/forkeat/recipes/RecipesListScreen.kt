@@ -41,6 +41,8 @@ fun RecipesListScreen(
   errorMessage: String? = null,
   isLoading : Boolean = false,
   navController: NavHostController? = null,
+  isLoggedIn: Boolean = false,
+  onLogout: () -> Unit = {},
   searchQuery: String = "",
   onSearchQueryChange: (String) -> Unit = {},
   onSearchSubmit: () -> Unit = {},
@@ -64,12 +66,13 @@ fun RecipesListScreen(
   }
   ForkEatScaffold(
     navController = navController,
-  ) { paddingValues ->
+    isLoggedIn = isLoggedIn,
+    onLogout = onLogout,
+  ) {
     Column(
       modifier = Modifier
         .fillMaxSize()
         .background(SurfaceCream)
-        .padding(paddingValues)
         .padding(16.dp)
     ) {
       RecipeSearchFilterBar(
