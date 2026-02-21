@@ -26,7 +26,7 @@
 
     <!-- Champs cachés -->
     <input type="hidden" name="username" th:value="${username}">
-    <input type="hidden" name="status" value="DRAFT">
+    <input type="hidden" name="status" id="statusField" value="PENDING">
     <input th:if="${parentId != null}" type="hidden" name="parentId" th:value="${parentId}">
 
     <!-- ═══════════════════════════════════════ -->
@@ -284,14 +284,21 @@
     </div>
 
     <!-- ═══════════════════════════════════════ -->
-    <!-- Bouton de soumission                   -->
+    <!-- Boutons de soumission                  -->
     <!-- ═══════════════════════════════════════ -->
     <div class="flex justify-end gap-4">
         <a th:href="@{/recipes}"
            class="px-6 py-3 text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition">
             Annuler
         </a>
+        <button type="submit" id="draftBtn"
+                onclick="document.getElementById('statusField').value='DRAFT'"
+                class="px-8 py-3 text-sm font-bold text-gray-600 bg-white hover:bg-gray-50 border border-gray-300 rounded-full transition">
+            <i class="fas fa-save mr-2"></i>
+            Enregistrer en brouillon
+        </button>
         <button type="submit" id="submitBtn"
+                onclick="document.getElementById('statusField').value='PENDING_REVIEW'"
                 class="px-8 py-3 text-sm font-bold text-white bg-primary-500 hover:bg-primary-600 rounded-full shadow-lg shadow-primary-500/30 transition transform hover:-translate-y-0.5">
             <i class="fas fa-paper-plane mr-2"></i>
             <span th:text="${formTitle != null and formTitle.contains('Modifier')} ? 'Enregistrer les modifications' : 'Publier la recette'">
