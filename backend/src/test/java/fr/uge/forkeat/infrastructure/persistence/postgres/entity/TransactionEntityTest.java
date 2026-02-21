@@ -1,7 +1,9 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
+
 import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.TransactionStatus;
 import fr.uge.forkeat.service.model.TransactionType;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
@@ -13,6 +15,8 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -51,7 +55,8 @@ class TransactionEntityTest extends AbstractIntegrationTest {
 
     @Test
     void shouldCreateTransaction() {
-        var tx = new TransactionEntity(null, wallet, 1000L, "stripe_123", TransactionType.RECHARGE, null);
+        // Updated TransactionEntity constructor call
+        var tx = new TransactionEntity(null, wallet, 1000L, "stripe_123", TransactionType.RECHARGE, TransactionStatus.PENDING, Instant.now());
 
         entityManager.persist(tx);
         entityManager.flush();
@@ -61,29 +66,35 @@ class TransactionEntityTest extends AbstractIntegrationTest {
         assertEquals(1000L, tx.getAmount());
         assertEquals("stripe_123", tx.getStripeTransactionID());
         assertEquals(TransactionType.RECHARGE, tx.getTransactionType());
+        assertEquals(TransactionStatus.PENDING, tx.getStatus()); // New assertion
     }
 
     @Test
     void shouldThrowOnNegativeAmount() {
+        // This test remains valid as it tests the setter logic, not constructor directly
         var tx = new TransactionEntity();
         assertThrows(IllegalArgumentException.class, () -> tx.setAmount(-100L));
     }
 
     @Test
-    void shouldSetIdOnPrePersist() {
-        var tx = new TransactionEntity(null, wallet, 500L, "stripe_456", TransactionType.RECHARGE, null);
+    void shouldSetIdAndCreatedAtOnPrePersist() { // Updated test name
+        // Updated TransactionEntity constructor call
+        var tx = new TransactionEntity(null, wallet, 500L, "stripe_456", TransactionType.RECHARGE, TransactionStatus.PENDING, Instant.now());
 
         assertNull(tx.getId());
+        // assertNull(tx.getCreatedAt()); // Removed as it's set in constructor
 
         entityManager.persist(tx);
         entityManager.flush();
 
         assertNotNull(tx.getId());
+        assertNotNull(tx.getCreatedAt()); // Should be set by @PrePersist
     }
 
     @Test
     void shouldTestEqualsByIdOnly() {
-        var tx1 = new TransactionEntity(null, wallet, 100L, "stripe_eq", TransactionType.RECHARGE, null);
+        // Updated TransactionEntity constructor call
+        var tx1 = new TransactionEntity(null, wallet, 100L, "stripe_eq", TransactionType.RECHARGE, TransactionStatus.PENDING, Instant.now());
         entityManager.persist(tx1);
         entityManager.flush();
 

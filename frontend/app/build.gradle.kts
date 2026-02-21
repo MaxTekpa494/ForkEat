@@ -46,6 +46,7 @@ dependencies {
   implementation(project(":feature:dashboard"))
   implementation(project(":feature:profile"))
   implementation(project(":feature:recipes"))
+  implementation(project(":feature:wallet"))
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.activity.compose)

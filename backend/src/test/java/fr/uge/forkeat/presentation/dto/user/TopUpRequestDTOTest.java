@@ -8,28 +8,28 @@ class TopUpRequestDTOTest {
 
     @Test
     void shouldCreateWithValidAmount() {
-        var dto = new TopUpRequestDTO(500L);
+        var dto = new TopUpRequestDTO(500L, null);
         assertEquals(500L, dto.amount());
     }
 
     @Test
     void shouldCreateWithMinimumAmount() {
-        var dto = new TopUpRequestDTO(100L);
+        var dto = new TopUpRequestDTO(100L, null);
         assertEquals(100L, dto.amount());
     }
 
     @Test
     void shouldThrowWhenAmountBelowMinimum() {
-        assertThrows(IllegalArgumentException.class, () -> new TopUpRequestDTO(99L));
+        assertThrows(IllegalArgumentException.class, () -> new TopUpRequestDTO(99L, null));
     }
 
     @Test
     void shouldThrowWhenAmountIsZero() {
-        assertThrows(IllegalArgumentException.class, () -> new TopUpRequestDTO(0L));
+        assertThrows(IllegalArgumentException.class, () -> new TopUpRequestDTO(0L, null));
     }
 
     @Test
     void shouldThrowWhenAmountIsNegative() {
-        assertThrows(IllegalArgumentException.class, () -> new TopUpRequestDTO(-100L));
+        assertThrows(IllegalArgumentException.class, () -> new TopUpRequestDTO(-100L, null));
     }
 }
