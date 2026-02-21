@@ -72,7 +72,7 @@ public class WalletRestController {
     public ResponseEntity<BankInfoResponseDTO> getBankInfo() {
         var user = userQueryService.getUserByUsername(authPort.extractUsername());
         var bankInfo = bankInfoService.getBankInfoByUserId(user.id())
-                .orElseThrow(() -> new ResourceNotFoundException("Bank information not found for user: " + user.id()));
+                .orElseThrow(() -> new ResourceNotFoundException("Bank information not found for current user"));
         return ResponseEntity.ok(BankInfoDTOMapper.toResponseDTO(bankInfo));
     }
 
