@@ -57,7 +57,9 @@ public class SecurityConfig {
 						}))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/me").authenticated()
-						.requestMatchers("/api/auth/**").permitAll().requestMatchers("/api/recipes/**").permitAll()
+						.requestMatchers("/api/auth/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
+						.requestMatchers("/api/recipes/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/wallet/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/*/user/*").authenticated().requestMatchers("/*/moderator/*")
 						.hasRole("MODERATOR").requestMatchers("/*/admin/*").hasRole("ADMIN").anyRequest()

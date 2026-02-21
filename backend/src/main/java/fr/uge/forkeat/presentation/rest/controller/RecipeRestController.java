@@ -9,6 +9,7 @@ import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -22,10 +23,12 @@ import java.util.UUID;
 public final class RecipeRestController {
 
 	private final RecipeService recipeService;
+	private final AuthenticationPort authPort;
 	private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
-	public RecipeRestController(RecipeService recipeService) {
+	public RecipeRestController(RecipeService recipeService, AuthenticationPort authPort) {
 		this.recipeService = recipeService;
+		this.authPort = authPort;
 	}
 
 //	@GetMapping("/create")
@@ -36,7 +39,8 @@ public final class RecipeRestController {
 	@PostMapping
 	public ResponseEntity<HttpResponse<RecipeDTO>> createRecipe(@RequestBody RecipeDTO recipeDTO) {
 		Objects.requireNonNull(recipeDTO);
-		var recipe = RecipeDTOMapper.toDomain(recipeDTO);
+		var username = authPort.extractUsername();
+		var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
 		var dto = RecipeDTOMapper.toDTO(recipeService.createRecipe(recipe, null));
 		return ResponseEntity.ok(new ItemResponse<>(dto));
 	}
