@@ -1,10 +1,10 @@
 package fr.uge.forkeat.infrastructure.security;
 
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -14,6 +14,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -24,21 +25,29 @@ import static org.mockito.Mockito.*;
 class CustomUserDetailsServiceTest {
 
     @Mock
-    private UserRepository userRepository;
+    private UserPersistence userPersistence;
 
     private CustomUserDetailsService service;
 
     @BeforeEach
     void setUp() {
-        service = new CustomUserDetailsService(userRepository);
+        service = new CustomUserDetailsService(userPersistence);
     }
 
-    private UserEntity createUserEntity(UserRole role, boolean emailVerified, String password) {
-        var entity = new UserEntity("testuser", "Test", "User", password, "test@forkeat.fr",
-                role, UserStatus.ACTIVE, AuthMode.LOCAL);
-        entity.setId(UUID.randomUUID());
-        entity.setEmailVerified(emailVerified);
-        return entity;
+    private User createUser(UserRole role, boolean emailVerified) {
+        return new User(
+                UUID.randomUUID(),
+                "testuser",
+                "Test",
+                "User",
+                "test@forkeat.fr",
+                role,
+                UserStatus.ACTIVE,
+                AuthMode.LOCAL,
+                Instant.now(),
+                Instant.now(),
+                emailVerified
+        );
     }
 
     @Nested
@@ -46,8 +55,9 @@ class CustomUserDetailsServiceTest {
 
         @Test
         void shouldLoadByUsername() {
-            var entity = createUserEntity(UserRole.MEMBER, false, "hashed-password");
-            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(entity));
+            var user = createUser(UserRole.MEMBER, false);
+            when(userPersistence.findByUsername("testuser")).thenReturn(Optional.of(user));
+            when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("hashed-password");
 
             var userDetails = service.loadUserByUsername("testuser");
 
@@ -57,9 +67,10 @@ class CustomUserDetailsServiceTest {
 
         @Test
         void shouldFallbackToEmail() {
-            var entity = createUserEntity(UserRole.MEMBER, false, "hashed-password");
-            when(userRepository.findByUsername("test@forkeat.fr")).thenReturn(Optional.empty());
-            when(userRepository.findByEmail("test@forkeat.fr")).thenReturn(Optional.of(entity));
+            var user = createUser(UserRole.MEMBER, false);
+            when(userPersistence.findByUsername("test@forkeat.fr")).thenReturn(Optional.empty());
+            when(userPersistence.findByEmail("test@forkeat.fr")).thenReturn(Optional.of(user));
+            when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("hashed-password");
 
             var userDetails = service.loadUserByUsername("test@forkeat.fr");
 
@@ -68,8 +79,8 @@ class CustomUserDetailsServiceTest {
 
         @Test
         void shouldThrowWhenNotFound() {
-            when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
-            when(userRepository.findByEmail("unknown")).thenReturn(Optional.empty());
+            when(userPersistence.findByUsername("unknown")).thenReturn(Optional.empty());
+            when(userPersistence.findByEmail("unknown")).thenReturn(Optional.empty());
 
             assertThrows(UsernameNotFoundException.class, () -> service.loadUserByUsername("unknown"));
         }
@@ -80,8 +91,9 @@ class CustomUserDetailsServiceTest {
 
         @Test
         void shouldHaveRoleMemberAuthority() {
-            var entity = createUserEntity(UserRole.MEMBER, false, "pw");
-            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(entity));
+            var user = createUser(UserRole.MEMBER, false);
+            when(userPersistence.findByUsername("testuser")).thenReturn(Optional.of(user));
+            when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("pw");
 
             var userDetails = service.loadUserByUsername("testuser");
 
@@ -90,8 +102,9 @@ class CustomUserDetailsServiceTest {
 
         @Test
         void shouldHaveRoleAdminAuthority() {
-            var entity = createUserEntity(UserRole.ADMIN, false, "pw");
-            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(entity));
+            var user = createUser(UserRole.ADMIN, false);
+            when(userPersistence.findByUsername("testuser")).thenReturn(Optional.of(user));
+            when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("pw");
 
             var userDetails = service.loadUserByUsername("testuser");
 
@@ -100,8 +113,9 @@ class CustomUserDetailsServiceTest {
 
         @Test
         void shouldHaveEmailVerifiedAuthority() {
-            var entity = createUserEntity(UserRole.MEMBER, true, "pw");
-            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(entity));
+            var user = createUser(UserRole.MEMBER, true);
+            when(userPersistence.findByUsername("testuser")).thenReturn(Optional.of(user));
+            when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("pw");
 
             var userDetails = service.loadUserByUsername("testuser");
 
@@ -110,8 +124,9 @@ class CustomUserDetailsServiceTest {
 
         @Test
         void shouldNotHaveEmailVerifiedAuthorityWhenNotVerified() {
-            var entity = createUserEntity(UserRole.MEMBER, false, "pw");
-            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(entity));
+            var user = createUser(UserRole.MEMBER, false);
+            when(userPersistence.findByUsername("testuser")).thenReturn(Optional.of(user));
+            when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("pw");
 
             var userDetails = service.loadUserByUsername("testuser");
 
@@ -124,8 +139,9 @@ class CustomUserDetailsServiceTest {
 
         @Test
         void shouldUseEmptyPasswordForGoogleUser() {
-            var entity = createUserEntity(UserRole.MEMBER, true, null);
-            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(entity));
+            var user = createUser(UserRole.MEMBER, true);
+            when(userPersistence.findByUsername("testuser")).thenReturn(Optional.of(user));
+            when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn(null);
 
             var userDetails = service.loadUserByUsername("testuser");
 

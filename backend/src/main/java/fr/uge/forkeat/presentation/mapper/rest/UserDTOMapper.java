@@ -1,19 +1,13 @@
 package fr.uge.forkeat.presentation.mapper.rest;
 
-import fr.uge.forkeat.presentation.dto.user.BankInfoDTO;
 import fr.uge.forkeat.presentation.dto.user.UserDTO;
-import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
-import fr.uge.forkeat.presentation.dto.user.WalletDTO;
-import fr.uge.forkeat.service.model.user.BankInfo;
-import fr.uge.forkeat.service.model.user.User;
-import fr.uge.forkeat.service.model.user.UserRegister;
-import fr.uge.forkeat.service.model.user.Wallet;
 import fr.uge.forkeat.presentation.dto.user.UserLoginDTO;
+import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
+import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserLogin;
+import fr.uge.forkeat.service.model.user.UserRegister;
 
 import java.util.Objects;
-
-import org.springframework.stereotype.Component;
 
 public final class UserDTOMapper {
 

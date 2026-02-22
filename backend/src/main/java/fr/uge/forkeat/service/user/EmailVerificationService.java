@@ -1,6 +1,6 @@
 package fr.uge.forkeat.service.user;
 
-import fr.uge.forkeat.service.MailService;
+import fr.uge.forkeat.service.external.MailGateway;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
@@ -8,6 +8,7 @@ import fr.uge.forkeat.service.model.user.VerificationToken;
 import fr.uge.forkeat.service.model.user.VerificationTokenType;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import fr.uge.forkeat.service.persistence.VerificationTokenPersistence;
+import fr.uge.forkeat.service.port.PasswordHasher;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
@@ -24,7 +25,8 @@ public class EmailVerificationService {
 
     private final VerificationTokenPersistence tokenPersistence;
     private final UserPersistence userPersistence;
-    private final MailService mailService;
+    private final MailGateway mailGateway;
+    private final PasswordHasher passwordHasher;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -39,10 +41,12 @@ public class EmailVerificationService {
 
     public EmailVerificationService(VerificationTokenPersistence tokenPersistence,
                                     UserPersistence userPersistence,
-                                    MailService mailService) {
-        this.tokenPersistence = Objects.requireNonNull(tokenPersistence);
-        this.userPersistence = Objects.requireNonNull(userPersistence);
-        this.mailService = Objects.requireNonNull(mailService);
+                                    MailGateway mailGateway,
+                                    PasswordHasher passwordHasher) {
+        this.tokenPersistence = tokenPersistence;
+        this.userPersistence = userPersistence;
+        this.mailGateway = mailGateway;
+        this.passwordHasher = passwordHasher;
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
@@ -60,7 +64,7 @@ public class EmailVerificationService {
         tokenPersistence.save(token);
 
         var link = baseUrl + "/auth/confirm-email?token=" + tokenValue;
-        mailService.send(email, "ForkEat - Confirmez votre adresse email",
+        mailGateway.send(email, "ForkEat - Confirmez votre adresse email",
                 "Bienvenue sur ForkEat !\n\n"
                         + "Cliquez sur le lien suivant pour confirmer votre email :\n"
                         + link + "\n\n"
@@ -91,17 +95,17 @@ public class EmailVerificationService {
      *  Send a code to reset the password by mail to the mail indicated
      * @param userId The ID of the user
      * @param email The email of the user
-     * @param hashedNewPassword the hashed password
+     * @param newPassword the plain new password
      */
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
-    public void sendPasswordChangeCode(UUID userId, String email, String hashedNewPassword) {
+    public void sendPasswordChangeCode(UUID userId, String email, String newPassword) {
 
         tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
 
         var code = generateSixDigitCode();
         var token = new VerificationToken(
                 UUID.randomUUID(), userId, code,
-                VerificationTokenType.PASSWORD_CHANGE, null, hashedNewPassword,
+                VerificationTokenType.PASSWORD_CHANGE, null, passwordHasher.hash(newPassword),
                 Instant.now().plus(CODE_EXPIRY_MINUTES, ChronoUnit.MINUTES),
                 Instant.now()
         );
@@ -140,7 +144,7 @@ public class EmailVerificationService {
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
-    public void sendEmailChangeCode(UUID userId, String currentEmail, String newEmail, String hashedPassword) {
+    public void sendEmailChangeCode(UUID userId, String currentEmail, String newEmail, String newPassword) {
         if (userPersistence.existsByEmail(newEmail)) {
             throw new VerificationException("Cet email est déjà utilisé");
         }
@@ -148,6 +152,7 @@ public class EmailVerificationService {
         tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE);
 
         var code = generateSixDigitCode();
+        var hashedPassword = newPassword != null ? passwordHasher.hash(newPassword) : null;
         var token = new VerificationToken(
                 UUID.randomUUID(), userId, code,
                 VerificationTokenType.EMAIL_CHANGE, newEmail, hashedPassword,
@@ -156,7 +161,7 @@ public class EmailVerificationService {
         );
         tokenPersistence.save(token);
 
-        mailService.send(currentEmail, "ForkEat - Code de confirmation",
+        mailGateway.send(currentEmail, "ForkEat - Code de confirmation",
                 "Votre code de confirmation pour le changement d'email : " + code + "\n\n"
                         + "Ce code expire dans 10 minutes.\n"
                         + "Si vous n'avez pas demandé ce changement, ignorez ce message.");
@@ -208,7 +213,7 @@ public class EmailVerificationService {
     }
 
     private void sendChangePasswordCodeMail(String email, String code){
-        mailService.send(email, "ForkEat - Code de confirmation",
+        mailGateway.send(email, "ForkEat - Code de confirmation",
                 "Votre code de confirmation pour le changement de mot de passe : " + code + "\n\n"
                         + "Ce code expire dans 10 minutes.\n"
                         + "Si vous n'avez pas demandé ce changement, ignorez ce message.");

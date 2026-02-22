@@ -2,6 +2,7 @@ package fr.uge.forkeat.infrastructure.config;
 
 import fr.uge.forkeat.infrastructure.security.CustomOAuth2UserService;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.annotation.Order;
@@ -17,7 +18,6 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
-import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
@@ -57,6 +57,7 @@ public class SecurityConfig {
 						}))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/**").permitAll().requestMatchers("/api/recipes/**").permitAll()
+						.requestMatchers("/api/profile/**").authenticated()
 						.requestMatchers("/*/user/*").authenticated().requestMatchers("/*/moderator/*")
 						.hasRole("MODERATOR").requestMatchers("/*/admin/*").hasRole("ADMIN").anyRequest()
 						.hasRole("ADMIN"))
@@ -82,6 +83,7 @@ public class SecurityConfig {
 						.requestMatchers("/wallet/**").hasAuthority("EMAIL_VERIFIED") // à affiner une fois implementé
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/moderator/**").hasRole("MODERATOR")
+						.requestMatchers("/account/**").authenticated()
 						.requestMatchers("/profile/**").authenticated()
 						.anyRequest().authenticated())
 

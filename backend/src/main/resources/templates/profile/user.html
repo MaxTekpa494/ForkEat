@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title th:text="${vm.profile().publicProfile().firstName() + ' ' + vm.profile().publicProfile().lastName() + ' - ForkEat'}">Profil - ForkEat</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <!-- Hero header -->
+    <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
+        <div class="container mx-auto px-4">
+            <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
+
+                <!-- Avatar -->
+                <div class="w-28 h-28 bg-primary-500 rounded-full flex items-center justify-center text-white font-bold text-5xl shadow-xl ring-4 ring-white/20 flex-shrink-0">
+                    <span th:text="${vm.initials()}">AB</span>
+                </div>
+
+                <!-- Infos -->
+                <div class="text-center md:text-left flex-1">
+                    <h1 class="font-display font-bold text-4xl md:text-5xl mb-2">
+                        <span th:text="${vm.profile().publicProfile().firstName() + ' ' + vm.profile().publicProfile().lastName()}">Nom Utilisateur</span>
+                    </h1>
+                    <p class="text-secondary-200 text-lg mb-6">
+                        @<span th:text="${vm.profile().publicProfile().username()}">username</span>
+                    </p>
+
+                    <!-- Bouton Suivre -->
+                    <div class="mb-6">
+                        <button th:if="${!vm.followedByCurrentUser()}"
+                                class="px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-full transition shadow-md">
+                            <i class="fas fa-user-plus mr-2"></i>Suivre
+                        </button>
+                        <button th:if="${vm.followedByCurrentUser()}"
+                                class="px-6 py-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full transition border border-white/40">
+                            <i class="fas fa-user-check mr-2"></i>Abonné
+                        </button>
+                    </div>
+
+                    <!-- Compteurs -->
+                    <div class="flex flex-wrap items-center justify-between">
+                        <div class="flex space-x-8">
+                            <div class="text-center">
+                                <div class="font-bold text-2xl" th:text="${vm.totalRecipes()}">0</div>
+                                <div class="text-secondary-300 text-sm">Recettes</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-2xl" th:text="${vm.profile().socialStats().followerCount()}">0</div>
+                                <div class="text-secondary-300 text-sm">Abonnes</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-2xl" th:text="${vm.profile().socialStats().followingCount()}">0</div>
+                                <div class="text-secondary-300 text-sm">Abonnements</div>
+                            </div>
+                        </div>
+                        <div class="flex space-x-8">
+                            <div class="text-center">
+                                <div class="font-bold text-2xl" th:text="${vm.profile().socialStats().totalLikeCount()}">0</div>
+                                <div class="text-secondary-300 text-sm"><i class="fas fa-heart text-red-400 mr-1"></i>Likes</div>
+                            </div>
+                            <div class="text-center">
+                                <div class="font-bold text-2xl" th:text="${vm.profile().socialStats().totalSuperLikeCount()}">0</div>
+                                <div class="text-secondary-300 text-sm inline-flex items-center">
+                                    <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <defs>
+                                            <linearGradient id="goldGradientHero" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                <stop offset="0%" style="stop-color:#FFED8B;stop-opacity:1" />
+                                                <stop offset="50%" style="stop-color:#FFC837;stop-opacity:1" />
+                                                <stop offset="100%" style="stop-color:#DAA520;stop-opacity:1" />
+                                            </linearGradient>
+                                        </defs>
+                                        <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z" fill="url(#goldGradientHero)"/>
+                                        <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z" fill="url(#goldGradientHero)"/>
+                                        <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#FFED8B"/>
+                                    </svg>
+                                    Super Likes
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Recettes -->
+    <section class="py-12 bg-surface">
+        <div class="container mx-auto px-4">
+
+            <div class="flex items-center justify-between mb-8">
+                <h2 class="font-display font-bold text-2xl text-secondary-900">
+                    <i class="fas fa-book-open mr-2 text-primary-500"></i>
+                    Recettes publiees
+                </h2>
+            </div>
+
+            <!-- Message si aucune recette -->
+            <div th:if="${#lists.isEmpty(vm.recipes())}" class="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                <div class="w-24 h-24 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-utensils text-4xl text-secondary-400"></i>
+                </div>
+                <h3 class="font-display font-bold text-2xl text-secondary-900 mb-2">Aucune recette publiee</h3>
+                <p class="text-secondary-500">Cet utilisateur n'a pas encore publie de recette.</p>
+            </div>
+
+            <!-- Grille de recettes -->
+            <div th:unless="${#lists.isEmpty(vm.recipes())}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                <div th:each="recipe : ${vm.recipes()}" class="recipe-card">
+                    <a th:href="@{/recipes/{id}(id=${recipe.summary().id()})}"
+                       class="block bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 group h-full flex flex-col">
+
+                        <!-- Image -->
+                        <div class="aspect-[4/3] bg-secondary-100 overflow-hidden relative">
+                            <img th:if="${recipe.summary().imageUrl() != null and !recipe.summary().imageUrl().isEmpty()}"
+                                 th:src="${recipe.summary().imageUrl()}"
+                                 th:alt="${recipe.summary().title()}"
+                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
+                            <div th:unless="${recipe.summary().imageUrl() != null and !recipe.summary().imageUrl().isEmpty()}"
+                                 class="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary-50 to-secondary-100">
+                                <i class="fas fa-utensils text-4xl text-secondary-300"></i>
+                            </div>
+
+                            <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-secondary-800 shadow-sm">
+                                <i class="fas fa-clock mr-1 text-primary-500"></i>
+                                <span th:text="${recipe.summary().preparationMinutes() + ' min'}">30 min</span>
+                            </div>
+                        </div>
+
+                        <div class="p-5 flex-1 flex flex-col">
+                            <h3 class="font-bold text-lg text-secondary-900 mb-2 line-clamp-1 group-hover:text-primary-500 transition">
+                                <span th:text="${recipe.summary().title()}">Titre de la recette</span>
+                            </h3>
+
+                            <p th:if="${recipe.summary().summary() != null and !recipe.summary().summary().isEmpty()}"
+                               class="text-secondary-500 text-sm mb-4 line-clamp-2 flex-1"
+                               th:text="${recipe.summary().summary()}">
+                                Description de la recette...
+                            </p>
+
+                            <div class="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
+                                <div class="flex items-center space-x-4">
+                                    <!-- Like : coeur rempli si likedByCurrentUser, vide sinon -->
+                                    <span class="flex items-center space-x-1 text-sm text-secondary-500">
+                                        <i th:class="${recipe.likedByCurrentUser()} ? 'fas fa-heart text-red-500' : 'far fa-heart text-gray-300'"></i>
+                                        <span th:text="${recipe.summary().likeCount()}">0</span>
+                                    </span>
+                                    <!-- Super-like : nuage or si superLikedByCurrentUser, gris sinon -->
+                                    <span class="flex items-center space-x-1 text-sm text-secondary-500">
+                                        <svg th:if="${recipe.superLikedByCurrentUser()}" class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <defs>
+                                                <linearGradient id="goldGradientCard" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" style="stop-color:#FFED8B;stop-opacity:1" />
+                                                    <stop offset="50%" style="stop-color:#FFC837;stop-opacity:1" />
+                                                    <stop offset="100%" style="stop-color:#DAA520;stop-opacity:1" />
+                                                </linearGradient>
+                                            </defs>
+                                            <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z" fill="url(#goldGradientCard)"/>
+                                            <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z" fill="url(#goldGradientCard)"/>
+                                            <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#FFED8B"/>
+                                        </svg>
+                                        <svg th:unless="${recipe.superLikedByCurrentUser()}" class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z" fill="#D1D5DB"/>
+                                            <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z" fill="#D1D5DB"/>
+                                            <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#D1D5DB"/>
+                                        </svg>
+                                        <span th:text="${recipe.summary().superLikeCount()}">0</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Pagination -->
+            <div th:if="${vm.totalPages() > 1}" class="flex justify-center mt-12">
+                <nav class="flex items-center space-x-2">
+                    <!-- Bouton precedent -->
+                    <a th:if="${vm.currentPage() > 0}"
+                       th:href="@{/profile/{username}(username=${vm.profile().publicProfile().username()}, page=${vm.currentPage() - 1})}"
+                       class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition">
+                        <i class="fas fa-chevron-left"></i>
+                    </a>
+
+                    <!-- Numeros de page -->
+                    <th:block th:each="i : ${vm.paginationPages()}">
+                        <span th:if="${i == -1}" class="px-3 py-2 text-secondary-400">...</span>
+                        <a th:unless="${i == -1}"
+                           th:href="@{/profile/{username}(username=${vm.profile().publicProfile().username()}, page=${i})}"
+                           th:text="${i + 1}"
+                           th:class="${i == vm.currentPage()} ? 'px-4 py-2 bg-primary-500 text-white rounded-lg font-semibold' : 'px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition'">
+                            1
+                        </a>
+                    </th:block>
+
+                    <!-- Bouton suivant -->
+                    <a th:if="${vm.currentPage() < vm.totalPages() - 1}"
+                       th:href="@{/profile/{username}(username=${vm.profile().publicProfile().username()}, page=${vm.currentPage() + 1})}"
+                       class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </nav>
+            </div>
+        </div>
+    </section>
+
+</div>
+</body>
+</html>

@@ -2,7 +2,6 @@ package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.TransactionEntity;
 import fr.uge.forkeat.service.model.Transaction;
-import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 

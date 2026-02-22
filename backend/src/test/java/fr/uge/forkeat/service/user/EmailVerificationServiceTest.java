@@ -1,6 +1,6 @@
 package fr.uge.forkeat.service.user;
 
-import fr.uge.forkeat.service.MailService;
+import fr.uge.forkeat.service.external.MailGateway;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
@@ -18,6 +18,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import fr.uge.forkeat.service.port.PasswordHasher;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
@@ -36,9 +38,11 @@ class EmailVerificationServiceTest {
     @Mock
     private VerificationTokenPersistence tokenPersistence;
     @Mock
+    private PasswordHasher passwordHasher;
+    @Mock
     private UserPersistence userPersistence;
     @Mock
-    private MailService mailService;
+    private MailGateway mailGateway;
 
     @InjectMocks
     private EmailVerificationService service;
@@ -57,7 +61,7 @@ class EmailVerificationServiceTest {
     }
 
     private VerificationToken createToken(UUID userId, VerificationTokenType type, String tokenValue,
-                                           String newEmail, String passwordHash, Instant expiresAt) {
+                                          String newEmail, String passwordHash, Instant expiresAt) {
         return new VerificationToken(UUID.randomUUID(), userId, tokenValue, type, newEmail, passwordHash, expiresAt, Instant.now());
     }
 
@@ -85,7 +89,7 @@ class EmailVerificationServiceTest {
             service.sendEmailConfirmation(userId, "test@forkeat.fr");
 
             var captor = ArgumentCaptor.forClass(String.class);
-            verify(mailService).send(eq("test@forkeat.fr"), any(), captor.capture());
+            verify(mailGateway).send(eq("test@forkeat.fr"), any(), captor.capture());
             assertTrue(captor.getValue().contains("http://localhost:8080/auth/confirm-email?token="));
         }
 
@@ -163,8 +167,9 @@ class EmailVerificationServiceTest {
         void shouldDeleteOldTokenAndSaveNew() {
             var userId = UUID.randomUUID();
             when(tokenPersistence.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(passwordHasher.hash("plain-pw")).thenReturn("hashed-new-pw");
 
-            service.sendPasswordChangeCode(userId, "test@forkeat.fr", "hashed-new-pw");
+            service.sendPasswordChangeCode(userId, "test@forkeat.fr", "plain-pw");
 
             verify(tokenPersistence).deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
 
@@ -178,10 +183,11 @@ class EmailVerificationServiceTest {
         void shouldSendEmailWithCode() {
             var userId = UUID.randomUUID();
             when(tokenPersistence.save(any())).thenAnswer(inv -> inv.getArgument(0));
+            when(passwordHasher.hash(any())).thenReturn("hashed-pw");
 
-            service.sendPasswordChangeCode(userId, "test@forkeat.fr", "hashed-pw");
+            service.sendPasswordChangeCode(userId, "test@forkeat.fr", "plain-pw");
 
-            verify(mailService).send(eq("test@forkeat.fr"), any(), any());
+            verify(mailGateway).send(eq("test@forkeat.fr"), any(), any());
         }
     }
 
@@ -280,7 +286,7 @@ class EmailVerificationServiceTest {
 
             service.sendEmailChangeCode(userId, "old@forkeat.fr", "new@forkeat.fr");
 
-            verify(mailService).send(eq("old@forkeat.fr"), any(), any());
+            verify(mailGateway).send(eq("old@forkeat.fr"), any(), any());
         }
     }
 

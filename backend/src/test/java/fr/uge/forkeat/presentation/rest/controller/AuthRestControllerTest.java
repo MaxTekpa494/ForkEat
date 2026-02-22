@@ -4,14 +4,20 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.presentation.dto.user.ChangePasswordConfirmCodeDTO;
+import fr.uge.forkeat.presentation.dto.user.ChangePasswordDTO;
 import fr.uge.forkeat.presentation.dto.user.UserLoginDTO;
 import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
+import fr.uge.forkeat.service.user.UserService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -46,6 +52,10 @@ class AuthRestControllerTest {
     @MockitoBean
     private JwtUtils jwtUtils;
     @MockitoBean
+    private UserService userService;
+    @MockitoBean
+    private EmailVerificationService emailVerificationService;
+    @MockitoBean
     private JwtFilter jwtFilter;
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
@@ -60,8 +70,6 @@ class AuthRestControllerTest {
                 "test@forkeat.fr", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL,
                 Instant.now(), Instant.now(), false);
     }
-
-    // ========== REGISTER ==========
 
     @Nested
     class RegisterTests {
@@ -84,9 +92,21 @@ class AuthRestControllerTest {
             verify(userRegistrationService).registerUser(any());
         }
 
+        @Test
+        void shouldReturnBadRequest_WhenPasswordTooShort() throws Exception {
+            var dto = new UserRegisterDTO("testuser", "Test", "User", "short", "test@forkeat.fr");
+
+            mockMvc.perform(post("/api/auth/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(dto)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("Bad Request"));
+
+            verifyNoInteractions(userRegistrationService);
+        }
 
         @Test
-        void shouldReturnBadRequestWhenRegistrationFails() throws Exception {
+        void shouldReturnBadRequest_WhenEmailAlreadyTaken() throws Exception {
             var dto = new UserRegisterDTO("testuser", "Test", "User", "Password123", "taken@forkeat.fr");
 
             when(userRegistrationService.registerUser(any()))
@@ -99,24 +119,7 @@ class AuthRestControllerTest {
                     .andExpect(jsonPath("$.error").value("Bad Request"))
                     .andExpect(jsonPath("$.message").value("Email already exists"));
         }
-
-        @Test
-        void shouldReturnBadRequestWhenPasswordIsUnder8Characters() throws Exception {
-            var dto = new UserRegisterDTO("testuser", "Test", "User", "aa", "taken@forkeat.fr");
-
-            when(userRegistrationService.registerUser(any()))
-                    .thenThrow(new RegisterFailureException("The password must have at least 8 characters"));
-
-            mockMvc.perform(post("/api/auth/register")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(dto)))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.error").value("Bad Request"))
-                    .andExpect(jsonPath("$.message").value("The password must have at least 8 characters"));
-        }
     }
-
-    // ========== LOGIN ==========
 
     @Nested
     class LoginTests {
@@ -141,7 +144,7 @@ class AuthRestControllerTest {
         }
 
         @Test
-        void shouldReturnUnauthorizedForBadCredentials() throws Exception {
+        void shouldReturnUnauthorized_WhenBadCredentials() throws Exception {
             var dto = new UserLoginDTO("testuser", "WrongPassword");
 
             when(authenticationManager.authenticate(any()))
@@ -151,6 +154,104 @@ class AuthRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isUnauthorized());
+        }
+    }
+
+    @Nested
+    class ForgotPasswordTests {
+
+        @Test
+        void shouldSendResetCode_WhenValidRequest() throws Exception {
+            var dto = new ChangePasswordDTO("test@forkeat.fr", "NewPassword1");
+            var user = createUser();
+
+            when(userService.getUserByEmail("test@forkeat.fr")).thenReturn(user);
+            doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any(), any());
+
+            mockMvc.perform(post("/api/auth/forgot-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(dto)))
+                    .andExpect(status().isOk());
+
+            verify(emailVerificationService).sendPasswordChangeCode(any(), any(), any());
+        }
+
+        @Test
+        void shouldReturnBadRequest_WhenPasswordTooShort() throws Exception {
+            var dto = new ChangePasswordDTO("test@forkeat.fr", "short");
+
+            mockMvc.perform(post("/api/auth/forgot-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(dto)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("Bad Request"));
+
+            verifyNoInteractions(userService);
+        }
+
+        @Test
+        void shouldReturnNotFound_WhenEmailDoesNotExist() throws Exception {
+            var dto = new ChangePasswordDTO("unknown@forkeat.fr", "NewPassword1");
+
+            when(userService.getUserByEmail("unknown@forkeat.fr"))
+                    .thenThrow(new ResourceNotFoundException("User not found"));
+
+            mockMvc.perform(post("/api/auth/forgot-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(dto)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Not Found"));
+        }
+    }
+
+    @Nested
+    class ForgotPasswordConfirmCodeTests {
+
+        @Test
+        void shouldConfirmCode_WhenValidRequest() throws Exception {
+            var dto = new ChangePasswordConfirmCodeDTO("test@forkeat.fr", "123456");
+            var user = createUser();
+
+            when(userService.getUserByEmail("test@forkeat.fr")).thenReturn(user);
+            doNothing().when(emailVerificationService).confirmPasswordChange(any(), any());
+
+            mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(dto)))
+                    .andExpect(status().isOk());
+
+            verify(emailVerificationService).confirmPasswordChange(any(), any());
+        }
+
+        @Test
+        void shouldReturnBadRequest_WhenCodeIsInvalid() throws Exception {
+            var dto = new ChangePasswordConfirmCodeDTO("test@forkeat.fr", "000000");
+            var user = createUser();
+
+            when(userService.getUserByEmail("test@forkeat.fr")).thenReturn(user);
+            doThrow(new VerificationException("Code incorrect"))
+                    .when(emailVerificationService).confirmPasswordChange(any(), any());
+
+            mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(dto)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("Bad Request"))
+                    .andExpect(jsonPath("$.message").value("Code incorrect"));
+        }
+
+        @Test
+        void shouldReturnNotFound_WhenEmailDoesNotExist() throws Exception {
+            var dto = new ChangePasswordConfirmCodeDTO("unknown@forkeat.fr", "123456");
+
+            when(userService.getUserByEmail("unknown@forkeat.fr"))
+                    .thenThrow(new ResourceNotFoundException("User not found"));
+
+            mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(dto)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Not Found"));
         }
     }
 }

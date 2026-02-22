@@ -2,10 +2,13 @@ package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.DuplicateTransactionException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
-import fr.uge.forkeat.service.model.*;
+import fr.uge.forkeat.service.external.PaymentGateway;
+import fr.uge.forkeat.service.model.Currency;
+import fr.uge.forkeat.service.model.PaymentRequest;
+import fr.uge.forkeat.service.model.Transaction;
+import fr.uge.forkeat.service.model.TransactionType;
 import fr.uge.forkeat.service.model.user.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
-import fr.uge.forkeat.service.external.PaymentGateway;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -52,7 +55,7 @@ public class WalletService {
 	}
 
 	@Transactional(readOnly = true)
-	public Long getBalance(UUID userId) {
+	public long getBalance(UUID userId) {
 		return walletPersistence.getBalance(userId);
 	}
 

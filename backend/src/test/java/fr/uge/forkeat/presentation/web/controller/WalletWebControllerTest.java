@@ -5,7 +5,7 @@ import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.user.UserQueryService;
+import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
@@ -34,7 +34,7 @@ class WalletWebControllerTest {
     private final MockMvc mockMvc;
 
     @MockitoBean
-    private UserQueryService userQueryService;
+    private UserService userService;
 
     @MockitoBean
     private WalletService walletService;
@@ -78,7 +78,7 @@ class WalletWebControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void walletPage_ShouldReturnWalletView_WhenAuthenticated() throws Exception {
-        when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+        when(userService.getUserByUsername("testuser")).thenReturn(testUser);
         when(walletService.getBalance(testUser.id())).thenReturn(5000L);
 
         mockMvc.perform(get("/wallet"))
@@ -93,7 +93,7 @@ class WalletWebControllerTest {
     @WithMockUser(username = "testuser")
     void walletPage_ShouldDisplayCorrectBalance() throws Exception {
         Long expectedBalance = 12500L;
-        when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+        when(userService.getUserByUsername("testuser")).thenReturn(testUser);
         when(walletService.getBalance(testUser.id())).thenReturn(expectedBalance);
 
         mockMvc.perform(get("/wallet"))
@@ -104,7 +104,7 @@ class WalletWebControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void walletPage_ShouldDisplayZeroBalance_WhenNoFunds() throws Exception {
-        when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+        when(userService.getUserByUsername("testuser")).thenReturn(testUser);
         when(walletService.getBalance(testUser.id())).thenReturn(0L);
 
         mockMvc.perform(get("/wallet"))
@@ -117,7 +117,7 @@ class WalletWebControllerTest {
     void walletPage_ShouldThrow_WhenUserNotFound() throws Exception {
         when(authPort.extractUsername()).thenReturn("unknownuser");
 
-        when(userQueryService.getUserByUsername("unknownuser"))
+        when(userService.getUserByUsername("unknownuser"))
                 .thenThrow(new ResourceNotFoundException("Utilisateur non trouvé"));
 
         mockMvc.perform(get("/wallet"))

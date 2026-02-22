@@ -3,21 +3,45 @@
       xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
       layout:decorate="~{layout/base}">
 <head>
-    <title>Dashboard - ForkEat</title>
+    <title>Mon Compte - ForkEat</title>
 </head>
 <body>
 <div layout:fragment="content">
 
     <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
         <div class="container mx-auto px-4">
-            <div class="flex items-center justify-between">
+            <div class="flex flex-wrap items-center justify-between">
                 <div>
                     <h1 class="font-display font-bold text-4xl mb-2">
-                        Bienvenue, <span class="text-primary-500" th:text="${user.firstName}">Utilisateur</span> ! 👋
+                        Bienvenue, <span class="text-primary-500" th:text="${vm.user().firstName()}">Utilisateur</span> ! 👋
                     </h1>
                     <p class="text-secondary-200 text-lg">
                         Ravi de vous revoir. Voici un aperçu de votre activité.
                     </p>
+                </div>
+                <div class="flex space-x-8">
+                        <div class="text-center">
+                            <div class="font-bold text-2xl" th:text="${vm.socialStats().totalLikeCount()}">0</div>
+                            <div class="text-secondary-300 text-sm"><i class="fas fa-heart text-red-400 mr-1"></i>Likes</div>
+                        </div>
+                        <div class="text-center">
+                            <div class="font-bold text-2xl" th:text="${vm.socialStats().totalSuperLikeCount()}">0</div>
+                            <div class="text-secondary-300 text-sm inline-flex items-center">
+                                <svg class="w-4 h-4 mr-1" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <defs>
+                                        <linearGradient id="goldGradientProfile" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" style="stop-color:#FFED8B;stop-opacity:1" />
+                                            <stop offset="50%" style="stop-color:#FFC837;stop-opacity:1" />
+                                            <stop offset="100%" style="stop-color:#DAA520;stop-opacity:1" />
+                                        </linearGradient>
+                                    </defs>
+                                    <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z" fill="url(#goldGradientProfile)"/>
+                                    <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z" fill="url(#goldGradientProfile)"/>
+                                    <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#FFED8B"/>
+                                </svg>
+                                Super Likes
+                            </div>
+                        </div>
                 </div>
             </div>
         </div>
@@ -28,20 +52,17 @@
         <div class="container mx-auto px-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                 <!-- Solde Wallet -->
-                <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-6 text-white shadow-xl">
+                <a th:href="@{/wallet}" class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-6 text-white shadow-xl hover:from-primary-600 hover:to-primary-700 transition-all duration-200 block">
                     <div class="flex items-center justify-between mb-4">
                         <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
                             <i class="fas fa-wallet text-2xl"></i>
                         </div>
-                        <a th:href="@{/wallet}" class="text-white/80 hover:text-white transition">
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
                     </div>
                     <div class="text-3xl font-bold mb-1">
-                        <span th:text="${#numbers.formatDecimal(balance / 100.0, 1, 2)}">0.00</span> €
+                        <span th:text="${#numbers.formatDecimal(vm.walletBalance() / 100.0, 1, 2)}">0.00</span> €
                     </div>
                     <div class="text-primary-100 text-sm font-medium">Solde disponible</div>
-                </div>
+                </a>
 
                 <!-- Recettes -->
                 <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
@@ -50,19 +71,8 @@
                             <i class="fas fa-book text-secondary-800 text-2xl"></i>
                         </div>
                     </div>
-                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${totalRecipes}">0</div>
+                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${vm.recipeCount()}">0</div>
                     <div class="text-gray-500 text-sm font-medium">Mes recettes</div>
-                </div>
-
-                <!-- Likes -->
-                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
-                    <div class="flex items-center justify-between mb-4">
-                        <div class="w-12 h-12 bg-red-50 rounded-xl flex items-center justify-center">
-                            <i class="fas fa-heart text-red-500 text-2xl"></i>
-                        </div>
-                    </div>
-                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${totalLikes}">0</div>
-                    <div class="text-gray-500 text-sm font-medium">Total likes</div>
                 </div>
 
                 <!-- Abonnés -->
@@ -72,8 +82,19 @@
                             <i class="fas fa-users text-blue-500 text-2xl"></i>
                         </div>
                     </div>
-                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${followers}">0</div>
+                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${vm.socialStats().followerCount()}">0</div>
                     <div class="text-gray-500 text-sm font-medium">Abonnés</div>
+                </div>
+
+                <!-- Abonnements -->
+                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-user-plus text-green-500 text-2xl"></i>
+                        </div>
+                    </div>
+                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${vm.socialStats().followingCount()}">0</div>
+                    <div class="text-gray-500 text-sm font-medium">Abonnements</div>
                 </div>
             </div>
         </div>
@@ -94,7 +115,7 @@
                     <p class="text-gray-600 text-sm">Partagez une nouvelle création culinaire</p>
                 </a>
 
-                <a th:href="@{/wallet(from=dashboard)}"
+                <a th:href="@{/wallet(from=profile)}"
                    class="bg-surface border-2 border-gray-200 hover:border-primary-500 rounded-2xl p-6 transition group">
                     <div class="w-14 h-14 bg-secondary-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-secondary-800 transition">
                         <i class="fas fa-wallet text-2xl text-secondary-800 group-hover:text-white transition"></i>
@@ -103,7 +124,7 @@
                     <p class="text-gray-600 text-sm">Rechargez ou consultez vos transactions</p>
                 </a>
 
-                <a th:href="@{/profile}"
+                <a th:href="@{/account}"
                    class="bg-surface border-2 border-gray-200 hover:border-primary-500 rounded-2xl p-6 transition group">
                     <div class="w-14 h-14 bg-orange-50 rounded-xl flex items-center justify-center mb-4 group-hover:bg-orange-500 transition">
                         <i class="fas fa-cog text-2xl text-orange-500 group-hover:text-white transition"></i>

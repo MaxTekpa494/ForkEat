@@ -39,12 +39,13 @@
                         th:text="${recipe.title}">Titre de la recette</h1>
 
                     <div class="flex items-center space-x-6 text-secondary-500 mb-6">
-                        <div class="flex items-center space-x-2">
+                        <a th:href="@{/profile/{u}(u=${recipe.username})}"
+                           class="flex items-center space-x-2 hover:opacity-75 transition">
                             <div class="w-8 h-8 bg-secondary-800 text-white rounded-full flex items-center justify-center text-xs font-bold">
                                 <span th:text="${#strings.toUpperCase(#strings.substring(recipe.username, 0, 1))}">U</span>
                             </div>
                             <span class="text-sm font-medium" th:text="${recipe.username}">Utilisateur</span>
-                        </div>
+                        </a>
                         <span class="text-sm">
                             <i class="fas fa-clock mr-1 text-primary-500"></i>
                             <span th:text="${recipe.preparationMinutes + ' min'}">30 min</span>

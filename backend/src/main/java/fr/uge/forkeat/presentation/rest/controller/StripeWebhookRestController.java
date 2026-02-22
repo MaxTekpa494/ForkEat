@@ -1,6 +1,5 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
-import com.stripe.exception.SignatureVerificationException;
 import com.stripe.model.checkout.Session;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.external.PaymentGateway;

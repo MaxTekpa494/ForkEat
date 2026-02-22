@@ -1,4 +1,4 @@
-package fr.uge.forkeat.infrastructure.persistence.payment.adapter;
+package fr.uge.forkeat.infrastructure.payment.adapter;
 
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
@@ -8,9 +8,9 @@ import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionCreateParams;
 import fr.uge.forkeat.service.exception.PaymentException;
 import fr.uge.forkeat.service.exception.StripEventException;
+import fr.uge.forkeat.service.external.PaymentGateway;
 import fr.uge.forkeat.service.model.PaymentRequest;
 import fr.uge.forkeat.service.model.PaymentResponse;
-import fr.uge.forkeat.service.external.PaymentGateway;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

@@ -1,9 +1,14 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
+import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RecipeCountsProjection;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RecipeUserInteractionProjection;
+import fr.uge.forkeat.service.model.recipe.RecipeUserInteraction;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.AllergenRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
@@ -24,6 +29,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 
@@ -35,6 +41,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -42,6 +49,9 @@ class RecipePersistenceAdapterTest {
 
     @Mock
     private RecipeRepository recipeRepository;
+
+    @Mock
+    private Neo4jRecipeRepository neo4jRecipeRepository;
 
     @Mock
     private UserRepository userRepository;
@@ -58,7 +68,7 @@ class RecipePersistenceAdapterTest {
 
     @BeforeEach
     void setUp() {
-        adapter = new RecipePersistenceAdapter(recipeRepository, userRepository, allergenRepository, ingredientRepository);
+        adapter = new RecipePersistenceAdapter(recipeRepository, userRepository, allergenRepository, ingredientRepository, neo4jRecipeRepository);
         now = Instant.now();
 
         author = new UserEntity();
@@ -386,6 +396,133 @@ class RecipePersistenceAdapterTest {
             adapter.deleteById(recipeId);
 
             verify(recipeRepository).deleteById(recipeId);
+        }
+    }
+
+    @Nested
+    class FindRecipeSummaries {
+
+        @Test
+        void shouldReturnSummariesWithCounts() {
+            var recipeId = UUID.randomUUID();
+            var summaryView = mock(RecipeSummaryView.class);
+            when(summaryView.getId()).thenReturn(recipeId);
+            when(summaryView.getTitle()).thenReturn("Tarte aux pommes");
+            when(summaryView.getSummary()).thenReturn("Délicieuse tarte");
+            when(summaryView.getImageUrl()).thenReturn("https://image.com/tarte.jpg");
+            when(summaryView.getPreparationMinutes()).thenReturn(45);
+            when(summaryView.getCreatedAt()).thenReturn(now);
+
+            var page = new PageImpl<>(List.of(summaryView), PageRequest.of(0, 10), 1);
+            when(recipeRepository.findByAuthorUsernameAndStatus(eq("chef_test"), eq(RecipeStatus.PUBLISHED), any()))
+                    .thenReturn(page);
+
+            var counts = new RecipeCountsProjection(recipeId.toString(), 5L, 2L);
+            when(neo4jRecipeRepository.findCountsByRecipeIds(List.of(recipeId.toString())))
+                    .thenReturn(List.of(counts));
+
+            var result = adapter.findRecipeSummaries("chef_test", RecipeStatus.PUBLISHED, 10, 0);
+
+            assertEquals(1, result.items().size());
+            assertEquals(1L, result.total());
+            var item = result.items().getFirst();
+            assertEquals("Tarte aux pommes", item.title());
+            assertEquals(5L, item.likeCount());
+            assertEquals(2L, item.superLikeCount());
+        }
+
+        @Test
+        void shouldReturnEmpty_WhenNoRecipesMatchStatus() {
+            Page<RecipeSummaryView> page = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
+            when(recipeRepository.findByAuthorUsernameAndStatus(eq("chef_test"), eq(RecipeStatus.PUBLISHED), any()))
+                    .thenReturn(page);
+
+            var result = adapter.findRecipeSummaries("chef_test", RecipeStatus.PUBLISHED, 10, 0);
+
+            assertTrue(result.items().isEmpty());
+            assertEquals(0L, result.total());
+            verifyNoInteractions(neo4jRecipeRepository);
+        }
+
+        @Test
+        void shouldReturnZeroCounts_WhenRecipeNotInNeo4j() {
+            var recipeId = UUID.randomUUID();
+            var summaryView = mock(RecipeSummaryView.class);
+            when(summaryView.getId()).thenReturn(recipeId);
+            when(summaryView.getTitle()).thenReturn("Quiche");
+            when(summaryView.getSummary()).thenReturn("Bonne quiche");
+            when(summaryView.getImageUrl()).thenReturn(null);
+            when(summaryView.getPreparationMinutes()).thenReturn(30);
+            when(summaryView.getCreatedAt()).thenReturn(now);
+
+            var page = new PageImpl<>(List.of(summaryView), PageRequest.of(0, 10), 1);
+            when(recipeRepository.findByAuthorUsernameAndStatus(eq("chef_test"), eq(RecipeStatus.PUBLISHED), any()))
+                    .thenReturn(page);
+            when(neo4jRecipeRepository.findCountsByRecipeIds(any())).thenReturn(List.of());
+
+            var result = adapter.findRecipeSummaries("chef_test", RecipeStatus.PUBLISHED, 10, 0);
+
+            var item = result.items().getFirst();
+            assertEquals(0L, item.likeCount());
+            assertEquals(0L, item.superLikeCount());
+        }
+
+        @Test
+        void shouldThrow_WhenUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.findRecipeSummaries(null, RecipeStatus.PUBLISHED, 10, 0));
+        }
+
+        @Test
+        void shouldThrow_WhenStatusIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.findRecipeSummaries("chef_test", null, 10, 0));
+        }
+    }
+
+    @Nested
+    class FindUserRecipeInteractions {
+
+        @Test
+        void shouldReturnInteractionsForUser() {
+            var recipeId = UUID.randomUUID();
+            var projection = new RecipeUserInteractionProjection(recipeId.toString(), true, false);
+            when(neo4jRecipeRepository.findUserInteractionsByRecipeIds(List.of(recipeId.toString()), "viewer"))
+                    .thenReturn(List.of(projection));
+
+            var result = adapter.findUserRecipeInteractions(List.of(recipeId), "viewer");
+
+            assertEquals(1, result.size());
+            var interaction = result.get(recipeId);
+            assertNotNull(interaction);
+            assertTrue(interaction.likedByCurrentUser());
+            assertFalse(interaction.superLikedByCurrentUser());
+        }
+
+        @Test
+        void shouldReturnEmptyMap_WhenRecipeIdsIsEmpty() {
+            var result = adapter.findUserRecipeInteractions(List.of(), "viewer");
+
+            assertTrue(result.isEmpty());
+            verifyNoInteractions(neo4jRecipeRepository);
+        }
+
+        @Test
+        void shouldReturnEmptyMap_WhenNoInteractionsFound() {
+            var recipeId = UUID.randomUUID();
+            when(neo4jRecipeRepository.findUserInteractionsByRecipeIds(any(), any())).thenReturn(List.of());
+
+            var result = adapter.findUserRecipeInteractions(List.of(recipeId), "viewer");
+
+            assertTrue(result.isEmpty());
+        }
+
+        @Test
+        void shouldThrow_WhenRecipeIdsIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.findUserRecipeInteractions(null, "viewer"));
+        }
+
+        @Test
+        void shouldThrow_WhenCurrentUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.findUserRecipeInteractions(List.of(UUID.randomUUID()), null));
         }
     }
 

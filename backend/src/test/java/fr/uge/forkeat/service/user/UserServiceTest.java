@@ -21,13 +21,13 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class UserQueryServiceTest {
+class UserServiceTest {
 
     @Mock
     private UserPersistence userPersistence;
 
     @InjectMocks
-    private UserQueryService userQueryService;
+    private UserService userService;
 
     private User createTestUser(UUID id, String username, String email) {
         return new User(
@@ -55,7 +55,7 @@ class UserQueryServiceTest {
             when(userPersistence.findByEmail("test@example.com")).thenReturn(Optional.of(user));
 
             // When
-            User result = userQueryService.getUserByEmail("test@example.com");
+            User result = userService.getUserByEmail("test@example.com");
 
             // Then
             assertNotNull(result);
@@ -71,7 +71,7 @@ class UserQueryServiceTest {
             // When/Then
             ResourceNotFoundException exception = assertThrows(
                     ResourceNotFoundException.class,
-                    () -> userQueryService.getUserByEmail("unknown@example.com")
+                    () -> userService.getUserByEmail("unknown@example.com")
             );
 
             assertEquals("User not found with email: unknown@example.com", exception.getMessage());
@@ -85,7 +85,7 @@ class UserQueryServiceTest {
             // When/Then
             assertThrows(
                     ResourceNotFoundException.class,
-                    () -> userQueryService.getUserByEmail(null)
+                    () -> userService.getUserByEmail(null)
             );
         }
     }
@@ -101,7 +101,7 @@ class UserQueryServiceTest {
             when(userPersistence.findById(userId)).thenReturn(Optional.of(user));
 
             // When
-            User result = userQueryService.getUserById(userId);
+            User result = userService.getUserById(userId);
 
             // Then
             assertNotNull(result);
@@ -118,7 +118,7 @@ class UserQueryServiceTest {
             // When/Then
             ResourceNotFoundException exception = assertThrows(
                     ResourceNotFoundException.class,
-                    () -> userQueryService.getUserById(unknownId)
+                    () -> userService.getUserById(unknownId)
             );
 
             assertEquals("User not found with id: " + unknownId, exception.getMessage());
@@ -132,7 +132,7 @@ class UserQueryServiceTest {
             // When/Then
             assertThrows(
                     ResourceNotFoundException.class,
-                    () -> userQueryService.getUserById(null)
+                    () -> userService.getUserById(null)
             );
         }
     }
@@ -147,7 +147,7 @@ class UserQueryServiceTest {
             when(userPersistence.findByUsername("testuser")).thenReturn(Optional.of(user));
 
             // When
-            User result = userQueryService.getUserByUsername("testuser");
+            User result = userService.getUserByUsername("testuser");
 
             // Then
             assertNotNull(result);
@@ -163,7 +163,7 @@ class UserQueryServiceTest {
             // When/Then
             ResourceNotFoundException exception = assertThrows(
                     ResourceNotFoundException.class,
-                    () -> userQueryService.getUserByUsername("unknownuser")
+                    () -> userService.getUserByUsername("unknownuser")
             );
 
             assertEquals("User not found with username: unknownuser", exception.getMessage());
@@ -177,7 +177,7 @@ class UserQueryServiceTest {
             // When/Then
             assertThrows(
                     ResourceNotFoundException.class,
-                    () -> userQueryService.getUserByUsername(null)
+                    () -> userService.getUserByUsername(null)
             );
         }
 
@@ -188,7 +188,7 @@ class UserQueryServiceTest {
             when(userPersistence.findByUsername("testuser")).thenReturn(Optional.of(user));
 
             // When
-            User result = userQueryService.getUserByUsername("testuser");
+            User result = userService.getUserByUsername("testuser");
 
             // Then
             assertNotNull(result);
@@ -212,9 +212,9 @@ class UserQueryServiceTest {
             when(userPersistence.findByUsername("user1")).thenReturn(Optional.of(user1));
 
             // When
-            User resultByEmail = userQueryService.getUserByEmail("user1@example.com");
-            User resultById = userQueryService.getUserById(userId2);
-            User resultByUsername = userQueryService.getUserByUsername("user1");
+            User resultByEmail = userService.getUserByEmail("user1@example.com");
+            User resultById = userService.getUserById(userId2);
+            User resultByUsername = userService.getUserByUsername("user1");
 
             // Then
             assertEquals(userId1, resultByEmail.id());

@@ -1,4 +1,4 @@
-package fr.uge.forkeat.service;
+package fr.uge.forkeat.infrastructure.mail.adapter;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -15,17 +15,17 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class MailServiceTest {
+class JavaMailSenderAdapterTest {
 
     @Mock
     private JavaMailSender mailSender;
 
-    private MailService mailService;
+    private JavaMailSenderAdapter adapter;
 
     @BeforeEach
     void setUp() {
-        mailService = new MailService(mailSender);
-        ReflectionTestUtils.setField(mailService, "mail", "noreply@forkeat.fr");
+        adapter = new JavaMailSenderAdapter(mailSender);
+        ReflectionTestUtils.setField(adapter, "mail", "noreply@forkeat.fr");
     }
 
     @Nested
@@ -33,10 +33,8 @@ class MailServiceTest {
 
         @Test
         void shouldSendEmailWithCorrectFields() {
-            // When
-            mailService.send("user@test.com", "Subject", "Body text");
+            adapter.send("user@test.com", "Subject", "Body text");
 
-            // Then
             var captor = ArgumentCaptor.forClass(SimpleMailMessage.class);
             verify(mailSender).send(captor.capture());
 
@@ -49,17 +47,17 @@ class MailServiceTest {
 
         @Test
         void shouldThrowOnNullTo() {
-            assertThrows(NullPointerException.class, () -> mailService.send(null, "Subject", "Body"));
+            assertThrows(NullPointerException.class, () -> adapter.send(null, "Subject", "Body"));
         }
 
         @Test
         void shouldThrowOnNullSubject() {
-            assertThrows(NullPointerException.class, () -> mailService.send("to@test.com", null, "Body"));
+            assertThrows(NullPointerException.class, () -> adapter.send("to@test.com", null, "Body"));
         }
 
         @Test
         void shouldThrowOnNullText() {
-            assertThrows(NullPointerException.class, () -> mailService.send("to@test.com", "Subject", null));
+            assertThrows(NullPointerException.class, () -> adapter.send("to@test.com", "Subject", null));
         }
     }
 }

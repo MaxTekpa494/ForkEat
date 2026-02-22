@@ -23,5 +23,5 @@ public interface WalletPersistence {
 
     Optional<Wallet> findByUserId(UUID userId) throws ResourceNotFoundException;
 
-    Long getBalance(UUID userId);
+    long getBalance(UUID userId);
 }

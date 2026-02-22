@@ -1,22 +1,18 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
-import fr.uge.forkeat.presentation.dto.user.UserDTO;
-import fr.uge.forkeat.presentation.dto.user.UserLoginDTO;
-import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
+import fr.uge.forkeat.presentation.dto.user.*;
 import fr.uge.forkeat.presentation.mapper.rest.UserDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.user.EmailVerificationService;
+import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import org.springframework.http.HttpStatus;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -30,15 +26,19 @@ import java.util.Objects;
 @RequestMapping("/api/auth")
 public class AuthRestController {
 
-	private final UserRegistrationService userService;
+	private final UserRegistrationService userRegistrationService;
 	private final AuthenticationManager authenticationManager;
 	private final JwtUtils jwtUtils;
+	private final UserService userService;
+	private final EmailVerificationService emailVerificationService;
 
-	public AuthRestController(UserRegistrationService userService, AuthenticationManager authenticationManager,
-			JwtUtils jwtUtils) {
-		this.userService = userService;
+	public AuthRestController(UserRegistrationService userRegistrationService, AuthenticationManager authenticationManager,
+                              JwtUtils jwtUtils, UserService userService, EmailVerificationService emailVerificationService) {
+		this.userRegistrationService = userRegistrationService;
 		this.authenticationManager = authenticationManager;
 		this.jwtUtils = jwtUtils;
+		this.userService = userService;
+		this.emailVerificationService = emailVerificationService;
 	}
 
 	/**
@@ -54,7 +54,7 @@ public class AuthRestController {
         if(userRegisterDTO.password().length() < 8){
             throw new RegisterFailureException("The password must have at least 8 characters");
         }
-		var user = userService.registerUser(UserDTOMapper.toUserRegister(userRegisterDTO));
+		var user = userRegistrationService.registerUser(UserDTOMapper.toUserRegister(userRegisterDTO));
 		var userDTO = UserDTOMapper.toDTO(user);
 		return ResponseEntity.ok(new ItemResponse<>(userDTO));
 	}
@@ -72,5 +72,22 @@ public class AuthRestController {
 		} catch (AuthenticationException e) {
 			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
 		}
+	}
+
+	@PostMapping("/forgot-password")
+	public ResponseEntity<?> forgotPassword(@RequestBody ChangePasswordDTO changePasswordDTO) {
+		if(changePasswordDTO.password().length() < 8){
+			throw new RegisterFailureException("The password must have at least 8 characters");
+		}
+		var user = userService.getUserByEmail(changePasswordDTO.email());
+		emailVerificationService.sendPasswordChangeCode(user.id(), user.email(), changePasswordDTO.password());
+		return ResponseEntity.ok().build();
+	}
+
+	@PostMapping("/forgot-password/confirm-code")
+	public ResponseEntity<?> forgotPasswordConfirmCode(@RequestBody ChangePasswordConfirmCodeDTO changePasswordConfirmCodeDTO) {
+		var user = userService.getUserByEmail(changePasswordConfirmCodeDTO.email());
+		emailVerificationService.confirmPasswordChange(user.id(), changePasswordConfirmCodeDTO.code());
+		return ResponseEntity.ok().build();
 	}
 }
