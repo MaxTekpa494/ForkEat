@@ -16,19 +16,17 @@ import java.util.concurrent.ConcurrentHashMap;
 
 public class RateLimitFilter extends OncePerRequestFilter {
 
-    private static final int CAPACITY = 10;
-    private static final Duration REFILL_PERIOD = Duration.ofMinutes(1);
-
-    private static final Set<String> RATE_LIMITED_PATHS = Set.of(
-            "/api/auth/login",
-            "/api/auth/register",
-            "/api/auth/forgot-password",
-            "/auth/login",
-            "/auth/register",
-            "/auth/forgot-password"
-    );
+    private final int capacity;
+    private final Duration refillPeriod;
+    private final Set<String> rateLimitedPaths;
 
     private final ConcurrentHashMap<String, Bucket> buckets = new ConcurrentHashMap<>();
+
+    public RateLimitFilter(RateLimitProperties properties) {
+        this.capacity = properties.capacity();
+        this.refillPeriod = Duration.ofMinutes(properties.refillPeriodMinutes());
+        this.rateLimitedPaths = Set.copyOf(properties.paths());
+    }
 
     @Override
     protected void doFilterInternal(@NonNull HttpServletRequest request,
@@ -38,7 +36,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
         var path = request.getRequestURI();
 
-        var isRateLimited = RATE_LIMITED_PATHS.stream().anyMatch(path::startsWith);
+        var isRateLimited = rateLimitedPaths.stream().anyMatch(path::startsWith);
 
         if (!isRateLimited) {
             filterChain.doFilter(request, response);
@@ -60,8 +58,8 @@ public class RateLimitFilter extends OncePerRequestFilter {
     private Bucket newBucket() {
         return Bucket.builder()
                 .addLimit(Bandwidth.builder()
-                        .capacity(CAPACITY)
-                        .refillGreedy(CAPACITY, REFILL_PERIOD)
+                        .capacity(capacity)
+                        .refillGreedy(capacity, refillPeriod)
                         .build())
                 .build();
     }
