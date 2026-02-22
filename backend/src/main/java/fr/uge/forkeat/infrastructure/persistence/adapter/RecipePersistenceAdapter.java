@@ -10,6 +10,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserReposit
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -43,13 +44,13 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
   }
 
   @Override
-  public Optional<RecipeWithMetaData> findRecipeWithMetaDataById(UUID id){
-      Objects.requireNonNull(id);
-      var recipe = recipeRepository.findById(id).map(RecipeEntityMapper::toDomain);
+  public Optional<RecipeWithMetaData> findRecipeWithMetaDataById(UUID recipeId){
+      Objects.requireNonNull(recipeId);
+      var recipe = recipeRepository.findById(recipeId).map(RecipeEntityMapper::toDomain);
       if(recipe.isEmpty()){
           return Optional.empty();
       }
-      var metaData = new RecipeMetaData(nbLike(id));
+      var metaData = new RecipeMetaData(nbLike(recipeId));
       return Optional.of(new RecipeWithMetaData(recipe.get(), metaData));
   }
 

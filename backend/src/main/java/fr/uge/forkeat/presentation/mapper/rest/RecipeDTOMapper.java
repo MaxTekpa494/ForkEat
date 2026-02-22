@@ -162,8 +162,8 @@ public final class RecipeDTOMapper {
                 .toList();
     }
 
-    public static RecipeWithMetaDataDTO toRecipeWithMetaDataDTO(RecipeWithMetaData recipeWithMetaData, RecipeDTO parentDTO) {
-        return new RecipeWithMetaDataDTO(
+    public static RecipeDetailsDTO toRecipeWithMetaDataDTO(RecipeWithMetaData recipeWithMetaData, RecipeDTO parentDTO, boolean hasLiked) {
+        return new RecipeDetailsDTO(
                 recipeWithMetaData.id(),
                 recipeWithMetaData.title(),
                 recipeWithMetaData.summary(),
@@ -178,12 +178,13 @@ public final class RecipeDTOMapper {
                 recipeWithMetaData.dietaryFlags(),
                 recipeWithMetaData.createdAt(),
                 recipeWithMetaData.updatedAt(),
-                recipeWithMetaData.nbLike()
+                recipeWithMetaData.nbLike(),
+                hasLiked
         );
     }
 
-    public static RecipeWithMetaDataDTO toRecipeWithMetaDataDTO(RecipeWithMetaData recipeWithMetaData) {
-        return new RecipeWithMetaDataDTO(
+    public static RecipeDetailsDTO toRecipeWithMetaDataDTO(RecipeWithMetaData recipeWithMetaData, boolean hasLiked) {
+        return new RecipeDetailsDTO(
                 recipeWithMetaData.id(),
                 recipeWithMetaData.title(),
                 recipeWithMetaData.summary(),
@@ -198,7 +199,8 @@ public final class RecipeDTOMapper {
                 recipeWithMetaData.dietaryFlags(),
                 recipeWithMetaData.createdAt(),
                 recipeWithMetaData.updatedAt(),
-                recipeWithMetaData.nbLike()
+                recipeWithMetaData.nbLike(),
+                hasLiked
         );
     }
 }

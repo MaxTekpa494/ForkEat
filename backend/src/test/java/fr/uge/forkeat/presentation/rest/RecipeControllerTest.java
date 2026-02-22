@@ -68,7 +68,7 @@ class RecipeControllerTest {
             var recipe = createRecipeWithMetadata(recipeId, "Tarte aux pommes", null, RecipeStatus.PUBLISHED);
             when(recipeService.findRecipeWithMetaDataById(recipeId)).thenReturn(recipe);
 
-            var response = recipeController.getRecipe(recipeId);
+            var response = recipeController.getRecipe(recipeId, null);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertInstanceOf(ItemResponse.class, response.getBody());
@@ -87,7 +87,7 @@ class RecipeControllerTest {
             when(recipeService.findRecipeWithMetaDataById(childId)).thenReturn(childRecipe);
             when(recipeService.findById(parentId)).thenReturn(parentRecipe);
 
-            var response = recipeController.getRecipe(childId);
+            var response = recipeController.getRecipe(childId, null);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             var itemResponse = (ItemResponse<?>) response.getBody();
@@ -102,7 +102,7 @@ class RecipeControllerTest {
             var recipe = createRecipeWithMetadata(recipeId, "Recette simple", null, RecipeStatus.PUBLISHED);
             when(recipeService.findRecipeWithMetaDataById(recipeId)).thenReturn(recipe);
 
-            recipeController.getRecipe(recipeId);
+            recipeController.getRecipe(recipeId, null);
 
             verify(recipeService, times(1)).findRecipeWithMetaDataById(recipeId);
             verifyNoMoreInteractions(recipeService);
@@ -113,7 +113,7 @@ class RecipeControllerTest {
             var recipeId = UUID.randomUUID();
             when(recipeService.findRecipeWithMetaDataById(recipeId)).thenThrow(new RecipeNotFoundException(recipeId));
 
-            assertThrows(RecipeNotFoundException.class, () -> recipeController.getRecipe(recipeId));
+            assertThrows(RecipeNotFoundException.class, () -> recipeController.getRecipe(recipeId, null));
             verify(recipeService).findRecipeWithMetaDataById(recipeId);
         }
     }

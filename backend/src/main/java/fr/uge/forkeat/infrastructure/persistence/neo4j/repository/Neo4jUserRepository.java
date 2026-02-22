@@ -14,10 +14,11 @@ import java.util.UUID;
 public interface Neo4jUserRepository extends Neo4jRepository<UserNode, UUID> {
 
     @Query("""
-        MATCH (p1:User {id: $userId})
-        MATCH (p2:Recipe {id: $recipeId})
-        RETURN EXISTS((p1)-[:LIKED]->(p2)) As result
-        """)
+                   MATCH (p1:User {id: $userId})
+            MATCH (p2:Recipe {id: $recipeId})
+            OPTIONAL MATCH (p1)-[l:LIKED]->(p2)
+            RETURN COUNT(l) > 0 AS RELATION
+            """)
     boolean hasLiked(
             @Param("userId") UUID userId,
             @Param("recipeId") UUID recipeId

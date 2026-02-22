@@ -103,12 +103,17 @@ public class RecipeWebController {
     Objects.requireNonNull(id);
 
     User user = null;
+    UUID userId = null;
     if(userDetails != null) {
         user = this.userQueryService.getUserByUsername(userDetails.getUsername());
+        userId = user.id();
     }
-
+    boolean hasLiked = false;
+    if(userId != null){
+        hasLiked = userService.hasLikedRecipe(userId, id);
+    }
     var recipe = recipeService.findRecipeWithMetaDataById(id);
-    var recipeDTO = RecipeDTOMapper.toRecipeWithMetaDataDTO(recipe);
+    var recipeDTO = RecipeDTOMapper.toRecipeWithMetaDataDTO(recipe, hasLiked);
 
     if (recipe.isVariant()) {
       var parent = recipeService.findById(recipe.parentId());

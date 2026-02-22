@@ -30,4 +30,5 @@ public interface UserPersistence {
 
 
     void unlikeRecipe(UUID userId, UUID recipeId);
+
 }

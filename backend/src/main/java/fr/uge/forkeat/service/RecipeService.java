@@ -100,9 +100,4 @@ public class RecipeService {
     return recipePersistence.findAllIngredientNames();
   }
 
-
-  /*public long nbLike(UUID recipeId){
-      return this.recipePersistence.nbLike(recipeId);
-  }*/
-
 }

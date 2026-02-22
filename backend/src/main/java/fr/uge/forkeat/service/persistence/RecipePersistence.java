@@ -27,6 +27,6 @@ public interface RecipePersistence {
 
   void deleteById(UUID id);
 
-  Optional<RecipeWithMetaData> findRecipeWithMetaDataById(UUID id);
+  Optional<RecipeWithMetaData> findRecipeWithMetaDataById(UUID recipeId);
 
 }

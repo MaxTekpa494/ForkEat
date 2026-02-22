@@ -1,8 +1,7 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
-import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeWithMetaDataDTO;
+import fr.uge.forkeat.presentation.dto.recipe.RecipeDetailsDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
@@ -17,10 +16,7 @@ import fr.uge.forkeat.service.user.UserQueryService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -54,7 +50,7 @@ public final class RecipeRestController {
 	// Pourquoi pas faire un findwithparent avec {recipe:..., parent:...}
 	// Un endpoint recipe avec juste {recipe:...}
 	@GetMapping("/{id}")
-	public ResponseEntity<HttpResponse<RecipeWithMetaDataDTO>> getRecipe(@PathVariable UUID id) {
+	public ResponseEntity<HttpResponse<RecipeDetailsDTO>> getRecipe(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
 		// findByIdWithParent (parce que c'est une recipe seule), quand c'est une liste
 		// de recettes, on les prend les recettes seules sans leurs parents.
 		// Finalement, je pense qu'on devrait toujours laisser le choix au controller de
@@ -62,13 +58,25 @@ public final class RecipeRestController {
 		// avec un findParent(recipeID) ou findById(parentId)
 		Objects.requireNonNull(id);
 
+        User user = null;
+        UUID userId = null;
+        if(userDetails != null) {
+            user = this.userQueryService.getUserByUsername(userDetails.getUsername());
+            userId = user.id();
+        }
+        boolean hasLiked = false;
+        if(userId != null){
+            hasLiked = userService.hasLikedRecipe(userId, id);
+        }
+
 		var recipe = recipeService.findRecipeWithMetaDataById(id);
 		RecipeDTO recipeParentDTO = null;
 		if (recipe.isVariant()) {
 			var parent = recipeService.findById(recipe.parentId());
 			recipeParentDTO = RecipeDTOMapper.toDTO(parent);
 		}
-		var dto = RecipeDTOMapper.toRecipeWithMetaDataDTO(recipe, recipeParentDTO);
+        //var hasLiked = userService.hasLikedRecipe()
+		var dto = RecipeDTOMapper.toRecipeWithMetaDataDTO(recipe, recipeParentDTO, hasLiked);
 		return ResponseEntity.ok(new ItemResponse<>(dto));
 	}
 

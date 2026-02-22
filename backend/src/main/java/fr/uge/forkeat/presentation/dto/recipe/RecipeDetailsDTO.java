@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public record RecipeWithMetaDataDTO(
+public record RecipeDetailsDTO(
         UUID id,
         String title,
         String summary,
@@ -21,6 +21,7 @@ public record RecipeWithMetaDataDTO(
         Map<String, Boolean> dietaryFlags,
         Instant createdAt,
         Instant updatedAt,
-        long nbLike
+        long nbLike,
+        boolean hasLiked
 ) {
 }
