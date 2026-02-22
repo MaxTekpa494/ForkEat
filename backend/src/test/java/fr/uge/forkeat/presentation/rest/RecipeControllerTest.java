@@ -10,6 +10,7 @@ import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Recipe;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -32,12 +33,15 @@ class RecipeControllerTest {
     @Mock
     private RecipeService recipeService;
 
+    @Mock
+    private AuthenticationPort authenticationPort;
+
     private RecipeRestController recipeController;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeController = new RecipeRestController(recipeService);
+        recipeController = new RecipeRestController(recipeService, authenticationPort);
         now = Instant.now();
     }
 

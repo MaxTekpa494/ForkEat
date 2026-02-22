@@ -27,13 +27,12 @@ public class AuthenticationAdapter implements AuthenticationPort {
 
     @Override
     public String extractUsername() {
-        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
             throw new IllegalArgumentException("Authentication context cannot be null");
         }
 
-        Object principal = authentication.getPrincipal();
-
+        var principal = authentication.getPrincipal();
         return extractors.stream().filter(extractor -> extractor.supports(principal)).findFirst()
                 .map(extractor -> extractor.extractUsername(principal)).orElse(authentication.getName());
     }
