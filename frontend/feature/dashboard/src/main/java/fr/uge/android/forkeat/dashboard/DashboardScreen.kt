@@ -52,42 +52,33 @@ fun DashboardScreen(
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Dashboard") }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF5F5F5)) // Mimic bg-surface
-                .verticalScroll(rememberScrollState()) // Changed to use rememberScrollState()
-        ) {
-            // Welcome Section
-            DashboardWelcomeSection(uiState.firstName)
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5)) // Mimic bg-surface
+            .verticalScroll(rememberScrollState()) // Changed to use rememberScrollState()
+    ) {
+        // Welcome Section
+        DashboardWelcomeSection(uiState.firstName)
 
-            // Statistics Section
-            DashboardStatisticsSection(
-                balance = uiState.balance,
-                totalRecipes = uiState.totalRecipes,
-                totalLikes = uiState.totalLikes,
-                followers = uiState.followers,
-                onWalletClick = { dashboardViewModel.navigateToWallet() }
-            )
+        // Statistics Section
+        DashboardStatisticsSection(
+            balance = uiState.balance,
+            totalRecipes = uiState.totalRecipes,
+            totalLikes = uiState.totalLikes,
+            followers = uiState.followers,
+            onWalletClick = { dashboardViewModel.navigateToWallet() }
+        )
 
-            // Quick Actions Section
-            DashboardQuickActionsSection(
-                onCreateRecipeClick = { dashboardViewModel.navigateToCreateRecipe() },
-                onManageWalletClick = { dashboardViewModel.navigateToWallet() },
-                onProfileClick = { dashboardViewModel.navigateToProfile() }
-            )
+        // Quick Actions Section
+        DashboardQuickActionsSection(
+            onCreateRecipeClick = { dashboardViewModel.navigateToCreateRecipe() },
+            onManageWalletClick = { dashboardViewModel.navigateToWallet() },
+            onProfileClick = { dashboardViewModel.navigateToProfile() }
+        )
 
-            // Recent Activity Placeholder
-            DashboardRecentActivityPlaceholder()
-        }
+        // Recent Activity Placeholder
+        DashboardRecentActivityPlaceholder()
     }
 }
 
