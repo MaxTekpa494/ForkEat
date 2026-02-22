@@ -3,7 +3,6 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.presentation.dto.user.ChangePasswordConfirmCodeDTO;
@@ -56,8 +55,6 @@ public class ProfileRestControllerTest {
     private AuthenticationManager authenticationManager;
     @MockitoBean
     private JwtUtils jwtUtils;
-    @MockitoBean
-    private JwtFilter jwtFilter;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;

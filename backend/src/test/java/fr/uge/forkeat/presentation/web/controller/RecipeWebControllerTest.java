@@ -1,6 +1,5 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
@@ -37,9 +36,6 @@ class RecipeWebControllerTest {
 
     @MockitoBean
     private RecipeService recipeService;
-
-    @MockitoBean
-    private JwtFilter jwtFilter;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;

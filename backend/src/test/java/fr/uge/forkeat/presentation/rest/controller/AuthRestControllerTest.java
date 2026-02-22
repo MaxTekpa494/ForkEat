@@ -1,7 +1,6 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.presentation.dto.user.UserLoginDTO;
@@ -47,9 +46,7 @@ class AuthRestControllerTest {
     @MockitoBean
     private AuthenticationManager authenticationManager;
     @MockitoBean
-    private JwtUtils jwtUtils;
-    @MockitoBean
-    private JwtFilter jwtFilter;
+    private JwtUtils jwtUtils; // nécessaire pour SecurityConfig (évite @Value JWT_SECRET manquant)
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
     @MockitoBean
@@ -136,7 +133,7 @@ class AuthRestControllerTest {
 
             when(authenticationManager.authenticate(any(UsernamePasswordAuthenticationToken.class)))
                     .thenReturn(new UsernamePasswordAuthenticationToken("testuser", null));
-            when(jwtUtils.generateToken("testuser")).thenReturn("jwt-token-value");
+            when(authPort.generateToken("testuser")).thenReturn("jwt-token-value");
 
             mockMvc.perform(post("/api/auth/login")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -146,7 +143,7 @@ class AuthRestControllerTest {
                     .andExpect(jsonPath("$.type").value("Bearer"));
 
             verify(authenticationManager).authenticate(any());
-            verify(jwtUtils).generateToken("testuser");
+            verify(authPort).generateToken("testuser");
         }
 
         @Test

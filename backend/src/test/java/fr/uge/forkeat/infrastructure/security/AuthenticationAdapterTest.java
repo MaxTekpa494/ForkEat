@@ -1,5 +1,6 @@
 package fr.uge.forkeat.infrastructure.security;
 
+import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.strategy.PrincipalExtractor;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
@@ -26,12 +27,14 @@ import static org.mockito.Mockito.*;
 class AuthenticationAdapterTest {
 
     private PrincipalExtractor extractor;
+    private JwtUtils jwtUtils;
     private AuthenticationAdapter adapter;
 
     @BeforeEach
     void setUp() {
         extractor = mock(PrincipalExtractor.class);
-        adapter = new AuthenticationAdapter(List.of(extractor));
+        jwtUtils = mock(JwtUtils.class);
+        adapter = new AuthenticationAdapter(List.of(extractor), jwtUtils);
     }
 
     @AfterEach
@@ -122,6 +125,20 @@ class AuthenticationAdapterTest {
         @Test
         void shouldReturnFalseForNullAuth() {
             assertFalse(adapter.isOAuth2Authentication(null));
+        }
+    }
+
+    @Nested
+    class GenerateTokenTests {
+
+        @Test
+        void shouldDelegateTokenGenerationToJwtUtils() {
+            when(jwtUtils.generateToken("testuser")).thenReturn("mocked.jwt.token");
+
+            var token = adapter.generateToken("testuser");
+
+            assertEquals("mocked.jwt.token", token);
+            verify(jwtUtils).generateToken("testuser");
         }
     }
 

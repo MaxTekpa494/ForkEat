@@ -1,6 +1,5 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -62,8 +61,6 @@ class ProfileControllerTest {
     @MockitoBean
     private EmailVerificationService emailVerificationService;
 
-    @MockitoBean
-    private JwtFilter jwtFilter;
 
     private User testUser;
 

@@ -6,7 +6,6 @@ import com.stripe.model.EventDataObjectDeserializer;
 import com.stripe.model.Payout;
 import com.stripe.model.Transfer;
 import com.stripe.model.checkout.Session;
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.DuplicateTransactionException;
@@ -43,8 +42,6 @@ class StripeWebhookControllerTest {
     @MockitoBean
     private WalletService walletService;
 
-    @MockitoBean
-    private JwtFilter jwtFilter;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;

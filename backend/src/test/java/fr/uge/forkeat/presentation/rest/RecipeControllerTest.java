@@ -1,5 +1,6 @@
 package fr.uge.forkeat.presentation.rest;
 
+import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
@@ -10,6 +11,7 @@ import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Recipe;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -32,13 +34,53 @@ class RecipeControllerTest {
     @Mock
     private RecipeService recipeService;
 
+    @Mock
+    private AuthenticationPort authPort;
+
     private RecipeRestController recipeController;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeController = new RecipeRestController(recipeService);
+        recipeController = new RecipeRestController(recipeService, authPort);
         now = Instant.now();
+    }
+
+    @Nested
+    class CreateRecipe {
+
+        @Test
+        void shouldCreateRecipeWithAuthenticatedUsername() {
+            var recipeId = UUID.randomUUID();
+            var savedRecipe = createRecipe(recipeId, "Tarte aux pommes", null, RecipeStatus.DRAFT);
+            var dto = new RecipeDTO(null, "Tarte aux pommes", "Une bonne tarte", null,
+                    null, 30, null, "DRAFT", List.of(), List.of(), List.of(), Map.of(), null, null);
+
+            when(authPort.extractUsername()).thenReturn("chef_test");
+            when(recipeService.createRecipe(any(), any())).thenReturn(savedRecipe);
+
+            var response = recipeController.createRecipe(dto);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertInstanceOf(ItemResponse.class, response.getBody());
+            verify(authPort).extractUsername();
+            verify(recipeService).createRecipe(any(), any());
+        }
+
+        @Test
+        void shouldUseAuthenticatedUsernameNotDtoUsername() {
+            var recipeId = UUID.randomUUID();
+            var savedRecipe = createRecipe(recipeId, "Recette", null, RecipeStatus.DRAFT);
+            var dto = new RecipeDTO(null, "Recette", "Résumé", null,
+                    "intruder", 20, null, "DRAFT", List.of(), List.of(), List.of(), Map.of(), null, null);
+
+            when(authPort.extractUsername()).thenReturn("real_author");
+            when(recipeService.createRecipe(any(), any())).thenReturn(savedRecipe);
+
+            recipeController.createRecipe(dto);
+
+            verify(authPort).extractUsername();
+        }
     }
 
     @Nested

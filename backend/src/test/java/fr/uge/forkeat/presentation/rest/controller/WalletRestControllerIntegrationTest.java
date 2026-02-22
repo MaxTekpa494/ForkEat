@@ -1,7 +1,6 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.presentation.dto.user.TopUpRequestDTO;
 import fr.uge.forkeat.presentation.dto.user.CreateBankInfoRequestDTO; // New import
 import fr.uge.forkeat.presentation.dto.user.WithdrawalRequestDTO;     // New import
@@ -56,9 +55,6 @@ class WalletRestControllerIntegrationTest { // Renamed class
 
     @MockitoBean
     private BankInfoService bankInfoService; // New mock
-
-    @MockitoBean
-    private JwtFilter jwtFilter;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
