@@ -1,7 +1,5 @@
 package fr.uge.android.forkeat.profile
 
-import android.app.DatePickerDialog
-import android.widget.DatePicker
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -22,8 +20,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
@@ -31,7 +29,6 @@ import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.uge.android.forkeat.designsystem.theme.ForkEatTheme
 import java.time.format.DateTimeFormatter
-import java.util.Calendar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -45,53 +42,44 @@ fun ProfileScreen(
     val newPassword by profileViewModel.newPassword.collectAsState()
     val confirmNewPassword by profileViewModel.confirmNewPassword.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Mon Profil") }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF5F5F5)) // Mimic bg-surface
-                .verticalScroll(rememberScrollState())
-        ) {
-            // Profile Header Section
-            ProfileHeader(uiState = uiState)
+      Column(
+          modifier = Modifier
+              .fillMaxSize()
+              .background(Color(0xFFF5F5F5)) // Mimic bg-surface
+              .verticalScroll(rememberScrollState())
+      ) {
+          // Profile Header Section
+          ProfileHeader(uiState = uiState)
 
-            // Main content area
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(16.dp)
-                ) {
-                    Column(Modifier.weight(2f)) {
-                        ProfileInformationCard(uiState, profileViewModel)
-                        Spacer(Modifier.height(16.dp))
-                        SecurityCard(uiState, profileViewModel)
-                        Spacer(Modifier.height(16.dp))
-                        ActiveSessionsCard()
-                        Spacer(Modifier.height(16.dp))
-                        DangerZoneCard(profileViewModel)
-                    }
-                    Column(Modifier.weight(1f)) {
-                        MyStatisticsCard(uiState)
-                        Spacer(Modifier.height(16.dp))
-                        MembershipLevelCard()
-                        Spacer(Modifier.height(16.dp))
-                        QuickActionsProfileCard(profileViewModel)
-                    }
-                }
-            }
-        }
+          // Main content area
+          Column(
+              modifier = Modifier
+                  .fillMaxWidth()
+                  .padding(16.dp),
+              verticalArrangement = Arrangement.spacedBy(16.dp)
+          ) {
+              Row(
+                  modifier = Modifier.fillMaxWidth(),
+                  horizontalArrangement = Arrangement.spacedBy(16.dp)
+              ) {
+                  Column(Modifier.weight(2f)) {
+                      ProfileInformationCard(uiState, profileViewModel)
+                      Spacer(Modifier.height(16.dp))
+                      SecurityCard(uiState, profileViewModel)
+                      Spacer(Modifier.height(16.dp))
+                      ActiveSessionsCard()
+                      Spacer(Modifier.height(16.dp))
+                      DangerZoneCard(profileViewModel)
+                  }
+                  Column(Modifier.weight(1f)) {
+                      MyStatisticsCard(uiState)
+                      Spacer(Modifier.height(16.dp))
+                      MembershipLevelCard()
+                      Spacer(Modifier.height(16.dp))
+                      QuickActionsProfileCard(profileViewModel)
+                  }
+              }
+          }
     }
 
     if (uiState.showEmailModal) {
@@ -777,11 +765,69 @@ fun PasswordModificationModal(
     }
 }
 
+@Composable
+fun ProfileGuestScreen(
+    onNavigateToLogin: () -> Unit,
+    onNavigateToRegister: () -> Unit
+) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5))
+            .padding(32.dp),
+        verticalArrangement = Arrangement.Center,
+        horizontalAlignment = Alignment.CenterHorizontally
+    ) {
+        Box(
+            modifier = Modifier
+                .size(64.dp)
+                .clip(CircleShape)
+                .background(Color(0xFFF1F5F9)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Restaurant,
+                contentDescription = "Icône invité",
+                tint = Color(0xFF334155),
+                modifier = Modifier.size(36.dp)
+            )
+        }
+        Spacer(Modifier.height(24.dp))
+        Text(
+            text = "Bienvenue sur ForkEat",
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+            color = Color(0xFF1E293B),
+            textAlign = TextAlign.Center
+        )
+        Spacer(Modifier.height(12.dp))
+        Text(
+            text = "Connecte-toi ou crée un compte pour accéder à toutes les fonctionnalités.",
+            style = MaterialTheme.typography.bodyMedium,
+            color = Color(0xFF334155),
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(horizontal = 8.dp)
+        )
+        Spacer(Modifier.height(32.dp))
+        Button(
+            onClick = onNavigateToLogin,
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text("Se connecter")
+        }
+        Spacer(Modifier.height(12.dp))
+        OutlinedButton(
+            onClick = onNavigateToRegister,
+            modifier = Modifier.fillMaxWidth(0.7f)
+        ) {
+            Text("S'inscrire")
+        }
+    }
+}
 
 @Preview(showBackground = true)
 @Composable
 fun PreviewProfileScreen() {
     ForkEatTheme {
-        ProfileScreen()
+        ProfileGuestScreen({}, {})
     }
 }
