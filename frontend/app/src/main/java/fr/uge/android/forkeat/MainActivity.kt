@@ -7,10 +7,14 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -26,6 +30,7 @@ import fr.uge.android.forkeat.profile.ProfileScreen
 import fr.uge.android.forkeat.recipes.RecipeDetailScreen
 import fr.uge.android.forkeat.recipes.RecipesListScreen
 import fr.uge.android.forkeat.recipes.RecipesViewModel
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -94,6 +99,9 @@ class MainActivity : ComponentActivity() {
                         DashboardScreen(
                             onNavigateToProfile = {
                                 navController.navigate("profile")
+                            },
+                            onNavigateToRecipes = {
+                                navController.navigate("recipes")
                             }
                         )
                     }
@@ -109,6 +117,14 @@ class MainActivity : ComponentActivity() {
                         val searchQueryState = recipesViewModel.searchQuery.collectAsState()
                         val selectedAllergensState = recipesViewModel.selectedAllergens.collectAsState()
                         val availableAllergensState = recipesViewModel.availableAllergens.collectAsState()
+
+                        val lifecycleOwner = LocalLifecycleOwner.current
+
+                        LaunchedEffect(lifecycleOwner) {
+                            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+                                recipesViewModel.loadRecipes(currentPageState.value)
+                            }
+                        }
 
                         RecipesListScreen(
                             recipes = recipesState.value,
@@ -128,11 +144,10 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("recipes/{id}") { backStackEntry ->
-                        val recipes = recipesViewModel.recipes.collectAsState().value
-                        val recipeId = backStackEntry.arguments?.getString("id")
-                        val recipe = recipes.find { it.id.toString() == recipeId }
+                       recipesViewModel.loadRecipeWithId(UUID.fromString(backStackEntry.arguments?.getString("id")))
+                        val recipe = recipesViewModel.currentRecipe.collectAsState().value
                         if (recipe != null) {
-                            RecipeDetailScreen(recipe = recipe, onBack = { navController.popBackStack() })
+                            RecipeDetailScreen(recipe = recipe!!, onBack = { navController.popBackStack() })
                         } else {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Text("Recette introuvable", color = Color.Red)

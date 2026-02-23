@@ -35,7 +35,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val response = ForkEatApi.authService.login(LoginRequest(username, password))
                 if (response.isSuccessful && response.body() != null) {
-                    val token = response.body()!!.token
+                    val token = "Bearer " + response.body()!!.token
                     tokenManager.saveToken(token)
                     _uiState.value = LoginUiState(isSuccess = true)
                 } else {

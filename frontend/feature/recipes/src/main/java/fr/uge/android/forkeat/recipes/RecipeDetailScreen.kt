@@ -1,5 +1,8 @@
 package fr.uge.android.forkeat.recipes
 
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -25,9 +28,28 @@ import java.util.UUID
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.ui.draw.scale
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
+import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
 
 @Composable
-fun RecipeDetailScreen(recipe: RecipeDTO, onBack: () -> Unit) {
+fun RecipeDetailScreen(recipe: RecipeDetailsDTO, onBack: () -> Unit) {
+    System.out.println(recipe);
     Surface(color = SurfaceCream) {
         val scrollState = rememberScrollState()
         Column(
@@ -47,6 +69,7 @@ fun RecipeDetailScreen(recipe: RecipeDTO, onBack: () -> Unit) {
             )
             Spacer(Modifier.height(16.dp))
             Text(recipe.title, style = Typography.titleLarge, color = Secondary700)
+            LikeButton(recipe.nbLike.toInt(), recipe.hasLiked, recipe.id, Modifier)
             Spacer(Modifier.height(8.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text("Par ${recipe.username}", style = Typography.labelSmall, color = Gray500)
@@ -85,6 +108,111 @@ fun RecipeDetailScreen(recipe: RecipeDTO, onBack: () -> Unit) {
                 }
             }
         }
+    }
+}
+@Composable
+fun LikeButton(
+    initialCount: Int = 128,
+    isLike: Boolean = false,
+    recipeId: UUID,
+    modifier: Modifier = Modifier,
+
+) {
+    val recipesViewModel: RecipesViewModel = viewModel()
+
+
+    var isLiked by remember { mutableStateOf(isLike) }
+    var count by remember { mutableIntStateOf(initialCount) }
+
+    // Synchronise l'état local quand le paramètre change
+    LaunchedEffect(isLike) {
+        isLiked = isLike
+    }
+
+    LaunchedEffect(initialCount) {
+        count = initialCount
+    }
+    
+    // Animation du scale au clic
+    val scale = remember { Animatable(1f) }
+
+    // Couleur du cœur animée
+    val heartColor by animateColorAsState(
+        targetValue = if (isLiked) Color(0xFFFF4D6D) else Color(0xFF9E9E9E),
+        animationSpec = tween(durationMillis = 300),
+        label = "heartColor"
+    )
+
+    // Couleur du contour du bouton
+    val borderColor by animateColorAsState(
+        targetValue = if (isLiked) Color(0xFFFF4D6D) else Color(0xFFE0E0E0),
+        animationSpec = tween(durationMillis = 300),
+        label = "borderColor"
+    )
+
+    // Couleur de fond du bouton
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isLiked) Color(0xFFFF4D6D).copy(alpha = 0.1f) else Color.White,
+        animationSpec = tween(durationMillis = 300),
+        label = "backgroundColor"
+    )
+
+    Surface(
+        onClick = {
+            isLiked = !isLiked
+            count = if (isLiked) count + 1 else count - 1
+            if(isLiked){
+                recipesViewModel.likeRecipe( recipeId)
+            }else{
+                recipesViewModel.unlikeRecipe( recipeId)
+            }
+        },
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = backgroundColor,
+        border = androidx.compose.foundation.BorderStroke(1.dp, borderColor),
+        shadowElevation = if (isLiked) 4.dp else 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            // Cœur avec animation de scale
+            val heartScale by animateFloatAsState(
+                targetValue = if (isLiked) 1f else 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "heartScale"
+            )
+
+            Icon(
+                imageVector = if (isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                contentDescription = if (isLiked) "Unlike" else "Like",
+                tint = heartColor,
+                modifier = Modifier
+                    .size(22.dp)
+                    .scale(heartScale)
+            )
+
+            // Compteur
+            Text(
+                text = formatCount(count),
+                color = if (isLiked) Color(0xFFFF4D6D) else Color(0xFF616161),
+                fontSize = 14.sp,
+                fontWeight = if (isLiked) FontWeight.SemiBold else FontWeight.Normal
+            )
+        }
+    }
+}
+
+fun formatCount(count: Int): String {
+    return when {
+        count >= 1_000_000 -> String.format("%.1fM", count / 1_000_000f)
+        count >= 1_000 -> String.format("%.1fk", count / 1_000f)
+        else -> count.toString()
     }
 }
 
@@ -180,7 +308,7 @@ fun StepCard(step: RecipeStepDTO) {
 @Preview(showBackground = true)
 @Composable
 fun PreviewRecipeDetailScreen() {
-    val exampleRecipe = RecipeDTO(
+    val exampleRecipe = RecipeDetailsDTO(
         id = UUID.randomUUID(),
         title = "Tarte aux pommes maison croustillante",
         summary = "Une tarte aux pommes délicieusement croustillante, parfaite pour les goûters d'automne. Cette recette familiale se transmet de génération en génération et séduit par sa pâte sablée, ses pommes fondantes et sa touche de cannelle. Idéale pour accompagner un thé ou un café, elle ravira petits et grands gourmands. Préparez-la à l'avance pour profiter de ses arômes envoûtants et de sa texture irrésistible. À servir tiède avec une boule de glace vanille pour un dessert encore plus gourmand !",
@@ -221,7 +349,9 @@ fun PreviewRecipeDetailScreen() {
             "sans gluten" to false
         ),
         createdAt = "2026-02-10T12:00:00Z",
-        updatedAt = "2026-02-10T12:00:00Z"
+        updatedAt = "2026-02-10T12:00:00Z",
+        10,
+        false
     )
     RecipeDetailScreen(recipe = exampleRecipe, onBack = {})
 }

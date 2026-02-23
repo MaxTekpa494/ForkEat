@@ -38,7 +38,8 @@ import java.text.DecimalFormat
 @Composable
 fun DashboardScreen(
     dashboardViewModel: DashboardViewModel = viewModel(),
-    onNavigateToProfile: () -> Unit
+    onNavigateToProfile: () -> Unit,
+    onNavigateToRecipes: () -> Unit
 ) {
     val uiState by dashboardViewModel.uiState.collectAsState()
 
@@ -75,7 +76,8 @@ fun DashboardScreen(
                 totalRecipes = uiState.totalRecipes,
                 totalLikes = uiState.totalLikes,
                 followers = uiState.followers,
-                onWalletClick = { dashboardViewModel.navigateToWallet() }
+                onWalletClick = { dashboardViewModel.navigateToWallet() },
+                onNavigateToRecipes = onNavigateToRecipes
             )
 
             // Quick Actions Section
@@ -125,7 +127,8 @@ fun DashboardStatisticsSection(
     totalRecipes: Int,
     totalLikes: Int,
     followers: Int,
-    onWalletClick: () -> Unit
+    onWalletClick: () -> Unit,
+    onNavigateToRecipes: () -> Unit
 ) {
     Column(
         modifier = Modifier.padding(16.dp)
@@ -153,6 +156,16 @@ fun DashboardStatisticsSection(
                 modifier = Modifier.weight(1f),
                 title = "Mes recettes",
                 value = totalRecipes.toString(),
+                icon = Icons.Default.Book,
+                iconTint = Color(0xFF1E293B), // Mimic text-secondary-800
+                backgroundColor = Brush.linearGradient(colors = listOf(Color.White, Color.White)), // Changed to Brush
+                borderColor = Color(0xFFE5E7EB) // Mimic border-gray-100
+            )
+            StatisticCard(
+                modifier = Modifier.weight(1f),
+                title = "Explorer les recettes",
+                value = "",
+                onClick = onNavigateToRecipes,
                 icon = Icons.Default.Book,
                 iconTint = Color(0xFF1E293B), // Mimic text-secondary-800
                 backgroundColor = Brush.linearGradient(colors = listOf(Color.White, Color.White)), // Changed to Brush
@@ -411,7 +424,8 @@ fun PreviewDashboardScreen() {
     ForkEatTheme {
         DashboardScreen(
             dashboardViewModel = TODO(),
-            onNavigateToProfile = TODO()
+            onNavigateToProfile = TODO(),
+            onNavigateToRecipes = TODO()
         )
     }
 }

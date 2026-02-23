@@ -219,7 +219,9 @@ fun RecipesListScreenPreview() {
             allergens = emptyList(),
             dietaryFlags = emptyMap(),
             createdAt = "2026-02-09T12:00:00Z",
-            updatedAt = "2026-02-09T12:00:00Z"
+            updatedAt = "2026-02-09T12:00:00Z",
+            100,
+            true
         ),
         RecipeDTO(
             id = UUID.randomUUID(),
@@ -235,7 +237,9 @@ fun RecipesListScreenPreview() {
             allergens = emptyList(),
             dietaryFlags = emptyMap(),
             createdAt = "2026-02-09T12:00:00Z",
-            updatedAt = "2026-02-09T12:00:00Z"
+            updatedAt = "2026-02-09T12:00:00Z",
+            15,
+            false
         )
     )
     RecipesListScreen(

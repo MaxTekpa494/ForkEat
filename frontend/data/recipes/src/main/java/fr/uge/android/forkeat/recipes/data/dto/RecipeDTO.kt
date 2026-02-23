@@ -21,5 +21,7 @@ data class RecipeDTO(
   val allergens: List<AllergenDTO>,
   val dietaryFlags: Map<String, Boolean>,
   val createdAt: String,
-  val updatedAt: String
+  val updatedAt: String,
+  val nbLike: Long,
+  val hasLiked: Boolean
 )
