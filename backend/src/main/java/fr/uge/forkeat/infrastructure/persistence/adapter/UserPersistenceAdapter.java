@@ -22,12 +22,9 @@ public class UserPersistenceAdapter implements UserPersistence {
 
     private final Neo4jUserRepository neo4jUserRepository;
 
-    private final Neo4jRecipeRepository neo4jRecipeRepository;
-
-	public UserPersistenceAdapter(UserRepository userRepository, Neo4jUserRepository neo4jUserRepository, Neo4jRecipeRepository neo4jRecipeRepository) {
-		this.userRepository = Objects.requireNonNull(userRepository);
-        this.neo4jUserRepository = Objects.requireNonNull(neo4jUserRepository);
-        this.neo4jRecipeRepository = Objects.requireNonNull(neo4jRecipeRepository);
+	public UserPersistenceAdapter(UserRepository userRepository, Neo4jUserRepository neo4jUserRepository) {
+		this.userRepository = userRepository;
+        this.neo4jUserRepository = neo4jUserRepository;
 	}
 
 	@Override

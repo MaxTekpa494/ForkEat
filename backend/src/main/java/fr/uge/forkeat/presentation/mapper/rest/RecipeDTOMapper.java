@@ -156,6 +156,7 @@ public final class RecipeDTOMapper {
 
 
     public static RecipeDetailsDTO toRecipeWithMetaDataDTO(RecipeWithMetaData recipeWithMetaData, boolean hasLiked) {
+        Objects.requireNonNull(recipeWithMetaData);
         return new RecipeDetailsDTO(
                 recipeWithMetaData.id(),
                 recipeWithMetaData.title(),

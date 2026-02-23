@@ -277,15 +277,15 @@ public class RecipeWebController {
 
 
     @PostMapping("/{id}/like")
-    public String likeRecipe(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
-        var user = this.userQueryService.getUserByUsername(userDetails.getUsername());
+    public String likeRecipe(@PathVariable UUID id) {
+        var user = this.userQueryService.getUserByUsername(authPort.extractUsername());
         this.userService.likeRecipe(user.id(), id);
         return "redirect:/recipes/" + id;
     }
 
     @PostMapping("/{id}/unlike")
-    public String unlikeRecipe(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
-        var user = this.userQueryService.getUserByUsername(userDetails.getUsername());
+    public String unlikeRecipe(@PathVariable UUID id) {
+        var user = this.userQueryService.getUserByUsername(authPort.extractUsername());
         this.userService.unlikeRecipe(user.id(), id);
         return "redirect:/recipes/" + id;
     }

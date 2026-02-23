@@ -281,6 +281,7 @@ class RecipeWebControllerTest {
 
 
             when(userQueryService.getUserByUsername(any())).thenReturn(createUser());
+            when(authenticationPort.extractUsername()).thenReturn(createUser().username());
             doNothing().when(userService).likeRecipe(any(), any());
             mockMvc.perform(post("/recipes/{id}/like", id))
                     .andExpect(status().is3xxRedirection())
@@ -297,6 +298,7 @@ class RecipeWebControllerTest {
 
 
             when(userQueryService.getUserByUsername(any())).thenReturn(createUser());
+            when(authenticationPort.extractUsername()).thenReturn(createUser().username());
             doNothing().when(userService).unlikeRecipe(any(), any());
             mockMvc.perform(post("/recipes/{id}/unlike", id))
                     .andExpect(status().is3xxRedirection())

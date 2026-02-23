@@ -5,7 +5,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-public class RecipeWithMetaData {
+public final class RecipeWithMetaData {
     private final Recipe recipe;
     private final RecipeMetaData recipeMetaData;
 

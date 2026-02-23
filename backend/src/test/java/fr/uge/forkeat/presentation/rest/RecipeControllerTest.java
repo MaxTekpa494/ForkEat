@@ -333,8 +333,9 @@ class RecipeControllerTest {
             var user = createUser(UUID.randomUUID());
             when(userQueryService.getUserByUsername(any())).thenReturn(user);
             doNothing().when(userService).likeRecipe(any(), any());
+            when(authPort.extractUsername()).thenReturn(user.username());
 
-            var response = recipeController.likeRecipe(UUID.randomUUID(), getUserDetails());
+            var response = recipeController.likeRecipe(UUID.randomUUID());
             assertEquals(HttpStatus.OK, response.getStatusCode());
         }
 
@@ -343,8 +344,9 @@ class RecipeControllerTest {
             var user = createUser(UUID.randomUUID());
             when(userQueryService.getUserByUsername(any())).thenReturn(user);
             doNothing().when(userService).unlikeRecipe(any(), any());
+            when(authPort.extractUsername()).thenReturn(user.username());
 
-            var response = recipeController.unlikeRecipe(UUID.randomUUID(), getUserDetails());
+            var response = recipeController.unlikeRecipe(UUID.randomUUID());
             assertEquals(HttpStatus.OK, response.getStatusCode());
         }
 
@@ -352,16 +354,18 @@ class RecipeControllerTest {
         void ShouldReturnErrorWhenUserUnFoundWhenLike() {
             var user = createUser(UUID.randomUUID());
             when(userQueryService.getUserByUsername(any())).thenThrow(new ResourceNotFoundException("User not found with username: PaxGPT"));
+            when(authPort.extractUsername()).thenReturn(user.username());
 
-            assertThrows(ResourceNotFoundException.class, ()->recipeController.likeRecipe(UUID.randomUUID(), getUserDetails()));
+            assertThrows(ResourceNotFoundException.class, ()->recipeController.likeRecipe(UUID.randomUUID()));
         }
 
         @Test
         void ShouldReturnErrorWhenUserUnFoundWhenUnlike() {
             var user = createUser(UUID.randomUUID());
             when(userQueryService.getUserByUsername(any())).thenThrow(new ResourceNotFoundException("User not found with username: PaxGPT"));
+            when(authPort.extractUsername()).thenReturn(user.username());
 
-            assertThrows(ResourceNotFoundException.class, ()->recipeController.unlikeRecipe(UUID.randomUUID(), getUserDetails()));
+            assertThrows(ResourceNotFoundException.class, ()->recipeController.unlikeRecipe(UUID.randomUUID()));
         }
 
         @Test
@@ -369,7 +373,9 @@ class RecipeControllerTest {
             var user = createUser(UUID.randomUUID());
             when(userQueryService.getUserByUsername(any())).thenReturn(user);
             when(recipeService.findById(any())).thenThrow(new ResourceNotFoundException("Recipe not found with username: PaxGPT"));
-            assertThrows(ResourceNotFoundException.class, () -> recipeController.likeRecipe(UUID.randomUUID(), getUserDetails()));
+            when(authPort.extractUsername()).thenReturn(user.username());
+
+            assertThrows(ResourceNotFoundException.class, () -> recipeController.likeRecipe(UUID.randomUUID()));
         }
 
         @Test
@@ -377,7 +383,9 @@ class RecipeControllerTest {
             var user = createUser(UUID.randomUUID());
             when(userQueryService.getUserByUsername(any())).thenReturn(user);
             when(recipeService.findById(any())).thenThrow(new ResourceNotFoundException("Recipe not found with username: PaxGPT"));
-            assertThrows(ResourceNotFoundException.class, () -> recipeController.unlikeRecipe(UUID.randomUUID(), getUserDetails()));
+            when(authPort.extractUsername()).thenReturn(user.username());
+
+            assertThrows(ResourceNotFoundException.class, () -> recipeController.unlikeRecipe(UUID.randomUUID()));
         }
 
     }

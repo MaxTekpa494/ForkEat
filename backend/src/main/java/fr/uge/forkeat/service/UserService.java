@@ -1,7 +1,6 @@
 package fr.uge.forkeat.service;
 
 
-import fr.uge.forkeat.service.exception.AlreadyLikedException;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;

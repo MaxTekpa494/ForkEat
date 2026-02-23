@@ -72,9 +72,4 @@ public class GlobalRestExceptionHandler {
             .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
   }
 
-  @ExceptionHandler(AlreadyLikedException.class)
-    public ResponseEntity<Map<String, Object>> handleAlreadyLikedException(AlreadyLikedException e) {
-      return ResponseEntity.status(HttpStatus.BAD_REQUEST)
-              .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
-  }
 }
