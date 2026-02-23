@@ -26,12 +26,10 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import fr.uge.android.forkeat.designsystem.theme.Secondary900
 import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
-import fr.uge.android.forkeat.home.ForkEatScaffold
+import fr.uge.android.forkeat.designsystem.theme.Typography
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import java.util.UUID
 import kotlin.time.Instant
-import androidx.navigation.NavHostController
-import fr.uge.android.forkeat.designsystem.theme.Typography
 
 @Composable
 fun RecipesListScreen(
@@ -40,14 +38,14 @@ fun RecipesListScreen(
   onLoadMore: () -> Unit,
   errorMessage: String? = null,
   isLoading : Boolean = false,
-  navController: NavHostController? = null,
   searchQuery: String = "",
   onSearchQueryChange: (String) -> Unit = {},
   onSearchSubmit: () -> Unit = {},
   availableAllergens: List<String> = emptyList(),
   selectedAllergens: Set<String> = emptySet(),
   onAllergenToggle: (String) -> Unit = {},
-  onClearFilters: () -> Unit = {}
+  onClearFilters: () -> Unit = {},
+  onRecipeClick: (String) -> Unit = {},
 ) {
   val listState = rememberLazyListState()
 
@@ -62,67 +60,62 @@ fun RecipesListScreen(
       onLoadMore()
     }
   }
-  ForkEatScaffold(
-    navController = navController,
-  ) { paddingValues ->
-    Column(
-      modifier = Modifier
-        .fillMaxSize()
-        .background(SurfaceCream)
-        .padding(paddingValues)
-        .padding(16.dp)
-    ) {
-      RecipeSearchFilterBar(
-        searchQuery = searchQuery,
-        onSearchQueryChange = onSearchQueryChange,
-        onSearchSubmit = onSearchSubmit,
-        availableAllergens = availableAllergens,
-        selectedAllergens = selectedAllergens,
-        onAllergenToggle = onAllergenToggle,
-        onClearFilters = onClearFilters
+  Column(
+    modifier = Modifier
+      .fillMaxSize()
+      .background(SurfaceCream)
+      .padding(16.dp)
+  ) {
+    RecipeSearchFilterBar(
+      searchQuery = searchQuery,
+      onSearchQueryChange = onSearchQueryChange,
+      onSearchSubmit = onSearchSubmit,
+      availableAllergens = availableAllergens,
+      selectedAllergens = selectedAllergens,
+      onAllergenToggle = onAllergenToggle,
+      onClearFilters = onClearFilters
+    )
+    if (errorMessage != null) {
+      Text(
+        text = errorMessage,
+        color = Red,
+        style = MaterialTheme.typography.bodyMedium,
+        modifier = Modifier.padding(bottom = 8.dp)
       )
-      if (errorMessage != null) {
-        Text(
-          text = errorMessage,
-          color = Red,
-          style = MaterialTheme.typography.bodyMedium,
-          modifier = Modifier.padding(bottom = 8.dp)
-        )
+    }
+    Text("Recettes (${recipes.size}/$totalCount)", style = MaterialTheme.typography.titleLarge)
+    Spacer(modifier = Modifier.height(8.dp))
+    LazyColumn(
+      modifier = Modifier.weight(1f),
+      state = listState
+    ) {
+      items(recipes) { recipe ->
+        RecipeCard(recipe = recipe, onClick = {
+          onRecipeClick(recipe.id.toString())
+        })
       }
-      Text("Recettes (${recipes.size}/$totalCount)", style = MaterialTheme.typography.titleLarge)
-      Spacer(modifier = Modifier.height(8.dp))
-      LazyColumn(
-        modifier = Modifier.weight(1f),
-        state = listState
-      ) {
-        items(recipes) { recipe ->
-          RecipeCard(recipe = recipe, onClick = {
-            navController?.navigate("recipes/${recipe.id}")
-          })
-        }
-        if(isLoading) {
-          item {
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.Center
-            ) {
-              CircularProgressIndicator()
-            }
+      if(isLoading) {
+        item {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+          ) {
+            CircularProgressIndicator()
           }
         }
-        // Affichage du message de fin
-        if (recipes.size >= totalCount && totalCount > 0) {
-          item {
-            Row(
-              modifier = Modifier.fillMaxWidth(),
-              horizontalArrangement = Arrangement.Center
-            ) {
-              Text(
-                "Fin",
-                style = Typography.labelLarge,
-                color = Secondary900 // Couleur du design system (onSurface = Secondary900)
-              )
-            }
+      }
+      // Affichage du message de fin
+      if (recipes.size >= totalCount && totalCount > 0) {
+        item {
+          Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center
+          ) {
+            Text(
+              "Fin",
+              style = Typography.labelLarge,
+              color = Secondary900 // Couleur du design system (onSurface = Secondary900)
+            )
           }
         }
       }

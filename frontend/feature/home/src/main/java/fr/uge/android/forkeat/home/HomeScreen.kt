@@ -3,6 +3,7 @@ package fr.uge.android.forkeat.home
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -14,11 +15,14 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.lazy.LazyRow
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Group
@@ -27,10 +31,8 @@ import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Restaurant
-import androidx.compose.material.icons.filled.RocketLaunch
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
@@ -40,6 +42,10 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.NavigationBar
+import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.NavigationBarItemDefaults
+import androidx.compose.material3.NavigationBarDefaults
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
@@ -66,7 +72,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.navigation.NavHostController
-import androidx.navigation.compose.rememberNavController
+import androidx.navigation.compose.currentBackStackEntryAsState
 import fr.uge.android.forkeat.designsystem.theme.Gray100
 import fr.uge.android.forkeat.designsystem.theme.Gray500
 import fr.uge.android.forkeat.designsystem.theme.Orange50
@@ -82,29 +88,23 @@ import fr.uge.android.forkeat.designsystem.theme.Secondary700
 import fr.uge.android.forkeat.designsystem.theme.Secondary800
 import fr.uge.android.forkeat.designsystem.theme.Secondary900
 import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
+import fr.uge.android.forkeat.recipes.data.dto.Diet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    navController: NavHostController,
     onNavigateToExplore: () -> Unit = {},
 ) {
-    ForkEatScaffold(
-      navController = navController
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .verticalScroll(rememberScrollState())
-                .padding(paddingValues)
-        ) {
-            HeroSection(
-                onCommencerClick = { navController.navigate("login") },
-                onExplorerClick = onNavigateToExplore,
-            )
-            FeaturesSection()
-            Footer()
-        }
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+    ) {
+        HeroSection(
+            onExplorerClick = onNavigateToExplore,
+        )
+        FeaturesSection()
+        Footer()
     }
 }
 
@@ -218,7 +218,6 @@ private fun ForkEatTopBar(
 
 @Composable
 private fun HeroSection(
-    onCommencerClick: () -> Unit,
     onExplorerClick: () -> Unit,
 ) {
     val heroGradient = Brush.verticalGradient(
@@ -271,7 +270,7 @@ private fun HeroSection(
 
             // Subtitle
             Text(
-                text = "Rejoignez une communaut\u00e9 passionn\u00e9e. D\u00e9couvrez de nouvelles saveurs et mon\u00e9tisez votre talent culinaire.",
+                text = "Rejoignez une communauté passionnée. Découvrez de nouvelles saveurs et monétisez votre talent culinaire.",
                 color = Secondary100,
                 fontSize = 16.sp,
                 lineHeight = 24.sp,
@@ -280,34 +279,7 @@ private fun HeroSection(
                 modifier = Modifier.padding(horizontal = 8.dp),
             )
 
-            Spacer(Modifier.height(32.dp))
-
-            // CTA buttons
-            Button(
-                onClick = onCommencerClick,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(50),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Primary500,
-                    contentColor = Color.White,
-                ),
-                elevation = ButtonDefaults.buttonElevation(defaultElevation = 8.dp),
-            ) {
-                Icon(
-                    Icons.Default.RocketLaunch,
-                    contentDescription = null,
-                    modifier = Modifier.size(18.dp),
-                )
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    "Commencer",
-                    fontWeight = FontWeight.SemiBold,
-                    fontSize = 16.sp,
-                    modifier = Modifier.padding(vertical = 8.dp),
-                )
-            }
-
-            Spacer(Modifier.height(12.dp))
+            Spacer(Modifier.height(24.dp))
 
             OutlinedButton(
                 onClick = onExplorerClick,
@@ -343,7 +315,7 @@ private fun FeaturesSection() {
         modifier = Modifier
             .fillMaxWidth()
             .background(SurfaceCream)
-            .padding(horizontal = 24.dp, vertical = 48.dp),
+            .padding(horizontal = 24.dp, vertical = 24.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         // Title
@@ -495,15 +467,95 @@ private fun Footer() {
     }
 }
 
+// Enum pour les onglets de la NavBar
+private enum class NavBarTab { HOME, SEARCH, PROFILE }
+
+@Composable
+private fun NavBar(
+    selectedTab: NavBarTab,
+    onTabSelected: (NavBarTab) -> Unit
+) {
+    NavigationBar(
+        containerColor = Color.White,
+        tonalElevation = NavigationBarDefaults.Elevation
+    ) {
+        NavigationBarItem(
+            selected = selectedTab == NavBarTab.HOME,
+            onClick = { onTabSelected(NavBarTab.HOME) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Restaurant,
+                    contentDescription = "Accueil",
+                    tint = if (selectedTab == NavBarTab.HOME) Primary500 else Secondary800
+                )
+            },
+            label = { Text("Accueil") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = Primary500,
+                selectedTextColor = Primary500,
+                unselectedIconColor = Secondary800,
+                unselectedTextColor = Secondary800
+            )
+        )
+        NavigationBarItem(
+            selected = selectedTab == NavBarTab.SEARCH,
+            onClick = { onTabSelected(NavBarTab.SEARCH) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.Search,
+                    contentDescription = "Recherche",
+                    tint = if (selectedTab == NavBarTab.SEARCH) Primary500 else Secondary800
+                )
+            },
+            label = { Text("Recherche") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = Primary500,
+                selectedTextColor = Primary500,
+                unselectedIconColor = Secondary800,
+                unselectedTextColor = Secondary800
+            )
+        )
+        NavigationBarItem(
+            selected = selectedTab == NavBarTab.PROFILE,
+            onClick = { onTabSelected(NavBarTab.PROFILE) },
+            icon = {
+                Icon(
+                    imageVector = Icons.Default.AccountCircle,
+                    contentDescription = "Profil",
+                    tint = if (selectedTab == NavBarTab.PROFILE) Primary500 else Secondary800
+                )
+            },
+            label = { Text("Profil") },
+            colors = NavigationBarItemDefaults.colors(
+                selectedIconColor = Primary500,
+                selectedTextColor = Primary500,
+                unselectedIconColor = Secondary800,
+                unselectedTextColor = Secondary800
+            )
+        )
+    }
+}
+
 // Scaffold with top bar to reuse in other screens
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ForkEatScaffold(
     navController: NavHostController? = null,
+    showBars: Boolean = true,
     content: @Composable (PaddingValues) -> Unit
 ) {
+    // Observer la destination courante
+    val navBackStackEntry = navController?.currentBackStackEntryAsState()
+    val currentRoute = navBackStackEntry?.value?.destination?.route
+    val selectedTab = when (currentRoute) {
+        "home" -> NavBarTab.HOME
+        "recipes" -> NavBarTab.SEARCH
+        "profile" -> NavBarTab.PROFILE
+        else -> NavBarTab.HOME
+    }
     Scaffold(
         topBar = {
+          if (showBars) {
             ForkEatTopBar(
                 onNavigateToLogin = {
                     navController?.navigate("login")
@@ -512,6 +564,24 @@ fun ForkEatScaffold(
                     navController?.navigate("register")
                 },
             )
+          }
+        },
+        bottomBar = {
+            if (showBars) {
+                NavBar(
+                    selectedTab = selectedTab,
+                    onTabSelected = { tab ->
+                        val targetRoute = when (tab) {
+                            NavBarTab.HOME -> "home"
+                            NavBarTab.SEARCH -> "recipes"
+                            NavBarTab.PROFILE -> "profile"
+                        }
+                        if (currentRoute != targetRoute) {
+                            navController?.navigate(targetRoute)
+                        }
+                    }
+                )
+            }
         }
     ) { paddingValues -> content(paddingValues) }
 }
@@ -522,5 +592,7 @@ fun ForkEatScaffold(
 @Preview(showBackground = true, showSystemUi = true)
 @Composable
 private fun HomeScreenPreview() {
-    HomeScreen(navController = rememberNavController())
+    HomeScreen(
+        onNavigateToExplore = {},
+    )
 }
