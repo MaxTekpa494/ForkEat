@@ -37,7 +37,7 @@ fun MainContent(recipesViewModel: RecipesViewModel) {
     val navController = rememberNavController()
     val navBackStackEntry by navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.destination?.route
-    val hideBarsRoutes = listOf("login", "register", "forgot-password", "forgot-password-code")
+    val hideBarsRoutes = listOf("login", "register", "forgot-password", "forgot-password-code", "recipes/{id}")
     val shouldShowBars = currentRoute !in hideBarsRoutes && currentRoute != null
 
     ForkEatScaffold(
@@ -52,8 +52,6 @@ fun MainContent(recipesViewModel: RecipesViewModel) {
             composable("home") {
                 HomeScreen(
                     onNavigateToExplore = { navController.navigate("recipes") },
-                    onNavigateToRecipes = { diet -> navController.navigate("recipes?diet=$diet") },
-                    showNavBar = shouldShowBars,
                 )
             }
             composable("login") {
@@ -109,10 +107,8 @@ fun MainContent(recipesViewModel: RecipesViewModel) {
                 }
             }
             composable(
-                "recipes?diet={diet}",
-                arguments = listOf(navArgument("diet") { type = NavType.StringType; nullable = true })
+                "recipes",
             ) { backStackEntry ->
-                val dietFilter = backStackEntry.arguments?.getString("diet")
                 val recipes by recipesViewModel.recipes.collectAsState()
                 val totalCount by recipesViewModel.totalCount.collectAsState()
                 val errorMessage by recipesViewModel.errorMessage.collectAsState()
@@ -120,10 +116,6 @@ fun MainContent(recipesViewModel: RecipesViewModel) {
                 val selectedAllergens by recipesViewModel.selectedAllergens.collectAsState()
                 val availableAllergens by recipesViewModel.availableAllergens.collectAsState()
                 val isLoading by recipesViewModel.isLoading.collectAsState()
-
-                if (!dietFilter.isNullOrBlank()) {
-                    recipesViewModel.setDietFilter(dietFilter)
-                }
 
                 RecipesListScreen(
                     recipes = recipes,
