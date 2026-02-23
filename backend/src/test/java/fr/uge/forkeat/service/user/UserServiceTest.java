@@ -41,8 +41,7 @@ class UserServiceTest {
                 AuthMode.LOCAL,
                 Instant.now(),
                 Instant.now(),
-                false
-                );
+                false);
     }
 
     @Nested

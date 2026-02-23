@@ -4,14 +4,12 @@ import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.AllergenRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import jakarta.persistence.EntityManager;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -27,16 +25,24 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     private final AllergenRepository allergenRepository;
     private final IngredientRepository ingredientRepository;
     private final Neo4jRecipeRepository neo4jRecipeRepository;
+    private final RecipeAllergenRepository recipeAllergenRepository;
+    private final RecipeIngredientRepository recipeIngredientRepository;
+    private final EntityManager entityManager;
 
     public RecipePersistenceAdapter(RecipeRepository recipeRepository, UserRepository userRepository,
                                     AllergenRepository allergenRepository, IngredientRepository ingredientRepository,
-                                    Neo4jRecipeRepository neo4jRecipeRepository
-    ) {
+                                    Neo4jRecipeRepository neo4jRecipeRepository,
+                                    RecipeAllergenRepository recipeAllergenRepository,
+                                    RecipeIngredientRepository recipeIngredientRepository,
+                                    EntityManager entityManager) {
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
         this.allergenRepository = allergenRepository;
         this.ingredientRepository = ingredientRepository;
         this.neo4jRecipeRepository = neo4jRecipeRepository;
+        this.recipeAllergenRepository = recipeAllergenRepository;
+        this.recipeIngredientRepository = recipeIngredientRepository;
+        this.entityManager = entityManager;
     }
 
     @Override
@@ -85,6 +91,14 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
+    public List<Recipe> findByAuthorUsername(String authorUsername) {
+        return recipeRepository.findByAuthorUsername(authorUsername)
+                .stream()
+                .map(RecipeEntityMapper::toDomain)
+                .toList();
+    }
+
+    @Override
     public List<Allergen> findAllAllergens() {
         return allergenRepository.findAll().stream()
                 .map(RecipeEntityMapper::toDomain)
@@ -116,17 +130,62 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         var allergenIds = recipe.allergens().stream().map(Allergen::id).toList();
         var allergens = new ArrayList<>(allergenRepository.findAllById(allergenIds));
 
-
         var ingredientNames = recipe.ingredients().stream()
                 .map(RecipeIngredient::name).toList();
-        var ingredients = ingredientRepository.findByNameIn(ingredientNames);
-
+        var ingredients = getOrCreateIngredients(ingredientNames);
 
         var entity = RecipeEntityMapper.toEntity(
                 recipe, parent, author, List.copyOf(allergens), ingredients
         );
         var saved = recipeRepository.save(entity);
 
+        return RecipeEntityMapper.toDomain(saved);
+    }
+
+    @Override
+    public Recipe update(UUID id, Recipe recipe) {
+        Objects.requireNonNull(id);
+        Objects.requireNonNull(recipe);
+
+        // Il faut supprimer les relations entre recipe et (ingredients, allergens)
+        // parce que sinon on viole la contrainte de l'unicité sur (id_recipe, id_allergen...)
+        // Parce qu'en faisant mettant à jour les ingredients et allergens, on crée une nouvelle relation
+        // Alors on peut decider de ne pas recréer mais d'operer juste à des modifation sur
+        // RecipeIngredientEntity si l'utilisateur decide de changer la quantité par exemple
+        // mais cela me semble plus chère (egalement source d'erreur) que si on supprime tout et ensuite
+        // on repersiste. À discuter...
+        // D'ailleurs le orphanRemoval ne fonctionne qu'à la fin de la transactions (oh joie)
+        recipeAllergenRepository.deleteByRecipeId(id);
+        recipeIngredientRepository.deleteByRecipeId(id);
+        entityManager.flush();
+        entityManager.clear();
+
+        var existingEntity = recipeRepository.findById(id)
+                .orElseThrow(() -> new IllegalStateException("Recipe not found: " + id));
+
+        existingEntity.setTitle(recipe.title());
+        existingEntity.setSummary(recipe.summary());
+        existingEntity.setPreparationMinutes(recipe.preparationMinutes());
+        existingEntity.setImageUrl(recipe.imageUrl());
+        existingEntity.setStatus(recipe.status());
+        existingEntity.setDietaryFlag(recipe.dietaryFlags());
+        existingEntity.setStepByStepInstructions(
+                RecipeEntityMapper.toEntitySteps(recipe.stepByStepInstructions())
+        );
+
+        var allergenIds = recipe.allergens().stream().map(Allergen::id).toList();
+        var allergens = allergenRepository.findAllById(allergenIds);
+        existingEntity.setAllergens(
+                RecipeEntityMapper.toRecipeAllergenEntities(recipe.allergens(), allergens, existingEntity)
+        );
+
+        var ingredientNames = recipe.ingredients().stream().map(RecipeIngredient::name).toList();
+        var ingredients = getOrCreateIngredients(ingredientNames);
+        existingEntity.setIngredients(
+                RecipeEntityMapper.toRecipeIngredientEntities(recipe.ingredients(), ingredients, existingEntity)
+        );
+
+        var saved = recipeRepository.save(existingEntity);
         return RecipeEntityMapper.toDomain(saved);
     }
 
@@ -187,4 +246,32 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         return neo4jRecipeRepository.countByAuthorUsername(username);
     }
 
+    /**
+     * Récupère les ingrédients existants et crée/persiste les nouveaux si nécessaire.
+     * Pour eviter le fait que ça plante quand on rajoute de nouveaux à la creation/modification d'une
+     * Recipe, alors il faut juste que les moderateurs s'assure que les ingredients rajoutés par l'utilisateur sont réels.
+     */
+    private List<IngredientEntity> getOrCreateIngredients(List<String> ingredientNames) {
+        var existingIngredients = ingredientRepository.findByNameIn(ingredientNames);
+
+        var existingNames = existingIngredients.stream()
+                .map(ing -> ing.getName().toLowerCase())
+                .toList();
+        var newIngredientNames = ingredientNames.stream()
+                .filter(name -> !existingNames.contains(name.toLowerCase()))
+                .toList();
+
+        var newIngredients = new ArrayList<IngredientEntity>();
+        newIngredientNames.forEach(name -> {
+            var newIngredient = new IngredientEntity(
+                    name,
+                    "Non catégorisé",
+                    false
+            );
+            newIngredients.add(ingredientRepository.save(newIngredient));
+        });
+        var allIngredients = new ArrayList<>(existingIngredients);
+        allIngredients.addAll(newIngredients);
+        return List.copyOf(allIngredients);
+    }
 }

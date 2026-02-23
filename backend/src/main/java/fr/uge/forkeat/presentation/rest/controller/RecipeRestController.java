@@ -9,6 +9,7 @@ import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -22,16 +23,24 @@ import java.util.UUID;
 public final class RecipeRestController {
 
 	private final RecipeService recipeService;
+	private final AuthenticationPort authPort;
 	private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
-	public RecipeRestController(RecipeService recipeService) {
+	public RecipeRestController(RecipeService recipeService, AuthenticationPort authPort) {
 		this.recipeService = recipeService;
+		this.authPort = authPort;
 	}
+
+//	@GetMapping("/create")
+//	public ResponseEntity<HttpResponse<Void>> pageCreateRecipe() {
+//
+//	}
 
 	@PostMapping
 	public ResponseEntity<HttpResponse<RecipeDTO>> createRecipe(@RequestBody RecipeDTO recipeDTO) {
 		Objects.requireNonNull(recipeDTO);
-		var recipe = RecipeDTOMapper.toDomain(recipeDTO);
+		var username = authPort.extractUsername();
+		var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
 		var dto = RecipeDTOMapper.toDTO(recipeService.createRecipe(recipe, null));
 		return ResponseEntity.ok(new ItemResponse<>(dto));
 	}
@@ -40,19 +49,9 @@ public final class RecipeRestController {
 	// Un endpoint recipe avec juste {recipe:...}
 	@GetMapping("/{id}")
 	public ResponseEntity<HttpResponse<RecipeDTO>> getRecipe(@PathVariable UUID id) {
-		// findByIdWithParent (parce que c'est une recipe seule), quand c'est une liste
-		// de recettes, on les prend les recettes seules sans leurs parents.
-		// Finalement, je pense qu'on devrait toujours laisser le choix au controller de
-		// demander le parent
-		// avec un findParent(recipeID) ou findById(parentId)
 		Objects.requireNonNull(id);
 		var recipe = recipeService.findById(id);
-		RecipeDTO recipeParentDTO = null;
-		if (recipe.isVariant()) {
-			var parent = recipeService.findById(recipe.parentId());
-			recipeParentDTO = RecipeDTOMapper.toDTO(parent);
-		}
-		var dto = RecipeDTOMapper.toDTO(recipe, recipeParentDTO);
+		var dto = RecipeDTOMapper.toDTO(recipe);
 		return ResponseEntity.ok(new ItemResponse<>(dto));
 	}
 

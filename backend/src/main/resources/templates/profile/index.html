@@ -65,7 +65,7 @@
                 </a>
 
                 <!-- Recettes -->
-                <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
+                <a th:href="@{/recipes/my-recipes}" class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-lg hover:border-secondary-200 transition-all duration-200 block">
                     <div class="flex items-center justify-between mb-4">
                         <div class="w-12 h-12 bg-secondary-50 rounded-xl flex items-center justify-center">
                             <i class="fas fa-book text-secondary-800 text-2xl"></i>
@@ -73,7 +73,7 @@
                     </div>
                     <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${vm.recipeCount()}">0</div>
                     <div class="text-gray-500 text-sm font-medium">Mes recettes</div>
-                </div>
+                </a>
 
                 <!-- Abonnés -->
                 <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">

@@ -11,6 +11,7 @@ import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.model.user.projection.UserAccountDetails;
 import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.port.PasswordHasher;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserUpdateService;
@@ -61,6 +62,9 @@ class AccountWebControllerTest {
 
     @MockitoBean
     private JwtFilter jwtFilter;
+
+    @MockitoBean
+    private PasswordHasher passwordHasher;
 
     private User localUser;
     private User googleUser;
@@ -237,12 +241,13 @@ class AccountWebControllerTest {
             when(userService.getUserByUsername("testuser")).thenReturn(localUser);
 
             mockMvc.perform(post("/account/confirm-password-change").with(csrf())
-                            .param("code", "123456"))
+                            .param("code", "123456")
+                            .sessionAttr("pending-password-hash", "hashedPassword"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/account"))
                     .andExpect(flash().attributeExists("success"));
 
-            verify(emailVerificationService).confirmPasswordChange(localUser.id(), "123456");
+            verify(emailVerificationService).confirmPasswordChange(localUser.id(), "123456", "hashedPassword");
         }
     }
 

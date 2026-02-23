@@ -29,7 +29,6 @@ class VerificationTokenEntityMapperTest {
             entity.setToken("test-token");
             entity.setType(VerificationTokenType.EMAIL_CHANGE);
             entity.setNewEmail("new@test.com");
-            entity.setPasswordHash("hashed-pw");
             entity.setExpiresAt(expiresAt);
 
             var domain = VerificationTokenEntityMapper.toDomain(entity);
@@ -39,7 +38,6 @@ class VerificationTokenEntityMapperTest {
             assertEquals("test-token", domain.token());
             assertEquals(VerificationTokenType.EMAIL_CHANGE, domain.type());
             assertEquals("new@test.com", domain.newEmail());
-            assertEquals("hashed-pw", domain.passwordHash());
             assertEquals(expiresAt, domain.expiresAt());
         }
 
@@ -60,7 +58,7 @@ class VerificationTokenEntityMapperTest {
             var createdAt = Instant.now();
 
             var domain = new VerificationToken(id, userId, "code-123456",
-                    VerificationTokenType.PASSWORD_CHANGE, null, "hashed-pw",
+                    VerificationTokenType.PASSWORD_CHANGE, null,
                     expiresAt, createdAt);
 
             var entity = VerificationTokenEntityMapper.toEntity(domain);
@@ -70,7 +68,6 @@ class VerificationTokenEntityMapperTest {
             assertEquals("code-123456", entity.getToken());
             assertEquals(VerificationTokenType.PASSWORD_CHANGE, entity.getType());
             assertNull(entity.getNewEmail());
-            assertEquals("hashed-pw", entity.getPasswordHash());
             assertEquals(expiresAt, entity.getExpiresAt());
         }
 
@@ -88,7 +85,7 @@ class VerificationTokenEntityMapperTest {
         var createdAt = Instant.now();
 
         var original = new VerificationToken(id, userId, "round-trip-token",
-                VerificationTokenType.EMAIL_CHANGE, "new@email.com", "hashed-pw",
+                VerificationTokenType.EMAIL_CHANGE, "new@email.com",
                 expiresAt, createdAt);
 
         var entity = VerificationTokenEntityMapper.toEntity(original);
@@ -99,7 +96,6 @@ class VerificationTokenEntityMapperTest {
         assertEquals(original.token(), result.token());
         assertEquals(original.type(), result.type());
         assertEquals(original.newEmail(), result.newEmail());
-        assertEquals(original.passwordHash(), result.passwordHash());
         assertEquals(original.expiresAt(), result.expiresAt());
     }
 }

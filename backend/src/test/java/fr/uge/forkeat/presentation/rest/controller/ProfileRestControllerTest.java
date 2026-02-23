@@ -1,6 +1,6 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
+import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.ProfileService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
@@ -39,7 +39,7 @@ class ProfileRestControllerTest {
     @MockitoBean
     private AuthenticationPort authenticationPort;
     @MockitoBean
-    private JwtFilter jwtFilter;
+    private JwtUtils jwtUtils; // nécessaire pour SecurityConfig (évite @Value JWT_SECRET manquant)
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 

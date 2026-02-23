@@ -4,6 +4,10 @@
       layout:decorate="~{layout/base}">
 <head>
     <title th:text="${recipe.title + ' - ForkEat'}">Recette - ForkEat</title>
+    <style>
+        .diff-unchanged { transition: opacity 0.3s ease; }
+        .diff-added, .diff-removed, .diff-modified { transition: opacity 0.3s ease; }
+    </style>
 </head>
 <body>
 <div layout:fragment="content">
@@ -11,55 +15,190 @@
     <section class="py-12 bg-surface">
         <div class="container mx-auto px-4 max-w-4xl">
 
-            <!-- Lien parent si variante -->
-            <div th:if="${parent != null}" class="mb-6">
-                <p class="text-secondary-500 text-sm">
-                    <i class="fas fa-code-branch mr-1"></i>
-                    Variante de
-                    <a th:href="@{/recipes/{id}(id=${parent.id})}"
-                       th:text="${parent.title}"
-                       class="text-primary-500 hover:underline font-medium">
-                        Recette parent
-                    </a>
-                </p>
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!-- BANNIÈRE VARIANTE + TOGGLE (visible uniquement si variante)    -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <div th:if="${parent != null}"
+                 class="mb-6 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex flex-wrap items-center justify-between gap-4">
+
+                <!-- Lien vers la recette parent -->
+                <div class="flex items-center gap-3">
+                    <div class="w-9 h-9 flex-shrink-0 bg-primary-50 text-primary-500 rounded-full flex items-center justify-center">
+                        <i class="fas fa-code-branch text-sm"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-400 uppercase tracking-widest font-semibold">Variante de</p>
+                        <a th:href="@{/recipes/{id}(id=${parent.id})}"
+                           th:text="${parent.title}"
+                           class="text-secondary-900 font-semibold hover:text-primary-500 transition-colors">
+                            Recette parent
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Toggle Idée C : Recette complète ↔ Diff uniquement -->
+                <div class="flex items-center gap-3 bg-gray-50 rounded-2xl px-4 py-2.5 border border-gray-100">
+                    <span id="label-full" class="text-sm font-semibold text-secondary-800 transition-all duration-300">
+                        Recette complète
+                    </span>
+                    <button id="diffToggle"
+                            onclick="toggleDiffMode()"
+                            class="relative inline-flex h-6 w-11 items-center rounded-full bg-gray-200 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
+                            role="switch" aria-checked="false">
+                        <span id="toggleThumb"
+                              class="inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-300"
+                              style="transform: translateX(4px)">
+                        </span>
+                    </button>
+                    <span id="label-diff" class="text-sm font-medium text-gray-400 transition-all duration-300">
+                        Diff uniquement
+                    </span>
+                </div>
             </div>
 
-            <!-- En-tête recette -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
+            <!-- CARTE PRINCIPALE                                               -->
+            <!-- ═══════════════════════════════════════════════════════════════ -->
             <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+
                 <!-- Image -->
                 <div th:if="${recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}"
-                     class="aspect-[16/9] bg-secondary-100 overflow-hidden">
+                     class="aspect-[16/9] bg-secondary-100 overflow-hidden relative">
                     <img th:src="${recipe.imageUrl}"
                          th:alt="${recipe.title}"
                          class="w-full h-full object-cover">
+                    <!-- Badge image modifiée -->
+                    <div th:if="${diff != null and diff.imageChanged}"
+                         class="absolute top-3 right-3 flex items-center gap-1.5 bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
+                        <i class="fas fa-image"></i>
+                        Image modifiée
+                    </div>
+                </div>
+                <!-- Badge image ajoutée si parent n'en avait pas -->
+                <div th:if="${diff != null and diff.imageChanged and (recipe.imageUrl == null or recipe.imageUrl.isEmpty())}"
+                     class="p-3 bg-amber-50 border-b border-amber-100 flex items-center gap-2">
+                    <i class="fas fa-image text-amber-500 text-sm"></i>
+                    <span class="text-xs font-semibold text-amber-600">Image modifiée par rapport à la recette originale</span>
                 </div>
 
                 <div class="p-8">
-                    <h1 class="font-display font-bold text-3xl md:text-4xl text-secondary-900 mb-4"
-                        th:text="${recipe.title}">Titre de la recette</h1>
 
-                    <div class="flex items-center space-x-6 text-secondary-500 mb-6">
-                        <a th:href="@{/profile/{u}(u=${recipe.username})}"
-                           class="flex items-center space-x-2 hover:opacity-75 transition">
+                    <!-- Titre + Boutons d'action -->
+                    <div class="flex items-start justify-between mb-2">
+                        <div class="flex-1">
+                            <h1 class="font-display font-bold text-3xl md:text-4xl text-secondary-900"
+                                th:text="${recipe.title}">Titre de la recette</h1>
+                            <!-- Note titre modifié -->
+                            <div th:if="${diff != null and diff.titleChanged}"
+                                 class="mt-2 inline-flex items-center gap-2 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
+                                <i class="fas fa-pen text-amber-400"></i>
+                                Titre modifié · Original :
+                                <span class="line-through text-amber-400" th:text="${diff.originalTitle}"></span>
+                            </div>
+                        </div>
+                        <div class="flex items-center gap-2 ml-4 flex-shrink-0">
+                            <a th:if="${isAuthenticated}"
+                               th:href="@{/recipes/create-variant(id=${recipe.id},title=${recipe.title},username=${recipe.username})}"
+                               class="flex items-center space-x-2 bg-primary-50 hover:bg-primary-100 text-primary-600 px-4 py-2 rounded-lg font-medium transition text-sm border border-primary-200">
+                                <i class="fas fa-code-branch"></i>
+                                <span>Créer une variante</span>
+                            </a>
+                            <th:block th:if="${isOwner}">
+                                <a th:href="@{/recipes/{id}/edit(id=${recipe.id})}"
+                                   class="flex items-center space-x-2 bg-secondary-800 hover:bg-secondary-700 text-white px-4 py-2 rounded-lg font-medium transition text-sm shadow-sm">
+                                    <i class="fas fa-edit"></i>
+                                    <span>Modifier</span>
+                                </a>
+                                <button onclick="confirmDelete()"
+                                        th:attr="data-recipe-id=${recipe.id}, data-recipe-title=${recipe.title}"
+                                        id="delete-btn"
+                                        class="flex items-center space-x-2 bg-red-50 hover:bg-red-100 text-red-600 px-4 py-2 rounded-lg font-medium transition text-sm border border-red-200">
+                                    <i class="fas fa-trash"></i>
+                                    <span>Supprimer</span>
+                                </button>
+                            </th:block>
+                        </div>
+                    </div>
+
+                    <!-- Meta : auteur + temps de préparation -->
+                    <div class="flex items-center space-x-6 text-secondary-500 mb-6 mt-5">
+                        <a th:href="@{/profile/{username}(username=${recipe.username})}"
+                           class="flex items-center space-x-2 hover:text-primary-500 transition-colors">
                             <div class="w-8 h-8 bg-secondary-800 text-white rounded-full flex items-center justify-center text-xs font-bold">
                                 <span th:text="${#strings.toUpperCase(#strings.substring(recipe.username, 0, 1))}">U</span>
                             </div>
                             <span class="text-sm font-medium" th:text="${recipe.username}">Utilisateur</span>
                         </a>
-                        <span class="text-sm">
-                            <i class="fas fa-clock mr-1 text-primary-500"></i>
-                            <span th:text="${recipe.preparationMinutes + ' min'}">30 min</span>
-                        </span>
+                        <div class="flex items-center gap-2">
+                            <span class="text-sm">
+                                <i class="fas fa-clock mr-1 text-primary-500"></i>
+                                <span th:text="${recipe.preparationMinutes + ' min'}">30 min</span>
+                            </span>
+                            <!-- Badge delta temps -->
+                            <span th:if="${diff != null and diff.timeDelta > 0}"
+                                  class="text-xs font-bold text-orange-600 bg-orange-50 border border-orange-200 px-2 py-0.5 rounded-full">
+                                +<span th:text="${diff.timeDelta}"></span> min vs original
+                            </span>
+                            <span th:if="${diff != null and diff.timeDelta < 0}"
+                                  class="text-xs font-bold text-green-600 bg-green-50 border border-green-200 px-2 py-0.5 rounded-full">
+                                <span th:text="${diff.timeDelta}"></span> min vs original
+                            </span>
+                        </div>
                     </div>
 
-                    <p th:if="${recipe.summary != null and !recipe.summary.isEmpty()}"
-                       class="text-secondary-600 text-lg mb-8"
-                       th:text="${recipe.summary}">
-                        Description de la recette
-                    </p>
+                    <!-- Description / Summary -->
+                    <div th:if="${recipe.summary != null and !recipe.summary.isEmpty()}" class="mb-8">
+                        <p class="text-secondary-600 text-lg" th:text="${recipe.summary}">
+                            Description de la recette
+                        </p>
+                        <!-- Original si modifié -->
+                        <div th:if="${diff != null and diff.summaryChanged}"
+                             class="mt-3 p-3 bg-amber-50 border-l-4 border-amber-300 rounded-r-lg">
+                            <p class="text-xs font-semibold text-amber-500 uppercase tracking-wide mb-1">
+                                <i class="fas fa-pen mr-1"></i>Description originale
+                            </p>
+                            <p class="text-amber-700 text-sm italic line-through"
+                               th:text="${diff.originalSummary}"></p>
+                        </div>
+                    </div>
 
-                    <!-- Allergènes -->
-                    <div th:if="${!recipe.allergens.isEmpty()}" class="mb-8">
+                    <!-- ═══════════════════════════════════════ -->
+                    <!-- ALLERGÈNES                             -->
+                    <!-- ═══════════════════════════════════════ -->
+
+                    <!-- Mode variante : allergènes diff-aware -->
+                    <div th:if="${diff != null and !diff.allergens.isEmpty()}" class="mb-8">
+                        <h2 class="font-display font-bold text-xl text-secondary-900 mb-4">
+                            <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>Allergènes
+                        </h2>
+                        <div class="flex flex-wrap gap-2">
+                            <th:block th:each="allergen : ${diff.allergens}">
+                                <!-- UNCHANGED -->
+                                <span th:if="${allergen.type.name() == 'UNCHANGED'}"
+                                      th:text="${allergen.name}"
+                                      class="diff-item diff-unchanged px-3 py-1 bg-yellow-50 text-yellow-700 rounded-full text-sm font-medium border border-yellow-200">
+                                    Allergène
+                                </span>
+                                <!-- ADDED -->
+                                <span th:if="${allergen.type.name() == 'ADDED'}"
+                                      class="diff-item diff-added flex items-center gap-1.5 px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-300">
+                                    <i class="fas fa-plus text-green-500 text-xs"></i>
+                                    <span th:text="${allergen.name}"></span>
+                                    <span class="text-xs font-bold text-green-600 bg-green-100 px-1.5 rounded-full">Ajouté</span>
+                                </span>
+                                <!-- REMOVED -->
+                                <span th:if="${allergen.type.name() == 'REMOVED'}"
+                                      class="diff-item diff-removed flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-400 rounded-full text-sm font-medium border border-red-200 line-through">
+                                    <i class="fas fa-minus text-red-400 text-xs no-underline"></i>
+                                    <span th:text="${allergen.name}"></span>
+                                    <span class="text-xs font-bold text-red-500 bg-red-100 px-1.5 rounded-full no-underline" style="text-decoration: none;">Supprimé</span>
+                                </span>
+                            </th:block>
+                        </div>
+                    </div>
+
+                    <!-- Mode normal : allergènes -->
+                    <div th:if="${diff == null and !recipe.allergens.isEmpty()}" class="mb-8">
                         <h2 class="font-display font-bold text-xl text-secondary-900 mb-4">
                             <i class="fas fa-exclamation-triangle text-yellow-500 mr-2"></i>Allergènes
                         </h2>
@@ -72,8 +211,140 @@
                         </div>
                     </div>
 
-                    <!-- Ingrédients -->
-                    <div th:if="${!recipe.ingredients.isEmpty()}" class="mb-8">
+                    <!-- ═══════════════════════════════════════ -->
+                    <!-- RÉGIMES ALIMENTAIRES                   -->
+                    <!-- ═══════════════════════════════════════ -->
+
+                    <!-- Mode variante : régimes diff-aware (seulement si des flags existent) -->
+                    <div th:if="${diff != null and !diff.dietaryFlags.isEmpty()}" class="mb-8">
+                        <h2 class="font-display font-bold text-xl text-secondary-900 mb-4">
+                            <i class="fas fa-leaf text-green-500 mr-2"></i>Régimes alimentaires
+                        </h2>
+                        <div class="flex flex-wrap gap-2">
+                            <th:block th:each="flag : ${diff.dietaryFlags}">
+                                <th:block th:with="lbl=${flag.flagName == 'vegan' ? 'Vegan' : (flag.flagName == 'vegetarian' ? 'Végétarien' : (flag.flagName == 'gluten-free' ? 'Sans gluten' : (flag.flagName == 'dairy-free' ? 'Sans lactose' : (flag.flagName == 'halal' ? 'Halal' : (flag.flagName == 'kosher' ? 'Casher' : (flag.flagName == 'nut-free' ? 'Sans noix' : (flag.flagName == 'low-carb' ? 'Low-carb' : flag.flagName)))))))}">
+                                    <!-- UNCHANGED -->
+                                    <span th:if="${flag.type.name() == 'UNCHANGED'}"
+                                          th:text="${lbl}"
+                                          class="diff-item diff-unchanged px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">
+                                        Régime
+                                    </span>
+                                    <!-- ADDED -->
+                                    <span th:if="${flag.type.name() == 'ADDED'}"
+                                          class="diff-item diff-added flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium border border-green-400">
+                                        <i class="fas fa-plus text-green-600 text-xs"></i>
+                                        <span th:text="${lbl}"></span>
+                                        <span class="text-xs font-bold text-green-700 bg-green-50 px-1.5 rounded-full">Ajouté</span>
+                                    </span>
+                                    <!-- REMOVED -->
+                                    <span th:if="${flag.type.name() == 'REMOVED'}"
+                                          class="diff-item diff-removed flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-400 rounded-full text-sm font-medium border border-red-200 line-through">
+                                        <i class="fas fa-minus text-red-400 text-xs"></i>
+                                        <span th:text="${lbl}"></span>
+                                        <span class="text-xs font-bold text-red-500 bg-red-100 px-1.5 rounded-full" style="text-decoration: none;">Retiré</span>
+                                    </span>
+                                </th:block>
+                            </th:block>
+                        </div>
+                    </div>
+
+                    <!-- Mode normal : régimes alimentaires actifs -->
+                    <div th:if="${diff == null and hasActiveDietaryFlags}" class="mb-8">
+                        <h2 class="font-display font-bold text-xl text-secondary-900 mb-4">
+                            <i class="fas fa-leaf text-green-500 mr-2"></i>Régimes alimentaires
+                        </h2>
+                        <div class="flex flex-wrap gap-2">
+                            <th:block th:each="entry : ${recipe.dietaryFlags}" th:if="${entry.value}">
+                                <th:block th:with="lbl=${entry.key == 'vegan' ? 'Vegan' : (entry.key == 'vegetarian' ? 'Végétarien' : (entry.key == 'gluten-free' ? 'Sans gluten' : (entry.key == 'dairy-free' ? 'Sans lactose' : (entry.key == 'halal' ? 'Halal' : (entry.key == 'kosher' ? 'Casher' : (entry.key == 'nut-free' ? 'Sans noix' : (entry.key == 'low-carb' ? 'Low-carb' : entry.key)))))))}">
+                                    <span th:text="${lbl}"
+                                          class="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">
+                                        Régime
+                                    </span>
+                                </th:block>
+                            </th:block>
+                        </div>
+                    </div>
+
+                    <!-- ═══════════════════════════════════════ -->
+                    <!-- INGRÉDIENTS                            -->
+                    <!-- ═══════════════════════════════════════ -->
+
+                    <!-- Mode variante : ingrédients diff-aware (Idée B) -->
+                    <div th:if="${diff != null and !diff.ingredients.isEmpty()}" class="mb-8">
+                        <h2 class="font-display font-bold text-xl text-secondary-900 mb-4">
+                            <i class="fas fa-carrot text-primary-500 mr-2"></i>Ingrédients
+                        </h2>
+                        <ul class="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            <th:block th:each="ing : ${diff.ingredients}">
+                                <th:block th:switch="${ing.type.name()}">
+
+                                    <!-- UNCHANGED -->
+                                    <li th:case="'UNCHANGED'"
+                                        class="diff-item diff-unchanged flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
+                                        <i class="fas fa-check-circle text-gray-300 flex-shrink-0"></i>
+                                        <span>
+                                            <span th:text="${ing.quantity}" class="font-semibold">0</span>
+                                            <span th:text="${ing.unit}" class="text-secondary-500">g</span>
+                                            <span th:text="${ing.name}">Ingrédient</span>
+                                        </span>
+                                    </li>
+
+                                    <!-- ADDED -->
+                                    <li th:case="'ADDED'"
+                                        class="diff-item diff-added flex items-center justify-between p-3 bg-green-50 border border-green-200 rounded-lg">
+                                        <div class="flex items-center space-x-3">
+                                            <i class="fas fa-plus-circle text-green-500 flex-shrink-0"></i>
+                                            <span>
+                                                <span th:text="${ing.quantity}" class="font-semibold text-green-900">0</span>
+                                                <span th:text="${ing.unit}" class="text-green-600">g</span>
+                                                <span th:text="${ing.name}" class="text-green-900">Ingrédient</span>
+                                            </span>
+                                        </div>
+                                        <span class="flex-shrink-0 text-xs font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full ml-2">Ajouté</span>
+                                    </li>
+
+                                    <!-- REMOVED -->
+                                    <li th:case="'REMOVED'"
+                                        class="diff-item diff-removed flex items-center justify-between p-3 bg-red-50 border border-red-200 rounded-lg">
+                                        <div class="flex items-center space-x-3">
+                                            <i class="fas fa-times-circle text-red-300 flex-shrink-0"></i>
+                                            <span class="line-through text-red-400">
+                                                <span th:text="${ing.quantity}" class="font-semibold">0</span>
+                                                <span th:text="${ing.unit}">g</span>
+                                                <span th:text="${ing.name}">Ingrédient</span>
+                                            </span>
+                                        </div>
+                                        <span class="flex-shrink-0 text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded-full ml-2">Supprimé</span>
+                                    </li>
+
+                                    <!-- MODIFIED -->
+                                    <li th:case="'MODIFIED'"
+                                        class="diff-item diff-modified flex items-center justify-between p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                        <div class="flex items-start space-x-3">
+                                            <i class="fas fa-pen text-amber-400 flex-shrink-0 mt-0.5"></i>
+                                            <span>
+                                                <span class="line-through text-amber-400 text-sm">
+                                                    <span th:text="${ing.originalQuantity}"></span>
+                                                    <span th:text="${ing.originalUnit}"></span>
+                                                </span>
+                                                <i class="fas fa-arrow-right text-amber-300 text-xs mx-1"></i>
+                                                <span class="font-semibold text-amber-900">
+                                                    <span th:text="${ing.quantity}"></span>
+                                                    <span th:text="${ing.unit}" class="font-normal text-amber-700"></span>
+                                                </span>
+                                                <span th:text="${ing.name}" class="text-amber-900 ml-1">Ingrédient</span>
+                                            </span>
+                                        </div>
+                                        <span class="flex-shrink-0 text-xs font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full ml-2">Modifié</span>
+                                    </li>
+
+                                </th:block>
+                            </th:block>
+                        </ul>
+                    </div>
+
+                    <!-- Mode normal : ingrédients -->
+                    <div th:if="${diff == null and !recipe.ingredients.isEmpty()}" class="mb-8">
                         <h2 class="font-display font-bold text-xl text-secondary-900 mb-4">
                             <i class="fas fa-carrot text-primary-500 mr-2"></i>Ingrédients
                         </h2>
@@ -90,8 +361,74 @@
                         </ul>
                     </div>
 
-                    <!-- Étapes -->
-                    <div th:if="${!recipe.steps.isEmpty()}">
+                    <!-- ═══════════════════════════════════════ -->
+                    <!-- ÉTAPES DE PRÉPARATION                  -->
+                    <!-- ═══════════════════════════════════════ -->
+
+                    <!-- Mode variante : étapes diff-aware (Idée B) -->
+                    <div th:if="${diff != null and !diff.steps.isEmpty()}">
+                        <h2 class="font-display font-bold text-xl text-secondary-900 mb-4">
+                            <i class="fas fa-list-ol text-primary-500 mr-2"></i>Préparation
+                        </h2>
+                        <ol class="space-y-4">
+                            <th:block th:each="step : ${diff.steps}">
+                                <th:block th:switch="${step.type.name()}">
+
+                                    <!-- UNCHANGED -->
+                                    <li th:case="'UNCHANGED'"
+                                        class="diff-item diff-unchanged flex space-x-4 p-4 bg-gray-50 rounded-lg">
+                                        <span class="flex-shrink-0 w-8 h-8 bg-gray-300 text-white rounded-full flex items-center justify-center font-bold text-sm"
+                                              th:text="${step.stepNumber}">1</span>
+                                        <p class="text-secondary-700" th:text="${step.instruction}">Instruction</p>
+                                    </li>
+
+                                    <!-- ADDED -->
+                                    <li th:case="'ADDED'"
+                                        class="diff-item diff-added flex space-x-4 p-4 bg-green-50 border border-green-200 rounded-lg">
+                                        <span class="flex-shrink-0 w-8 h-8 bg-green-500 text-white rounded-full flex items-center justify-center font-bold text-sm"
+                                              th:text="${step.stepNumber}">1</span>
+                                        <div class="flex-1 flex items-start justify-between gap-3">
+                                            <p class="text-green-900" th:text="${step.instruction}">Instruction</p>
+                                            <span class="flex-shrink-0 text-xs font-bold text-green-600 bg-green-100 px-2 py-0.5 rounded-full">Ajoutée</span>
+                                        </div>
+                                    </li>
+
+                                    <!-- REMOVED -->
+                                    <li th:case="'REMOVED'"
+                                        class="diff-item diff-removed flex space-x-4 p-4 bg-red-50 border border-red-200 rounded-lg">
+                                        <span class="flex-shrink-0 w-8 h-8 bg-red-300 text-white rounded-full flex items-center justify-center font-bold text-sm"
+                                              th:text="${step.stepNumber}">1</span>
+                                        <div class="flex-1 flex items-start justify-between gap-3">
+                                            <p class="line-through text-red-400" th:text="${step.instruction}">Instruction</p>
+                                            <span class="flex-shrink-0 text-xs font-bold text-red-500 bg-red-100 px-2 py-0.5 rounded-full">Supprimée</span>
+                                        </div>
+                                    </li>
+
+                                    <!-- MODIFIED -->
+                                    <li th:case="'MODIFIED'"
+                                        class="diff-item diff-modified flex space-x-4 p-4 bg-amber-50 border border-amber-200 rounded-lg">
+                                        <span class="flex-shrink-0 w-8 h-8 bg-amber-500 text-white rounded-full flex items-center justify-center font-bold text-sm"
+                                              th:text="${step.stepNumber}">1</span>
+                                        <div class="flex-1">
+                                            <div class="flex items-start justify-between gap-3 mb-2">
+                                                <p class="text-amber-900 font-medium" th:text="${step.instruction}">Nouvelle instruction</p>
+                                                <span class="flex-shrink-0 text-xs font-bold text-amber-600 bg-amber-100 px-2 py-0.5 rounded-full">Modifiée</span>
+                                            </div>
+                                            <div class="flex items-start gap-2 pt-2 border-t border-amber-200">
+                                                <span class="text-xs font-semibold text-amber-400 uppercase tracking-wide flex-shrink-0 mt-0.5">Original</span>
+                                                <p class="text-amber-500 text-sm italic line-through"
+                                                   th:text="${step.originalInstruction}">Instruction originale</p>
+                                            </div>
+                                        </div>
+                                    </li>
+
+                                </th:block>
+                            </th:block>
+                        </ol>
+                    </div>
+
+                    <!-- Mode normal : étapes -->
+                    <div th:if="${diff == null and !recipe.steps.isEmpty()}">
                         <h2 class="font-display font-bold text-xl text-secondary-900 mb-4">
                             <i class="fas fa-list-ol text-primary-500 mr-2"></i>Préparation
                         </h2>
@@ -104,6 +441,7 @@
                             </li>
                         </ol>
                     </div>
+
                 </div>
             </div>
 
@@ -111,5 +449,60 @@
     </section>
 
 </div>
+
+<th:block layout:fragment="scripts">
+    <script>
+        // ── Toggle diff mode (Idée C) ────────────────────────────────────────
+        let diffModeActive = false;
+
+        function toggleDiffMode() {
+            diffModeActive = !diffModeActive;
+            const toggle   = document.getElementById('diffToggle');
+            const thumb    = document.getElementById('toggleThumb');
+            const labelFull = document.getElementById('label-full');
+            const labelDiff = document.getElementById('label-diff');
+            if (!toggle) return;
+
+            if (diffModeActive) {
+                toggle.style.backgroundColor = '#FF5745';
+                toggle.setAttribute('aria-checked', 'true');
+                thumb.style.transform  = 'translateX(20px)';
+                labelFull.style.opacity     = '0.4';
+                labelFull.style.fontWeight  = '400';
+                labelDiff.style.opacity     = '1';
+                labelDiff.style.fontWeight  = '600';
+                labelDiff.style.color       = '#0F3D3E';
+                document.querySelectorAll('.diff-unchanged').forEach(el => el.style.opacity = '0.15');
+            } else {
+                toggle.style.backgroundColor = '#e5e7eb';
+                toggle.setAttribute('aria-checked', 'false');
+                thumb.style.transform  = 'translateX(4px)';
+                labelFull.style.opacity     = '1';
+                labelFull.style.fontWeight  = '600';
+                labelFull.style.color       = '#0F3D3E';
+                labelDiff.style.opacity     = '1';
+                labelDiff.style.fontWeight  = '400';
+                labelDiff.style.color       = '#9ca3af';
+                document.querySelectorAll('.diff-unchanged').forEach(el => el.style.opacity = '1');
+            }
+        }
+
+        // ── Confirmation de suppression ──────────────────────────────────────
+        function confirmDelete() {
+            const button = document.getElementById('delete-btn');
+            const recipeId = button.getAttribute('data-recipe-id');
+            const recipeTitle = button.getAttribute('data-recipe-title');
+
+            if (confirm(`Êtes-vous sûr de vouloir supprimer la recette "${recipeTitle}" ?\n\nCette action est irréversible.`)) {
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = `/recipes/${recipeId}/delete`;
+                document.body.appendChild(form);
+                form.submit();
+            }
+        }
+    </script>
+</th:block>
+
 </body>
 </html>

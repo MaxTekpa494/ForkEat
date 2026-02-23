@@ -1,8 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.mapper;
 
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.BankInfoEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
-import fr.uge.forkeat.service.model.user.BankInfo;
 import fr.uge.forkeat.service.model.user.User;
 
 import java.util.Objects;
@@ -44,48 +42,4 @@ public final class UserEntityMapper {
         entity.setEmailVerified(user.emailVerified());
         return entity;
     }
-
-    private static BankInfoEntity toBankInfoEntity(BankInfo bankInfo, UserEntity user) {
-        if (bankInfo == null) {
-            return null;
-        }
-        return new BankInfoEntity(
-                bankInfo.bankName(),
-                bankInfo.iban(),
-                bankInfo.bic(),
-                user
-        );
-    }
-
-//    private static WalletEntity toWalletEntity(Wallet wallet, UserEntity user) {
-//        if (wallet == null) {
-//            return null;
-//        }
-//        var entity = new WalletEntity(wallet.balance(), user);
-//        entity.setId(wallet.id());
-//        entity.setUpdatedAt(wallet.updatedAt());
-//        return entity;
-//    }
-//
-//    private static Wallet toWallet(WalletEntity entity) {
-//        if (entity == null) {
-//            return null;
-//        }
-//        return new Wallet(
-//                entity.getId(),
-//                entity.getBalance(),
-//                entity.getUpdatedAt()
-//        );
-//    }
-//
-//    private static BankInfo toBankInfo(BankInfoEntity entity) {
-//        if (entity == null) {
-//            return null;
-//        }
-//        return new BankInfo(
-//                entity.getBankName(),
-//                entity.getIban(),
-//                entity.getBic()
-//        );
-//    }
 }

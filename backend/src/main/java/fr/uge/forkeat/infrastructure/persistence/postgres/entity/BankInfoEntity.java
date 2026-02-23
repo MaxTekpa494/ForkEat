@@ -18,13 +18,13 @@ public class BankInfoEntity {
 
     @Column(name = "bank_name")
     private String bankName;
-    @Column(nullable = false, length = 34)
-    private String iban;
-    @Column(nullable = false, length = 11)
-    private String bic;
+
+    @Column(name = "external_account_id", nullable = false)
+    private String externalAccountId; // Stripe
 
     @Column(name="created_at", nullable = false, updatable = false)
     private Instant createdAt;
+
     @Column(name="updated_at", nullable = false)
     private Instant updatedAt;
 
@@ -35,10 +35,10 @@ public class BankInfoEntity {
 
     public BankInfoEntity(){}
 
-    public BankInfoEntity(String bankName, String iban, String bic, UserEntity user) {
+    // Updated constructor
+    public BankInfoEntity(String bankName, String externalAccountId, UserEntity user) {
         this.bankName = bankName;
-        this.iban = iban;
-        this.bic = bic;
+        this.externalAccountId = externalAccountId;
         this.user = user;
     }
 
@@ -73,21 +73,14 @@ public class BankInfoEntity {
         return bankName;
     }
 
-
-    public void setIban(String iban) {
-        this.iban = iban;
+    public String getExternalAccountId() {
+        return externalAccountId;
     }
 
-    public String getIban(){
-        return iban;
-    }
-    public String getBic() {
-        return bic;
+    public void setExternalAccountId(String externalAccountId) {
+        this.externalAccountId = externalAccountId;
     }
 
-    public void setBic(String bic) {
-        this.bic = bic;
-    }
 
     public Instant getCreatedAt() {
         return createdAt;
@@ -101,13 +94,9 @@ public class BankInfoEntity {
         return user;
     }
 
-    // On met package ici; pour mettre à jour bankinfo il
-    // faut obligatoirement passer par user car c'est une composition
-    void setUser(UserEntity user) {
+    public void setUser(UserEntity user) { // Changed to public
         this.user = user;
     }
-
-
 
     @Override
     public boolean equals(Object o) {

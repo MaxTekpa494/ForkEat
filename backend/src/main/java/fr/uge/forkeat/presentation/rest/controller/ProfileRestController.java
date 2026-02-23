@@ -1,6 +1,5 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
-
 import fr.uge.forkeat.presentation.dto.user.UserProfileDTO;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;

@@ -21,11 +21,15 @@ public interface RecipePersistence {
 
   List<Recipe> findByAuthorId(UUID authorId);
 
+  List<Recipe> findByAuthorUsername(String authorUsername);
+
   List<Allergen> findAllAllergens();
 
   List<String> findAllIngredientNames();
 
   Recipe save(Recipe recipe);
+
+  Recipe update(UUID id, Recipe recipe);
 
   void deleteById(UUID id);
 

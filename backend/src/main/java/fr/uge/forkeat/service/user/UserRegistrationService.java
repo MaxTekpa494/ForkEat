@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service.user;
 
+import fr.uge.forkeat.service.PasswordValidator;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -15,15 +16,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.Random;
 import java.util.UUID;
 
 @Service
 public class UserRegistrationService {
 
     private final Logger logger = LoggerFactory.getLogger(UserRegistrationService.class);
+    private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private final UserPersistence userPersistence;
     private final WalletService walletService;
     private final PasswordHasher passwordHasher;
@@ -38,18 +40,18 @@ public class UserRegistrationService {
         this.emailVerificationService = emailVerificationService;
     }
 
-    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15) // ON VA REGARDER EN DETAIL PLUS TARD
+    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
     public User registerUser(UserRegister userRegister) {
         Objects.requireNonNull(userRegister);
-        if (userPersistence.existsByEmail(userRegister.email())) { // Max ici il vaut mieux crée une Exception
-            // personnalisée
+        if (userPersistence.existsByEmail(userRegister.email())) {
             throw new RegisterFailureException("This email is already in use");
         }
 
-        // Vérifier si le username existe déjà
         if (userPersistence.existsByUsername(userRegister.username())) {
             throw new RegisterFailureException("This username is already taken");
         }
+
+        PasswordValidator.validate(userRegister.password());
 
         logger.info("Registering user: {}", userRegister);
         var user = new User(UUID.randomUUID(),
@@ -103,7 +105,6 @@ public class UserRegistrationService {
         );
 
         var savedUser = userPersistence.saveUser(user, null);
-        // Créer le wallet
         walletService.createWallet(savedUser.id());
 
         return savedUser;
@@ -120,7 +121,7 @@ public class UserRegistrationService {
             throw new RegisterFailureException("This username is already taken");
         }
 
-        logger.info("Registering moderator: " + userRegister);
+        logger.info("Registering moderator: {}", userRegister);
         var user = new User(UUID.randomUUID(),
                 userRegister.username(),
                 userRegister.firstName(),
@@ -135,7 +136,7 @@ public class UserRegistrationService {
 
         var savedUser = userPersistence.saveUser(user, passwordHasher.hash(userRegister.password()));
         walletService.createWallet(savedUser.id());
-        return user;
+        return savedUser;
     }
 
     private String generateUsername(String email) {
@@ -145,9 +146,9 @@ public class UserRegistrationService {
             return baseUsername;
         }
 
-        var username = baseUsername + new Random().nextInt(1000, 9999);
+        var username = baseUsername + SECURE_RANDOM.nextInt(1000, 9999);
         while (userPersistence.existsByUsername(username)) {
-            username = baseUsername + new Random().nextInt(1000, 9999);
+            username = baseUsername + SECURE_RANDOM.nextInt(1000, 9999);
         }
         return username;
     }

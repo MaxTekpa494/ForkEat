@@ -1,12 +1,35 @@
 package fr.uge.android.forkeat.network
 
+import android.content.Context
+import com.google.gson.Gson
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonDeserializationContext
+import com.google.gson.JsonDeserializer
+import com.google.gson.JsonElement
+import com.google.gson.JsonPrimitive
+import com.google.gson.JsonSerializationContext
+import com.google.gson.JsonSerializer
 import fr.uge.android.forkeat.network.api.AuthApiService
+import fr.uge.android.forkeat.network.api.WalletApiService
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.lang.reflect.Type
 import java.util.concurrent.TimeUnit
+import kotlin.time.Instant
+
+class InstantAdapter : JsonSerializer<Instant>, JsonDeserializer<Instant> {
+
+    override fun serialize(src: Instant, typeOfSrc: Type, context: JsonSerializationContext): JsonElement {
+        return JsonPrimitive(src.toString())
+    }
+
+    override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): Instant {
+        return Instant.parse(json.asString)
+    }
+}
 
 object ForkEatApi {
 
@@ -14,22 +37,51 @@ object ForkEatApi {
     // Pour un device physique, utiliser l'IP locale de la machine (ex: 192.168.x.x)
     private const val BASE_URL = "http://10.0.2.2:8080/"
 
+    private var tokenManager: TokenManager? = null
+
+    fun init(context: Context) {
+        tokenManager = TokenManager(context.applicationContext)
+    }
+
+    fun isLoggedIn(): Boolean = tokenManager?.isLoggedIn() ?: false
+
+    fun logout() {
+        tokenManager?.clearToken()
+    }
+
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
-    private val okHttpClient = OkHttpClient.Builder()
-        .addInterceptor(loggingInterceptor)
-        .connectTimeout(15, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .build()
+    private val gson: Gson = GsonBuilder()
+        .registerTypeAdapter(Instant::class.java, InstantAdapter())
+        .create()
 
-    private val retrofit: Retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(okHttpClient)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
+    private val okHttpClient by lazy {
+        OkHttpClient.Builder()
+            .addInterceptor { chain ->
+                val requestBuilder = chain.request().newBuilder()
+                tokenManager?.getToken()?.let { token ->
+                    requestBuilder.addHeader("Authorization", "Bearer $token")
+                }
+                chain.proceed(requestBuilder.build())
+            }
+            .addInterceptor(loggingInterceptor)
+            .followRedirects(false)
+            .connectTimeout(15, TimeUnit.SECONDS)
+            .readTimeout(15, TimeUnit.SECONDS)
+            .build()
+    }
 
-    val authService: AuthApiService = retrofit.create(AuthApiService::class.java)
-    val recipeService: RecipeApiService = retrofit.create(RecipeApiService::class.java)
+    private val retrofit: Retrofit by lazy {
+        Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create(gson))
+            .build()
+    }
+
+    val authService: AuthApiService by lazy { retrofit.create(AuthApiService::class.java) }
+    val recipeService: RecipeApiService by lazy { retrofit.create(RecipeApiService::class.java) }
+    val walletService: WalletApiService by lazy { retrofit.create(WalletApiService::class.java) }
 }

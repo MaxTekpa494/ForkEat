@@ -8,4 +8,5 @@ public interface AuthenticationPort {
     User extractUser(Authentication authentication);
     boolean isOAuth2Authentication(Authentication authentication);
     void refreshAuthentication(User user);
+    String generateToken(String username);
 }

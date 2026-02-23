@@ -1,6 +1,5 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.presentation.dto.user.UserProfileDTO;
 import fr.uge.forkeat.service.ProfileService;
@@ -18,9 +17,6 @@ import fr.uge.forkeat.service.model.user.projection.UserProfileWithRecipes;
 import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
 import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -54,8 +50,8 @@ class ProfileControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
-    @MockitoBean
-    private JwtFilter jwtFilter;
+
+
 
     private User testUser;
 
@@ -79,14 +75,6 @@ class ProfileControllerTest {
                 Instant.now(),
                 false
         );
-
-        doAnswer(invocation -> {
-            ServletRequest request = invocation.getArgument(0);
-            ServletResponse response = invocation.getArgument(1);
-            FilterChain chain = invocation.getArgument(2);
-            chain.doFilter(request, response);
-            return null;
-        }).when(jwtFilter).doFilter(any(), any(), any());
 
         when(authPort.extractUsername()).thenReturn(testUser.username());
     }

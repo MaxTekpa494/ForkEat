@@ -2,13 +2,14 @@ package fr.uge.android.forkeat.dashboard
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import fr.uge.android.forkeat.network.ForkEatApi
+import kotlinx.coroutines.async
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
-import kotlin.random.Random // Added import
 
 
 sealed class DashboardNavigationEvent {
@@ -34,38 +35,49 @@ class DashboardViewModel : ViewModel() {
     val uiState: StateFlow<DashboardUiState> = _uiState.asStateFlow()
 
     init {
-        // TODO: Fetch initial dashboard data
-        // For now, using mock data
-        _uiState.value = DashboardUiState(
-            firstName = "John",
-            balance = 123.45,
-            totalRecipes = 10,
-            totalLikes = 250,
-            followers = 120
-        )
+        loadDashboard()
+    }
+
+    private fun loadDashboard() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val meDeferred = async { ForkEatApi.authService.me() }
+                val balanceDeferred = async { ForkEatApi.walletService.getBalance() }
+
+                val meResponse = meDeferred.await()
+                val balanceResponse = balanceDeferred.await()
+
+                val firstName = if (meResponse.isSuccessful) {
+                    meResponse.body()?.resource?.firstName ?: "Utilisateur"
+                } else "Utilisateur"
+
+                val balanceCents = if (balanceResponse.isSuccessful) {
+                    balanceResponse.body()?.balance ?: 0L
+                } else 0L
+
+                _uiState.value = _uiState.value.copy(
+                    firstName = firstName,
+                    balance = balanceCents / 100.0,
+                    isLoading = false
+                )
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Erreur de chargement: ${e.message}"
+                )
+            }
+        }
     }
 
     fun onRefreshDashboard() {
-        // TODO: Implement logic to refresh dashboard data from backend
-        // For now, simulate refresh
-        _uiState.value = _uiState.value.copy(
-            isLoading = true,
-            error = null
-        )
-        // Simulate network call
-        // delay(2000)
-        _uiState.value = _uiState.value.copy(
-            isLoading = false,
-            // Update with potentially new mock data or fetched data
-            balance = kotlin.random.Random.nextDouble(100.0, 500.0),
-            totalRecipes = kotlin.random.Random.nextInt(10, 50),
-            totalLikes = kotlin.random.Random.nextInt(200, 1000),
-            followers = kotlin.random.Random.nextInt(50, 200)
-        )
+        loadDashboard()
     }
 
     fun navigateToWallet() {
-        // TODO: Handle navigation to wallet screen
+        viewModelScope.launch {
+            _navigationEvent.send(DashboardNavigationEvent.NavigateToWallet)
+        }
     }
 
     fun navigateToCreateRecipe() {

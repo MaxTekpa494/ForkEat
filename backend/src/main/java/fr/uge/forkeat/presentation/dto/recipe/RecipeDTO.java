@@ -9,7 +9,8 @@ public record RecipeDTO(
         UUID id,
         String title,
         String summary,
-        RecipeDTO parent,
+        //RecipeDTO parent,
+        UUID parentId,
         //UserDTO author, pas besion d'avoir toutes infos sur l'auteur non ?
         String username, // Juste avec le username on est bon
         int preparationMinutes,

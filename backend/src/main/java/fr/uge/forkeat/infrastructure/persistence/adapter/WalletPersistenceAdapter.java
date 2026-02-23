@@ -1,6 +1,7 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.mapper.TransactionEntityMapper;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.TransactionEntity;
 import fr.uge.forkeat.infrastructure.persistence.mapper.WalletEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.TransactionRepository;
@@ -12,6 +13,7 @@ import fr.uge.forkeat.service.model.user.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,8 +24,6 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 	private final WalletRepository walletRepository;
 	private final TransactionRepository transactionRepository;
 	private final UserRepository userRepository;
-
-	// LES MAPPERS
 
 	public WalletPersistenceAdapter(WalletRepository walletRepository,
 			TransactionRepository transactionRepository, UserRepository userRepository) {
@@ -50,7 +50,6 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 
 			var userEntity = userRepository.findById(wallet.userId())
 					.orElseThrow(() -> new IllegalStateException("User not found: " + wallet.userId()));
-			//userEntity.setWallet(newEntity);
 			newEntity.setUser(userEntity);
 
 			return newEntity;
@@ -86,11 +85,7 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 
 	@Override
 	public Optional<Wallet> findByUserId(UUID userId) {
-		if (walletRepository.findByUserId(userId).isEmpty()) {
-			throw new ResourceNotFoundException("Wallet not found with user id  :" + userId);
-		}
-
-		return Optional.of(WalletEntityMapper.toDomain(walletRepository.findByUserId(userId).get()));
+		return walletRepository.findByUserIdReadOnly(userId).map(WalletEntityMapper::toDomain);
 	}
 
 	@Override
@@ -100,4 +95,55 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 		// Si l'utilisateur n'a pas de wallet (ne devrait pas arriver), on renvoie 0
 		return balance != null ? balance : 0L;
 	}
+
+	@Override
+	public List<Transaction> getTransactionsByUserId(UUID userId) {
+		var wallet = walletRepository.findByUserIdReadOnly(userId);
+		if (wallet.isEmpty()) {
+			return List.of();
+		}
+		return transactionRepository.findByWalletId(wallet.get().getId())
+				.stream()
+				.map(TransactionEntityMapper::toDomain)
+				.toList();
+	}
+
+    @Override
+    public Optional<Transaction> findTransactionByStripeTransactionID(String stripeTransactionID) {
+        Objects.requireNonNull(stripeTransactionID);
+        return transactionRepository.findByStripeTransactionID(stripeTransactionID)
+                .map(TransactionEntityMapper::toDomain);
+    }
+
+    @Override
+    public Optional<Transaction> findTransactionById(UUID id) {
+        Objects.requireNonNull(id);
+        return transactionRepository.findById(id).map(TransactionEntityMapper::toDomain);
+    }
+
+    @Override
+    public Transaction updateTransaction(Transaction transaction) {
+        Objects.requireNonNull(transaction);
+
+        TransactionEntity existingEntity = transactionRepository.findById(transaction.id())
+                .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with id: " + transaction.id()));
+
+        // Update fields that can change
+        existingEntity.setStripeTransactionID(transaction.stripeTransactionID());
+        existingEntity.setStatus(transaction.status());
+
+        if (transaction.walletDestinationId() != null) {
+            existingEntity.setDestinationWallet(walletRepository.getReferenceById(transaction.walletDestinationId()));
+        } else {
+            existingEntity.setDestinationWallet(null);
+        }
+
+        if (transaction.walletSourceId() != null) {
+            existingEntity.setSourceWallet(walletRepository.getReferenceById(transaction.walletSourceId()));
+        } else {
+            existingEntity.setSourceWallet(null);
+        }
+
+        return TransactionEntityMapper.toDomain(transactionRepository.save(existingEntity));
+    }
 }

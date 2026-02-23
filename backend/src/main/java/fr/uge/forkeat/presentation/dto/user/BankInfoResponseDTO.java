@@ -2,11 +2,9 @@ package fr.uge.forkeat.presentation.dto.user;
 
 import java.util.UUID;
 
-public record BankInfoDTO(
+public record BankInfoResponseDTO(
         UUID userId,
         String bankName,
-        String maskedIban,
-        String bic
+        String externalAccountId
 ) {
-  // LES VERIFS
 }

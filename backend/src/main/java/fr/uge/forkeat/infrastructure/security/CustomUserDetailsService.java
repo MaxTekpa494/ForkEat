@@ -11,6 +11,7 @@ import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Objects;
 
 @Component
 public class CustomUserDetailsService implements UserDetailsService {
@@ -25,6 +26,7 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     @Override
     public UserDetails loadUserByUsername(String username) {
+        Objects.requireNonNull(username);
         logger.debug("Loading user by username or email: {}", username);
 
         var user = userPersistence.findByUsername(username)

@@ -2,14 +2,14 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.mapper.web.UserFormDTOMapper;
 import fr.uge.forkeat.presentation.web.form.RegisterFormDTO;
+import fr.uge.forkeat.service.PasswordValidator;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.port.PasswordHasher;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,13 +26,16 @@ public class AuthWebController {
     private final UserRegistrationService userRegistrationService;
     private final UserService userService;
     private final EmailVerificationService emailVerificationService;
+    private final PasswordHasher passwordHasher;
 
     public AuthWebController(UserRegistrationService userRegistrationService,
                              EmailVerificationService emailVerificationService,
-                             UserService userService) {
+                             UserService userService,
+                             PasswordHasher passwordHasher) {
         this.userRegistrationService = userRegistrationService;
         this.emailVerificationService = emailVerificationService;
         this.userService = userService;
+        this.passwordHasher = passwordHasher;
     }
 
     @GetMapping("/login")
@@ -51,44 +54,43 @@ public class AuthWebController {
     @PostMapping("/forgot-password-code")
     public String forgotPasswordCode(
             @RequestParam("email") String email,
-            @RequestParam("password") String password,
-            @RequestParam("confirmPassword") String confirmPassword,
-            HttpSession session,
-            Model model,
-            HttpServletResponse response) {
-        if (password.length() < 8) {
-            model.addAttribute("errorMessage", "le mot de passe doit faire au moins 8 charactères");
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return "layout/forgot-password";
-        }
-        if (!password.equals(confirmPassword)) {
-            model.addAttribute("errorMessage", "Les mots de passe ne correspondent pas");
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return "layout/forgot-password";
-        }
-        try {
-            var user = userService.getUserByEmail(email);
-            emailVerificationService.sendPasswordChangeCode(user.id(), user.email(), password);
-            session.setAttribute("forgot-password-email", email);
-        } catch (ResourceNotFoundException e) {
-            model.addAttribute("errorMessage", e.getMessage());
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return "layout/forgot-password";
-        }
+            Model model) {
+        // Always show the code page — don't reveal whether the email exists
+        var userOpt = userService.findByEmail(email);
+        userOpt.ifPresent(user ->
+                emailVerificationService.sendPasswordChangeCode(user.id(), user.email()));
+        model.addAttribute("email", email);
         return "layout/forgot-password-code";
     }
 
     @PostMapping("/forgot-password-verify-code")
-    public String forgotPasswordSendCode(
+    public String forgotPasswordVerifyCode(
+            @RequestParam("email") String email,
             @RequestParam("verificationCode") String verificationCode,
-            HttpSession httpSession,
+            @RequestParam("password") String password,
+            @RequestParam("confirmPassword") String confirmPassword,
             Model model,
             HttpServletResponse response) {
+        if (!password.equals(confirmPassword)) {
+            model.addAttribute("errorMessage", "Les mots de passe ne correspondent pas");
+            model.addAttribute("email", email);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return "layout/forgot-password-code";
+        }
         try {
-            var user = userService.getUserByEmail(httpSession.getAttribute("forgot-password-email").toString());
-            emailVerificationService.confirmPasswordChange(user.id(), verificationCode);
+            PasswordValidator.validate(password);
+        } catch (RegisterFailureException e) {
+            model.addAttribute("errorMessage", e.getMessage());
+            model.addAttribute("email", email);
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return "layout/forgot-password-code";
+        }
+        try {
+            var user = userService.getUserByEmail(email);
+            emailVerificationService.confirmPasswordChange(user.id(), verificationCode, passwordHasher.hash(password));
         } catch (VerificationException e) {
             model.addAttribute("errorMessage", e.getMessage());
+            model.addAttribute("email", email);
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return "layout/forgot-password-code";
         }

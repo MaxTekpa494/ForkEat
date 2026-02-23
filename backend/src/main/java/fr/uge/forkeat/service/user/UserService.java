@@ -6,6 +6,7 @@ import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -20,6 +21,10 @@ public class UserService {
     public User getUserByEmail(String email) {
         return userPersistence.findByEmail(email)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
+    }
+
+    public Optional<User> findByEmail(String email) {
+        return userPersistence.findByEmail(email);
     }
 
     public User getUserById(UUID id) {
