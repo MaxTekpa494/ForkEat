@@ -8,14 +8,13 @@ import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.RecipeService;
-import fr.uge.forkeat.service.exception.ImageUploadException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
-import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -114,7 +113,6 @@ public class RecipeWebController {
     var recipeDTO = RecipeDTOMapper.toDTO(recipe);
     var currentUser = authPort.extractUsername();
     if(!recipe.status().equals(RecipeStatus.PUBLISHED) && !currentUser.equals(recipe.usernameAuthor())){
-      //throw new IllegalArgumentException("Can only view published recipes or your own recipes.");
       throw new RecipeNotFoundException(id);
     }
     if (recipe.isVariant()) {
@@ -127,15 +125,14 @@ public class RecipeWebController {
     var isOwner = currentUser != null && currentUser.equals(recipe.usernameAuthor());
     var hasActiveDietaryFlags = recipeDTO.dietaryFlags() != null &&
         recipeDTO.dietaryFlags().values().stream().anyMatch(Boolean.TRUE::equals);
-    logger.info("Recipe {} viewed by {}", recipe, currentUser);
     model.addAttribute("recipe", recipeDTO);
     model.addAttribute("isOwner", isOwner);
     model.addAttribute("isAuthenticated", currentUser != null);
     model.addAttribute("hasActiveDietaryFlags", hasActiveDietaryFlags);
-    logger.info("Recipe {} viewed by {}", recipe, currentUser);
     return "recipes/detail";
   }
 
+  @PostAuthorize("returnObject.owner == authentication.name")
   @PostMapping("/{id}/delete")
   public String deleteRecipe(@PathVariable UUID id) {
     var currentUser = authPort.extractUsername();
@@ -153,7 +150,6 @@ public class RecipeWebController {
   public String editRecipe(@PathVariable UUID id, Model model) {
     var currentUser = authPort.extractUsername();
     var recipe = recipeService.findById(id);
-    logger.info("Editing recipe {}", recipe);
     if (!currentUser.equals(recipe.usernameAuthor())) {
       model.addAttribute("errorMessage", "Vous ne pouvez pas modifier une recette qui ne vous appartient pas");
       model.addAttribute("pageTitle", "Accès non autorisé");
@@ -193,7 +189,6 @@ public class RecipeWebController {
     logger.info("Updating recipe {}", id);
     var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, currentUser));
     var updatedRecipe = recipeService.updateRecipe(id, recipe, ImageMapper.toImageUpload(image));
-    logger.info("Recipe {} updated", updatedRecipe);
     return "redirect:/recipes/" + updatedRecipe.id();
   }
 
@@ -231,7 +226,6 @@ public class RecipeWebController {
     var hasNewImage = image != null && !image.isEmpty();
     if (!hasNewImage && recipeDTO.parentId() != null) {
       var parent = recipeService.findById(recipeDTO.parentId());
-      logger.info("Adding image from parent {}\n\n\n", parent);
       dto = RecipeDTOMapper.recipeDTOWithImageUrl(dto, parent.imageUrl());
     }
     var savedRecipe = recipeService.createRecipe(RecipeDTOMapper.toDomain(dto), hasNewImage ? ImageMapper.toImageUpload(image) : null);

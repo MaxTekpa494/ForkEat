@@ -10,10 +10,11 @@ public class ImageMapper {
   private ImageMapper(){}
 
   public static ImageUpload toImageUpload(MultipartFile file) {
+    // Notez que c'est voulu de ne pas mettre requireNonNull
     if (file == null || file.isEmpty()) return null;
     try{
       return new ImageUpload(file.getBytes(), file.getContentType(), file.getOriginalFilename());
-    }catch (Exception e){ // EST-CE LE BON ENDROIT ??
+    }catch (Exception e){
       throw new ImageUploadException("Failed to upload image", e);
     }
   }

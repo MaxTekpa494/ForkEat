@@ -12,7 +12,9 @@ import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PostAuthorize;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -66,18 +68,19 @@ public final class RecipeRestController {
 		return ResponseEntity.ok(new ItemResponse<>(new AllergensIngredients(allAllergens, allIngredientNames)));
 	}
 
-	@PostMapping("/create")
-	public ResponseEntity<HttpResponse<RecipeDTO>> createRecipe(@RequestBody RecipeDTO recipeDTO, @RequestPart(value = "image", required = false) MultipartFile image){
+	@PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+	public ResponseEntity<HttpResponse<RecipeDTO>> createRecipe(@RequestPart("recipe") RecipeDTO recipeDTO,
+																															@RequestPart(value = "image", required = false) MultipartFile image){
 		Objects.requireNonNull(recipeDTO);
-		Objects.requireNonNull(image);
 		var username = authPort.extractUsername();
 		var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
 		var savedRecipe = recipeService.createRecipe(recipe, ImageMapper.toImageUpload(image));
 		return ResponseEntity.ok(new CreatedResponse<>(RecipeDTOMapper.toDTO(savedRecipe)));
 	}
 
+	@PostAuthorize("returnObject.owner == authentication.name")
 	@PostMapping("/{id}/update")
-	public ResponseEntity<HttpResponse<RecipeDTO>> updateRecipe(@PathVariable UUID id, @RequestBody RecipeDTO recipeDTO, @RequestPart(value = "image", required = false) MultipartFile image){
+	public ResponseEntity<HttpResponse<RecipeDTO>> updateRecipe(@PathVariable UUID id, @RequestPart RecipeDTO recipeDTO, @RequestPart(value = "image", required = false) MultipartFile image){
 		Objects.requireNonNull(recipeDTO);
 		var username = authPort.extractUsername();
 		var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
@@ -85,6 +88,7 @@ public final class RecipeRestController {
 		return ResponseEntity.ok(new ItemResponse<>(RecipeDTOMapper.toDTO(updatedRecipe)));
 	}
 
+	@PostAuthorize("returnObject.owner == authentication.name")
 	@PostMapping("/{id}/delete")
 	public ResponseEntity<HttpResponse<Void>> deleteRecipe(@PathVariable UUID id){
 		Objects.requireNonNull(id);
@@ -92,6 +96,7 @@ public final class RecipeRestController {
 		return ResponseEntity.ok(new NotContentResponse());
 	}
 
+	//@PostAuthorize("returnObject.owner == authentication.name")
 	@GetMapping("my-recipes")
 	public ResponseEntity<HttpResponse<RecipeDTO>> myRecipes(){
 		var username = authPort.extractUsername();

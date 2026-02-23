@@ -32,10 +32,10 @@ public class WalletRestController {
 
     public WalletRestController(WalletService walletService, AuthenticationPort authPort,
                                 UserQueryService userQueryService, BankInfoService bankInfoService) { // Added BankInfoService
-        this.walletService = Objects.requireNonNull(walletService);
-        this.authPort = Objects.requireNonNull(authPort);
-        this.userQueryService = Objects.requireNonNull(userQueryService);
-        this.bankInfoService = Objects.requireNonNull(bankInfoService); // Assign BankInfoService
+        this.walletService = walletService;
+        this.authPort = authPort;
+        this.userQueryService = userQueryService;
+        this.bankInfoService = bankInfoService; // Assign BankInfoService
     }
 
     @PostMapping("/recharge")
