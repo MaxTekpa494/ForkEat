@@ -24,4 +24,7 @@ public interface WalletRepository extends JpaRepository<WalletEntity, UUID> {
 
     @Query("SELECT w.balance FROM WalletEntity w WHERE w.user.id = :userId") // On va plus en avoir besion quand ça va être du OneToOne
     Long findBalanceByUserId(@Param("userId") UUID userId);
+
+    @Query("SELECT w FROM WalletEntity w WHERE w.user.id = :userId")
+    Optional<WalletEntity> findByUserIdReadOnly(@Param("userId") UUID userId);
 }

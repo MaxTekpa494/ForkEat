@@ -27,13 +27,13 @@ class RecipeDTOMapperTest {
 				List.of(new Allergen(UUID.randomUUID(), "Gluten", AllergenSeverity.HIGH)),
 				Map.of("vegetarian", true, "vegan", false), now, now);
 
-		var dto = RecipeDTOMapper.toDTO(recipe, null);
+		var dto = RecipeDTOMapper.toDTO(recipe);
 
 		assertNotNull(dto);
 		assertEquals(id, dto.id());
 		assertEquals("Tarte aux pommes", dto.title());
 		assertEquals("Une délicieuse tarte", dto.summary());
-		assertNull(dto.parent());
+		assertNull(dto.parentId());
 		assertEquals("chef_arnaud", dto.username());
 		assertEquals(45, dto.preparationMinutes());
 		assertEquals("https://example.com/image.jpg", dto.imageUrl());
@@ -57,11 +57,12 @@ class RecipeDTOMapperTest {
 		var childRecipe = new Recipe(childId, "Variante", "Une variante", parentId, "chef", 35, null,
 				RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now);
 
-		var dto = RecipeDTOMapper.toDTO(childRecipe, parentDTO);
+		var dto = RecipeDTOMapper.toDTO(childRecipe);
 
-		assertNotNull(dto.parent());
-		assertEquals(parentId, dto.parent().id());
-		assertEquals("Recette originale", dto.parent().title());
+		assertNotNull(dto.parentId());
+		assertEquals(parentId, dto.parentId());
+		assertEquals("Variante", dto.title());
+		//		assertEquals("Recette originale", dto.parent().title()); // Ce test ne sert plus à rien car maintenant on juste id
 	}
 
 	@Test
@@ -70,7 +71,7 @@ class RecipeDTOMapperTest {
 				List.of(new RecipeStep(1, "Étape 1"), new RecipeStep(2, "Étape 2"), new RecipeStep(3, "Étape 3")),
 				List.of(), List.of());
 
-		var dto = RecipeDTOMapper.toDTO(recipe, null);
+		var dto = RecipeDTOMapper.toDTO(recipe);
 
 		assertEquals(3, dto.steps().size());
 		assertEquals(1, dto.steps().get(0).stepNumber());
@@ -84,7 +85,7 @@ class RecipeDTOMapperTest {
 		var recipe = createMinimalRecipe(List.of(),
 				List.of(new RecipeIngredient("Farine", 250.0, "g"), new RecipeIngredient("Lait", 0.5, "L")), List.of());
 
-		var dto = RecipeDTOMapper.toDTO(recipe, null);
+		var dto = RecipeDTOMapper.toDTO(recipe);
 
 		assertEquals(2, dto.ingredients().size());
 		assertEquals("Farine", dto.ingredients().getFirst().name());
@@ -99,7 +100,7 @@ class RecipeDTOMapperTest {
 				List.of(new Allergen(allergenId, "Gluten", AllergenSeverity.HIGH),
 						new Allergen(UUID.randomUUID(), "Lait", AllergenSeverity.MEDIUM)));
 
-		var dto = RecipeDTOMapper.toDTO(recipe, null);
+		var dto = RecipeDTOMapper.toDTO(recipe);
 
 		assertEquals(2, dto.allergens().size());
 		assertEquals(allergenId, dto.allergens().getFirst().id());
@@ -113,7 +114,7 @@ class RecipeDTOMapperTest {
 		var recipe = new Recipe(id, "Test", "Summary", null, "user", 10, null, RecipeStatus.DRAFT, null, null, null,
 				null, null, null);
 
-		var dto = RecipeDTOMapper.toDTO(recipe, null);
+		var dto = RecipeDTOMapper.toDTO(recipe);
 
 		assertNotNull(dto.steps());
 		assertTrue(dto.steps().isEmpty());
@@ -175,7 +176,7 @@ class RecipeDTOMapperTest {
 		var parentDTO = new RecipeDTO(parentId, "Parent", "Parent recipe", null, "chef", 30, null, "PUBLISHED",
 				List.of(), List.of(), List.of(), Map.of(), Instant.now(), Instant.now());
 
-		var dto = new RecipeDTO(UUID.randomUUID(), "Child", "Child recipe", parentDTO, "chef", 25, null, "DRAFT",
+		var dto = new RecipeDTO(UUID.randomUUID(), "Child", "Child recipe", parentDTO.id(), "chef", 25, null, "DRAFT",
 				List.of(), List.of(), List.of(), Map.of(), Instant.now(), Instant.now());
 
 		var recipe = RecipeDTOMapper.toDomain(dto);
@@ -250,7 +251,7 @@ class RecipeDTOMapperTest {
 				List.of(new Allergen(allergenId, "Lait", AllergenSeverity.MEDIUM)),
 				Map.of("vegetarian", false, "glutenFree", false), now, now);
 
-		var dto = RecipeDTOMapper.toDTO(originalRecipe, null);
+		var dto = RecipeDTOMapper.toDTO(originalRecipe);
 		var reconvertedRecipe = RecipeDTOMapper.toDomain(dto);
 
 		assertEquals(originalRecipe.id(), reconvertedRecipe.id());

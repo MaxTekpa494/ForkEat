@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service.user;
 
+import fr.uge.forkeat.service.PasswordValidator;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -15,15 +16,16 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
 import java.time.Instant;
 import java.util.Objects;
-import java.util.Random;
 import java.util.UUID;
 
 @Service
 public class UserRegistrationService {
 
   private final Logger logger = LoggerFactory.getLogger(UserRegistrationService.class);
+  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
   private final UserPersistence userPersistence;
   private final WalletService walletService;
   private final PasswordEncoder passwordEncoder;
@@ -51,7 +53,9 @@ public class UserRegistrationService {
       throw new RegisterFailureException("This username is already taken");
     }
 
-    logger.info("Registering user: " + userRegister);
+    PasswordValidator.validate(userRegister.password());
+
+    logger.info("Registering user with username: {}", userRegister.username());
     var user = new User(UUID.randomUUID(),
             userRegister.username(),
             userRegister.firstName(),
@@ -120,7 +124,7 @@ public class UserRegistrationService {
       throw new RegisterFailureException("This username is already taken");
     }
 
-    logger.info("Registering moderator: " + userRegister);
+    logger.info("Registering moderator with username: {}", userRegister.username());
     var user = new User(UUID.randomUUID(),
             userRegister.username(),
             userRegister.firstName(),
@@ -135,7 +139,7 @@ public class UserRegistrationService {
 
     var savedUser = userPersistence.saveUser(user, passwordEncoder.encode(userRegister.password()));
     walletService.createWallet(savedUser.id());
-    return user;
+    return savedUser;
   }
 
   private String generateUsername(String email) {
@@ -145,9 +149,9 @@ public class UserRegistrationService {
       return baseUsername;
     }
 
-    var username = baseUsername + new Random().nextInt(1000, 9999);
+    var username = baseUsername + SECURE_RANDOM.nextInt(1000, 9999);
     while (userPersistence.existsByUsername(username)) {
-      username = baseUsername + new Random().nextInt(1000, 9999);
+      username = baseUsername + SECURE_RANDOM.nextInt(1000, 9999);
     }
     return username;
   }

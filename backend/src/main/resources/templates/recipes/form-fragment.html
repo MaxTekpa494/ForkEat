@@ -26,8 +26,8 @@
 
     <!-- Champs cachés -->
     <input type="hidden" name="username" th:value="${username}">
-    <input type="hidden" name="status" value="DRAFT">
-    <input th:if="${parentId != null}" type="hidden" name="parent.id" th:value="${parentId}">
+    <input type="hidden" name="status" id="statusField" value="PENDING">
+    <input th:if="${parentId != null}" type="hidden" name="parentId" th:value="${parentId}">
 
     <!-- ═══════════════════════════════════════ -->
     <!-- SECTION 1 : Informations générales     -->
@@ -81,12 +81,16 @@
                         Photo du plat
                     </label>
                     <input id="image" name="image" type="file" accept="image/*"
+                           onchange="previewImage(this)"
                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-600 hover:file:bg-primary-100 transition cursor-pointer">
-                    <!-- Aperçu image existante (édition) -->
-                    <div th:if="${recipe != null and recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}" class="mt-2">
-                        <img th:src="${recipe.imageUrl}" alt="Image actuelle"
+                    <!-- Aperçu image -->
+                    <div id="imagePreviewContainer" class="mt-2"
+                         th:style="${recipe != null and recipe.imageUrl != null and !recipe.imageUrl.isEmpty()} ? '' : 'display:none'">
+                        <img id="imagePreview"
+                             th:src="${recipe != null and recipe.imageUrl != null} ? ${recipe.imageUrl} : ''"
+                             alt="Aperçu"
                              class="h-20 w-20 object-cover rounded-lg border border-gray-200">
-                        <p class="text-xs text-gray-400 mt-1">Image actuelle. Uploadez une nouvelle pour la remplacer.</p>
+                        <p id="imagePreviewLabel" class="text-xs text-gray-400 mt-1">Image actuelle. Uploadez une nouvelle pour la remplacer.</p>
                     </div>
                 </div>
             </div>
@@ -202,7 +206,7 @@
                            th:data-name="${allergen.name}"
                            th:data-severity="${allergen.severity}"
                            onchange="updateAllergenFields()"
-                           th:checked="${selectedAllergenIds != null and selectedAllergenIds.contains(allergen.id)}">
+                           th:checked="${#lists.contains(selectedAllergenIds, allergen.id)}">
                     <span class="ml-3 text-sm">
                         <span class="font-medium text-secondary-900" th:text="${allergen.name}">Allergène</span>
                         <span class="text-xs ml-1 px-1.5 py-0.5 rounded-full"
@@ -280,14 +284,21 @@
     </div>
 
     <!-- ═══════════════════════════════════════ -->
-    <!-- Bouton de soumission                   -->
+    <!-- Boutons de soumission                  -->
     <!-- ═══════════════════════════════════════ -->
     <div class="flex justify-end gap-4">
         <a th:href="@{/recipes}"
            class="px-6 py-3 text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition">
             Annuler
         </a>
+        <button type="submit" id="draftBtn"
+                onclick="document.getElementById('statusField').value='DRAFT'"
+                class="px-8 py-3 text-sm font-bold text-gray-600 bg-white hover:bg-gray-50 border border-gray-300 rounded-full transition">
+            <i class="fas fa-save mr-2"></i>
+            Enregistrer en brouillon
+        </button>
         <button type="submit" id="submitBtn"
+                onclick="document.getElementById('statusField').value='PENDING_REVIEW'"
                 class="px-8 py-3 text-sm font-bold text-white bg-primary-500 hover:bg-primary-600 rounded-full shadow-lg shadow-primary-500/30 transition transform hover:-translate-y-0.5">
             <i class="fas fa-paper-plane mr-2"></i>
             <span th:text="${formTitle != null and formTitle.contains('Modifier')} ? 'Enregistrer les modifications' : 'Publier la recette'">
@@ -303,6 +314,22 @@
 <!-- ═══════════════════════════════════════════ -->
 <script th:inline="javascript">
     /*<![CDATA[*/
+
+    // ── Aperçu image ─────────────────────────
+    function previewImage(input) {
+        var container = document.getElementById('imagePreviewContainer');
+        var preview = document.getElementById('imagePreview');
+        var label = document.getElementById('imagePreviewLabel');
+        if (input.files && input.files[0]) {
+            var reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+                label.textContent = 'Nouvelle image sélectionnée.';
+                container.style.display = '';
+            };
+            reader.readAsDataURL(input.files[0]);
+        }
+    }
 
     // ── Ingrédients ──────────────────────────
     function addIngredient() {

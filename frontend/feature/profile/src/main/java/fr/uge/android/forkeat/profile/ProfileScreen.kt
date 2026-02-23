@@ -42,44 +42,29 @@ fun ProfileScreen(
     val newPassword by profileViewModel.newPassword.collectAsState()
     val confirmNewPassword by profileViewModel.confirmNewPassword.collectAsState()
 
-      Column(
-          modifier = Modifier
-              .fillMaxSize()
-              .background(Color(0xFFF5F5F5)) // Mimic bg-surface
-              .verticalScroll(rememberScrollState())
-      ) {
-          // Profile Header Section
-          ProfileHeader(uiState = uiState)
+  Column(
+      modifier = Modifier
+          .fillMaxSize()
+          .background(Color(0xFFF5F5F5))
+          .verticalScroll(rememberScrollState())
+  ) {
+      // Profile Header Section
+      ProfileHeader(uiState = uiState)
 
-          // Main content area
-          Column(
-              modifier = Modifier
-                  .fillMaxWidth()
-                  .padding(16.dp),
-              verticalArrangement = Arrangement.spacedBy(16.dp)
-          ) {
-              Row(
-                  modifier = Modifier.fillMaxWidth(),
-                  horizontalArrangement = Arrangement.spacedBy(16.dp)
-              ) {
-                  Column(Modifier.weight(2f)) {
-                      ProfileInformationCard(uiState, profileViewModel)
-                      Spacer(Modifier.height(16.dp))
-                      SecurityCard(uiState, profileViewModel)
-                      Spacer(Modifier.height(16.dp))
-                      ActiveSessionsCard()
-                      Spacer(Modifier.height(16.dp))
-                      DangerZoneCard(profileViewModel)
-                  }
-                  Column(Modifier.weight(1f)) {
-                      MyStatisticsCard(uiState)
-                      Spacer(Modifier.height(16.dp))
-                      MembershipLevelCard()
-                      Spacer(Modifier.height(16.dp))
-                      QuickActionsProfileCard(profileViewModel)
-                  }
-              }
-          }
+        // Main content area
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            ProfileInformationCard(uiState, profileViewModel)
+            SecurityCard(uiState, profileViewModel)
+            MyStatisticsCard(uiState)
+            MembershipLevelCard()
+            ActiveSessionsCard()
+            DangerZoneCard(profileViewModel)
+        }
     }
 
     if (uiState.showEmailModal) {
@@ -828,6 +813,6 @@ fun ProfileGuestScreen(
 @Composable
 fun PreviewProfileScreen() {
     ForkEatTheme {
-        ProfileGuestScreen({}, {})
+        ProfileScreen()
     }
 }

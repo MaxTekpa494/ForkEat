@@ -23,11 +23,15 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.Menu
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Restaurant
@@ -88,12 +92,11 @@ import fr.uge.android.forkeat.designsystem.theme.Secondary700
 import fr.uge.android.forkeat.designsystem.theme.Secondary800
 import fr.uge.android.forkeat.designsystem.theme.Secondary900
 import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
-import fr.uge.android.forkeat.recipes.data.dto.Diet
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
-    onNavigateToExplore: () -> Unit = {},
+    onNavigateToExplore: () -> Unit,
 ) {
     Column(
         modifier = Modifier
@@ -112,45 +115,48 @@ fun HomeScreen(
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
+private fun ForkEatTopBarTitle() {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .clip(CircleShape)
+                .background(Secondary50),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.Default.Restaurant,
+                contentDescription = null,
+                tint = Secondary800,
+                modifier = Modifier.size(18.dp)
+            )
+        }
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = buildAnnotatedString {
+                withStyle(SpanStyle(color = Secondary900, fontWeight = FontWeight.Bold)) {
+                    append("Fork")
+                }
+                withStyle(SpanStyle(color = Secondary700, fontWeight = FontWeight.Bold)) {
+                    append("Eat")
+                }
+            },
+            fontSize = 22.sp,
+            maxLines = 1,
+            overflow = TextOverflow.Clip,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
 private fun ForkEatTopBar(
     onNavigateToLogin: () -> Unit,
     onNavigateToRegister: () -> Unit
-
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
-        title = {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(CircleShape)
-                        .background(Secondary50),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Restaurant,
-                        contentDescription = null,
-                        tint = Secondary800,
-                        modifier = Modifier.size(18.dp)
-                    )
-                }
-                Spacer(Modifier.width(8.dp))
-                Text(
-                    text = buildAnnotatedString {
-                        withStyle(SpanStyle(color = Secondary900, fontWeight = FontWeight.Bold)) {
-                            append("Fork")
-                        }
-                        withStyle(SpanStyle(color = Secondary700, fontWeight = FontWeight.Bold)) {
-                            append("Eat")
-                        }
-                    },
-                    fontSize = 22.sp,
-                    maxLines = 1,
-                    overflow = TextOverflow.Clip,
-                )
-            }
-        },
+        title = { ForkEatTopBarTitle() },
         actions = {
             IconButton(onClick = { menuExpanded = !menuExpanded }) {
                 Icon(
@@ -205,6 +211,73 @@ private fun ForkEatTopBar(
                     leadingIcon = {
                         Icon(Icons.Default.Email, contentDescription = null, tint = Secondary700)
                     },
+                )
+            }
+        },
+        colors = TopAppBarDefaults.topAppBarColors(
+            containerColor = Color.White.copy(alpha = 0.97f),
+        ),
+    )
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ForkEatLoggedInTopBar(
+    onNavigateToDashboard: () -> Unit,
+    onNavigateToProfile: () -> Unit,
+    onNavigateToWallet: () -> Unit,
+    onLogout: () -> Unit
+) {
+    var menuExpanded by remember { mutableStateOf(false) }
+    TopAppBar(
+        title = { ForkEatTopBarTitle() },
+        actions = {
+            IconButton(onClick = { menuExpanded = !menuExpanded }) {
+                Icon(
+                    imageVector = if (menuExpanded) Icons.Default.Close else Icons.Default.Menu,
+                    contentDescription = "Menu",
+                    tint = Secondary800,
+                )
+            }
+            DropdownMenu(
+                expanded = menuExpanded,
+                onDismissRequest = { menuExpanded = false },
+                shape = RoundedCornerShape(16.dp),
+                containerColor = Color.White,
+                shadowElevation = 8.dp,
+                border = BorderStroke(1.dp, Gray100),
+            ) {
+                Text(
+                    text = "MENU",
+                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                    fontSize = 10.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = Gray500,
+                    letterSpacing = 1.sp,
+                )
+                DropdownMenuItem(
+                    text = { Text("Dashboard", fontWeight = FontWeight.SemiBold, color = Secondary900) },
+                    onClick = { menuExpanded = false; onNavigateToDashboard() },
+                    leadingIcon = { Icon(Icons.Default.Dashboard, contentDescription = null, tint = Secondary700) },
+                )
+                DropdownMenuItem(
+                    text = { Text("Mon Profil", fontWeight = FontWeight.SemiBold, color = Secondary900) },
+                    onClick = { menuExpanded = false; onNavigateToProfile() },
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Secondary700) },
+                )
+                DropdownMenuItem(
+                    text = { Text("Mon Wallet", fontWeight = FontWeight.SemiBold, color = Secondary900) },
+                    onClick = { menuExpanded = false; onNavigateToWallet() },
+                    leadingIcon = { Icon(Icons.Default.Wallet, contentDescription = null, tint = Secondary700) },
+                )
+                HorizontalDivider(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                    color = Gray100,
+                )
+                DropdownMenuItem(
+                    text = { Text("Deconnexion", fontWeight = FontWeight.SemiBold, color = Primary500) },
+                    onClick = { menuExpanded = false; onLogout() },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, tint = Primary500) },
                 )
             }
         },
@@ -279,7 +352,7 @@ private fun HeroSection(
                 modifier = Modifier.padding(horizontal = 8.dp),
             )
 
-            Spacer(Modifier.height(24.dp))
+            Spacer(Modifier.height(32.dp))
 
             OutlinedButton(
                 onClick = onExplorerClick,
@@ -541,6 +614,8 @@ private fun NavBar(
 @Composable
 fun ForkEatScaffold(
     navController: NavHostController? = null,
+    isLoggedIn: Boolean = false,
+    onLogout: () -> Unit = {},
     showBars: Boolean = true,
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -556,32 +631,37 @@ fun ForkEatScaffold(
     Scaffold(
         topBar = {
           if (showBars) {
-            ForkEatTopBar(
-                onNavigateToLogin = {
-                    navController?.navigate("login")
-                },
-                onNavigateToRegister = {
-                    navController?.navigate("register")
-                },
-            )
+            if (isLoggedIn) {
+              ForkEatLoggedInTopBar(
+                onNavigateToDashboard = { navController?.navigate("dashboard") },
+                onNavigateToProfile = { navController?.navigate("profile") },
+                onNavigateToWallet = { navController?.navigate("wallet") },
+                onLogout = onLogout
+              )
+            } else {
+              ForkEatTopBar(
+                onNavigateToLogin = { navController?.navigate("login") },
+                onNavigateToRegister = { navController?.navigate("register") },
+              )
+            }
           }
         },
         bottomBar = {
-            if (showBars) {
-                NavBar(
-                    selectedTab = selectedTab,
-                    onTabSelected = { tab ->
-                        val targetRoute = when (tab) {
-                            NavBarTab.HOME -> "home"
-                            NavBarTab.SEARCH -> "recipes"
-                            NavBarTab.PROFILE -> "profile"
-                        }
-                        if (currentRoute != targetRoute) {
-                            navController?.navigate(targetRoute)
-                        }
-                    }
-                )
-            }
+          if (showBars) {
+            NavBar(
+              selectedTab = selectedTab,
+              onTabSelected = { tab ->
+                val targetRoute = when (tab) {
+                  NavBarTab.HOME -> "home"
+                  NavBarTab.SEARCH -> "recipes"
+                  NavBarTab.PROFILE -> "profile"
+                }
+                if (currentRoute != targetRoute) {
+                  navController?.navigate(targetRoute)
+                }
+              }
+            )
+          }
         }
     ) { paddingValues -> content(paddingValues) }
 }

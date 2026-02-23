@@ -10,7 +10,6 @@
 <div layout:fragment="content">
 
     <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-
         <div th:if="${param.from != null && param.from[0] == 'dashboard'}" class="mb-6">
             <a th:href="@{/dashboard}" class="inline-flex items-center text-secondary-600 hover:text-primary-500 transition-colors duration-200 font-medium group">
                 <div class="w-8 h-8 rounded-full bg-white border border-gray-200 flex items-center justify-center mr-3 group-hover:border-primary-200 group-hover:bg-primary-50 shadow-sm transition-all">
@@ -19,7 +18,69 @@
                 Retour au tableau de bord
             </a>
         </div>
+    </div>
 
+    <!-- Toast paiement -->
+    <div th:if="${paymentSuccess}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center">
+            <i class="fas fa-check-circle text-green-500 text-xl mr-3"></i>
+            <div>
+                <div class="font-medium text-green-800">Paiement en cours de traitement</div>
+                <div class="text-sm text-green-600">Votre solde sera mis a jour dans quelques instants.</div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${paymentCancel}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+        <div class="bg-orange-50 border border-orange-200 rounded-xl p-4 flex items-center">
+            <i class="fas fa-exclamation-circle text-orange-500 text-xl mr-3"></i>
+            <div>
+                <div class="font-medium text-orange-800">Paiement annule</div>
+                <div class="text-sm text-orange-600">Vous pouvez reessayer a tout moment.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast retrait -->
+    <div th:if="${withdrawalSuccess}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center">
+            <i class="fas fa-check-circle text-green-500 text-xl mr-3"></i>
+            <div>
+                <div class="font-medium text-green-800">Retrait initie avec succes</div>
+                <div class="text-sm text-green-600">Les fonds seront vires sur votre compte bancaire dans 1 a 3 jours ouvrés.</div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${withdrawalError}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center">
+            <i class="fas fa-times-circle text-red-500 text-xl mr-3"></i>
+            <div>
+                <div class="font-medium text-red-800">Retrait impossible</div>
+                <div class="text-sm text-red-600" th:text="${withdrawalError}">Erreur lors du retrait.</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast compte bancaire -->
+    <div th:if="${bankInfoSuccess}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+        <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center">
+            <i class="fas fa-university text-green-500 text-xl mr-3"></i>
+            <div>
+                <div class="font-medium text-green-800">Compte bancaire enregistre</div>
+                <div class="text-sm text-green-600">Vous pouvez maintenant effectuer des retraits.</div>
+            </div>
+        </div>
+    </div>
+
+    <div th:if="${bankInfoError}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
+        <div class="bg-red-50 border border-red-200 rounded-xl p-4 flex items-center">
+            <i class="fas fa-times-circle text-red-500 text-xl mr-3"></i>
+            <div>
+                <div class="font-medium text-red-800">Erreur compte bancaire</div>
+                <div class="text-sm text-red-600" th:text="${bankInfoError}">Erreur lors de l'enregistrement.</div>
+            </div>
+        </div>
     </div>
 
     <!-- Header -->
@@ -31,7 +92,7 @@
                         <i class="fas fa-wallet mr-3"></i>
                         Mon Wallet
                     </h1>
-                    <p class="text-secondary-200">Gérez vos fonds et consultez vos transactions</p>
+                    <p class="text-secondary-200">Gerez vos fonds et consultez vos transactions</p>
                 </div>
             </div>
         </div>
@@ -44,7 +105,6 @@
                 <!-- Carte virtuelle -->
                 <div class="lg:col-span-2">
                     <div class="bg-gradient-to-br from-primary-500 via-primary-600 to-orange-600 rounded-3xl p-8 text-white shadow-2xl mb-8 relative overflow-hidden">
-                        <!-- Décoration -->
                         <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
                         <div class="absolute bottom-0 left-0 w-48 h-48 bg-yellow-300/10 rounded-full blur-2xl"></div>
 
@@ -60,7 +120,7 @@
                             <div class="mb-8">
                                 <div class="text-sm text-primary-100 mb-2 font-medium">Solde disponible</div>
                                 <div class="text-5xl font-bold tracking-tight">
-                                    <span th:text="${#numbers.formatDecimal(balance / 100.0, 1, 2)}">0.00</span> €
+                                    <span th:text="${#numbers.formatDecimal(balance / 100.0, 1, 2)}">0.00</span> &euro;
                                 </div>
                             </div>
 
@@ -83,7 +143,8 @@
 
                     <!-- Actions rapides -->
                     <div class="grid grid-cols-2 gap-4 mb-8">
-                        <button class="bg-white border-2 border-gray-200 hover:border-primary-500 rounded-2xl p-6 text-center transition group">
+                        <button onclick="document.getElementById('rechargeModal').classList.remove('hidden')"
+                                class="bg-white border-2 border-gray-200 hover:border-primary-500 rounded-2xl p-6 text-center transition group">
                             <div class="w-12 h-12 bg-primary-50 rounded-xl flex items-center justify-center mb-3 mx-auto group-hover:bg-primary-500 transition">
                                 <i class="fas fa-plus text-2xl text-primary-500 group-hover:text-white transition"></i>
                             </div>
@@ -91,7 +152,8 @@
                             <div class="text-xs text-gray-500 mt-1">Ajouter des fonds</div>
                         </button>
 
-                        <button class="bg-white border-2 border-gray-200 hover:border-secondary-500 rounded-2xl p-6 text-center transition group">
+                        <button onclick="document.getElementById('withdrawModal').classList.remove('hidden')"
+                                class="bg-white border-2 border-gray-200 hover:border-secondary-500 rounded-2xl p-6 text-center transition group">
                             <div class="w-12 h-12 bg-secondary-50 rounded-xl flex items-center justify-center mb-3 mx-auto group-hover:bg-secondary-800 transition">
                                 <i class="fas fa-arrow-down text-2xl text-secondary-800 group-hover:text-white transition"></i>
                             </div>
@@ -109,66 +171,114 @@
                             </h2>
                         </div>
 
-                        <div class="p-8 text-center">
+                        <div th:if="${#lists.isEmpty(transactions)}" class="p-8 text-center">
                             <i class="fas fa-receipt text-4xl text-gray-300 mb-4"></i>
                             <p class="text-gray-500 font-medium">Aucune transaction pour le moment</p>
-                            <p class="text-gray-400 text-sm mt-2">Vos transactions apparaîtront ici</p>
+                            <p class="text-gray-400 text-sm mt-2">Vos transactions apparaitront ici</p>
                         </div>
 
-                        <!-- Template pour les transactions futures -->
-                        <!--
-                        <div class="divide-y divide-gray-100">
+                        <div th:unless="${#lists.isEmpty(transactions)}"
+                             class="divide-y divide-gray-100 overflow-y-auto"
+                             style="max-height: 288px;">
                             <div th:each="transaction : ${transactions}"
                                  class="p-4 hover:bg-gray-50 transition flex items-center justify-between">
                                 <div class="flex items-center space-x-4">
-                                    <div class="w-10 h-10 rounded-full bg-primary-50 flex items-center justify-center">
-                                        <i class="fas fa-arrow-up text-primary-500"
-                                           th:if="${transaction.type == 'RECHARGE'}"></i>
+                                    <!-- Icone selon le type -->
+                                    <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                                         th:classappend="${transaction.type.name() == 'RECHARGE'} ? 'bg-green-50' :
+                                                         (${transaction.type.name() == 'WITHDRAWAL'} ? 'bg-blue-50' : 'bg-red-50')">
+                                        <i class="fas fa-arrow-up text-green-500"
+                                           th:if="${transaction.type.name() == 'RECHARGE'}"></i>
+                                        <i class="fas fa-university text-blue-500"
+                                           th:if="${transaction.type.name() == 'WITHDRAWAL'}"></i>
                                         <i class="fas fa-heart text-red-500"
-                                           th:if="${transaction.type == 'SUPER_LIKE'}"></i>
+                                           th:if="${transaction.type.name() == 'SUPER_LIKE'}"></i>
+                                        <i class="fas fa-exchange-alt text-purple-500"
+                                           th:if="${transaction.type.name() == 'REDISTRIBUTION'}"></i>
                                     </div>
                                     <div>
+                                        <!-- Libelle -->
                                         <div class="font-medium text-secondary-900"
-                                             th:text="${transaction.type}">Type</div>
+                                             th:text="${transaction.type.name() == 'RECHARGE'} ? 'Rechargement' :
+                                                       (${transaction.type.name() == 'WITHDRAWAL'} ? 'Retrait bancaire' :
+                                                       (${transaction.type.name() == 'SUPER_LIKE'} ? 'Super Like' : 'Redistribution'))">Type</div>
+                                        <!-- Date -->
                                         <div class="text-xs text-gray-500"
-                                             th:text="${#temporals.format(transaction.createdAt, 'dd/MM/yyyy HH:mm')}">
-                                            Date
-                                        </div>
+                                             th:text="${#temporals.format(transaction.createdAt, 'dd/MM/yyyy HH:mm')}">Date</div>
+                                        <!-- Badge statut pour les retraits -->
+                                        <span th:if="${transaction.type.name() == 'WITHDRAWAL'}"
+                                              class="text-xs font-medium px-2 py-0.5 rounded-full"
+                                              th:classappend="${transaction.status.name() == 'SUCCEEDED'} ? 'bg-green-100 text-green-700' :
+                                                              (${transaction.status.name() == 'PENDING'} ? 'bg-yellow-100 text-yellow-700' : 'bg-red-100 text-red-700')"
+                                              th:text="${transaction.status.name() == 'SUCCEEDED'} ? 'Vire' :
+                                                        (${transaction.status.name() == 'PENDING'} ? 'En cours' : 'Echoue')">Statut</span>
                                     </div>
                                 </div>
+                                <!-- Montant -->
                                 <div class="font-bold text-lg"
-                                     th:classappend="${transaction.type == 'RECHARGE'} ? 'text-green-600' : 'text-red-600'"
-                                     th:text="${transaction.type == 'RECHARGE' ? '+' : '-'} +
-                                               ${#numbers.formatDecimal(transaction.amount / 100.0, 1, 2)} + ' €'">
-                                    +10.00 €
+                                     th:classappend="${transaction.type.name() == 'RECHARGE'} ? 'text-green-600' :
+                                                     (${transaction.type.name() == 'WITHDRAWAL'} ? 'text-blue-600' : 'text-red-600')"
+                                     th:text="${(transaction.type.name() == 'RECHARGE' ? '+' : '-') + #numbers.formatDecimal(transaction.amount / 100.0, 1, 2) + ' €'}">
+                                    +10.00 &euro;
                                 </div>
                             </div>
                         </div>
-                        -->
                     </div>
                 </div>
 
-                <!-- Sidebar Stats -->
+                <!-- Sidebar -->
                 <div class="space-y-6">
+                    <!-- Compte bancaire -->
+                    <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+                        <h3 class="font-bold text-lg text-secondary-900 mb-4">
+                            <i class="fas fa-university mr-2 text-secondary-600"></i>
+                            Compte bancaire
+                        </h3>
+
+                        <div th:if="${bankInfo != null}">
+                            <div class="flex items-center space-x-3 mb-4">
+                                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
+                                    <i class="fas fa-check text-green-600"></i>
+                                </div>
+                                <div>
+                                    <div class="font-medium text-secondary-900" th:text="${bankInfo.bankName}">Nom banque</div>
+                                    <div class="text-xs text-gray-500">Compte enregistre</div>
+                                </div>
+                            </div>
+                            <button onclick="document.getElementById('bankInfoModal').classList.remove('hidden')"
+                                    class="w-full text-sm text-secondary-600 hover:text-primary-500 font-medium transition">
+                                Modifier le compte
+                            </button>
+                        </div>
+
+                        <div th:if="${bankInfo == null}">
+                            <p class="text-sm text-gray-500 mb-4">Aucun compte enregistre. Ajoutez votre IBAN pour pouvoir retirer vos fonds.</p>
+                            <button onclick="document.getElementById('bankInfoModal').classList.remove('hidden')"
+                                    class="w-full bg-secondary-800 hover:bg-secondary-900 text-white font-bold py-2 px-4 rounded-xl transition text-sm">
+                                <i class="fas fa-plus mr-2"></i>
+                                Ajouter un compte
+                            </button>
+                        </div>
+                    </div>
+
                     <!-- Statistiques -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
                         <h3 class="font-bold text-lg text-secondary-900 mb-4">Statistiques</h3>
-
                         <div class="space-y-4">
                             <div class="flex items-center justify-between">
-                                <div class="text-sm text-gray-600">Total dépensé</div>
-                                <div class="font-bold text-secondary-900">0.00 €</div>
+                                <div class="text-sm text-gray-600">Total depense</div>
+                                <div class="font-bold text-secondary-900">0.00 &euro;</div>
                             </div>
                             <div class="flex items-center justify-between">
-                                <div class="text-sm text-gray-600">Total gagné</div>
-                                <div class="font-bold text-green-600">0.00 €</div>
+                                <div class="text-sm text-gray-600">Total gagne</div>
+                                <div class="font-bold text-green-600">0.00 &euro;</div>
                             </div>
                             <div class="flex items-center justify-between">
-                                <div class="text-sm text-gray-600">Super Likes envoyés</div>
+                                <div class="text-sm text-gray-600">Super Likes envoyes</div>
                                 <div class="font-bold text-secondary-900">0</div>
                             </div>
                             <div class="flex items-center justify-between">
-                                <div class="text-sm text-gray-600">Super Likes reçus</div>
+                                <div class="text-sm text-gray-600">Super Likes recus</div>
                                 <div class="font-bold text-primary-500">0</div>
                             </div>
                         </div>
@@ -191,6 +301,179 @@
             </div>
         </div>
     </section>
+
+    <!-- Modal Rechargement -->
+    <div id="rechargeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="font-display font-bold text-xl text-secondary-900">Recharger mon wallet</h3>
+                <button onclick="document.getElementById('rechargeModal').classList.add('hidden')"
+                        class="text-gray-400 hover:text-gray-600 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <form th:action="@{/wallet/recharge}" method="post">
+                <div class="mb-6">
+                    <label for="amount" class="block text-sm font-medium text-gray-700 mb-2">Montant (en euros)</label>
+                    <div class="relative">
+                        <input type="number" id="amount" name="amount" min="1" max="500" step="1" required
+                               placeholder="Ex: 10"
+                               class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-primary-500 focus:ring-primary-500 text-lg font-bold text-secondary-900">
+                        <div class="absolute inset-y-0 right-0 flex items-center pr-4">
+                            <span class="text-gray-400 font-bold text-lg">&euro;</span>
+                        </div>
+                    </div>
+                    <p class="text-xs text-gray-500 mt-2">Minimum : 1&euro; - Maximum : 500&euro;</p>
+                </div>
+
+                <div class="grid grid-cols-4 gap-2 mb-6">
+                    <button type="button" onclick="document.getElementById('amount').value=5"
+                            class="py-2 px-3 border-2 border-gray-200 rounded-lg text-sm font-bold text-secondary-900 hover:border-primary-500 hover:bg-primary-50 transition">5&euro;</button>
+                    <button type="button" onclick="document.getElementById('amount').value=10"
+                            class="py-2 px-3 border-2 border-gray-200 rounded-lg text-sm font-bold text-secondary-900 hover:border-primary-500 hover:bg-primary-50 transition">10&euro;</button>
+                    <button type="button" onclick="document.getElementById('amount').value=20"
+                            class="py-2 px-3 border-2 border-gray-200 rounded-lg text-sm font-bold text-secondary-900 hover:border-primary-500 hover:bg-primary-50 transition">20&euro;</button>
+                    <button type="button" onclick="document.getElementById('amount').value=50"
+                            class="py-2 px-3 border-2 border-gray-200 rounded-lg text-sm font-bold text-secondary-900 hover:border-primary-500 hover:bg-primary-50 transition">50&euro;</button>
+                </div>
+
+                <button type="submit"
+                        class="w-full bg-primary-500 hover:bg-primary-600 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg shadow-primary-500/25">
+                    <i class="fas fa-credit-card mr-2"></i>
+                    Payer avec Stripe
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Retrait -->
+    <div id="withdrawModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="font-display font-bold text-xl text-secondary-900">Retirer des fonds</h3>
+                <button onclick="document.getElementById('withdrawModal').classList.add('hidden')"
+                        class="text-gray-400 hover:text-gray-600 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <!-- Pas de compte bancaire enregistre -->
+            <div th:if="${bankInfo == null}" class="text-center py-4">
+                <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <i class="fas fa-university text-2xl text-orange-500"></i>
+                </div>
+                <p class="text-secondary-900 font-medium mb-2">Aucun compte bancaire enregistre</p>
+                <p class="text-sm text-gray-500 mb-6">Vous devez d'abord ajouter votre IBAN pour pouvoir retirer des fonds.</p>
+                <button onclick="document.getElementById('withdrawModal').classList.add('hidden'); document.getElementById('bankInfoModal').classList.remove('hidden')"
+                        class="w-full bg-secondary-800 hover:bg-secondary-900 text-white font-bold py-3 px-6 rounded-xl transition">
+                    <i class="fas fa-plus mr-2"></i>
+                    Ajouter un compte bancaire
+                </button>
+            </div>
+
+            <!-- Compte bancaire present -->
+            <div th:if="${bankInfo != null}">
+                <div class="bg-gray-50 rounded-xl p-4 mb-6 flex items-center space-x-3">
+                    <div class="w-10 h-10 bg-secondary-100 rounded-full flex items-center justify-center">
+                        <i class="fas fa-university text-secondary-700"></i>
+                    </div>
+                    <div>
+                        <div class="font-medium text-secondary-900" th:text="${bankInfo.bankName}">Nom banque</div>
+                        <div class="text-xs text-gray-500">Compte enregistre</div>
+                    </div>
+                    <button onclick="document.getElementById('withdrawModal').classList.add('hidden'); document.getElementById('bankInfoModal').classList.remove('hidden')"
+                            class="ml-auto text-xs text-primary-500 hover:text-primary-600 font-medium">
+                        Modifier
+                    </button>
+                </div>
+
+                <form th:action="@{/wallet/withdraw}" method="post">
+                    <div class="mb-6">
+                        <label for="withdrawAmount" class="block text-sm font-medium text-gray-700 mb-2">Montant a retirer (en euros)</label>
+                        <div class="relative">
+                            <input type="number" id="withdrawAmount" name="amount" min="1" step="1" required
+                                   th:attr="max=${balance / 100}"
+                                   placeholder="Ex: 10"
+                                   class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-secondary-500 text-lg font-bold text-secondary-900">
+                            <div class="absolute inset-y-0 right-0 flex items-center pr-4">
+                                <span class="text-gray-400 font-bold text-lg">&euro;</span>
+                            </div>
+                        </div>
+                        <p class="text-xs text-gray-500 mt-2">
+                            Solde disponible :
+                            <span class="font-bold text-secondary-900"
+                                  th:text="${#numbers.formatDecimal(balance / 100.0, 1, 2) + ' €'}">0.00 €</span>
+                        </p>
+                    </div>
+
+                    <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-6 text-xs text-blue-700">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Le virement arrive en 1 a 3 jours ouvrés selon votre banque.
+                    </div>
+
+                    <button type="submit"
+                            class="w-full bg-secondary-800 hover:bg-secondary-900 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg">
+                        <i class="fas fa-arrow-down mr-2"></i>
+                        Retirer via virement bancaire
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Compte bancaire -->
+    <div id="bankInfoModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+        <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-center justify-between mb-6">
+                <h3 class="font-display font-bold text-xl text-secondary-900">
+                    <span th:text="${bankInfo != null} ? 'Modifier le compte bancaire' : 'Ajouter un compte bancaire'">Compte bancaire</span>
+                </h3>
+                <button onclick="document.getElementById('bankInfoModal').classList.add('hidden')"
+                        class="text-gray-400 hover:text-gray-600 transition">
+                    <i class="fas fa-times text-xl"></i>
+                </button>
+            </div>
+
+            <div class="bg-blue-50 border border-blue-200 rounded-xl p-3 mb-6 text-xs text-blue-700">
+                <i class="fas fa-lock mr-1"></i>
+                Vos coordonnees bancaires sont transmises de facon securisee. Elles ne sont pas stockees sur nos serveurs.
+            </div>
+
+            <form th:action="@{/wallet/bank-info}" method="post">
+                <div class="mb-4">
+                    <label for="bankName" class="block text-sm font-medium text-gray-700 mb-2">Nom du titulaire du compte</label>
+                    <input type="text" id="bankName" name="bankName" required
+                           th:value="${bankInfo != null} ? ${bankInfo.bankName} : ''"
+                           placeholder="Ex: Jean Dupont"
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-secondary-500 text-secondary-900">
+                </div>
+
+                <div class="mb-4">
+                    <label for="iban" class="block text-sm font-medium text-gray-700 mb-2">IBAN</label>
+                    <input type="text" id="iban" name="iban" required
+                           placeholder="Ex: FR7630006000011234567890189"
+                           maxlength="34"
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-secondary-500 font-mono text-secondary-900 uppercase">
+                    <p class="text-xs text-gray-500 mt-1">Sans espaces, en majuscules</p>
+                </div>
+
+                <div class="mb-6">
+                    <label for="bic" class="block text-sm font-medium text-gray-700 mb-2">BIC / SWIFT</label>
+                    <input type="text" id="bic" name="bic" required
+                           placeholder="Ex: BNPAFRPPXXX"
+                           maxlength="11"
+                           class="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-secondary-500 font-mono text-secondary-900 uppercase">
+                </div>
+
+                <button type="submit"
+                        class="w-full bg-secondary-800 hover:bg-secondary-900 text-white font-bold py-3 px-6 rounded-xl transition shadow-lg">
+                    <i class="fas fa-save mr-2"></i>
+                    Enregistrer le compte
+                </button>
+            </form>
+        </div>
+    </div>
 
 </div>
 </body>

@@ -69,14 +69,14 @@ class UserRegistrationServiceTest {
 
       when(userPersistence.existsByEmail("test@example.com")).thenReturn(false);
       when(userPersistence.existsByUsername("testuser")).thenReturn(false);
-      when(passwordEncoder.encode("password123")).thenReturn("hashedPassword123");
+      when(passwordEncoder.encode("Password123")).thenReturn("hashedPassword123");
       when(userPersistence.saveUser(any(User.class), anyString())).thenReturn(savedUser);
       when(walletService.createWallet(userId)).thenReturn(wallet);
 
       doNothing().when(emailVerificationService).sendEmailConfirmation(any(UUID.class), anyString());
 
       User result = userRegistrationService.registerUser(
-              new UserRegister("testuser", "John", "Doe", "password123", "test@example.com")
+              new UserRegister("testuser", "John", "Doe", "Password123", "test@example.com")
       );
 
       assertNotNull(result);

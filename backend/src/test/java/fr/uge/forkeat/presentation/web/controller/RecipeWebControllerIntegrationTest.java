@@ -10,6 +10,7 @@ import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
@@ -39,6 +42,9 @@ class RecipeWebControllerIntegrationTest extends AbstractIntegrationTest {
     private final RecipeRepository recipeRepository;
 
     private final UserRepository userRepository;
+
+    @MockitoBean
+    private AuthenticationPort authenticationPort;
 
     private UserEntity savedAuthor;
 
@@ -61,6 +67,9 @@ class RecipeWebControllerIntegrationTest extends AbstractIntegrationTest {
         author.setStatus(UserStatus.ACTIVE);
         author.setAuthMode(AuthMode.LOCAL);
         savedAuthor = userRepository.save(author);
+
+        // Mock authentication to return the test user's username
+        when(authenticationPort.extractUsername()).thenReturn("chef_web");
     }
 
     @Nested
@@ -182,6 +191,18 @@ class RecipeWebControllerIntegrationTest extends AbstractIntegrationTest {
         }
     }
 
+    @Nested
+    class MyRecipes {
+
+        @Test
+        void shouldReturnMyRecipesView() throws Exception {
+            mockMvc.perform(get("/recipes/my-recipes"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("recipes/my-recipes"))
+                    .andExpect(model().attributeExists("recipes"));
+        }
+    }
+
     private RecipeEntity createAndSaveRecipe(String title, RecipeStatus status, RecipeEntity parent) {
         var recipe = new RecipeEntity();
         recipe.setTitle(title);
@@ -192,6 +213,8 @@ class RecipeWebControllerIntegrationTest extends AbstractIntegrationTest {
         recipe.setParent(parent);
         recipe.setStepByStepInstructions(List.of());
         recipe.setDietaryFlag(new HashMap<>());
+        recipe.setIngredients(List.of());
+        recipe.setAllergens(List.of());
         return recipeRepository.save(recipe);
     }
 }
