@@ -157,16 +157,10 @@ class MainActivity : ComponentActivity() {
                             )
                         }
                         composable("dashboard") {
-                            ForkEatScaffold(
-                                navController = navController,
-                                isLoggedIn = isLoggedIn,
-                                onLogout = logout
-                            ) {
-                                DashboardScreen(
-                                    onNavigateToProfile = { navController.navigate("profile") },
-                                    onNavigateToWallet = { navController.navigate("wallet") }
-                                )
-                            }
+                            DashboardScreen(
+                                onNavigateToProfile = { navController.navigate("profile") },
+                                onNavigateToWallet = { navController.navigate("wallet") }
+                            )
                         }
                         composable("profile") {
                             if (isLoggedIn) {
@@ -179,15 +173,9 @@ class MainActivity : ComponentActivity() {
                             }
                         }
                         composable("wallet") {
-                            ForkEatScaffold(
-                                navController = navController,
-                                isLoggedIn = isLoggedIn,
-                                onLogout = logout
-                            ) {
-                                WalletScreen(
-                                    onNavigateBack = { navController.popBackStack() }
-                                )
-                            }
+                            WalletScreen(
+                                onNavigateBack = { navController.popBackStack() }
+                            )
                         }
                         composable(
                             "recipes",
