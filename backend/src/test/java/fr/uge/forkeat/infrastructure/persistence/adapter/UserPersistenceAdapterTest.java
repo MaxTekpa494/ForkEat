@@ -1,5 +1,7 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
+import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jUserRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
@@ -27,6 +29,12 @@ class UserPersistenceAdapterTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private Neo4jUserRepository neo4jUserRepository;
+
+    @Mock
+    private Neo4jRecipeRepository neo4jRecipeRepository;
 
     @InjectMocks
     private UserPersistenceAdapter adapter;

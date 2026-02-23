@@ -1,19 +1,19 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.infrastructure.storage.R2StorageService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
-import fr.uge.forkeat.service.model.recipe.Allergen;
-import fr.uge.forkeat.service.model.recipe.Recipe;
-import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.port.StoragePort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -106,6 +106,11 @@ public class RecipeService {
   public Recipe findById(UUID id) {
     return recipePersistence.findById(id)
             .orElseThrow(() -> new RecipeNotFoundException(id));
+  }
+
+  public RecipeWithMetaData findRecipeWithMetaDataById(UUID id) {
+      return recipePersistence.findRecipeWithMetaDataById(id)
+              .orElseThrow(() -> new RecipeNotFoundException(id));
   }
 
   public List<Recipe> findByStatus(RecipeStatus status) {

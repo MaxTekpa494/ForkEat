@@ -17,6 +17,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -39,6 +42,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import fr.uge.android.forkeat.profile.ProfileGuestScreen
 import fr.uge.android.forkeat.wallet.WalletScreen
 import kotlin.collections.contains
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     private var pendingDeepLink: String? = null
@@ -87,135 +91,135 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
+              ForkEatScaffold(
+                navController = navController,
+                onLogout = logout,
+                isLoggedIn = isLoggedIn,
+                showBars = shouldShowBars
+              ) { innerPadding ->
+                NavHost(navController = navController, startDestination = "home", modifier = Modifier.padding(innerPadding)) {
+                  composable("home") {
+                    HomeScreen(
+                      onNavigateToExplore = { navController.navigate("recipes") }
+                    )
+                  }
+                  composable("login") {
+                    LoginScreen(
+                      onNavigateBack = { navController.navigate("home") },
+                      onNavigateToRegister = { navController.navigate("register") },
+                      onLoginSuccess = {
+                        isLoggedIn = true
+                        navController.navigate("recipes") {
+                          popUpTo("home") { inclusive = true }
+                        }
+                      },
+                      onForgotPassword = {
+                        navController.navigate("forgot-password")
+                      }
+                    )
+                  }
+                  composable("forgot-password") {
+                    ForgotPasswordScreen(
+                      onNavigateBack = { navController.popBackStack() },
+                      onAskingSuccess = { navController.navigate("forgot-password-code") }
+                    )
+                  }
+                  composable("forgot-password-code") {
+                    ForgotPasswordCodeScreen(
+                      onNavigateBack = { navController.popBackStack() },
+                      onCodeSuccess = { navController.navigate("login") }
+                    )
+                  }
+                  composable("new-user-login") {
+                    LoginScreen(
+                      onNavigateBack = { navController.navigate("home") },
+                      onNavigateToRegister = { navController.navigate("register") },
+                      onLoginSuccess = {
+                        isLoggedIn = true
+                        navController.navigate("recipes") {
+                          popUpTo("home") { inclusive = true }
+                        }
+                      },
+                      newUser = true
+                    )
+                  }
 
-
-                ForkEatScaffold(
-                    navController = navController,
-                    onLogout = logout,
-                    isLoggedIn = isLoggedIn,
-                    showBars = shouldShowBars
-                ) { innerPadding ->
-                    NavHost(
-                        navController = navController,
-                        startDestination = "home",
-                        modifier = Modifier.padding(innerPadding)
+                  composable("register") {
+                    RegisterScreen(
+                      onNavigateBack = { navController.popBackStack() },
+                      onNavigateToLogin = { navController.navigate("login") },
+                      onRegisterSuccess = {
+                        isLoggedIn = true
+                        navController.navigate("recipes") {
+                          popUpTo("home") { inclusive = true }
+                        }
+                      },
+                    )
+                  }
+                  composable("dashboard") {
+                    DashboardScreen(
+                      onNavigateToProfile = { navController.navigate("profile") },
+                      onNavigateToWallet = { navController.navigate("wallet") },
+                      onNavigateToRecipes = {
+                        navController.navigate("recipes")
+                      }
+                    )
+                  }
+                  composable("profile") {
+                    ProfileScreen()
+                  }
+                  composable("wallet") {
+                    WalletScreen(
+                      onNavigateBack = { navController.popBackStack() }
+                    )
+                  }
+                    composable(
+                      "recipes",
                     ) {
-                        composable("home") {
-                            HomeScreen(
-                                onNavigateToExplore = { navController.navigate("recipes") },
-                            )
-                        }
-                        composable("login") {
-                            LoginScreen(
-                                onNavigateBack = { navController.navigate("home") },
-                                onNavigateToRegister = { navController.navigate("register") },
-                                onLoginSuccess = {
-                                    isLoggedIn = true
-                                    navController.navigate("recipes") {
-                                        popUpTo("home") { inclusive = true }
-                                    }
-                                },
-                                onForgotPassword = {
-                                    navController.navigate("forgot-password")
-                                }
-                            )
-                        }
-                        composable("forgot-password") {
-                            ForgotPasswordScreen(
-                                onNavigateBack = { navController.popBackStack() },
-                                onAskingSuccess = { navController.navigate("forgot-password-code") }
-                            )
-                        }
-                        composable("forgot-password-code") {
-                            ForgotPasswordCodeScreen(
-                                onNavigateBack = { navController.popBackStack() },
-                                onCodeSuccess = { navController.navigate("login") }
-                            )
-                        }
-                        composable("new-user-login") {
-                            LoginScreen(
-                                onNavigateBack = { navController.navigate("home") },
-                                onNavigateToRegister = { navController.navigate("register") },
-                                onLoginSuccess = {
-                                    isLoggedIn = true
-                                    navController.navigate("recipes") {
-                                        popUpTo("home") { inclusive = true }
-                                    }
-                                },
-                                newUser = true
-                            )
-                        }
-                        composable("register") {
-                            RegisterScreen(
-                                onNavigateBack = { navController.popBackStack() },
-                                onNavigateToLogin = { navController.navigate("login") },
-                                onRegisterSuccess = {
-                                    navController.navigate("dashboard") {
-                                        popUpTo("home") { inclusive = true }
-                                    }
-                                }
-                            )
-                        }
-                        composable("dashboard") {
-                            DashboardScreen(
-                                onNavigateToProfile = { navController.navigate("profile") },
-                                onNavigateToWallet = { navController.navigate("wallet") }
-                            )
-                        }
-                        composable("profile") {
-                            if (isLoggedIn) {
-                                ProfileScreen()
-                            } else {
-                                ProfileGuestScreen(
-                                    onNavigateToLogin = { navController.navigate("login") },
-                                    onNavigateToRegister = { navController.navigate("register") }
-                                )
-                            }
-                        }
-                        composable("wallet") {
-                            WalletScreen(
-                                onNavigateBack = { navController.popBackStack() }
-                            )
-                        }
-                        composable(
-                            "recipes",
-                        ) { val recipes by recipesViewModel.recipes.collectAsState()
-                            val totalCount by recipesViewModel.totalCount.collectAsState()
-                            val errorMessage by recipesViewModel.errorMessage.collectAsState()
-                            val searchQuery by recipesViewModel.searchQuery.collectAsState()
-                            val selectedAllergens by recipesViewModel.selectedAllergens.collectAsState()
-                            val availableAllergens by recipesViewModel.availableAllergens.collectAsState()
-                            val isLoading by recipesViewModel.isLoading.collectAsState()
+                      val recipes by recipesViewModel.recipes.collectAsState()
+                      val totalCount by recipesViewModel.totalCount.collectAsState()
+                      val errorMessage by recipesViewModel.errorMessage.collectAsState()
+                      val searchQuery by recipesViewModel.searchQuery.collectAsState()
+                      val selectedAllergens by recipesViewModel.selectedAllergens.collectAsState()
+                      val availableAllergens by recipesViewModel.availableAllergens.collectAsState()
+                      val isLoading by recipesViewModel.isLoading.collectAsState()
 
-                            RecipesListScreen(
-                                recipes = recipes,
-                                totalCount = totalCount,
-                                onLoadMore = { recipesViewModel.loadMoreRecipes() },
-                                errorMessage = errorMessage,
-                                isLoading = isLoading,
-                                searchQuery = searchQuery,
-                                onSearchQueryChange = { query -> recipesViewModel.onSearchQueryChange(query) },
-                                onSearchSubmit = { recipesViewModel.onSearchSubmit() },
-                                availableAllergens = availableAllergens,
-                                selectedAllergens = selectedAllergens,
-                                onAllergenToggle = { allergen -> recipesViewModel.toggleAllergen(allergen) },
-                                onClearFilters = { recipesViewModel.clearFilters() },
-                                onRecipeClick = { id -> navController.navigate("recipes/$id") },
-                            )
-                        }
-                        composable("recipes/{id}") { backStackEntry ->
-                            val recipes = recipesViewModel.recipes.collectAsState().value
-                            val recipeId = backStackEntry.arguments?.getString("id")
-                            val recipe = recipes.find { it.id.toString() == recipeId }
-                            if (recipe != null) {
-                                RecipeDetailScreen(recipe = recipe, onBack = { navController.popBackStack() })
-                            } else {
-                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                    Text("Recette introuvable", color = Color.Red)
-                                }
-                            }
-                        }
+                      RecipesListScreen(
+                        recipes = recipes,
+                        totalCount = totalCount,
+                        onLoadMore = { recipesViewModel.loadMoreRecipes() },
+                        errorMessage = errorMessage,
+                        isLoading = isLoading,
+                        searchQuery = searchQuery,
+                        onSearchQueryChange = { query -> recipesViewModel.onSearchQueryChange(query) },
+                        onSearchSubmit = { recipesViewModel.onSearchSubmit() },
+                        availableAllergens = availableAllergens,
+                        selectedAllergens = selectedAllergens,
+                        onAllergenToggle = { allergen -> recipesViewModel.toggleAllergen(allergen) },
+                        onClearFilters = { recipesViewModel.clearFilters() },
+                        onRecipeClick = { id -> navController.navigate("recipes/$id") },
+                      )
                     }
+                    composable("recipes/{id}") { backStackEntry ->
+                      recipesViewModel.loadRecipeWithId(
+                        UUID.fromString(
+                          backStackEntry.arguments?.getString(
+                            "id"
+                          )
+                        )
+                      )
+                      val recipe = recipesViewModel.currentRecipe.collectAsState().value
+                      if (recipe != null) {
+                        RecipeDetailScreen(
+                          recipe = recipe,
+                          onBack = { navController.popBackStack() })
+                      } else {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                          Text("Recette introuvable", color = Color.Red)
+                        }
+                      }
+                    }
+                  }
                 }
             }
         }

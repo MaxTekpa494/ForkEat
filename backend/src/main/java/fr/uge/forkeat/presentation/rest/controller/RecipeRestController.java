@@ -1,18 +1,25 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
+import fr.uge.forkeat.presentation.dto.recipe.RecipeDetailsDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Objects;
@@ -24,11 +31,16 @@ public final class RecipeRestController {
 
 	private final RecipeService recipeService;
 	private final AuthenticationPort authPort;
+    private final UserService userService;
+    private final UserQueryService userQueryService;
+
 	private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
-	public RecipeRestController(RecipeService recipeService, AuthenticationPort authPort) {
+	public RecipeRestController(RecipeService recipeService, AuthenticationPort authPort, UserService userService, UserQueryService userQueryService) {
 		this.recipeService = recipeService;
 		this.authPort = authPort;
+        this.userService = userService;
+        this.userQueryService = userQueryService;
 	}
 
 //	@GetMapping("/create")
@@ -48,10 +60,25 @@ public final class RecipeRestController {
 	// Pourquoi pas faire un findwithparent avec {recipe:..., parent:...}
 	// Un endpoint recipe avec juste {recipe:...}
 	@GetMapping("/{id}")
-	public ResponseEntity<HttpResponse<RecipeDTO>> getRecipe(@PathVariable UUID id) {
+	public ResponseEntity<HttpResponse<RecipeDetailsDTO>> getRecipe(@PathVariable UUID id) {
 		Objects.requireNonNull(id);
-		var recipe = recipeService.findById(id);
-		var dto = RecipeDTOMapper.toDTO(recipe);
+        var recipe = recipeService.findRecipeWithMetaDataById(id);
+        User user = null;
+        UUID userId = null;
+        String userUsername = null;
+        if(SecurityContextHolder.getContext().getAuthentication() != null){
+            userUsername = authPort.extractUsername();
+        }
+        if(userUsername != null && !userUsername.equals("anonymousUser")) {
+            user = this.userQueryService.getUserByUsername(userUsername);
+            userId = user.id();
+        }
+        boolean hasLiked = false;
+        if(userId != null){
+            hasLiked = userService.hasLikedRecipe(userId, id);
+        }
+
+        var dto = RecipeDTOMapper.toRecipeWithMetaDataDTO(recipe, hasLiked);
 		return ResponseEntity.ok(new ItemResponse<>(dto));
 	}
 
@@ -65,4 +92,19 @@ public final class RecipeRestController {
 		return ResponseEntity.ok(new ListResponse<>(dtos, pageResult.total()));
 	}
 
+    @PostMapping("/{id}/like")
+    public ResponseEntity<?> likeRecipe(@PathVariable UUID id) {
+        var user = this.userQueryService.getUserByUsername(authPort.extractUsername());
+        this.recipeService.findById(id);
+        this.userService.likeRecipe(user.id(), id);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}/like")
+    public ResponseEntity<?> unlikeRecipe(@PathVariable UUID id) {
+        var user = this.userQueryService.getUserByUsername(authPort.extractUsername());
+        this.recipeService.findById(id);
+        this.userService.unlikeRecipe(user.id(), id);
+        return ResponseEntity.ok().build();
+    }
 }

@@ -2,16 +2,14 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.model.PageResult;
-import fr.uge.forkeat.service.model.recipe.Allergen;
-import fr.uge.forkeat.service.model.recipe.Recipe;
-import fr.uge.forkeat.service.model.recipe.RecipeIngredient;
-import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import jakarta.persistence.EntityManager;
+import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -25,6 +23,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
   private final UserRepository userRepository;
   private final AllergenRepository allergenRepository;
   private final IngredientRepository ingredientRepository;
+  private final Neo4jRecipeRepository neo4jRecipeRepository;
   private final RecipeAllergenRepository recipeAllergenRepository;
   private final RecipeIngredientRepository recipeIngredientRepository;
 
@@ -33,7 +32,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
   public RecipePersistenceAdapter(RecipeRepository recipeRepository, UserRepository userRepository,
                                   AllergenRepository allergenRepository, IngredientRepository ingredientRepository,
                                   RecipeAllergenRepository recipeAllergenRepository, RecipeIngredientRepository recipeIngredientRepository,
-                                  EntityManager entityManager) {
+                                  EntityManager entityManager, Neo4jRecipeRepository neo4jRecipeRepository) {
     this.recipeRepository = recipeRepository;
     this.userRepository = userRepository;
     this.allergenRepository = allergenRepository;
@@ -41,12 +40,24 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     this.recipeAllergenRepository = recipeAllergenRepository;
     this.recipeIngredientRepository = recipeIngredientRepository;
     this.entityManager = entityManager;
+    this.neo4jRecipeRepository = neo4jRecipeRepository;
   }
 
   @Override
   public Optional<Recipe> findById(UUID id) {
     Objects.requireNonNull(id);
     return recipeRepository.findById(id).map(RecipeEntityMapper::toDomain);
+  }
+
+  @Override
+  public Optional<RecipeWithMetaData> findRecipeWithMetaDataById(UUID recipeId){
+      Objects.requireNonNull(recipeId);
+      var recipe = recipeRepository.findById(recipeId).map(RecipeEntityMapper::toDomain);
+      if(recipe.isEmpty()){
+          return Optional.empty();
+      }
+      var metaData = new RecipeMetaData(nbLike(recipeId));
+      return Optional.of(new RecipeWithMetaData(recipe.get(), metaData));
   }
 
   @Override
@@ -191,6 +202,11 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
   @Override
   public void deleteById(UUID id) {
     recipeRepository.deleteById(id);
+  }
+
+
+  private long nbLike(UUID recipeId) {
+      return neo4jRecipeRepository.nbLike(recipeId);
   }
 
   /**
