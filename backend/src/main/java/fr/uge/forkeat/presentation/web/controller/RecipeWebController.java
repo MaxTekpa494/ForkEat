@@ -106,7 +106,9 @@ public class RecipeWebController {
     UUID userId = null;
     if(userDetails != null) {
         user = this.userQueryService.getUserByUsername(userDetails.getUsername());
-        userId = user.id();
+        if(user!= null){
+            userId = user.id();
+        }
     }
     boolean hasLiked = false;
     if(userId != null){

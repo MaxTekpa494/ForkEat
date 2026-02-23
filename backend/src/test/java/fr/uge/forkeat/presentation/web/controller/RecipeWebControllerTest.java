@@ -5,8 +5,12 @@ import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.junit.jupiter.api.Nested;
@@ -14,16 +18,19 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(RecipeWebController.class)
@@ -263,8 +270,48 @@ class RecipeWebControllerTest {
         }
     }
 
+    @Nested
+    class likeRecipe{
+
+        @Test
+        @WithMockUser(username = "john")
+        void likeShouldWork() throws Exception {
+
+            var id = UUID.randomUUID();
+
+
+            when(userQueryService.getUserByUsername(any())).thenReturn(createUser());
+            doNothing().when(userService).likeRecipe(any(), any());
+            mockMvc.perform(post("/recipes/{id}/like", id))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(view().name("redirect:/recipes/" + id));
+
+
+        }
+
+        @Test
+        @WithMockUser(username = "john")
+        void unlikeShouldWork() throws Exception {
+
+            var id = UUID.randomUUID();
+
+
+            when(userQueryService.getUserByUsername(any())).thenReturn(createUser());
+            doNothing().when(userService).unlikeRecipe(any(), any());
+            mockMvc.perform(post("/recipes/{id}/unlike", id))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(view().name("redirect:/recipes/" + id));
+
+
+        }
+    }
+
     private Recipe createRecipe(String title, RecipeStatus status) {
         return createRecipeWithId(UUID.randomUUID(), title, status, null);
+    }
+
+    private User createUser() {
+        return new User(UUID.randomUUID(), "Pax", "Maximus", "Prime", "aaa@aa.fr", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, Instant.now(), Instant.now(), true);
     }
 
     private Recipe createRecipeWithId(UUID id, String title, RecipeStatus status, UUID parentId) {

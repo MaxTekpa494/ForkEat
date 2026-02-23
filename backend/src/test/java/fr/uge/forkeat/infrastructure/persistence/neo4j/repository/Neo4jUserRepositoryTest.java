@@ -1,5 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.neo4j.repository;
 
+import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import org.junit.jupiter.api.*;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
@@ -19,7 +20,7 @@ import static org.junit.jupiter.api.Assertions.*;
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Transactional
-class Neo4jUserRepositoryTest {
+class Neo4jUserRepositoryTest extends AbstractIntegrationTest {
 
     @Autowired
     private Neo4jUserRepository userRepository;
