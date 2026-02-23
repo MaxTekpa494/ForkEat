@@ -17,6 +17,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -35,6 +38,7 @@ import fr.uge.android.forkeat.recipes.RecipeDetailScreen
 import fr.uge.android.forkeat.recipes.RecipesListScreen
 import fr.uge.android.forkeat.recipes.RecipesViewModel
 import fr.uge.android.forkeat.wallet.WalletScreen
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
 
@@ -149,7 +153,10 @@ class MainActivity : ComponentActivity() {
                         ) {
                             DashboardScreen(
                                 onNavigateToProfile = { navController.navigate("profile") },
-                                onNavigateToWallet = { navController.navigate("wallet") }
+                                onNavigateToWallet = { navController.navigate("wallet") },
+                                onNavigateToRecipes = {
+                                    navController.navigate("recipes")
+                                }
                             )
                         }
                     }
@@ -182,6 +189,7 @@ class MainActivity : ComponentActivity() {
                         val availableAllergensState = recipesViewModel.availableAllergens.collectAsState()
                         val isLoadingState = recipesViewModel.isLoading.collectAsState()
 
+
                         RecipesListScreen(
                             recipes = recipesState.value,
                             totalCount = totalCountState.value,
@@ -201,11 +209,10 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("recipes/{id}") { backStackEntry ->
-                        val recipes = recipesViewModel.recipes.collectAsState().value
-                        val recipeId = backStackEntry.arguments?.getString("id")
-                        val recipe = recipes.find { it.id.toString() == recipeId }
+                       recipesViewModel.loadRecipeWithId(UUID.fromString(backStackEntry.arguments?.getString("id")))
+                        val recipe = recipesViewModel.currentRecipe.collectAsState().value
                         if (recipe != null) {
-                            RecipeDetailScreen(recipe = recipe, onBack = { navController.popBackStack() })
+                            RecipeDetailScreen(recipe = recipe!!, onBack = { navController.popBackStack() })
                         } else {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Text("Recette introuvable", color = Color.Red)

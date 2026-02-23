@@ -7,14 +7,21 @@ import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.exception.ImageUploadException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.user.UserQueryService;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -28,11 +35,15 @@ import java.util.*;
 public class RecipeWebController {
   private final RecipeService recipeService;
   private final AuthenticationPort authPort;
+  private final UserService userService;
+  private final UserQueryService  userQueryService;
 
   private final Logger logger = LoggerFactory.getLogger(RecipeWebController.class);
 
-  public RecipeWebController(RecipeService recipeService, AuthenticationPort authPort) {
+  public RecipeWebController(RecipeService recipeService, UserService userService, UserQueryService userQueryService, AuthenticationPort authPort) {
     this.recipeService = recipeService;
+    this.userService = userService;
+    this.userQueryService = userQueryService;
     this.authPort = authPort;
   }
 
@@ -110,23 +121,41 @@ public class RecipeWebController {
   @GetMapping("/{id}")
   public String viewRecipe(@PathVariable UUID id, Model model) {
     Objects.requireNonNull(id);
-    var recipe = recipeService.findById(id);
-    var recipeDTO = RecipeDTOMapper.toDTO(recipe);
-    var currentUser = authPort.extractUsername();
-    if (!recipe.status().equals(RecipeStatus.PUBLISHED) && (currentUser == null || !currentUser.equals(recipe.usernameAuthor()))) {
-      throw new RecipeNotFoundException(id);
-    }
+      var recipe = recipeService.findRecipeWithMetaDataById(id);
+
+      var currentUser = authPort.extractUsername();
+      User user = null;
+      UUID userId = null;
+      if(currentUser != null) {
+          user = this.userQueryService.getUserByUsername(currentUser);
+          if(user!= null){
+              userId = user.id();
+          }
+      }
+      boolean hasLiked = false;
+      if(userId != null){
+          hasLiked = userService.hasLikedRecipe(userId, id);
+      }
+      var recipeDTO = RecipeDTOMapper.toRecipeWithMetaDataDTO(recipe, hasLiked);
+
+      if (!recipe.status().equals(RecipeStatus.PUBLISHED) && (currentUser == null || !currentUser.equals(recipe.usernameAuthor()))) {
+          throw new RecipeNotFoundException(id);
+      }
+
     if (recipe.isVariant()) {
       var parent = recipeService.findById(recipe.parentId());
       var parentDTO = RecipeDTOMapper.toDTO(parent);
       model.addAttribute("parent", parentDTO);
-      model.addAttribute("diff", RecipeDiff.compute(parentDTO, recipeDTO));
+      model.addAttribute("diff", RecipeDiff.compute(parentDTO, recipeDTO.toRecipeDTO()));
     }
 
     var isOwner = currentUser != null && currentUser.equals(recipe.usernameAuthor());
     var hasActiveDietaryFlags = recipeDTO.dietaryFlags() != null &&
         recipeDTO.dietaryFlags().values().stream().anyMatch(Boolean.TRUE::equals);
     logger.info("Recipe {} viewed by {}", recipe, currentUser);
+    if(user != null){
+        model.addAttribute("hasLiked", this.userService.hasLikedRecipe(user.id(), id));
+    }
     model.addAttribute("recipe", recipeDTO);
     model.addAttribute("isOwner", isOwner);
     model.addAttribute("isAuthenticated", currentUser != null);
@@ -246,4 +275,18 @@ public class RecipeWebController {
     }
   }
 
+
+    @PostMapping("/{id}/like")
+    public String likeRecipe(@PathVariable UUID id) {
+        var user = this.userQueryService.getUserByUsername(authPort.extractUsername());
+        this.userService.likeRecipe(user.id(), id);
+        return "redirect:/recipes/" + id;
+    }
+
+    @PostMapping("/{id}/unlike")
+    public String unlikeRecipe(@PathVariable UUID id) {
+        var user = this.userQueryService.getUserByUsername(authPort.extractUsername());
+        this.userService.unlikeRecipe(user.id(), id);
+        return "redirect:/recipes/" + id;
+    }
 }

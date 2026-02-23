@@ -1,30 +1,36 @@
 package fr.uge.forkeat.presentation.web.controller;
 
+import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.UserService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
-import fr.uge.forkeat.service.model.recipe.Allergen;
-import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
-import fr.uge.forkeat.service.model.recipe.Recipe;
-import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(RecipeWebController.class)
@@ -36,6 +42,15 @@ class RecipeWebControllerTest {
 
     @MockitoBean
     private RecipeService recipeService;
+
+    @MockitoBean
+    private UserService userService;
+
+    @MockitoBean
+    private UserQueryService userQueryService;
+
+    @MockitoBean
+    private JwtFilter jwtFilter;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
@@ -202,9 +217,9 @@ class RecipeWebControllerTest {
         @WithMockUser
         void shouldReturnDetailViewWhenRecipeExists() throws Exception {
             var id = UUID.randomUUID();
-            var recipe = createRecipeWithId(id, "Quiche Lorraine", RecipeStatus.PUBLISHED, null);
+            var recipe = createRecipeWithMetaDataWithId(id, "Quiche Lorraine", RecipeStatus.PUBLISHED, null);
 
-            when(recipeService.findById(id)).thenReturn(recipe);
+            when(recipeService.findRecipeWithMetaDataById(id)).thenReturn(recipe);
 
             mockMvc.perform(get("/recipes/{id}", id))
                     .andExpect(status().isOk())
@@ -218,9 +233,9 @@ class RecipeWebControllerTest {
             var parentId = UUID.randomUUID();
             var variantId = UUID.randomUUID();
             var parent = createRecipeWithId(parentId, "Recette originale", RecipeStatus.PUBLISHED, null);
-            var variant = createRecipeWithId(variantId, "Variante", RecipeStatus.PUBLISHED, parentId);
+            var variant = createRecipeWithMetaDataWithId(variantId, "Variante", RecipeStatus.PUBLISHED, parentId);
 
-            when(recipeService.findById(variantId)).thenReturn(variant);
+            when(recipeService.findRecipeWithMetaDataById(variantId)).thenReturn(variant);
             when(recipeService.findById(parentId)).thenReturn(parent);
 
             mockMvc.perform(get("/recipes/{id}", variantId))
@@ -234,9 +249,9 @@ class RecipeWebControllerTest {
         @WithMockUser
         void shouldNotIncludeParentWhenRecipeIsNotVariant() throws Exception {
             var id = UUID.randomUUID();
-            var recipe = createRecipeWithId(id, "Tarte classique", RecipeStatus.PUBLISHED, null);
+            var recipe = createRecipeWithMetaDataWithId(id, "Tarte classique", RecipeStatus.PUBLISHED, null);
 
-            when(recipeService.findById(id)).thenReturn(recipe);
+            when(recipeService.findRecipeWithMetaDataById(id)).thenReturn(recipe);
 
             mockMvc.perform(get("/recipes/{id}", id))
                     .andExpect(status().isOk())
@@ -248,15 +263,57 @@ class RecipeWebControllerTest {
         void shouldReturn404WhenRecipeNotFound() throws Exception {
             var id = UUID.randomUUID();
 
-            when(recipeService.findById(id)).thenThrow(new RecipeNotFoundException(id));
+            when(recipeService.findRecipeWithMetaDataById(id)).thenThrow(new RecipeNotFoundException(id));
 
             mockMvc.perform(get("/recipes/{id}", id))
                     .andExpect(status().isNotFound());
         }
     }
 
+    @Nested
+    class likeRecipe{
+
+        @Test
+        @WithMockUser(username = "john")
+        void likeShouldWork() throws Exception {
+
+            var id = UUID.randomUUID();
+
+
+            when(userQueryService.getUserByUsername(any())).thenReturn(createUser());
+            when(authenticationPort.extractUsername()).thenReturn(createUser().username());
+            doNothing().when(userService).likeRecipe(any(), any());
+            mockMvc.perform(post("/recipes/{id}/like", id))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(view().name("redirect:/recipes/" + id));
+
+
+        }
+
+        @Test
+        @WithMockUser(username = "john")
+        void unlikeShouldWork() throws Exception {
+
+            var id = UUID.randomUUID();
+
+
+            when(userQueryService.getUserByUsername(any())).thenReturn(createUser());
+            when(authenticationPort.extractUsername()).thenReturn(createUser().username());
+            doNothing().when(userService).unlikeRecipe(any(), any());
+            mockMvc.perform(post("/recipes/{id}/unlike", id))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(view().name("redirect:/recipes/" + id));
+
+
+        }
+    }
+
     private Recipe createRecipe(String title, RecipeStatus status) {
         return createRecipeWithId(UUID.randomUUID(), title, status, null);
+    }
+
+    private User createUser() {
+        return new User(UUID.randomUUID(), "Pax", "Maximus", "Prime", "aaa@aa.fr", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, Instant.now(), Instant.now(), true);
     }
 
     private Recipe createRecipeWithId(UUID id, String title, RecipeStatus status, UUID parentId) {
@@ -275,6 +332,13 @@ class RecipeWebControllerTest {
                 Map.of(),
                 null,
                 null
+        );
+    }
+
+    private RecipeWithMetaData createRecipeWithMetaDataWithId(UUID id, String title, RecipeStatus status, UUID parentId) {
+        return new RecipeWithMetaData(
+                createRecipeWithId(id, title, status, parentId),
+                new RecipeMetaData(0)
         );
     }
 }

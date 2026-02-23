@@ -1,6 +1,7 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jUserRepository;
 import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
@@ -19,8 +20,11 @@ public class UserPersistenceAdapter implements UserPersistence {
 
 	private final UserRepository userRepository;
 
-	public UserPersistenceAdapter(UserRepository userRepository) {
-		this.userRepository = Objects.requireNonNull(userRepository);
+    private final Neo4jUserRepository neo4jUserRepository;
+
+	public UserPersistenceAdapter(UserRepository userRepository, Neo4jUserRepository neo4jUserRepository) {
+		this.userRepository = userRepository;
+        this.neo4jUserRepository = neo4jUserRepository;
 	}
 
 	@Override
@@ -98,4 +102,19 @@ public class UserPersistenceAdapter implements UserPersistence {
 		userRepository.save(entity);
 	}
 
+    @Override
+    public boolean hasLikedRecipe(UUID userId, UUID recipeId) {
+        return this.neo4jUserRepository.hasLiked(userId, recipeId);
+
+    }
+
+    @Override
+    public void likeRecipe(UUID userId, UUID recipeId) {
+        neo4jUserRepository.likeRecipe(userId, recipeId);
+    }
+
+    @Override
+    public void unlikeRecipe(UUID userId, UUID recipeId){
+        neo4jUserRepository.unlikeRecipe(userId, recipeId);
+    }
 }
