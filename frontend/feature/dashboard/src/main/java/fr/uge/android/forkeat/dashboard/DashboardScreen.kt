@@ -75,8 +75,8 @@ fun DashboardScreen(
             .background(Color(0xFFF5F5F5))
             .verticalScroll(rememberScrollState())
     ) {
-            // Welcome Section
-            DashboardWelcomeSection(uiState.firstName)
+        // Welcome Section
+        DashboardWelcomeSection(uiState.firstName)
 
             // Statistics Section
             DashboardStatisticsSection(
