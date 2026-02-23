@@ -3,7 +3,6 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.presentation.dto.user.ChangePasswordConfirmCodeDTO;
@@ -56,8 +55,6 @@ public class ProfileRestControllerTest {
     private AuthenticationManager authenticationManager;
     @MockitoBean
     private JwtUtils jwtUtils;
-    @MockitoBean
-    private JwtFilter jwtFilter;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
@@ -75,15 +72,11 @@ public class ProfileRestControllerTest {
     }
 
     private ChangePasswordDTO createChangePasswordDTO() {
-        return new ChangePasswordDTO("test@forkeat.fr", "password1234");
-    }
-
-    private ChangePasswordDTO createChangePasswordDTOWithSmallPassword() {
-        return new ChangePasswordDTO("test@forkeat.fr", "aa");
+        return new ChangePasswordDTO("test@forkeat.fr");
     }
 
     private ChangePasswordConfirmCodeDTO createChangePasswordConfirmCodeDTO() {
-        return new ChangePasswordConfirmCodeDTO("test@forkeat.fr", "000000");
+        return new ChangePasswordConfirmCodeDTO("test@forkeat.fr", "000000", "Password1234", "Password1234");
     }
 
     @Nested
@@ -95,7 +88,7 @@ public class ProfileRestControllerTest {
             var user = createUser();
 
             when(userQueryService.getUserByEmail(any())).thenReturn(user);
-            doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any(), any());
+            doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any());
 
 
             mockMvc.perform(post("/api/auth/forgot-password")
@@ -105,32 +98,17 @@ public class ProfileRestControllerTest {
         }
 
         @Test
-        public void AskingForgotPasswordShouldReturnAnErrorWhenPasswordIsTooSmall() throws Exception {
-            var user = createUser();
-
-            when(userQueryService.getUserByEmail(any())).thenReturn(user);
-            doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any(), any());
-
-
-            mockMvc.perform(post("/api/auth/forgot-password")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(createChangePasswordDTOWithSmallPassword())))
-                    .andExpect(status().isBadRequest());
-        }
-
-
-        @Test
         public void AskingForgotPasswordShouldReturnAnErrorWhenEmailNotExist() throws Exception {
             var user = createUser();
 
             when(userQueryService.getUserByEmail(any())).thenThrow(new ResourceNotFoundException("User not found with email: test@forkeat.fr"));
-            doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any(), any());
+            doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any());
 
 
             mockMvc.perform(post("/api/auth/forgot-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(createChangePasswordDTO())))
-                    .andExpect(status().isNotFound());
+                    .andExpect(status().isOk());
         }
 
     }
@@ -143,7 +121,7 @@ public class ProfileRestControllerTest {
             var user = createUser();
 
             when(userQueryService.getUserByEmail(any())).thenReturn(user);
-            doThrow(new VerificationException("Code incorrect")).when(emailVerificationService).confirmPasswordChange(any(), any());
+            doThrow(new VerificationException("Code incorrect")).when(emailVerificationService).confirmPasswordChange(any(), any(), any());
 
 
             mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
@@ -158,7 +136,7 @@ public class ProfileRestControllerTest {
             var user = createUser();
 
             when(userQueryService.getUserByEmail(any())).thenReturn(user);
-            doThrow(new VerificationException("Le code a expiré. Veuillez recommencer.")).when(emailVerificationService).confirmPasswordChange(any(), any());
+            doThrow(new VerificationException("Le code a expiré. Veuillez recommencer.")).when(emailVerificationService).confirmPasswordChange(any(), any(), any());
 
 
             mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
@@ -172,7 +150,7 @@ public class ProfileRestControllerTest {
             var user = createUser();
 
             when(userQueryService.getUserByEmail(any())).thenReturn(user);
-            doThrow(new VerificationException("Aucun changement de mot de passe en attente")).when(emailVerificationService).confirmPasswordChange(any(), any());
+            doThrow(new VerificationException("Aucun changement de mot de passe en attente")).when(emailVerificationService).confirmPasswordChange(any(), any(), any());
 
 
             mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
@@ -186,12 +164,12 @@ public class ProfileRestControllerTest {
             var user = createUser();
 
             when(userQueryService.getUserByEmail(any())).thenReturn(user);
-            doNothing().when(emailVerificationService).confirmPasswordChange(any(), any());
+            doNothing().when(emailVerificationService).confirmPasswordChange(any(), any(), any());
 
 
             mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(createChangePasswordDTOWithSmallPassword())))
+                            .content(objectMapper.writeValueAsString(createChangePasswordConfirmCodeDTO())))
                     .andExpect(status().isOk());
         }
     }

@@ -46,6 +46,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
+import kotlin.time.Instant
 
 @Composable
 fun RecipeDetailScreen(recipe: RecipeDetailsDTO, onBack: () -> Unit) {
@@ -80,14 +81,14 @@ fun RecipeDetailScreen(recipe: RecipeDetailsDTO, onBack: () -> Unit) {
             Text(recipe.summary, style = Typography.bodyMedium)
             Spacer(Modifier.height(16.dp))
             // Allergènes
-            if (!recipe.allergens.isNullOrEmpty()) {
+            if (recipe.allergens.isNotEmpty()) {
                 Text("Allergènes", style = Typography.titleMedium, color = Color(0xFFFFC107))
                 Spacer(Modifier.height(4.dp))
-                AllergenBadges(recipe.allergens ?: emptyList())
+                AllergenBadges(recipe.allergens)
                 Spacer(Modifier.height(8.dp))
             }
             // Ingrédients
-            if (!recipe.ingredients.isNullOrEmpty()) {
+            if (recipe.ingredients.isNotEmpty()) {
                 Text("Ingrédients", style = Typography.titleMedium, color = Primary500)
                 Spacer(Modifier.height(4.dp))
                 Column {
@@ -98,7 +99,7 @@ fun RecipeDetailScreen(recipe: RecipeDetailsDTO, onBack: () -> Unit) {
                 Spacer(Modifier.height(8.dp))
             }
             // Préparation
-            if (!recipe.steps.isNullOrEmpty()) {
+            if (recipe.steps.isNotEmpty()) {
                 Text("Préparation", style = Typography.titleMedium, color = Secondary700)
                 Spacer(Modifier.height(4.dp))
                 Column {
@@ -132,7 +133,7 @@ fun LikeButton(
     LaunchedEffect(initialCount) {
         count = initialCount
     }
-    
+
     // Animation du scale au clic
     val scale = remember { Animatable(1f) }
 
@@ -348,8 +349,8 @@ fun PreviewRecipeDetailScreen() {
             "vegan" to false,
             "sans gluten" to false
         ),
-        createdAt = "2026-02-10T12:00:00Z",
-        updatedAt = "2026-02-10T12:00:00Z",
+        createdAt = Instant.parse("2026-02-10T12:00:00Z"),
+        updatedAt = Instant.parse("2026-02-10T12:00:00Z"),
         10,
         false
     )

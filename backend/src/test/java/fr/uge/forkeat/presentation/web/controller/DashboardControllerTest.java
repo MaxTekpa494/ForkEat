@@ -1,6 +1,5 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
@@ -10,9 +9,6 @@ import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserQueryService;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,8 +46,6 @@ class DashboardControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
-    @MockitoBean
-    private JwtFilter jwtFilter;
 
     private User testUser;
 
@@ -76,15 +70,6 @@ class DashboardControllerTest {
                 Instant.now(),
                 false
         );
-
-        // Bypass JWT filter
-        doAnswer(invocation -> {
-            ServletRequest request = invocation.getArgument(0);
-            ServletResponse response = invocation.getArgument(1);
-            FilterChain chain = invocation.getArgument(2);
-            chain.doFilter(request, response);
-            return null;
-        }).when(jwtFilter).doFilter(any(), any(), any());
 
         // Configuration de l'authentification
         when(authPort.extractUsername()).thenReturn(testUser.username());
@@ -158,8 +143,7 @@ class DashboardControllerTest {
                 AuthMode.LOCAL,
                 Instant.now(),
                 Instant.now(),
-                false
-                );
+                false);
 
         when(authPort.extractUsername()).thenReturn("otheruser");
         when(userQueryService.getUserByUsername("otheruser")).thenReturn(otherUser);

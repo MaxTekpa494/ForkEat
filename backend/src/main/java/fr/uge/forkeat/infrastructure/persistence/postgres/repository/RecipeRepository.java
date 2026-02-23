@@ -28,6 +28,8 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
 
     List<RecipeEntity> findByAuthorId(UUID authorId);
 
+    List<RecipeEntity> findByAuthorUsername(String authorUsername);
+
     long countBySource(String source);
 
     List<RecipeEntity> findByTitleContainingIgnoreCase(String title);

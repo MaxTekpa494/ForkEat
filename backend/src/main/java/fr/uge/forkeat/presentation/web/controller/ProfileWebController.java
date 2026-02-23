@@ -2,12 +2,16 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.dto.user.PasswordChangeDTO;
 import fr.uge.forkeat.presentation.dto.user.UserUpdateProfileDTO;
+import fr.uge.forkeat.service.PasswordValidator;
+import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.user.UserUpdateService;
+import jakarta.servlet.http.HttpSession;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,14 +28,17 @@ public class ProfileWebController {
   private final UserQueryService userQueryService;
   private final UserUpdateService userUpdateService;
   private final EmailVerificationService emailVerificationService;
+  private final PasswordEncoder passwordEncoder;
 
   ProfileWebController(AuthenticationPort authPort, UserQueryService userQueryService,
                        UserUpdateService userUpdateService,
-                       EmailVerificationService emailVerificationService) {
+                       EmailVerificationService emailVerificationService,
+                       PasswordEncoder passwordEncoder) {
     this.authPort = Objects.requireNonNull(authPort);
     this.userQueryService = Objects.requireNonNull(userQueryService);
     this.userUpdateService = Objects.requireNonNull(userUpdateService);
     this.emailVerificationService = Objects.requireNonNull(emailVerificationService);
+    this.passwordEncoder = Objects.requireNonNull(passwordEncoder);
   }
 
   @GetMapping("/profile")
@@ -66,6 +73,7 @@ public class ProfileWebController {
 
   @PostMapping("/profile/request-password-change")
   public String requestPasswordChange(PasswordChangeDTO passwordChangeDTO,
+                                      HttpSession session,
                                       RedirectAttributes redirectAttributes) {
 
     var username = authPort.extractUsername();
@@ -76,6 +84,9 @@ public class ProfileWebController {
     }
 
     userUpdateService.requestPasswordChange(username, passwordChangeDTO.currentPassword(), passwordChangeDTO.newPassword());
+
+    // Store the hashed new password in session for use at confirmation time
+    session.setAttribute("pending-password-hash", passwordEncoder.encode(passwordChangeDTO.newPassword()));
 
     redirectAttributes.addFlashAttribute("actionType", "PASSWORD_CHANGE");
     redirectAttributes.addFlashAttribute("infoMessage",
@@ -93,11 +104,19 @@ public class ProfileWebController {
 
   @PostMapping("/profile/confirm-password-change")
   public String confirmPasswordChange(@RequestParam String code,
+                                      HttpSession session,
                                       RedirectAttributes redirectAttributes) {
     var username = authPort.extractUsername();
     var user = userQueryService.getUserByUsername(username);
 
-    emailVerificationService.confirmPasswordChange(user.id(), code);
+    var hashedPassword = (String) session.getAttribute("pending-password-hash");
+    if (hashedPassword == null) {
+      redirectAttributes.addFlashAttribute("error", "Session expirée, veuillez recommencer.");
+      return "redirect:/profile";
+    }
+
+    emailVerificationService.confirmPasswordChange(user.id(), code, hashedPassword);
+    session.removeAttribute("pending-password-hash");
 
     redirectAttributes.addFlashAttribute("success", "Mot de passe modifié avec succès !");
     return "redirect:/profile";
@@ -106,6 +125,7 @@ public class ProfileWebController {
   @PostMapping("/profile/request-email-change")
   public String requestEmailChange(@RequestParam String newEmail,
                                    PasswordChangeDTO passwordChangeDTO,
+                                   HttpSession session,
                                    RedirectAttributes redirectAttributes) {
     var username = authPort.extractUsername();
     var user = userQueryService.getUserByUsername(username);
@@ -120,6 +140,8 @@ public class ProfileWebController {
         redirectAttributes.addFlashAttribute("error", "Les mots de passe ne correspondent pas");
         return "redirect:/profile";
       }
+      // Store hashed password in session for use at confirmation time (Google→LOCAL migration)
+      session.setAttribute("pending-email-change-password-hash", passwordEncoder.encode(passwordChangeDTO.newPassword()));
     }
 
     userUpdateService.requestEmailChange(username, newEmail, passwordChangeDTO.currentPassword(), passwordChangeDTO.newPassword());
@@ -132,14 +154,41 @@ public class ProfileWebController {
 
   @PostMapping("/profile/confirm-email-change")
   public String confirmEmailChange(@RequestParam String code,
+                                   HttpSession session,
                                    RedirectAttributes redirectAttributes) {
     var username = authPort.extractUsername();
     var user = userQueryService.getUserByUsername(username);
 
-    var updatedUser = emailVerificationService.confirmEmailChange(user.id(), code);
+    // Retrieve hashed password from session if this is a Google→LOCAL migration
+    var hashedPassword = (String) session.getAttribute("pending-email-change-password-hash");
+    var updatedUser = emailVerificationService.confirmEmailChange(user.id(), code, hashedPassword);
+    session.removeAttribute("pending-email-change-password-hash");
 
     authPort.refreshAuthentication(updatedUser);
     redirectAttributes.addFlashAttribute("success", "Email mis à jour avec succès !");
+    return "redirect:/profile";
+  }
+
+  @PostMapping("/profile/set-password")
+  public String setPasswordForOAuthUser(@RequestParam String newPassword,
+                                        @RequestParam String confirmPassword,
+                                        RedirectAttributes redirectAttributes) {
+    if (!newPassword.equals(confirmPassword)) {
+      redirectAttributes.addFlashAttribute("error", "Les mots de passe ne correspondent pas");
+      return "redirect:/profile";
+    }
+
+    try {
+      PasswordValidator.validate(newPassword);
+    } catch (RegisterFailureException e) {
+      redirectAttributes.addFlashAttribute("error", e.getMessage());
+      return "redirect:/profile";
+    }
+
+    var username = authPort.extractUsername();
+    userUpdateService.setPasswordForOAuthUser(username, newPassword);
+    redirectAttributes.addFlashAttribute("success",
+            "Mot de passe défini ! Vous pouvez maintenant vous connecter avec votre email et mot de passe.");
     return "redirect:/profile";
   }
 

@@ -1,6 +1,5 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,8 +17,6 @@ class HomeControllerTest {
 
     private final MockMvc mockMvc;
 
-    @MockitoBean
-    private JwtFilter jwtFilter;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;

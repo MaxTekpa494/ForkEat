@@ -1,6 +1,5 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -11,9 +10,6 @@ import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.user.UserUpdateService;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletRequest;
-import jakarta.servlet.ServletResponse;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,6 +17,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -56,10 +53,11 @@ class ProfileControllerTest {
     private JavaMailSender javaMailSender;
 
     @MockitoBean
-    private EmailVerificationService emailVerificationService;
+    private PasswordEncoder passwordEncoder;
 
     @MockitoBean
-    private JwtFilter jwtFilter;
+    private EmailVerificationService emailVerificationService;
+
 
     private User testUser;
 
@@ -83,15 +81,6 @@ class ProfileControllerTest {
                 Instant.now(),
                 false
         );
-
-        // Bypass JWT filter
-        doAnswer(invocation -> {
-            ServletRequest request = invocation.getArgument(0);
-            ServletResponse response = invocation.getArgument(1);
-            FilterChain chain = invocation.getArgument(2);
-            chain.doFilter(request, response);
-            return null;
-        }).when(jwtFilter).doFilter(any(), any(), any());
 
         // Configuration de l'authentification
         when(authPort.extractUsername()).thenReturn(testUser.username());
@@ -149,8 +138,7 @@ class ProfileControllerTest {
                     testUser.authMode(),
                     testUser.createdAt(),
                     testUser.updatedAt(),
-                    false
-            );
+                    false);
 
             when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
             when(userUpdateService.updateProfile("testuser","newusername", "NewFirst", "NewLast"))

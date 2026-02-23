@@ -9,7 +9,7 @@ public record RecipeDetailsDTO(
         UUID id,
         String title,
         String summary,
-        RecipeDTO parent,
+        UUID parentId,
         //UserDTO author, pas besion d'avoir toutes infos sur l'auteur non ?
         String username, // Juste avec le username on est bon
         int preparationMinutes,
@@ -24,4 +24,23 @@ public record RecipeDetailsDTO(
         long nbLike,
         boolean hasLiked
 ) {
+
+    public RecipeDTO toRecipeDTO(){
+        return new RecipeDTO(
+                id,
+                title,
+                summary,
+                parentId,
+                username,
+                preparationMinutes,
+                imageUrl,
+                status,
+                steps,
+                ingredients,
+                allergens,
+                dietaryFlags,
+                createdAt,
+                updatedAt
+        );
+    }
 }

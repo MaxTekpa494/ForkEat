@@ -1,5 +1,6 @@
 package fr.uge.android.forkeat
 
+import android.content.Intent
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -9,6 +10,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,37 +28,77 @@ import fr.uge.android.forkeat.dashboard.DashboardScreen
 import fr.uge.android.forkeat.designsystem.theme.ForkEatTheme
 import fr.uge.android.forkeat.home.ForgotPasswordCodeScreen
 import fr.uge.android.forkeat.home.ForgotPasswordScreen
+import fr.uge.android.forkeat.home.ForkEatScaffold
 import fr.uge.android.forkeat.home.HomeScreen
 import fr.uge.android.forkeat.home.LoginScreen
 import fr.uge.android.forkeat.home.RegisterScreen
+import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.profile.ProfileScreen
 import fr.uge.android.forkeat.recipes.RecipeDetailScreen
 import fr.uge.android.forkeat.recipes.RecipesListScreen
 import fr.uge.android.forkeat.recipes.RecipesViewModel
+import fr.uge.android.forkeat.wallet.WalletScreen
 import java.util.UUID
 
 class MainActivity : ComponentActivity() {
+
+    private var pendingDeepLink: String? = null
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        handleDeepLink(intent)
+    }
+
+    private fun handleDeepLink(intent: Intent) {
+        val data = intent.data ?: return
+        if (data.scheme == "forkeat" && data.host == "wallet") {
+            pendingDeepLink = "wallet"
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        ForkEatApi.init(this)
+        handleDeepLink(intent)
         enableEdgeToEdge()
         setContent {
             ForkEatTheme {
                 val navController = rememberNavController()
-                // ViewModel partagé pour toute la navigation
+                var isLoggedIn by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
+
+                val logout: () -> Unit = {
+                    ForkEatApi.logout()
+                    isLoggedIn = false
+                    navController.navigate("home") {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+
+                // Handle deep link navigation
+                LaunchedEffect(Unit) {
+                    pendingDeepLink?.let { dest ->
+                        pendingDeepLink = null
+                        navController.navigate(dest) {
+                            popUpTo("home") { inclusive = false }
+                        }
+                    }
+                }
+                // ViewModel partage pour toute la navigation
                 val recipesViewModel: RecipesViewModel = viewModel()
                 NavHost(navController = navController, startDestination = "home") {
                     composable("home") {
                         HomeScreen(
                             navController = navController,
-                            onNavigateToExplore = {navController.navigate("recipes")}
+                            onNavigateToExplore = { navController.navigate("recipes") }
                         )
                     }
                     composable("login") {
                         LoginScreen(
                             onNavigateBack = { navController.navigate("home") },
-                            onNavigateToRegister = {  navController.navigate("register") },
+                            onNavigateToRegister = { navController.navigate("register") },
                             onLoginSuccess = {
-                                navController.navigate("dashboard") { // Navigate to dashboard on successful login
+                                isLoggedIn = true
+                                navController.navigate("recipes") {
                                     popUpTo("home") { inclusive = true }
                                 }
                             },
@@ -62,21 +107,25 @@ class MainActivity : ComponentActivity() {
                             }
                         )
                     }
-                    composable("forgot-password"){
-                       ForgotPasswordScreen(onNavigateBack = { navController.popBackStack() },onAskingSuccess = { navController.navigate("forgot-password-code")})
+                    composable("forgot-password") {
+                        ForgotPasswordScreen(
+                            onNavigateBack = { navController.popBackStack() },
+                            onAskingSuccess = { navController.navigate("forgot-password-code") }
+                        )
                     }
-                    composable("forgot-password-code"){
+                    composable("forgot-password-code") {
                         ForgotPasswordCodeScreen(
                             onNavigateBack = { navController.popBackStack() },
-                            onCodeSuccess =  { navController.navigate("login")}
+                            onCodeSuccess = { navController.navigate("login") }
                         )
                     }
                     composable("new-user-login") {
                         LoginScreen(
                             onNavigateBack = { navController.navigate("home") },
-                            onNavigateToRegister = {  navController.navigate("register") },
+                            onNavigateToRegister = { navController.navigate("register") },
                             onLoginSuccess = {
-                                navController.navigate("dashboard") { // Navigate to dashboard on successful new user login
+                                isLoggedIn = true
+                                navController.navigate("recipes") {
                                     popUpTo("home") { inclusive = true }
                                 }
                             },
@@ -87,36 +136,58 @@ class MainActivity : ComponentActivity() {
                     composable("register") {
                         RegisterScreen(
                             onNavigateBack = { navController.popBackStack() },
-                            onNavigateToLogin = {  navController.navigate("login") },
+                            onNavigateToLogin = { navController.navigate("login") },
                             onRegisterSuccess = {
-                                navController.navigate("dashboard") { // Navigate to dashboard on successful registration
+                                isLoggedIn = true
+                                navController.navigate("recipes") {
                                     popUpTo("home") { inclusive = true }
                                 }
                             },
                         )
                     }
                     composable("dashboard") {
-                        DashboardScreen(
-                            onNavigateToProfile = {
-                                navController.navigate("profile")
-                            },
-                            onNavigateToRecipes = {
-                                navController.navigate("recipes")
-                            }
-                        )
+                        ForkEatScaffold(
+                            navController = navController,
+                            isLoggedIn = isLoggedIn,
+                            onLogout = logout
+                        ) {
+                            DashboardScreen(
+                                onNavigateToProfile = { navController.navigate("profile") },
+                                onNavigateToWallet = { navController.navigate("wallet") },
+                                onNavigateToRecipes = {
+                                    navController.navigate("recipes")
+                                }
+                            )
+                        }
                     }
                     composable("profile") {
-                        ProfileScreen()
+                        ForkEatScaffold(
+                            navController = navController,
+                            isLoggedIn = isLoggedIn,
+                            onLogout = logout
+                        ) {
+                            ProfileScreen()
+                        }
+                    }
+                    composable("wallet") {
+                        ForkEatScaffold(
+                            navController = navController,
+                            isLoggedIn = isLoggedIn,
+                            onLogout = logout
+                        ) {
+                            WalletScreen(
+                                onNavigateBack = { navController.popBackStack() }
+                            )
+                        }
                     }
                     composable("recipes") {
                         val recipesState = recipesViewModel.recipes.collectAsState()
                         val totalCountState = recipesViewModel.totalCount.collectAsState()
-                        val currentPageState = recipesViewModel.currentPage.collectAsState()
                         val errorMessageState = recipesViewModel.errorMessage.collectAsState()
-                        val pageSizeState = recipesViewModel.pageSize.collectAsState()
                         val searchQueryState = recipesViewModel.searchQuery.collectAsState()
                         val selectedAllergensState = recipesViewModel.selectedAllergens.collectAsState()
                         val availableAllergensState = recipesViewModel.availableAllergens.collectAsState()
+                        val isLoadingState = recipesViewModel.isLoading.collectAsState()
 
                         val lifecycleOwner = LocalLifecycleOwner.current
 
@@ -129,11 +200,12 @@ class MainActivity : ComponentActivity() {
                         RecipesListScreen(
                             recipes = recipesState.value,
                             totalCount = totalCountState.value,
-                            currentPage = currentPageState.value,
-                            pageSize = pageSizeState.value,
-                            onPageChange = { page -> recipesViewModel.loadRecipes(page) },
+                            onLoadMore = { recipesViewModel.loadMoreRecipes() },
                             errorMessage = errorMessageState.value,
+                            isLoading = isLoadingState.value,
                             navController = navController,
+                            isLoggedIn = isLoggedIn,
+                            onLogout = logout,
                             searchQuery = searchQueryState.value,
                             onSearchQueryChange = { query -> recipesViewModel.onSearchQueryChange(query) },
                             onSearchSubmit = { recipesViewModel.onSearchSubmit() },

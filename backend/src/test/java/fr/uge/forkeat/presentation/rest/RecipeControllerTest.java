@@ -1,5 +1,6 @@
 package fr.uge.forkeat.presentation.rest;
 
+import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
@@ -15,6 +16,10 @@ import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
+import fr.uge.forkeat.service.model.recipe.Recipe;
+import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
+import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.jetbrains.annotations.NotNull;
 import org.jspecify.annotations.Nullable;
 import org.junit.jupiter.api.BeforeEach;
@@ -50,13 +55,53 @@ class RecipeControllerTest {
     @Mock
     private UserQueryService userQueryService;
 
+    @Mock
+    private AuthenticationPort authPort;
+
     private RecipeRestController recipeController;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeController = new RecipeRestController(recipeService, userService, userQueryService);
+        recipeController = new RecipeRestController(recipeService, authPort, userService, userQueryService);
         now = Instant.now();
+    }
+
+    @Nested
+    class CreateRecipe {
+
+        @Test
+        void shouldCreateRecipeWithAuthenticatedUsername() {
+            var recipeId = UUID.randomUUID();
+            var savedRecipe = createRecipe(recipeId, "Tarte aux pommes", null, RecipeStatus.DRAFT);
+            var dto = new RecipeDTO(null, "Tarte aux pommes", "Une bonne tarte", null,
+                    null, 30, null, "DRAFT", List.of(), List.of(), List.of(), Map.of(), null, null);
+
+            when(authPort.extractUsername()).thenReturn("chef_test");
+            when(recipeService.createRecipe(any(), any())).thenReturn(savedRecipe);
+
+            var response = recipeController.createRecipe(dto);
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertInstanceOf(ItemResponse.class, response.getBody());
+            verify(authPort).extractUsername();
+            verify(recipeService).createRecipe(any(), any());
+        }
+
+        @Test
+        void shouldUseAuthenticatedUsernameNotDtoUsername() {
+            var recipeId = UUID.randomUUID();
+            var savedRecipe = createRecipe(recipeId, "Recette", null, RecipeStatus.DRAFT);
+            var dto = new RecipeDTO(null, "Recette", "Résumé", null,
+                    "intruder", 20, null, "DRAFT", List.of(), List.of(), List.of(), Map.of(), null, null);
+
+            when(authPort.extractUsername()).thenReturn("real_author");
+            when(recipeService.createRecipe(any(), any())).thenReturn(savedRecipe);
+
+            recipeController.createRecipe(dto);
+
+            verify(authPort).extractUsername();
+        }
     }
 
     @Nested
@@ -68,7 +113,7 @@ class RecipeControllerTest {
             var recipe = createRecipeWithMetadata(recipeId, "Tarte aux pommes", null, RecipeStatus.PUBLISHED);
             when(recipeService.findRecipeWithMetaDataById(recipeId)).thenReturn(recipe);
 
-            var response = recipeController.getRecipe(recipeId, null);
+            var response = recipeController.getRecipe(recipeId);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertInstanceOf(ItemResponse.class, response.getBody());
@@ -78,22 +123,20 @@ class RecipeControllerTest {
         }
 
         @Test
-        void shouldReturnRecipeWithParentWhenVariant() {
+        void shouldReturnRecipeWithParentIdWhenVariant() {
             var parentId = UUID.randomUUID();
             var childId = UUID.randomUUID();
-            var parentRecipe = createRecipe(parentId, "Recette originale", null, RecipeStatus.PUBLISHED);
             var childRecipe = createRecipeWithMetadata(childId, "Variante", parentId, RecipeStatus.DRAFT);
 
             when(recipeService.findRecipeWithMetaDataById(childId)).thenReturn(childRecipe);
-            when(recipeService.findById(parentId)).thenReturn(parentRecipe);
 
-            var response = recipeController.getRecipe(childId, null);
+            var response = recipeController.getRecipe(childId);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             var itemResponse = (ItemResponse<?>) response.getBody();
             assertNotNull(itemResponse);
-            verify(recipeService).findRecipeWithMetaDataById(childId);
-            verify(recipeService).findById(parentId);
+            verify(recipeService, times(1)).findRecipeWithMetaDataById(childId);
+            verifyNoMoreInteractions(recipeService);
         }
 
         @Test
@@ -102,7 +145,7 @@ class RecipeControllerTest {
             var recipe = createRecipeWithMetadata(recipeId, "Recette simple", null, RecipeStatus.PUBLISHED);
             when(recipeService.findRecipeWithMetaDataById(recipeId)).thenReturn(recipe);
 
-            recipeController.getRecipe(recipeId, null);
+            recipeController.getRecipe(recipeId);
 
             verify(recipeService, times(1)).findRecipeWithMetaDataById(recipeId);
             verifyNoMoreInteractions(recipeService);
@@ -113,7 +156,7 @@ class RecipeControllerTest {
             var recipeId = UUID.randomUUID();
             when(recipeService.findRecipeWithMetaDataById(recipeId)).thenThrow(new RecipeNotFoundException(recipeId));
 
-            assertThrows(RecipeNotFoundException.class, () -> recipeController.getRecipe(recipeId, null));
+            assertThrows(RecipeNotFoundException.class, () -> recipeController.getRecipe(recipeId));
             verify(recipeService).findRecipeWithMetaDataById(recipeId);
         }
     }

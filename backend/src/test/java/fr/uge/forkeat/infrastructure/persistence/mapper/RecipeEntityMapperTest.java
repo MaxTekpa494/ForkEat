@@ -141,9 +141,9 @@ class RecipeEntityMapperTest {
         var recipe = RecipeEntityMapper.toDomain(entity);
 
         assertEquals(2, recipe.ingredients().size());
-        assertEquals("Farine", recipe.ingredients().get(0).name());
-        assertEquals(250.0, recipe.ingredients().get(0).quantity());
-        assertEquals("g", recipe.ingredients().get(0).unit());
+        assertEquals("Farine", recipe.ingredients().getFirst().name());
+        assertEquals(250.0, recipe.ingredients().getFirst().quantity());
+        assertEquals("g", recipe.ingredients().getFirst().unit());
     }
 
     @Test
@@ -163,8 +163,8 @@ class RecipeEntityMapperTest {
         var recipe = RecipeEntityMapper.toDomain(entity);
 
         assertEquals(2, recipe.allergens().size());
-        assertEquals("Gluten", recipe.allergens().get(0).name());
-        assertEquals(AllergenSeverity.HIGH, recipe.allergens().get(0).severity());
+        assertEquals("Gluten", recipe.allergens().getFirst().name());
+        assertEquals(AllergenSeverity.HIGH, recipe.allergens().getFirst().severity());
     }
 
     @Test
@@ -180,7 +180,7 @@ class RecipeEntityMapperTest {
         var recipe = RecipeEntityMapper.toDomain(entity);
 
         assertEquals(1, recipe.ingredients().size());
-        assertEquals(0.0, recipe.ingredients().get(0).quantity());
+        assertEquals(0.0, recipe.ingredients().getFirst().quantity());
     }
 
     @Test

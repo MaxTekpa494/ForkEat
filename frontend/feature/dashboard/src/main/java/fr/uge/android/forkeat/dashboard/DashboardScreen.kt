@@ -19,10 +19,14 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
@@ -39,34 +43,38 @@ import java.text.DecimalFormat
 fun DashboardScreen(
     dashboardViewModel: DashboardViewModel = viewModel(),
     onNavigateToProfile: () -> Unit,
-    onNavigateToRecipes: () -> Unit
+    onNavigateToRecipes: () -> Unit,
+    onNavigateToWallet: () -> Unit = {}
 ) {
     val uiState by dashboardViewModel.uiState.collectAsState()
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                dashboardViewModel.onRefreshDashboard()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
 
     LaunchedEffect(key1 = true) {
         dashboardViewModel.navigationEvent.collect { event ->
             when (event) {
                 is DashboardNavigationEvent.NavigateToProfile -> onNavigateToProfile()
                 DashboardNavigationEvent.NavigateToCreateRecipe -> TODO()
-                DashboardNavigationEvent.NavigateToWallet -> TODO()
+                DashboardNavigationEvent.NavigateToWallet -> onNavigateToWallet()
             }
         }
     }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Dashboard") }
-            )
-        }
-    ) { paddingValues ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(paddingValues)
-                .background(Color(0xFFF5F5F5)) // Mimic bg-surface
-                .verticalScroll(rememberScrollState()) // Changed to use rememberScrollState()
-        ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(Color(0xFFF5F5F5))
+            .verticalScroll(rememberScrollState())
+    ) {
             // Welcome Section
             DashboardWelcomeSection(uiState.firstName)
 
@@ -90,7 +98,6 @@ fun DashboardScreen(
             // Recent Activity Placeholder
             DashboardRecentActivityPlaceholder()
         }
-    }
 }
 
 @Composable

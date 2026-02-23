@@ -13,10 +13,12 @@ import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.user.UserQueryService;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
@@ -28,21 +30,29 @@ import java.util.UUID;
 public final class RecipeRestController {
 
 	private final RecipeService recipeService;
+	private final AuthenticationPort authPort;
     private final UserService userService;
     private final UserQueryService userQueryService;
 
 	private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
-	public RecipeRestController(RecipeService recipeService, UserService userService, UserQueryService userQueryService) {
+	public RecipeRestController(RecipeService recipeService, AuthenticationPort authPort, UserService userService, UserQueryService userQueryService) {
 		this.recipeService = recipeService;
+		this.authPort = authPort;
         this.userService = userService;
         this.userQueryService = userQueryService;
 	}
 
+//	@GetMapping("/create")
+//	public ResponseEntity<HttpResponse<Void>> pageCreateRecipe() {
+//
+//	}
+
 	@PostMapping
 	public ResponseEntity<HttpResponse<RecipeDTO>> createRecipe(@RequestBody RecipeDTO recipeDTO) {
 		Objects.requireNonNull(recipeDTO);
-		var recipe = RecipeDTOMapper.toDomain(recipeDTO);
+		var username = authPort.extractUsername();
+		var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
 		var dto = RecipeDTOMapper.toDTO(recipeService.createRecipe(recipe, null));
 		return ResponseEntity.ok(new ItemResponse<>(dto));
 	}
@@ -50,18 +60,17 @@ public final class RecipeRestController {
 	// Pourquoi pas faire un findwithparent avec {recipe:..., parent:...}
 	// Un endpoint recipe avec juste {recipe:...}
 	@GetMapping("/{id}")
-	public ResponseEntity<HttpResponse<RecipeDetailsDTO>> getRecipe(@PathVariable UUID id, @AuthenticationPrincipal UserDetails userDetails) {
-		// findByIdWithParent (parce que c'est une recipe seule), quand c'est une liste
-		// de recettes, on les prend les recettes seules sans leurs parents.
-		// Finalement, je pense qu'on devrait toujours laisser le choix au controller de
-		// demander le parent
-		// avec un findParent(recipeID) ou findById(parentId)
+	public ResponseEntity<HttpResponse<RecipeDetailsDTO>> getRecipe(@PathVariable UUID id) {
 		Objects.requireNonNull(id);
-
+        var recipe = recipeService.findRecipeWithMetaDataById(id);
         User user = null;
         UUID userId = null;
-        if(userDetails != null) {
-            user = this.userQueryService.getUserByUsername(userDetails.getUsername());
+        String userUsername = null;
+        if(SecurityContextHolder.getContext().getAuthentication() != null){
+            userUsername = authPort.extractUsername();
+        }
+        if(userUsername != null) {
+            user = this.userQueryService.getUserByUsername(userUsername);
             userId = user.id();
         }
         boolean hasLiked = false;
@@ -69,14 +78,7 @@ public final class RecipeRestController {
             hasLiked = userService.hasLikedRecipe(userId, id);
         }
 
-		var recipe = recipeService.findRecipeWithMetaDataById(id);
-		RecipeDTO recipeParentDTO = null;
-		if (recipe.isVariant()) {
-			var parent = recipeService.findById(recipe.parentId());
-			recipeParentDTO = RecipeDTOMapper.toDTO(parent);
-		}
-        //var hasLiked = userService.hasLikedRecipe()
-		var dto = RecipeDTOMapper.toRecipeWithMetaDataDTO(recipe, recipeParentDTO, hasLiked);
+        var dto = RecipeDTOMapper.toRecipeWithMetaDataDTO(recipe, hasLiked);
 		return ResponseEntity.ok(new ItemResponse<>(dto));
 	}
 

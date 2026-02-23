@@ -63,10 +63,10 @@ public class RecipeEntity {
     private HashMap<String, Boolean> dietaryFlag = new HashMap<>(); // Ici, je reflechis à mettre une List<Record> à la place
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RecipeIngredientEntity> ingredients = new ArrayList<>();
+    private List<RecipeIngredientEntity> ingredients = new ArrayList<>(); // Etudier le fait d'utiliser un set à la place de liste
 
     @OneToMany(mappedBy = "recipe", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<RecipeAllergenEntity> allergens = new ArrayList<>();
+    private List<RecipeAllergenEntity> allergens = new ArrayList<>(); // Etudier le fait d'utiliser un set à la place de liste
 
     public RecipeEntity() {}
 
@@ -161,7 +161,8 @@ public class RecipeEntity {
     }
 
     public void setStepByStepInstructions(List<RecipeStep> stepByStepInstructions) {
-        this.stepByStepInstructions = List.copyOf(stepByStepInstructions); // Est-ce qu'on peut faire ça ci ?
+        // this.stepByStepInstructions = List.copyOf(stepByStepInstructions); // Est-ce qu'on peut faire ça ci ? Reponse par moi-même (quelque-temps après) : NON
+        this.stepByStepInstructions = new ArrayList<>(stepByStepInstructions);
     }
 
     public String getImageUrl() {
@@ -193,6 +194,7 @@ public class RecipeEntity {
     }
 
     public void setDietaryFlag(Map<String, Boolean> dietaryFlag) {
+        this.dietaryFlag.clear();
         dietaryFlag.forEach((flag, value) -> {
             this.dietaryFlag.put(flag, value);
         });
@@ -203,13 +205,28 @@ public class RecipeEntity {
         return ingredients;
     }
 
-    public void setIngredients(List<RecipeIngredientEntity> ingredients){
+//    public void setIngredients(List<RecipeIngredientEntity> ingredients){
+//        ingredients.forEach(this::addIngredient);
+//    }
+//    public void addIngredient(RecipeIngredientEntity ingredient) {
+//        ingredients.add(ingredient);
+//        ingredient.setRecipe(this);
+//    }
+
+    // la version commentée ne gere pas bien les updates (Elle n'est pas correcte pour de multiples raisons ...)
+    public void setIngredients(List<RecipeIngredientEntity> ingredients) {
+        this.ingredients.forEach(i -> i.setRecipe(null));
+        this.ingredients.clear();
         ingredients.forEach(this::addIngredient);
     }
+
     public void addIngredient(RecipeIngredientEntity ingredient) {
-        ingredients.add(ingredient);
-        ingredient.setRecipe(this);
+        if(!ingredients.contains(ingredient)){
+            this.ingredients.add(ingredient);
+            ingredient.setRecipe(this);
+        }
     }
+
 
     public void removeIngredient(RecipeIngredientEntity ingredient) {
         ingredients.remove(ingredient);
@@ -222,11 +239,15 @@ public class RecipeEntity {
 
 
     public void setAllergens(List<RecipeAllergenEntity> allergens){
+        this.allergens.forEach(a -> a.setRecipe(null));
+        this.allergens.clear();
         allergens.forEach(this::addAllergen);
     }
     public void addAllergen(RecipeAllergenEntity allergen) {
-        allergens.add(allergen);
-        allergen.setRecipe(this);
+        if(!allergens.contains(allergen)){
+            allergens.add(allergen);
+            allergen.setRecipe(this);
+        }
     }
 
     public void removeAllergen(RecipeAllergenEntity allergen) {

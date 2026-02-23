@@ -15,13 +15,13 @@ public final class RecipeDTOMapper {
     /**
      * Convertit Recipe (service) vers RecipeDTO (présentation)
      */
-    public static RecipeDTO toDTO(Recipe recipe, RecipeDTO parentDTO) {
+    public static RecipeDTO toDTO(Recipe recipe) {
         Objects.requireNonNull(recipe);
         return new RecipeDTO(
                 recipe.id(),
                 recipe.title(),
                 recipe.summary(),
-                parentDTO,
+                recipe.parentId(),
                 recipe.usernameAuthor(),
                 recipe.preparationMinutes(),
                 recipe.imageUrl(),
@@ -35,10 +35,21 @@ public final class RecipeDTOMapper {
         );
     }
 
+    public static RecipeDTO recipeDTOWithImageUrl(RecipeDTO recipeDTO, String imageUrl) {
+        Objects.requireNonNull(recipeDTO);
+        return new RecipeDTO(recipeDTO.id(), recipeDTO.title(),
+                recipeDTO.summary(), recipeDTO.parentId(),
+                recipeDTO.username(), recipeDTO.preparationMinutes(),
+                imageUrl, recipeDTO.status(),
+                recipeDTO.steps(), recipeDTO.ingredients(),
+                recipeDTO.allergens(), recipeDTO.dietaryFlags(),
+                recipeDTO.createdAt(), recipeDTO.updatedAt());
+    }
+
     public static RecipeDTO recipeDTOWithUser(RecipeDTO recipeDTO, String username) {
         Objects.requireNonNull(recipeDTO);
         return new RecipeDTO(recipeDTO.id(), recipeDTO.title(),
-                recipeDTO.summary(), recipeDTO.parent(),
+                recipeDTO.summary(), recipeDTO.parentId(),
                 username, recipeDTO.preparationMinutes(),
                 recipeDTO.imageUrl(), recipeDTO.status(),
                 recipeDTO.steps(), recipeDTO.ingredients(),
@@ -46,25 +57,6 @@ public final class RecipeDTOMapper {
                 recipeDTO.createdAt(), recipeDTO.updatedAt());
     }
 
-    public static RecipeDTO toDTO(Recipe recipe) {
-        Objects.requireNonNull(recipe);
-        return new RecipeDTO(
-                recipe.id(),
-                recipe.title(),
-                recipe.summary(),
-                null,
-                recipe.usernameAuthor(),
-                recipe.preparationMinutes(),
-                recipe.imageUrl(),
-                recipe.status().name(),
-                toStepDTOs(recipe.stepByStepInstructions()),
-                toIngredientDTOs(recipe.ingredients()),
-                toAllergenDTOs(recipe.allergens()),
-                recipe.dietaryFlags(),
-                recipe.createdAt(),
-                recipe.updatedAt()
-        );
-    }
 
     public static AllergenDTO toDTO(Allergen allergen) {
         Objects.requireNonNull(allergen);
@@ -85,7 +77,7 @@ public final class RecipeDTOMapper {
                 dto.id() != null ? dto.id() : UUID.randomUUID(),
                 dto.title(),
                 dto.summary(),
-                dto.parent() != null ? dto.parent().id() : null,
+                dto.parentId(),
                 //usernameAuthor,
                 dto.username(),
                 dto.preparationMinutes(),
@@ -162,33 +154,13 @@ public final class RecipeDTOMapper {
                 .toList();
     }
 
-    public static RecipeDetailsDTO toRecipeWithMetaDataDTO(RecipeWithMetaData recipeWithMetaData, RecipeDTO parentDTO, boolean hasLiked) {
-        return new RecipeDetailsDTO(
-                recipeWithMetaData.id(),
-                recipeWithMetaData.title(),
-                recipeWithMetaData.summary(),
-                parentDTO,
-                recipeWithMetaData.usernameAuthor(),
-                recipeWithMetaData.preparationMinutes(),
-                recipeWithMetaData.imageUrl(),
-                recipeWithMetaData.status().name(),
-                toStepDTOs(recipeWithMetaData.stepByStepInstructions()),
-                toIngredientDTOs(recipeWithMetaData.ingredients()),
-                toAllergenDTOs(recipeWithMetaData.allergens()),
-                recipeWithMetaData.dietaryFlags(),
-                recipeWithMetaData.createdAt(),
-                recipeWithMetaData.updatedAt(),
-                recipeWithMetaData.nbLike(),
-                hasLiked
-        );
-    }
 
     public static RecipeDetailsDTO toRecipeWithMetaDataDTO(RecipeWithMetaData recipeWithMetaData, boolean hasLiked) {
         return new RecipeDetailsDTO(
                 recipeWithMetaData.id(),
                 recipeWithMetaData.title(),
                 recipeWithMetaData.summary(),
-                null,
+                recipeWithMetaData.parentId(),
                 recipeWithMetaData.usernameAuthor(),
                 recipeWithMetaData.preparationMinutes(),
                 recipeWithMetaData.imageUrl(),
