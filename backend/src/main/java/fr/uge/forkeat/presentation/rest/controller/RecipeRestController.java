@@ -69,7 +69,7 @@ public final class RecipeRestController {
         if(SecurityContextHolder.getContext().getAuthentication() != null){
             userUsername = authPort.extractUsername();
         }
-        if(userUsername != null) {
+        if(userUsername != null && !userUsername.equals("anonymousUser")) {
             user = this.userQueryService.getUserByUsername(userUsername);
             userId = user.id();
         }

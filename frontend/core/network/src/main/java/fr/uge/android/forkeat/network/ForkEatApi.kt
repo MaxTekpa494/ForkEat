@@ -62,7 +62,7 @@ object ForkEatApi {
             .addInterceptor { chain ->
                 val requestBuilder = chain.request().newBuilder()
                 tokenManager?.getToken()?.let { token ->
-                    requestBuilder.addHeader("Authorization", "Bearer $token")
+                    requestBuilder.addHeader("Authorization", "$token")
                 }
                 chain.proceed(requestBuilder.build())
             }

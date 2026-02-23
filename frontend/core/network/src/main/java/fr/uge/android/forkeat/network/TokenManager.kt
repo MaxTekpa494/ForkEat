@@ -9,7 +9,7 @@ class TokenManager(context: Context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
     fun saveToken(token: String) {
-        prefs.edit().putString(KEY_TOKEN, token).apply()
+        prefs.edit().putString(KEY_TOKEN, "Bearer " + token).apply()
     }
 
     fun getToken(): String? = prefs.getString(KEY_TOKEN, null)

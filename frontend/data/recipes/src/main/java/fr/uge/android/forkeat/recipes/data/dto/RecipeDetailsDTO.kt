@@ -1,6 +1,7 @@
 package fr.uge.android.forkeat.recipes.data.dto
 
 import java.util.UUID
+import kotlin.time.Instant
 
 data class RecipeDetailsDTO(
     val id: UUID,
@@ -15,8 +16,8 @@ data class RecipeDetailsDTO(
     val ingredients: List<RecipeIngredientDTO>,
     val allergens: List<AllergenDTO>,
     val dietaryFlags: Map<String, Boolean>,
-    val createdAt: String,
-    val updatedAt: String,
+    val createdAt: Instant,
+    val updatedAt: Instant,
     val nbLike: Long,
     val hasLiked: Boolean
 )

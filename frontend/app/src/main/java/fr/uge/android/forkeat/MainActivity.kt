@@ -189,13 +189,6 @@ class MainActivity : ComponentActivity() {
                         val availableAllergensState = recipesViewModel.availableAllergens.collectAsState()
                         val isLoadingState = recipesViewModel.isLoading.collectAsState()
 
-                        val lifecycleOwner = LocalLifecycleOwner.current
-
-                        LaunchedEffect(lifecycleOwner) {
-                            lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
-                                recipesViewModel.loadRecipes(currentPageState.value)
-                            }
-                        }
 
                         RecipesListScreen(
                             recipes = recipesState.value,
