@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
+import fr.uge.android.forkeat.network.TokenManager
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
 import fr.uge.android.forkeat.recipes.data.dto.AllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.CreateRecipeDTO
@@ -67,6 +68,7 @@ class RecipeFormViewModel(
 ) : AndroidViewModel(application) {
 
     private val api: RecipeApiService = ForkEatApi.recipeService
+    private val tokenManager = TokenManager(application)
 
     val mode: RecipeFormMode = when {
         savedStateHandle.get<String>("recipeId") != null ->
@@ -123,7 +125,8 @@ class RecipeFormViewModel(
 
     private suspend fun prefillFromRecipe(id: UUID, isVariant: Boolean) {
         try {
-            val response = api.getRecipe(id)
+            val token = tokenManager.getToken()?.toString() ?: ""
+            val response = api.getRecipeWithId(token, id)
             if (response.isSuccessful) {
                 val recipe = response.body()?.resource ?: return
                 _uiState.value = _uiState.value.copy(

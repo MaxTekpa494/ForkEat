@@ -36,7 +36,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.uge.android.forkeat.designsystem.theme.Primary500
 import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
-import fr.uge.android.forkeat.home.ForkEatScaffold
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 
 @Composable
@@ -62,19 +61,7 @@ fun MyRecipesScreen(
         }
     }
 
-    ForkEatScaffold(
-        isLoggedIn = isLoggedIn,
-        onLogout = onLogout,
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = onNavigateToCreateRecipe,
-                containerColor = Primary500,
-                contentColor = Color.White
-            ) {
-                Icon(Icons.Default.Add, contentDescription = "Créer une recette")
-            }
-        }
-    ) {
+    Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
@@ -114,6 +101,17 @@ fun MyRecipesScreen(
                     }
                 }
             }
+        }
+
+        FloatingActionButton(
+            onClick = onNavigateToCreateRecipe,
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp),
+            containerColor = Primary500,
+            contentColor = Color.White
+        ) {
+            Icon(Icons.Default.Add, contentDescription = "Créer une recette")
         }
     }
 
