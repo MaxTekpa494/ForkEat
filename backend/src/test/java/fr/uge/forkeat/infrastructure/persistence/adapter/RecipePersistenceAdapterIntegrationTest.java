@@ -276,8 +276,6 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
             assertEquals(1, result.items().size());
             var item = result.items().getFirst();
             assertEquals("Recette publiée", item.title());
-            assertEquals(0L, item.likeCount());
-            assertEquals(0L, item.superLikeCount());
         }
 
         @Test

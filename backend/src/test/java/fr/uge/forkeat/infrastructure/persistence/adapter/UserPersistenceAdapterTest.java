@@ -332,62 +332,82 @@ class UserPersistenceAdapterTest {
     class FindUserProfile {
 
         @Test
-        void shouldReturnProfile_WhenUserExists() {
+        void shouldReturnPublicProfile_WhenUserExists() {
             var userId = UUID.randomUUID();
             var profileView = mock(UserProfileView.class);
-            when(profileView.getId()).thenReturn(userId);
             when(profileView.getUsername()).thenReturn("testuser");
             when(profileView.getFirstName()).thenReturn("John");
             when(profileView.getLastName()).thenReturn("Doe");
-            var counts = new UserSocialCountsProjection(10L, 5L, 30L, 2L);
 
             when(userRepository.findProfileByUsername("testuser")).thenReturn(Optional.of(profileView));
-            when(neo4jUserRepository.findSocialCountsByUserId(userId)).thenReturn(counts);
 
-            var result = adapter.findUserProfile("testuser");
+            var result = adapter.findPublicProfile("testuser");
 
             assertNotNull(result);
-            assertEquals("testuser", result.publicProfile().username());
-            assertEquals("John", result.publicProfile().firstName());
-            assertEquals("Doe", result.publicProfile().lastName());
-            assertEquals(10L, result.socialStats().followerCount());
-            assertEquals(5L, result.socialStats().followingCount());
-            assertEquals(30L, result.socialStats().totalLikeCount());
-            assertEquals(2L, result.socialStats().totalSuperLikeCount());
+            assertEquals("testuser", result.username());
+            assertEquals("John", result.firstName());
+            assertEquals("Doe", result.lastName());
             verify(userRepository).findProfileByUsername("testuser");
+        }
+
+        @Test
+        void shouldReturnSocialStats_WhenUserExists() {
+            var userId = UUID.randomUUID();
+            var userEntity = createTestUserEntity(userId, "testuser", "test@example.com");
+            var counts = new UserSocialCountsProjection(10L, 5L, 30L, 2L);
+
+            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(userEntity));
+            when(neo4jUserRepository.findSocialCountsByUserId(userId)).thenReturn(counts);
+
+            var result = adapter.findUserSocialStats("testuser");
+
+            assertNotNull(result);
+            assertEquals(10L, result.followerCount());
+            assertEquals(5L, result.followingCount());
+            assertEquals(30L, result.totalLikeCount());
+            assertEquals(2L, result.totalSuperLikeCount());
+            verify(userRepository).findByUsername("testuser");
             verify(neo4jUserRepository).findSocialCountsByUserId(userId);
         }
 
         @Test
         void shouldReturnZeroStats_WhenNeo4jReturnsNull() {
             var userId = UUID.randomUUID();
-            var profileView = mock(UserProfileView.class);
-            when(profileView.getId()).thenReturn(userId);
-            when(profileView.getUsername()).thenReturn("testuser");
-            when(profileView.getFirstName()).thenReturn("John");
-            when(profileView.getLastName()).thenReturn("Doe");
+            var userEntity = createTestUserEntity(userId, "testuser", "test@example.com");
 
-            when(userRepository.findProfileByUsername("testuser")).thenReturn(Optional.of(profileView));
+            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(userEntity));
             when(neo4jUserRepository.findSocialCountsByUserId(userId)).thenReturn(null);
 
-            var result = adapter.findUserProfile("testuser");
+            var result = adapter.findUserSocialStats("testuser");
 
-            assertEquals(0L, result.socialStats().followerCount());
-            assertEquals(0L, result.socialStats().followingCount());
-            assertEquals(0L, result.socialStats().totalLikeCount());
-            assertEquals(0L, result.socialStats().totalSuperLikeCount());
+            assertEquals(0L, result.followerCount());
+            assertEquals(0L, result.followingCount());
+            assertEquals(0L, result.totalLikeCount());
+            assertEquals(0L, result.totalSuperLikeCount());
         }
 
         @Test
-        void shouldThrow_WhenUserNotFound() {
+        void shouldThrow_WhenUserNotFound_ForPublicProfile() {
             when(userRepository.findProfileByUsername("unknown")).thenReturn(Optional.empty());
 
-            assertThrows(ResourceNotFoundException.class, () -> adapter.findUserProfile("unknown"));
+            assertThrows(ResourceNotFoundException.class, () -> adapter.findPublicProfile("unknown"));
         }
 
         @Test
-        void shouldThrow_WhenUsernameIsNull() {
-            assertThrows(NullPointerException.class, () -> adapter.findUserProfile(null));
+        void shouldThrow_WhenUserNotFound_ForSocialStats() {
+            when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+
+            assertThrows(ResourceNotFoundException.class, () -> adapter.findUserSocialStats("unknown"));
+        }
+
+        @Test
+        void shouldThrow_WhenUsernameIsNull_ForPublicProfile() {
+            assertThrows(NullPointerException.class, () -> adapter.findPublicProfile(null));
+        }
+
+        @Test
+        void shouldThrow_WhenUsernameIsNull_ForSocialStats() {
+            assertThrows(NullPointerException.class, () -> adapter.findUserSocialStats(null));
         }
     }
 }

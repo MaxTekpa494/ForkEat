@@ -5,6 +5,7 @@ import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.recipe.RecipeUserInteraction;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
@@ -52,14 +53,16 @@ class ProfileServiceTest {
         service = new ProfileService(userPersistence, recipePersistence, walletService);
     }
 
-    private UserProfile createUserProfile(String username) {
-        var publicProfile = new UserPublicProfile(username, "Jean", "Dupont");
-        var socialStats = new UserSocialStats(10, 5, 20, 3);
-        return new UserProfile(publicProfile, socialStats);
+    private UserPublicProfile createPublicProfile(String username) {
+        return new UserPublicProfile(username, "Jean", "Dupont");
+    }
+
+    private UserSocialStats createSocialStats() {
+        return new UserSocialStats(10, 5, 20, 3);
     }
 
     private RecipeSummary createRecipeSummary(UUID id) {
-        return new RecipeSummary(id, "Tarte", "Délicieuse tarte", null, 30, Instant.now(), 5L, 1L);
+        return new RecipeSummary(id, "Tarte", "Délicieuse tarte", null, 30, Instant.now());
     }
 
     private User createUser(String username) {
@@ -70,20 +73,23 @@ class ProfileServiceTest {
     @Nested
     class GetProfileInfos {
 
-        private void stubProfileInfos(String username, String currentUsername) {
-            when(userPersistence.findUserProfile(username)).thenReturn(createUserProfile(username));
+        @Test
+        void shouldReturnProfileWithEmptyRecipes() {
+            var username = "chef";
+            var currentUsername = "viewer";
+            var publicProfile = createPublicProfile(username);
+            var socialStats = createSocialStats();
+
+            when(userPersistence.findPublicProfile(username)).thenReturn(publicProfile);
+            when(userPersistence.findUserSocialStats(username)).thenReturn(socialStats);
             when(recipePersistence.findRecipeSummaries(eq(username), eq(RecipeStatus.PUBLISHED), anyInt(), anyInt()))
                     .thenReturn(new PageResult<>(List.of(), 0L));
             when(userPersistence.isFollowing(currentUsername, username)).thenReturn(false);
-        }
 
-        @Test
-        void shouldReturnProfileWithEmptyRecipes() {
-            stubProfileInfos("chef", "viewer");
+            var result = service.getProfileInfos(username, 0, 10, currentUsername);
 
-            var result = service.getProfileInfos("chef", 0, 10, "viewer");
-
-            assertEquals(createUserProfile("chef"), result.profileWithRecipes().profile());
+            assertEquals(publicProfile, result.profileWithRecipes().profile().publicProfile());
+            assertEquals(socialStats, result.profileWithRecipes().profile().socialStats());
             assertTrue(result.profileWithRecipes().recipes().items().isEmpty());
             assertEquals(0L, result.profileWithRecipes().recipes().total());
             verifyNoInteractions(walletService);
@@ -91,80 +97,68 @@ class ProfileServiceTest {
 
         @Test
         void shouldReturnProfileWithPersonalizedRecipes() {
+            var username = "chef";
+            var currentUsername = "viewer";
             var recipeId = UUID.randomUUID();
-            var profile = createUserProfile("chef");
+            var publicProfile = createPublicProfile(username);
+            var socialStats = createSocialStats();
             var summary = createRecipeSummary(recipeId);
             var interaction = new RecipeUserInteraction(true, false);
+            var counts = new RecipeCounts(5L, 1L);
 
-            when(userPersistence.findUserProfile("chef")).thenReturn(profile);
-            when(recipePersistence.findRecipeSummaries(eq("chef"), eq(RecipeStatus.PUBLISHED), eq(10), eq(0)))
+            when(userPersistence.findPublicProfile(username)).thenReturn(publicProfile);
+            when(userPersistence.findUserSocialStats(username)).thenReturn(socialStats);
+            when(recipePersistence.findRecipeSummaries(eq(username), eq(RecipeStatus.PUBLISHED), eq(10), eq(0)))
                     .thenReturn(new PageResult<>(List.of(summary), 1L));
-            when(recipePersistence.findUserRecipeInteractions(List.of(recipeId), "viewer"))
+            when(recipePersistence.findRecipeCounts(List.of(recipeId))).thenReturn(Map.of(recipeId, counts));
+            when(recipePersistence.findUserRecipeInteractions(List.of(recipeId), currentUsername))
                     .thenReturn(Map.of(recipeId, interaction));
-            when(userPersistence.isFollowing("viewer", "chef")).thenReturn(false);
+            when(userPersistence.isFollowing(currentUsername, username)).thenReturn(false);
 
-            var result = service.getProfileInfos("chef", 0, 10, "viewer");
+            var result = service.getProfileInfos(username, 0, 10, currentUsername);
 
             assertEquals(1, result.profileWithRecipes().recipes().items().size());
             var item = result.profileWithRecipes().recipes().items().getFirst();
             assertEquals(summary, item.summary());
-            assertTrue(item.likedByCurrentUser());
-            assertFalse(item.superLikedByCurrentUser());
+            assertEquals(counts, item.counts());
+            assertEquals(interaction, item.interaction());
         }
 
         @Test
         void shouldDefaultToNoneInteraction_WhenNotInMap() {
+            var username = "chef";
+            var currentUsername = "viewer";
             var recipeId = UUID.randomUUID();
             var summary = createRecipeSummary(recipeId);
 
-            when(userPersistence.findUserProfile("chef")).thenReturn(createUserProfile("chef"));
+            when(userPersistence.findPublicProfile(username)).thenReturn(createPublicProfile(username));
+            when(userPersistence.findUserSocialStats(username)).thenReturn(createSocialStats());
             when(recipePersistence.findRecipeSummaries(any(), any(), anyInt(), anyInt()))
                     .thenReturn(new PageResult<>(List.of(summary), 1L));
-            when(recipePersistence.findUserRecipeInteractions(any(), any())).thenReturn(Map.of());
-            when(userPersistence.isFollowing("viewer", "chef")).thenReturn(false);
+            when(recipePersistence.findRecipeCounts(anyList())).thenReturn(Map.of());
+            when(recipePersistence.findUserRecipeInteractions(anyList(), any())).thenReturn(Map.of());
+            when(userPersistence.isFollowing(currentUsername, username)).thenReturn(false);
 
-            var result = service.getProfileInfos("chef", 0, 10, "viewer");
+            var result = service.getProfileInfos(username, 0, 10, currentUsername);
 
             var item = result.profileWithRecipes().recipes().items().getFirst();
-            assertFalse(item.likedByCurrentUser());
-            assertFalse(item.superLikedByCurrentUser());
-        }
-
-        @Test
-        void shouldAlwaysRequestPublishedRecipes() {
-            stubProfileInfos("chef", "viewer");
-
-            service.getProfileInfos("chef", 0, 10, "viewer");
-
-            verify(recipePersistence).findRecipeSummaries("chef", RecipeStatus.PUBLISHED, 10, 0);
-        }
-
-        @Test
-        void shouldCallInteractionsWithEmptyList_WhenNoRecipes() {
-            stubProfileInfos("chef", "viewer");
-
-            service.getProfileInfos("chef", 0, 10, "viewer");
-
-            verify(recipePersistence).findUserRecipeInteractions(List.of(), "viewer");
+            assertEquals(RecipeUserInteraction.NONE, item.interaction());
+            assertEquals(RecipeCounts.ZERO, item.counts());
         }
 
         @Test
         void shouldReturnFollowedInteraction_WhenCurrentUserFollows() {
-            stubProfileInfos("chef", "viewer");
-            when(userPersistence.isFollowing("viewer", "chef")).thenReturn(true);
+            var username = "chef";
+            var currentUsername = "viewer";
+            when(userPersistence.findPublicProfile(username)).thenReturn(createPublicProfile(username));
+            when(userPersistence.findUserSocialStats(username)).thenReturn(createSocialStats());
+            when(recipePersistence.findRecipeSummaries(any(), any(), anyInt(), anyInt()))
+                    .thenReturn(new PageResult<>(List.of(), 0L));
+            when(userPersistence.isFollowing(currentUsername, username)).thenReturn(true);
 
-            var result = service.getProfileInfos("chef", 0, 10, "viewer");
+            var result = service.getProfileInfos(username, 0, 10, currentUsername);
 
             assertTrue(result.followedByCurrentUser());
-        }
-
-        @Test
-        void shouldReturnNotFollowedInteraction_WhenCurrentUserDoesNotFollow() {
-            stubProfileInfos("chef", "viewer");
-
-            var result = service.getProfileInfos("chef", 0, 10, "viewer");
-
-            assertFalse(result.followedByCurrentUser());
         }
 
         @Test
@@ -199,33 +193,21 @@ class ProfileServiceTest {
 
         @Test
         void shouldReturnAccountDetails() {
-            var user = createUser("chef");
-            var profile = createUserProfile("chef");
-            when(userPersistence.findByUsername("chef")).thenReturn(Optional.of(user));
-            when(userPersistence.findUserProfile("chef")).thenReturn(profile);
-            when(walletService.getBalance(user.id())).thenReturn(1000L);
-            when(recipePersistence.countByAuthorUsername("chef")).thenReturn(7L);
+            var username = "chef";
+            var user = createUser(username);
+            var socialStats = createSocialStats();
 
-            var result = service.getAccountDetails("chef");
+            when(userPersistence.findByUsername(username)).thenReturn(Optional.of(user));
+            when(userPersistence.findUserSocialStats(username)).thenReturn(socialStats);
+            when(walletService.getBalance(user.id())).thenReturn(1000L);
+            when(recipePersistence.countByAuthorUsername(username)).thenReturn(7L);
+
+            var result = service.getAccountDetails(username);
 
             assertEquals(user, result.user());
-            assertEquals(profile.socialStats(), result.socialStats());
+            assertEquals(socialStats, result.socialStats());
             assertEquals(1000L, result.walletBalance());
             assertEquals(7L, result.recipeCount());
-        }
-
-        @Test
-        void shouldReturnZeroRecipeCount_WhenUserHasNoRecipes() {
-            var user = createUser("chef");
-            var profile = createUserProfile("chef");
-            when(userPersistence.findByUsername("chef")).thenReturn(Optional.of(user));
-            when(userPersistence.findUserProfile("chef")).thenReturn(profile);
-            when(walletService.getBalance(user.id())).thenReturn(0L);
-            when(recipePersistence.countByAuthorUsername("chef")).thenReturn(0L);
-
-            var result = service.getAccountDetails("chef");
-
-            assertEquals(0L, result.recipeCount());
         }
 
         @Test

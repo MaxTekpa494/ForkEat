@@ -428,18 +428,12 @@ class RecipePersistenceAdapterTest {
             when(recipeRepository.findByAuthorUsernameAndStatus(eq("chef_test"), eq(RecipeStatus.PUBLISHED), any()))
                     .thenReturn(page);
 
-            var counts = new RecipeCountsProjection(recipeId.toString(), 5L, 2L);
-            when(neo4jRecipeRepository.findCountsByRecipeIds(List.of(recipeId.toString())))
-                    .thenReturn(List.of(counts));
-
             var result = adapter.findRecipeSummaries("chef_test", RecipeStatus.PUBLISHED, 10, 0);
 
             assertEquals(1, result.items().size());
             assertEquals(1L, result.total());
             var item = result.items().getFirst();
             assertEquals("Tarte aux pommes", item.title());
-            assertEquals(5L, item.likeCount());
-            assertEquals(2L, item.superLikeCount());
         }
 
         @Test
@@ -469,13 +463,11 @@ class RecipePersistenceAdapterTest {
             var page = new PageImpl<>(List.of(summaryView), PageRequest.of(0, 10), 1);
             when(recipeRepository.findByAuthorUsernameAndStatus(eq("chef_test"), eq(RecipeStatus.PUBLISHED), any()))
                     .thenReturn(page);
-            when(neo4jRecipeRepository.findCountsByRecipeIds(any())).thenReturn(List.of());
 
             var result = adapter.findRecipeSummaries("chef_test", RecipeStatus.PUBLISHED, 10, 0);
 
             var item = result.items().getFirst();
-            assertEquals(0L, item.likeCount());
-            assertEquals(0L, item.superLikeCount());
+            assertNotNull(item);
         }
 
         @Test

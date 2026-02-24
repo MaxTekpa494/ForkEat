@@ -225,4 +225,54 @@ class UserServiceTest {
             assertEquals(userId1, resultByUsername.id());
         }
     }
+
+    @Nested
+    class CheckUserPasswordTests {
+
+        @Test
+        void checkUserPassword_ShouldReturnTrue_WhenPasswordMatches() {
+            // Given
+            var username = "testuser";
+            var rawPassword = "password123";
+            var hashedPassword = "hashedPassword123";
+
+            when(userPersistence.findPasswordHashByUsername(username)).thenReturn(hashedPassword);
+            when(passwordHasher.matches(rawPassword, hashedPassword)).thenReturn(true);
+
+            // When
+            boolean result = userService.checkUserPassword(username, rawPassword);
+
+            // Then
+            assertTrue(result);
+        }
+
+        @Test
+        void checkUserPassword_ShouldReturnFalse_WhenPasswordDoesNotMatch() {
+            // Given
+            var username = "testuser";
+            var rawPassword = "wrongPassword";
+            var hashedPassword = "hashedPassword123";
+
+            when(userPersistence.findPasswordHashByUsername(username)).thenReturn(hashedPassword);
+            when(passwordHasher.matches(rawPassword, hashedPassword)).thenReturn(false);
+
+            // When
+            boolean result = userService.checkUserPassword(username, rawPassword);
+
+            // Then
+            assertFalse(result);
+        }
+
+        @Test
+        void checkUserPassword_ShouldThrow_WhenUserNotFound() {
+            // Given
+            var username = "unknownuser";
+            var rawPassword = "password123";
+
+            when(userPersistence.findPasswordHashByUsername(username)).thenThrow(new ResourceNotFoundException("User not found"));
+
+            // When/Then
+            assertThrows(ResourceNotFoundException.class, () -> userService.checkUserPassword(username, rawPassword));
+        }
+    }
 }
