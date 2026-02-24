@@ -1,6 +1,6 @@
 package fr.uge.forkeat.service.user;
 
-import fr.uge.forkeat.service.MailService;
+import fr.uge.forkeat.service.external.MailGateway;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
@@ -18,6 +18,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import fr.uge.forkeat.service.port.PasswordHasher;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
@@ -36,9 +38,11 @@ class EmailVerificationServiceTest {
     @Mock
     private VerificationTokenPersistence tokenPersistence;
     @Mock
+    private PasswordHasher passwordHasher;
+    @Mock
     private UserPersistence userPersistence;
     @Mock
-    private MailService mailService;
+    private MailGateway mailGateway;
 
     @InjectMocks
     private EmailVerificationService service;
@@ -85,7 +89,7 @@ class EmailVerificationServiceTest {
             service.sendEmailConfirmation(userId, "test@forkeat.fr");
 
             var captor = ArgumentCaptor.forClass(String.class);
-            verify(mailService).send(eq("test@forkeat.fr"), any(), captor.capture());
+            verify(mailGateway).send(eq("test@forkeat.fr"), any(), captor.capture());
             assertTrue(captor.getValue().contains("http://localhost:8080/auth/confirm-email?token="));
         }
 
@@ -180,7 +184,7 @@ class EmailVerificationServiceTest {
 
             service.sendPasswordChangeCode(userId, "test@forkeat.fr");
 
-            verify(mailService).send(eq("test@forkeat.fr"), any(), any());
+            verify(mailGateway).send(eq("test@forkeat.fr"), any(), any());
         }
     }
 
@@ -199,11 +203,11 @@ class EmailVerificationServiceTest {
             when(tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE))
                     .thenReturn(Optional.of(token));
             when(userPersistence.findById(userId)).thenReturn(Optional.of(user));
-            when(userPersistence.saveUser(any(), eq("new-hashed-pw"))).thenReturn(user);
+            when(userPersistence.saveUser(any(), eq("hashed-pw"))).thenReturn(user);
 
-            service.confirmPasswordChange(userId, "123456", "new-hashed-pw");
+            service.confirmPasswordChange(userId, "123456", "hashed-pw");
 
-            verify(userPersistence).saveUser(any(), eq("new-hashed-pw"));
+            verify(userPersistence).saveUser(any(), eq("hashed-pw"));
             verify(tokenPersistence).deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
         }
 
@@ -279,7 +283,7 @@ class EmailVerificationServiceTest {
 
             service.sendEmailChangeCode(userId, "old@forkeat.fr", "new@forkeat.fr");
 
-            verify(mailService).send(eq("old@forkeat.fr"), any(), any());
+            verify(mailGateway).send(eq("old@forkeat.fr"), any(), any());
         }
     }
 

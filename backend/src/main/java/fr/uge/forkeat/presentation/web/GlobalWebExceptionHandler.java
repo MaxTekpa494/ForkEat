@@ -70,13 +70,13 @@ public class GlobalWebExceptionHandler {
 	@ExceptionHandler(CheckProfileUpdateFailureException.class)
 	public String HandleUpdatePasswordFailure(CheckProfileUpdateFailureException ex, RedirectAttributes redirectAttributes){
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
-		return "redirect:/profile";
+		return "redirect:/account";
 	}
 
 	@ExceptionHandler(VerificationException.class)
 	public String handleVerificationException(VerificationException ex, RedirectAttributes redirectAttributes){
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
-		return "redirect:/profile";
+		return "redirect:/account";
 	}
 
 	@ExceptionHandler(ImageUploadException.class)

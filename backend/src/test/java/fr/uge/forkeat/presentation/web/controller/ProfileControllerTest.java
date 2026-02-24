@@ -1,35 +1,39 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
-import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
+import fr.uge.forkeat.presentation.dto.user.UserProfileDTO;
+import fr.uge.forkeat.service.ProfileService;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.PageResult;
+import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.model.user.projection.PersonalizedUserProfile;
+import fr.uge.forkeat.service.model.user.projection.UserAccountDetails;
+import fr.uge.forkeat.service.model.user.projection.UserProfile;
+import fr.uge.forkeat.service.model.user.projection.UserProfileWithRecipes;
+import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
+import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.user.EmailVerificationService;
-import fr.uge.forkeat.service.user.UserQueryService;
-import fr.uge.forkeat.service.user.UserUpdateService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.http.MediaType;
-import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ProfileWebController.class)
@@ -38,10 +42,7 @@ class ProfileControllerTest {
     private final MockMvc mockMvc;
 
     @MockitoBean
-    private UserQueryService userQueryService;
-
-    @MockitoBean
-    private UserUpdateService userUpdateService;
+    private ProfileService profileService;
 
     @MockitoBean
     private AuthenticationPort authPort;
@@ -49,14 +50,7 @@ class ProfileControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
-    @MockitoBean
-    private JavaMailSender javaMailSender;
 
-    @MockitoBean
-    private PasswordEncoder passwordEncoder;
-
-    @MockitoBean
-    private EmailVerificationService emailVerificationService;
 
 
     private User testUser;
@@ -82,218 +76,105 @@ class ProfileControllerTest {
                 false
         );
 
-        // Configuration de l'authentification
         when(authPort.extractUsername()).thenReturn(testUser.username());
     }
 
     @Nested
-    class ProfileTests {
+    class ProfilePageTests {
+
+        private UserAccountDetails buildAccountDetails(long balance) {
+            var socialStats = new UserSocialStats(10, 5, 20, 3);
+            return new UserAccountDetails(testUser, socialStats, balance, 4L);
+        }
+
         @Test
         @WithMockUser(username = "testuser")
         void profile_ShouldReturnProfileView_WhenAuthenticated() throws Exception {
-            // Given
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+            var vm = buildAccountDetails(1000L);
+            when(profileService.getAccountDetails("testuser")).thenReturn(vm);
 
-            // When & Then
             mockMvc.perform(get("/profile"))
                     .andExpect(status().isOk())
-                    .andExpect(view().name("dashboard/profile"))
-                    .andExpect(model().attributeExists("user"))
-                    .andExpect(model().attribute("user", testUser))
-                    .andExpect(model().attribute("pageTitle", "Mon Profil - ForkEat"));
+                    .andExpect(view().name("profile/index"))
+                    .andExpect(model().attributeExists("vm"))
+                    .andExpect(model().attribute("vm", vm));
 
-            verify(userQueryService).getUserByUsername("testuser");
+            verify(profileService).getAccountDetails("testuser");
         }
 
         @Test
         @WithMockUser(username = "testuser")
-        void profile_ShouldExtractUsernameFromAuthentication() throws Exception {
-            // Given
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+        void profile_ShouldReturn404_WhenUserNotFound() throws Exception {
+            when(profileService.getAccountDetails("testuser"))
+                    .thenThrow(new ResourceNotFoundException("Utilisateur non trouvé"));
 
-            // When
+            mockMvc.perform(get("/profile"))
+                    .andExpect(status().is4xxClientError());
+
+            verify(profileService).getAccountDetails("testuser");
+        }
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void profile_ShouldExtractUsernameFromAuth() throws Exception {
+            when(profileService.getAccountDetails("testuser")).thenReturn(buildAccountDetails(500L));
+
             mockMvc.perform(get("/profile"))
                     .andExpect(status().isOk());
 
-            // Then
             verify(authPort).extractUsername();
-            verify(userQueryService).getUserByUsername("testuser");
+            verify(profileService).getAccountDetails("testuser");
         }
     }
 
     @Nested
-    class UpdateProfileTests {
-        @Test
-        @WithMockUser(username = "testuser")
-        void updateProfile_ShouldRedirectToProfile_WhenSuccessful() throws Exception {
-            // Given
-            var updatedUser = new User(
-                    testUser.id(),
-                    "newusername",
-                    "NewFirst",
-                    "NewLast",
-                    testUser.email(),
-                    testUser.role(),
-                    testUser.status(),
-                    testUser.authMode(),
-                    testUser.createdAt(),
-                    testUser.updatedAt(),
-                    false);
+    class UserProfilePageTests {
 
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            when(userUpdateService.updateProfile("testuser","newusername", "NewFirst", "NewLast"))
-                    .thenReturn(updatedUser);
-            doNothing().when(authPort).refreshAuthentication(updatedUser);
-
-            // When & Then
-            mockMvc.perform(post("/profile/update")
-                            .with(csrf())
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                            .param("firstName", "NewFirst")
-                            .param("lastName", "NewLast")
-                            .param("username", "newusername"))
-                    .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrl("/profile"))
-                    .andExpect(flash().attributeExists("success"));
-
-            verify(userUpdateService).updateProfile("testuser","newusername", "NewFirst", "NewLast");
-            verify(authPort).refreshAuthentication(updatedUser);
+        private PersonalizedUserProfile buildPersonalizedProfile(boolean followed) {
+            var publicProfile = new UserPublicProfile("otheruser", "John", "Doe");
+            var socialStats = new UserSocialStats(10, 5, 20, 3);
+            var profile = new UserProfile(publicProfile, socialStats);
+            var recipes = new PageResult<PersonalizedRecipeSummary>(List.of(), 0L);
+            var profileWithRecipes = new UserProfileWithRecipes(profile, recipes);
+            return new PersonalizedUserProfile(profileWithRecipes, followed);
         }
 
         @Test
         @WithMockUser(username = "testuser")
-        void updateProfile_ShouldReturnProfileView_WhenUsernameAlreadyTaken() throws Exception {
-            // Given
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            when(userUpdateService.updateProfile("testuser", "takenusername", "First", "Last"))
-                    .thenThrow(new CheckProfileUpdateFailureException("Ce nom d'utilisateur est déjà pris"));
-
-            // When & Then
-            mockMvc.perform(post("/profile/update")
-                            .with(csrf())
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                            .param("firstName", "First")
-                            .param("lastName", "Last")
-                            .param("username", "takenusername"))
+        void userProfile_ShouldRedirectToOwnProfile_WhenUsernameMatchesCurrent() throws Exception {
+            mockMvc.perform(get("/profile/testuser"))
                     .andExpect(status().is3xxRedirection())
-                    .andExpect(view().name("redirect:/profile"))
-                    .andExpect(flash().attributeExists("error"));
+                    .andExpect(redirectedUrl("/profile"));
 
-            verify(authPort, never()).refreshAuthentication(any());
-        }
-    }
-
-    @Nested
-    class UpdateEmailTests {
-        @Test
-        @WithMockUser(username = "testuser")
-        void updateEmail_ShouldRedirectToConfirmAction_WhenSuccessful() throws Exception {
-            // Given
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            doNothing().when(userUpdateService).requestEmailChange("testuser", "new@example.com", "correctPassword", "correctPassword");
-
-            // When & Then
-            mockMvc.perform(post("/profile/request-email-change")
-                            .with(csrf())
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                            .param("newEmail", "new@example.com")
-                            .param("currentPassword", "correctPassword")
-                            .param("newPassword", "correctPassword")
-                            .param("confirmPassword", "correctPassword"))
-                    .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrl("/profile/confirm-action"))
-                    .andExpect(flash().attribute("actionType", "EMAIL_CHANGE"))
-                    .andExpect(flash().attributeExists("infoMessage"));
-
-            verify(userUpdateService).requestEmailChange("testuser", "new@example.com", "correctPassword", "correctPassword");
+            verify(profileService, never()).getProfileInfos(any(), anyInt(), anyInt(), any());
         }
 
         @Test
         @WithMockUser(username = "testuser")
-        void updateEmail_ShouldRedirectToProfile_WhenPasswordIncorrect() throws Exception {
-            // Given
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            doThrow(new CheckProfileUpdateFailureException("Incorrect password"))
-                    .when(userUpdateService).requestEmailChange("testuser", "new@example.com", "wrongPassword", "wrongPassword");
+        void userProfile_ShouldReturnUserView_WhenViewingOtherProfile() throws Exception {
+            when(profileService.getProfileInfos(eq("otheruser"), anyInt(), anyInt(), eq("testuser")))
+                    .thenReturn(buildPersonalizedProfile(false));
 
-            // When & Then
-            mockMvc.perform(post("/profile/request-email-change")
-                            .with(csrf())
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                            .param("newEmail", "new@example.com")
-                            .param("currentPassword", "wrongPassword")
-                            .param("newPassword", "wrongPassword")
-                            .param("confirmPassword", "wrongPassword"))
-                    .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrl("/profile"))
-                    .andExpect(flash().attributeExists("error"));
-        }
-    }
+            mockMvc.perform(get("/profile/otheruser"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("profile/user"))
+                    .andExpect(model().attributeExists("vm"));
 
-    @Nested
-    class UpdatePasswordTests {
-        @Test
-        @WithMockUser(username = "testuser")
-        void updatePassword_ShouldRedirectToConfirmAction_WhenSuccessful() throws Exception {
-            // Given
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            doNothing().when(userUpdateService).requestPasswordChange("testuser", "currentPass", "newPassword123");
-
-            // When & Then
-            mockMvc.perform(post("/profile/request-password-change")
-                            .with(csrf())
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                            .param("currentPassword", "currentPass")
-                            .param("newPassword", "newPassword123")
-                            .param("confirmPassword", "newPassword123"))
-                    .andExpect(status().is3xxRedirection())
-                    // Redirection attendue vers la page de confirmation
-                    .andExpect(redirectedUrl("/profile/confirm-action"))
-                    .andExpect(flash().attribute("actionType", "PASSWORD_CHANGE"))
-                    .andExpect(flash().attributeExists("infoMessage"));
-
-            verify(userUpdateService).requestPasswordChange(testUser.username(), "currentPass", "newPassword123");
+            verify(profileService).getProfileInfos(eq("otheruser"), anyInt(), anyInt(), eq("testuser"));
         }
 
         @Test
         @WithMockUser(username = "testuser")
-        void updatePassword_ShouldReturnProfileView_WhenCurrentPasswordIncorrect() throws Exception {
-            // Given
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-            doThrow(new CheckProfileUpdateFailureException("Mot de passe actuel incorrect"))
-                    .when(userUpdateService).requestPasswordChange("testuser", "wrongPassword", "newPassword123");
+        void userProfile_ShouldExposeFollowedState_WhenFollowing() throws Exception {
+            when(profileService.getProfileInfos(eq("otheruser"), anyInt(), anyInt(), eq("testuser")))
+                    .thenReturn(buildPersonalizedProfile(true));
 
-            // When & Then
-            mockMvc.perform(post("/profile/request-password-change")
-                            .with(csrf())
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                            .param("currentPassword", "wrongPassword")
-                            .param("newPassword", "newPassword123")
-                            .param("confirmPassword", "newPassword123"))
-                    .andExpect(status().is3xxRedirection())
-                    .andExpect(view().name("redirect:/profile"))
-                    .andExpect(flash().attributeExists("error"));
-        }
-
-        @Test
-        @WithMockUser(username = "testuser")
-        void updatePassword_ShouldReturnProfileView_WhenPasswordsDontMatch() throws Exception {
-            // Given
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
-
-            // When & Then
-            mockMvc.perform(post("/profile/request-password-change")
-                            .with(csrf())
-                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
-                            .param("currentPassword", "currentPass")
-                            .param("newPassword", "newPassword123")
-                            .param("confirmPassword", "differentPassword"))
-                    .andExpect(status().is3xxRedirection())
-                    .andExpect(view().name("redirect:/profile"))
-                    // Votre contrôleur définit bien "error" dans ce cas précis
-                    .andExpect(flash().attributeExists("error"));
-
-            verify(userUpdateService, never()).requestPasswordChange(any(), any(), any());
+            mockMvc.perform(get("/profile/otheruser"))
+                    .andExpect(status().isOk())
+                    .andExpect(result -> {
+                        var vm = (UserProfileDTO) result.getModelAndView().getModel().get("vm");
+                        assertTrue(vm.followedByCurrentUser());
+                    });
         }
     }
 }

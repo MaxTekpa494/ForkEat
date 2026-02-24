@@ -1,6 +1,6 @@
 package fr.uge.forkeat.service.user;
 
-import fr.uge.forkeat.service.MailService;
+import fr.uge.forkeat.service.external.MailGateway;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
@@ -24,7 +24,7 @@ public class EmailVerificationService {
 
     private final VerificationTokenPersistence tokenPersistence;
     private final UserPersistence userPersistence;
-    private final MailService mailService;
+    private final MailGateway mailGateway;
 
     @Value("${app.base-url:http://localhost:8080}")
     private String baseUrl;
@@ -39,10 +39,10 @@ public class EmailVerificationService {
 
     public EmailVerificationService(VerificationTokenPersistence tokenPersistence,
                                     UserPersistence userPersistence,
-                                    MailService mailService) {
-        this.tokenPersistence = Objects.requireNonNull(tokenPersistence);
-        this.userPersistence = Objects.requireNonNull(userPersistence);
-        this.mailService = Objects.requireNonNull(mailService);
+                                    MailGateway mailGateway) {
+        this.tokenPersistence = tokenPersistence;
+        this.userPersistence = userPersistence;
+        this.mailGateway = mailGateway;
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
@@ -60,7 +60,7 @@ public class EmailVerificationService {
         tokenPersistence.save(token);
 
         var link = baseUrl + "/auth/confirm-email?token=" + tokenValue;
-        mailService.send(email, "ForkEat - Confirmez votre adresse email",
+        mailGateway.send(email, "ForkEat - Confirmez votre adresse email",
                 "Bienvenue sur ForkEat !\n\n"
                         + "Cliquez sur le lien suivant pour confirmer votre email :\n"
                         + link + "\n\n"
@@ -70,7 +70,6 @@ public class EmailVerificationService {
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
     public void confirmEmail(String tokenValue) {
-        // Pas de RequireNonNull il est deja dans findByToken
         var token = tokenPersistence.findByToken(tokenValue)
                 .orElseThrow(() -> new VerificationException("Lien de confirmation invalide"));
 
@@ -88,12 +87,11 @@ public class EmailVerificationService {
     }
 
     /**
-     * Send a code to reset the password by mail to the mail indicated.
+     * Send a code to reset the password by mail.
      * The password is NOT stored in the token — it will be provided at confirmation time.
      */
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
     public void sendPasswordChangeCode(UUID userId, String email) {
-
         tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
 
         var code = generateSixDigitCode();
@@ -105,8 +103,7 @@ public class EmailVerificationService {
         );
         tokenPersistence.save(token);
 
-        this.sendChangePasswordCodeMail(email, code);
-
+        sendChangePasswordCodeMail(email, code);
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
@@ -155,7 +152,7 @@ public class EmailVerificationService {
         );
         tokenPersistence.save(token);
 
-        mailService.send(currentEmail, "ForkEat - Code de confirmation",
+        mailGateway.send(currentEmail, "ForkEat - Code de confirmation",
                 "Votre code de confirmation pour le changement d'email : " + code + "\n\n"
                         + "Ce code expire dans 10 minutes.\n"
                         + "Si vous n'avez pas demandé ce changement, ignorez ce message.");
@@ -211,8 +208,8 @@ public class EmailVerificationService {
         return new ValidatedEmailChange(user, token);
     }
 
-    private void sendChangePasswordCodeMail(String email, String code){
-        mailService.send(email, "ForkEat - Code de confirmation",
+    private void sendChangePasswordCodeMail(String email, String code) {
+        mailGateway.send(email, "ForkEat - Code de confirmation",
                 "Votre code de confirmation pour le changement de mot de passe : " + code + "\n\n"
                         + "Ce code expire dans 10 minutes.\n"
                         + "Si vous n'avez pas demandé ce changement, ignorez ce message.");

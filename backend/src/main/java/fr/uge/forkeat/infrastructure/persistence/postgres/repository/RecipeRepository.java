@@ -1,6 +1,7 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.repository;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
@@ -78,4 +79,6 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
             @Param("allergens") List<String> allergens,
             Pageable pageable
     );
+
+    Page<RecipeSummaryView> findByAuthorUsernameAndStatus(String username, RecipeStatus status, Pageable pageable);
 }

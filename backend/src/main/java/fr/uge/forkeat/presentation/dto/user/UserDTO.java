@@ -1,7 +1,6 @@
 package fr.uge.forkeat.presentation.dto.user;
 
 import java.time.Instant;
-import java.util.UUID;
 
 public record UserDTO(
         String username,

@@ -13,7 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import fr.uge.forkeat.service.port.PasswordHasher;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -29,10 +29,10 @@ class UserUpdateServiceTest {
     private UserPersistence userPersistence;
 
     @Mock
-    private UserQueryService userQueryService;
+    private UserService userService;
 
     @Mock
-    private PasswordEncoder passwordEncoder;
+    private PasswordHasher passwordHasher;
 
     @Mock
     private EmailVerificationService emailVerificationService;
@@ -81,7 +81,7 @@ class UserUpdateServiceTest {
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "oldusername", "test@example.com");
 
-            when(userQueryService.getUserByUsername("oldusername")).thenReturn(existingUser);
+            when(userService.getUserByUsername("oldusername")).thenReturn(existingUser);
             when(userPersistence.existsByUsername("newusername")).thenReturn(false);
             when(userPersistence.updateUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
@@ -96,7 +96,7 @@ class UserUpdateServiceTest {
             assertEquals("newusername", result.username());
             assertEquals("test@example.com", result.email());
 
-            verify(userQueryService).getUserByUsername("oldusername");
+            verify(userService).getUserByUsername("oldusername");
             verify(userPersistence).existsByUsername("newusername");
             verify(userPersistence).updateUser(any(User.class));
         }
@@ -107,7 +107,7 @@ class UserUpdateServiceTest {
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "sameusername", "test@example.com");
 
-            when(userQueryService.getUserByUsername("sameusername")).thenReturn(existingUser);
+            when(userService.getUserByUsername("sameusername")).thenReturn(existingUser);
             when(userPersistence.updateUser(any(User.class))).thenAnswer(i -> i.getArgument(0));
 
             // When
@@ -124,7 +124,7 @@ class UserUpdateServiceTest {
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "oldusername", "test@example.com");
 
-            when(userQueryService.getUserByUsername("oldusername")).thenReturn(existingUser);
+            when(userService.getUserByUsername("oldusername")).thenReturn(existingUser);
             when(userPersistence.existsByUsername("takenusername")).thenReturn(true);
 
             // When/Then
@@ -140,7 +140,7 @@ class UserUpdateServiceTest {
         @Test
         void updateProfile_ShouldThrow_WhenUserNotFound() {
             // Given
-            when(userQueryService.getUserByUsername("unknown"))
+            when(userService.getUserByUsername("unknown"))
                     .thenThrow(new ResourceNotFoundException("Utilisateur non trouvé"));
 
             // When/Then
@@ -160,9 +160,9 @@ class UserUpdateServiceTest {
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "old@example.com");
 
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-            when(passwordEncoder.matches("correctPassword", "storedHash")).thenReturn(true);
+            when(passwordHasher.matches("correctPassword", "storedHash")).thenReturn(true);
 
             when(userPersistence.existsByEmail("new@example.com")).thenReturn(false);
 
@@ -181,9 +181,9 @@ class UserUpdateServiceTest {
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "old@example.com");
 
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-            when(passwordEncoder.matches("wrongPassword", "storedHash")).thenReturn(false);
+            when(passwordHasher.matches("wrongPassword", "storedHash")).thenReturn(false);
 
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
@@ -201,9 +201,9 @@ class UserUpdateServiceTest {
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "old@example.com");
 
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-            when(passwordEncoder.matches("correctPassword", "storedHash")).thenReturn(true);
+            when(passwordHasher.matches("correctPassword", "storedHash")).thenReturn(true);
             when(userPersistence.existsByEmail("taken@example.com")).thenReturn(true);
 
             // When/Then
@@ -226,11 +226,11 @@ class UserUpdateServiceTest {
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "test@example.com");
 
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
 
-            when(passwordEncoder.matches("currentPassword", "storedHash")).thenReturn(true);
-            when(passwordEncoder.matches("newPassword123", "storedHash")).thenReturn(false);
+            when(passwordHasher.matches("currentPassword", "storedHash")).thenReturn(true);
+            when(passwordHasher.matches("newPassword123", "storedHash")).thenReturn(false);
 
             // When
             userUpdateService.requestPasswordChange("testuser", "currentPassword", "newPassword123");
@@ -247,10 +247,10 @@ class UserUpdateServiceTest {
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "test@example.com");
 
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
 
-            when(passwordEncoder.matches("wrongPassword", "storedHash")).thenReturn(false);
+            when(passwordHasher.matches("wrongPassword", "storedHash")).thenReturn(false);
 
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
@@ -272,7 +272,7 @@ class UserUpdateServiceTest {
 
             assertEquals("New password must be at least 8 characters", exception.getMessage());
 
-            verifyNoInteractions(userQueryService);
+            verifyNoInteractions(userService);
             verifyNoInteractions(userPersistence);
             verifyNoInteractions(emailVerificationService);
         }
@@ -283,10 +283,10 @@ class UserUpdateServiceTest {
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "test@example.com");
 
-            when(userQueryService.getUserByUsername("testuser")).thenReturn(existingUser);
+            when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-            when(passwordEncoder.matches("currentPassword", "storedHash")).thenReturn(true);
-            when(passwordEncoder.matches("samePassword", "storedHash")).thenReturn(true);
+            when(passwordHasher.matches("currentPassword", "storedHash")).thenReturn(true);
+            when(passwordHasher.matches("samePassword", "storedHash")).thenReturn(true);
 
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
@@ -308,8 +308,8 @@ class UserUpdateServiceTest {
             var userId = UUID.randomUUID();
             var googleUser = createGoogleTestUser(userId, "googleuser", "google@example.com");
 
-            when(userQueryService.getUserByUsername("googleuser")).thenReturn(googleUser);
-            when(passwordEncoder.encode("newPassword123")).thenReturn("encodedPassword");
+            when(userService.getUserByUsername("googleuser")).thenReturn(googleUser);
+            when(passwordHasher.hash("newPassword123")).thenReturn("encodedPassword");
 
             // When
             userUpdateService.setPasswordForOAuthUser("googleuser", "newPassword123");
@@ -330,7 +330,7 @@ class UserUpdateServiceTest {
             );
 
             assertEquals("New password must be at least 8 characters", exception.getMessage());
-            verifyNoInteractions(userQueryService);
+            verifyNoInteractions(userService);
             verifyNoInteractions(userPersistence);
         }
 
@@ -340,7 +340,7 @@ class UserUpdateServiceTest {
             var userId = UUID.randomUUID();
             var localUser = createTestUser(userId, "localuser", "local@example.com");
 
-            when(userQueryService.getUserByUsername("localuser")).thenReturn(localUser);
+            when(userService.getUserByUsername("localuser")).thenReturn(localUser);
 
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
@@ -355,7 +355,7 @@ class UserUpdateServiceTest {
         @Test
         void setPasswordForOAuthUser_ShouldThrow_WhenUserNotFound() {
             // Given
-            when(userQueryService.getUserByUsername("unknown"))
+            when(userService.getUserByUsername("unknown"))
                     .thenThrow(new ResourceNotFoundException("Utilisateur non trouvé"));
 
             // When/Then

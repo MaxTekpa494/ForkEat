@@ -15,7 +15,7 @@ public interface WalletPersistence {
     boolean transactionExists(String externalId);
     Transaction saveTransaction(Transaction transaction);
     Optional<Wallet> findByUserId(UUID userId) throws ResourceNotFoundException;
-    Long getBalance(UUID userId);
+    long getBalance(UUID userId);
     List<Transaction> getTransactionsByUserId(UUID userId);
     Optional<Transaction> findTransactionByStripeTransactionID(String stripeTransactionID);
     Optional<Transaction> findTransactionById(UUID id);
