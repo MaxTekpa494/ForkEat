@@ -2,6 +2,7 @@ package fr.uge.forkeat.service.persistence;
 
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 
 import java.util.List;
@@ -35,8 +36,18 @@ public interface RecipePersistence {
 
   PageResult<RecipeSummary> findRecipeSummaries(String username, RecipeStatus status, int size, int page);
 
+  RecipeCounts findRecipeCounts(UUID recipeId);
+
+  Map<UUID, RecipeCounts> findRecipeCounts(List<UUID> recipeIds);
+
+  RecipeUserInteraction findUserRecipeInteraction(UUID recipeId, String currentUsername);
+
   Map<UUID, RecipeUserInteraction> findUserRecipeInteractions(List<UUID> recipeIds, String currentUsername);
 
   long countByAuthorUsername(String username);
+
+  void likeRecipe(UUID userId, UUID recipeId);
+
+  void unlikeRecipe(UUID userId, UUID recipeId);
 
 }

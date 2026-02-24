@@ -1,10 +1,8 @@
 package fr.uge.forkeat.presentation.mapper.rest;
 
-import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeIngredientDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeStepDTO;
+import fr.uge.forkeat.presentation.dto.recipe.*;
 import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -155,5 +153,29 @@ public final class RecipeDTOMapper {
                         AllergenSeverity.valueOf(dto.severity())
                 ))
                 .toList();
+    }
+
+
+    public static RecipeDetailsDTO toPersonalizedRecipeDTO(PersonalizedRecipe personalizedRecipe) {
+        Objects.requireNonNull(personalizedRecipe);
+        var recipe = personalizedRecipe.recipe();
+        return new RecipeDetailsDTO(
+                recipe.id(),
+                recipe.title(),
+                recipe.summary(),
+                recipe.parentId(),
+                recipe.usernameAuthor(),
+                recipe.preparationMinutes(),
+                recipe.imageUrl(),
+                recipe.status().name(),
+                toStepDTOs(recipe.stepByStepInstructions()),
+                toIngredientDTOs(recipe.ingredients()),
+                toAllergenDTOs(recipe.allergens()),
+                recipe.dietaryFlags(),
+                recipe.createdAt(),
+                recipe.updatedAt(),
+                personalizedRecipe.counts().likeCount(),
+                personalizedRecipe.interaction().likedByCurrentUser()
+        );
     }
 }

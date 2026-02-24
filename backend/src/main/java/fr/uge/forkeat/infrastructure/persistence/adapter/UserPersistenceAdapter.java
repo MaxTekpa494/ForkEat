@@ -6,7 +6,6 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserReposit
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.*;
-import fr.uge.forkeat.service.model.user.projection.UserProfile;
 import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
 import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 import fr.uge.forkeat.service.persistence.UserPersistence;
@@ -134,22 +133,28 @@ public class UserPersistenceAdapter implements UserPersistence {
 	}
 
 	@Override
-	public UserProfile findUserProfile(String username) {
+	public UserPublicProfile findPublicProfile(String username) {
 		Objects.requireNonNull(username);
 		var user = userRepository.findProfileByUsername(username)
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
-		var counts = neo4jUserRepository.findSocialCountsByUserId(user.getId());
-		var publicProfile = new UserPublicProfile(
+		return new UserPublicProfile(
 				user.getUsername(),
 				user.getFirstName(),
 				user.getLastName()
 		);
-		var socialStats = new UserSocialStats(
+	}
+
+	@Override
+	public UserSocialStats findUserSocialStats(String username) {
+		Objects.requireNonNull(username);
+		var user = userRepository.findByUsername(username)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+		var counts = neo4jUserRepository.findSocialCountsByUserId(user.getId());
+		return new UserSocialStats(
 				counts != null ? counts.followerCount() : 0,
 				counts != null ? counts.followingCount() : 0,
 				counts != null ? counts.totalLikeCount() : 0,
 				counts != null ? counts.totalSuperLikeCount() : 0
 		);
-		return new UserProfile(publicProfile, socialStats);
 	}
 }

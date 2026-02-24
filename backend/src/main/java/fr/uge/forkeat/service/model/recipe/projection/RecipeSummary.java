@@ -10,9 +10,7 @@ public record RecipeSummary(
         String summary,
         String imageUrl,
         int preparationMinutes,
-        Instant createdAt,
-        long likeCount,
-        long superLikeCount
+        Instant createdAt
 ) {
 
     public RecipeSummary {
@@ -21,12 +19,6 @@ public record RecipeSummary(
         Objects.requireNonNull(summary);
         if (preparationMinutes < 0) {
             throw new IllegalArgumentException("preparationMinutes cannot be negative");
-        }
-        if (likeCount < 0) {
-            throw new IllegalArgumentException("likeCount cannot be negative");
-        }
-        if (superLikeCount < 0) {
-            throw new IllegalArgumentException("superLikeCount cannot be negative");
         }
     }
 }

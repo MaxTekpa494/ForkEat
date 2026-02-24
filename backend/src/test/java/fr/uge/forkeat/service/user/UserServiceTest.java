@@ -9,6 +9,7 @@ import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import fr.uge.forkeat.service.port.PasswordHasher;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -25,6 +26,9 @@ class UserServiceTest {
 
     @Mock
     private UserPersistence userPersistence;
+
+    @Mock
+    private PasswordHasher passwordHasher;
 
     @InjectMocks
     private UserService userService;

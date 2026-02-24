@@ -1,7 +1,8 @@
 package fr.uge.forkeat.service.persistence;
 
 import fr.uge.forkeat.service.model.user.User;
-import fr.uge.forkeat.service.model.user.projection.UserProfile;
+import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
+import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -33,7 +34,9 @@ public interface UserPersistence {
 
 	long countTotalSuperLikesReceived(UUID userId);
 
-	UserProfile findUserProfile(String username);
+	UserPublicProfile findPublicProfile(String username);
+
+	UserSocialStats findUserSocialStats(String username);
 
 	boolean isFollowing(String followerUsername, String followedUsername);
 }

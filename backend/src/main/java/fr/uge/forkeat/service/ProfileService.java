@@ -5,9 +5,11 @@ import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.recipe.RecipeUserInteraction;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.model.user.projection.UserAccountDetails;
 import fr.uge.forkeat.service.model.user.projection.PersonalizedUserProfile;
+import fr.uge.forkeat.service.model.user.projection.UserProfile;
 import fr.uge.forkeat.service.model.user.projection.UserProfileWithRecipes;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.persistence.UserPersistence;
@@ -37,14 +39,18 @@ public class ProfileService {
         if (page < 0 || size <= 0) {
             throw new IllegalArgumentException("Invalid page or size");
         }
-        var profile = userPersistence.findUserProfile(username);
+        var publicProfile = userPersistence.findPublicProfile(username);
+        var socialStats = userPersistence.findUserSocialStats(username);
+        var profile = new UserProfile(publicProfile, socialStats);
         var summaries = recipePersistence.findRecipeSummaries(username, RecipeStatus.PUBLISHED, size, page);
         var ids = summaries.items().stream().map(RecipeSummary::id).toList();
+        var countsMap = recipePersistence.findRecipeCounts(ids);
         var interactions = recipePersistence.findUserRecipeInteractions(ids, currentUsername);
         var personalized = summaries.items().stream()
                 .map(s -> {
+                    var counts = countsMap.getOrDefault(s.id(), RecipeCounts.ZERO);
                     var interaction = interactions.getOrDefault(s.id(), RecipeUserInteraction.NONE);
-                    return new PersonalizedRecipeSummary(s, interaction.likedByCurrentUser(), interaction.superLikedByCurrentUser());
+                    return new PersonalizedRecipeSummary(s, counts, interaction);
                 })
                 .toList();
         var recipes = new PageResult<>(personalized, summaries.total());
@@ -57,9 +63,9 @@ public class ProfileService {
         Objects.requireNonNull(username);
         var user = userPersistence.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
-        var profile = userPersistence.findUserProfile(username);
+        var socialStats = userPersistence.findUserSocialStats(username);
         var balance = walletService.getBalance(user.id());
         var recipeCount = recipePersistence.countByAuthorUsername(username);
-        return new UserAccountDetails(user, profile.socialStats(), balance, recipeCount);
+        return new UserAccountDetails(user, socialStats, balance, recipeCount);
     }
 }

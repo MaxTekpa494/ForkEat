@@ -14,11 +14,7 @@ import java.util.UUID;
 @Repository
 public interface Neo4jUserRepository extends Neo4jRepository<UserNode, UUID> {
 
-    @Query("""
-        MATCH (p1:User {id: $userId})
-        MATCH (p2:Recipe {id: $recipeId})
-        RETURN EXISTS((p1)-[:LIKED]->(p2)) As result
-        """)
+    @Query("RETURN EXISTS((:User {id: $userId})-[:LIKED]->(:Recipe {id: $recipeId}))")
     boolean hasLiked(
             @Param("userId") UUID userId,
             @Param("recipeId") UUID recipeId
@@ -27,22 +23,6 @@ public interface Neo4jUserRepository extends Neo4jRepository<UserNode, UUID> {
     @NonNull
     @Override
     Optional<UserNode> findById(UUID id);
-
-    @Query("""
-            MATCH (u:User {id: $userId})
-            MATCH (r:Recipe {id: $recipeId})
-            MERGE (u)-[l:LIKED]->(r)
-            """)
-    void likeRecipe(@Param("userId") UUID userId, @Param("recipeId") UUID recipeId);
-
-
-    @Query("""
-            MATCH (u:User {id: $userId})
-            MATCH (r:Recipe {id: $recipeId})
-            MATCH (u)-[l:LIKED]->(r)
-            DELETE (l)
-            """)
-    void unlikeRecipe(@Param("userId") UUID userId, @Param("recipeId") UUID recipeId);
 
     @Query("""
             MATCH (u:User {id: $userId})

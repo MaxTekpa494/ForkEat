@@ -1,6 +1,7 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
+import fr.uge.forkeat.presentation.dto.recipe.RecipeDetailsDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
@@ -10,9 +11,11 @@ import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.user.UserService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Objects;
@@ -24,11 +27,14 @@ public final class RecipeRestController {
 
 	private final RecipeService recipeService;
 	private final AuthenticationPort authPort;
+    private final UserService userService;
+
 	private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
-	public RecipeRestController(RecipeService recipeService, AuthenticationPort authPort) {
+	public RecipeRestController(RecipeService recipeService, AuthenticationPort authPort, UserService userService) {
 		this.recipeService = recipeService;
 		this.authPort = authPort;
+        this.userService = userService;
 	}
 
 //	@GetMapping("/create")
@@ -48,10 +54,17 @@ public final class RecipeRestController {
 	// Pourquoi pas faire un findwithparent avec {recipe:..., parent:...}
 	// Un endpoint recipe avec juste {recipe:...}
 	@GetMapping("/{id}")
-	public ResponseEntity<HttpResponse<RecipeDTO>> getRecipe(@PathVariable UUID id) {
+	public ResponseEntity<HttpResponse<RecipeDetailsDTO>> getRecipe(@PathVariable UUID id) {
 		Objects.requireNonNull(id);
-		var recipe = recipeService.findById(id);
-		var dto = RecipeDTOMapper.toDTO(recipe);
+        String currentUsername = null;
+        if (SecurityContextHolder.getContext().getAuthentication() != null) {
+            var extracted = authPort.extractUsername();
+            if (extracted != null && !extracted.equals("anonymousUser")) {
+                currentUsername = extracted;
+            }
+        }
+        var personalizedRecipe = recipeService.findPersonalizedRecipeById(id, currentUsername);
+        var dto = RecipeDTOMapper.toPersonalizedRecipeDTO(personalizedRecipe);
 		return ResponseEntity.ok(new ItemResponse<>(dto));
 	}
 
@@ -65,4 +78,17 @@ public final class RecipeRestController {
 		return ResponseEntity.ok(new ListResponse<>(dtos, pageResult.total()));
 	}
 
+    @PostMapping("/{id}/like")
+    public ResponseEntity<?> likeRecipe(@PathVariable UUID id) {
+        var user = userService.getUserByUsername(authPort.extractUsername());
+        recipeService.likeRecipe(user.id(), id);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}/like")
+    public ResponseEntity<?> unlikeRecipe(@PathVariable UUID id) {
+        var user = userService.getUserByUsername(authPort.extractUsername());
+        recipeService.unlikeRecipe(user.id(), id);
+        return ResponseEntity.ok().build();
+    }
 }

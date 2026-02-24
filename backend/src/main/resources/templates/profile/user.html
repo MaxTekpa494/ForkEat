@@ -143,12 +143,12 @@
                                 <div class="flex items-center space-x-4">
                                     <!-- Like : coeur rempli si likedByCurrentUser, vide sinon -->
                                     <span class="flex items-center space-x-1 text-sm text-secondary-500">
-                                        <i th:class="${recipe.likedByCurrentUser()} ? 'fas fa-heart text-red-500' : 'far fa-heart text-gray-300'"></i>
-                                        <span th:text="${recipe.summary().likeCount()}">0</span>
+                                        <i th:class="${recipe.interaction().likedByCurrentUser()} ? 'fas fa-heart text-red-500' : 'far fa-heart text-gray-300'"></i>
+                                        <span th:text="${recipe.counts().likeCount()}">0</span>
                                     </span>
                                     <!-- Super-like : nuage or si superLikedByCurrentUser, gris sinon -->
                                     <span class="flex items-center space-x-1 text-sm text-secondary-500">
-                                        <svg th:if="${recipe.superLikedByCurrentUser()}" class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <svg th:if="${recipe.interaction().superLikedByCurrentUser()}" class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <defs>
                                                 <linearGradient id="goldGradientCard" x1="0%" y1="0%" x2="100%" y2="100%">
                                                     <stop offset="0%" style="stop-color:#FFED8B;stop-opacity:1" />
@@ -160,12 +160,12 @@
                                             <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z" fill="url(#goldGradientCard)"/>
                                             <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#FFED8B"/>
                                         </svg>
-                                        <svg th:unless="${recipe.superLikedByCurrentUser()}" class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <svg th:unless="${recipe.interaction().superLikedByCurrentUser()}" class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z" fill="#D1D5DB"/>
                                             <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z" fill="#D1D5DB"/>
                                             <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#D1D5DB"/>
                                         </svg>
-                                        <span th:text="${recipe.summary().superLikeCount()}">0</span>
+                                        <span th:text="${recipe.counts().superLikeCount()}">0</span>
                                     </span>
                                 </div>
                             </div>

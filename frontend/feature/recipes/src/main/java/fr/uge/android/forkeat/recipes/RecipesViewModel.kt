@@ -1,22 +1,34 @@
 package fr.uge.android.forkeat.recipes
 
-import androidx.lifecycle.ViewModel
+import android.app.Application
+import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.network.ForkEatApi
+import fr.uge.android.forkeat.network.TokenManager
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
+import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
 import java.util.UUID
 
-class RecipesViewModel : ViewModel() {
+
+class RecipesViewModel(application: Application) : AndroidViewModel(application) {
+
     private val api: RecipeApiService = ForkEatApi.recipeService
 
+
+
+    private val tokenManager = TokenManager(application)
     private val _recipes = MutableStateFlow<List<RecipeDTO>>(emptyList())
     val recipes: StateFlow<List<RecipeDTO>> = _recipes
 
     private val _recipeIds = mutableSetOf<UUID>()
+
+    private val _currentRecipe =  MutableStateFlow<RecipeDetailsDTO?>(null)
+    val currentRecipe: StateFlow<RecipeDetailsDTO?> = _currentRecipe
+
 
     private val _totalCount = MutableStateFlow(0)
     val totalCount: StateFlow<Int> = _totalCount
@@ -46,6 +58,11 @@ class RecipesViewModel : ViewModel() {
         loadRecipes(0)
     }
 
+    fun setPageSize(size: Int) {
+        _pageSize.value = size
+        loadRecipes(_currentPage.value, size)
+    }
+
     fun onSearchQueryChange(query: String) {
         _searchQuery.value = query
     }
@@ -71,13 +88,64 @@ class RecipesViewModel : ViewModel() {
         loadRecipes(0)
     }
 
+    fun likeRecipe(recipeId: UUID){
+        viewModelScope.launch {
+            try {
+                val response = api.likeRecipe(
+                    token = tokenManager.getToken().toString(),
+                    id = recipeId
+                )
+                if (response.isSuccessful) {
+
+                } else {
+                    val code = response.code()
+                    _errorMessage.value = when {
+                        code >= 500 -> "Le serveur est indisponible, veuillez réessayer plus tard."
+                        code in 400..499 -> "Une erreur est survenue, veuillez réessayer."
+                        else -> "Une erreur inconnue est survenue."
+                    }
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Le serveur est indisponible, veuillez réessayer plus tard."
+            }
+        }
+    }
+
+    fun unlikeRecipe(recipeId: UUID){
+        viewModelScope.launch {
+            try {
+                val response = api.unlikeRecipe(
+                    token = tokenManager.getToken().toString(),
+                    id = recipeId
+                )
+                if (response.isSuccessful) {
+
+                } else {
+                    val code = response.code()
+                    _errorMessage.value = when {
+                        code >= 500 -> "Le serveur est indisponible, veuillez réessayer plus tard."
+                        code in 400..499 -> "Une erreur est survenue, veuillez réessayer."
+                        else -> "Une erreur inconnue est survenue."
+                    }
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Le serveur est indisponible, veuillez réessayer plus tard."
+            }
+        }
+    }
+
     fun loadRecipes(page: Int, size: Int = _pageSize.value, append: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true
             try {
+                var token = "";
+                if(tokenManager.getToken() != null){
+                    token = tokenManager.getToken().toString()
+                }
                 val search = _searchQuery.value.ifBlank { null }
                 val allergens = _selectedAllergens.value.toList().ifEmpty { null }
                 val response = api.getRecipes(
+                    token = token.toString() ,
                     page = page,
                     size = size,
                     search = search,
@@ -112,6 +180,35 @@ class RecipesViewModel : ViewModel() {
                 _errorMessage.value = "Le serveur est indisponible, veuillez réessayer plus tard."
             } finally {
               _isLoading.value = false
+            }
+        }
+    }
+
+    fun loadRecipeWithId(id: UUID) {
+        viewModelScope.launch {
+            try {
+                var token = "";
+                if(tokenManager.getToken() != null){
+                    token = tokenManager.getToken().toString()
+                }
+                val response = api.getRecipeWithId(
+                    token = token.toString() ,
+                    id= id
+                )
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    _currentRecipe.value = body?.resource ?: null
+                    _errorMessage.value = null
+                } else {
+                    val code = response.code()
+                    _errorMessage.value = when {
+                        code >= 500 -> "Le serveur est indisponible, veuillez réessayer plus tard."
+                        code in 400..499 -> "Une erreur est survenue, veuillez réessayer."
+                        else -> "Une erreur inconnue est survenue."
+                    }
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Le serveur est indisponible, veuillez réessayer plus tard."
             }
         }
     }

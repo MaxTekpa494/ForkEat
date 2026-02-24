@@ -7,6 +7,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import jakarta.persistence.EntityManager;
@@ -206,23 +207,42 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
             return new PageResult<>(List.of(), pageResult.getTotalElements());
         }
 
-        var recipeIdStrings = views.stream().map(s -> s.getId().toString()).toList();
-        var countsMap = neo4jRecipeRepository.findCountsByRecipeIds(recipeIdStrings).stream()
-                .collect(Collectors.toMap(r -> UUID.fromString(r.recipeId()), r -> r));
-
         var summaries = views.stream()
-                .map(s -> {
-                    var counts = countsMap.get(s.getId());
-                    return new RecipeSummary(
-                            s.getId(), s.getTitle(), s.getSummary(), s.getImageUrl(),
-                            s.getPreparationMinutes(), s.getCreatedAt(),
-                            counts != null ? counts.likeCount() : 0,
-                            counts != null ? counts.superLikeCount() : 0
-                    );
-                })
+                .map(s -> new RecipeSummary(
+                        s.getId(), s.getTitle(), s.getSummary(), s.getImageUrl(),
+                        s.getPreparationMinutes(), s.getCreatedAt()
+                ))
                 .toList();
 
         return new PageResult<>(summaries, pageResult.getTotalElements());
+    }
+
+    @Override
+    public RecipeCounts findRecipeCounts(UUID recipeId) {
+        Objects.requireNonNull(recipeId);
+        return findRecipeCounts(List.of(recipeId)).getOrDefault(recipeId, RecipeCounts.ZERO);
+    }
+
+    @Override
+    public Map<UUID, RecipeCounts> findRecipeCounts(List<UUID> recipeIds) {
+        Objects.requireNonNull(recipeIds);
+        if (recipeIds.isEmpty()) {
+            return Map.of();
+        }
+        var recipeIdStrings = recipeIds.stream().map(UUID::toString).toList();
+        return neo4jRecipeRepository.findCountsByRecipeIds(recipeIdStrings).stream()
+                .collect(Collectors.toMap(
+                        r -> UUID.fromString(r.recipeId()),
+                        r -> new RecipeCounts(r.likeCount(), r.superLikeCount())
+                ));
+    }
+
+    @Override
+    public RecipeUserInteraction findUserRecipeInteraction(UUID recipeId, String currentUsername) {
+        Objects.requireNonNull(recipeId);
+        Objects.requireNonNull(currentUsername);
+        return findUserRecipeInteractions(List.of(recipeId), currentUsername)
+                .getOrDefault(recipeId, RecipeUserInteraction.NONE);
     }
 
     @Override
@@ -244,6 +264,20 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     public long countByAuthorUsername(String username) {
         Objects.requireNonNull(username);
         return neo4jRecipeRepository.countByAuthorUsername(username);
+    }
+
+    @Override
+    public void likeRecipe(UUID userId, UUID recipeId) {
+        Objects.requireNonNull(userId);
+        Objects.requireNonNull(recipeId);
+        neo4jRecipeRepository.likeRecipe(userId, recipeId);
+    }
+
+    @Override
+    public void unlikeRecipe(UUID userId, UUID recipeId) {
+        Objects.requireNonNull(userId);
+        Objects.requireNonNull(recipeId);
+        neo4jRecipeRepository.unlikeRecipe(userId, recipeId);
     }
 
     /**

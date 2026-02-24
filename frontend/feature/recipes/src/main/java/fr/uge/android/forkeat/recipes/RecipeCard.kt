@@ -1,6 +1,5 @@
 package fr.uge.android.forkeat.recipes
 
-import android.text.format.DateUtils
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -26,7 +25,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.navigation.NavHostController
 import coil.compose.rememberAsyncImagePainter
 import fr.uge.android.forkeat.designsystem.theme.Gray100
 import fr.uge.android.forkeat.designsystem.theme.Gray500
@@ -101,8 +99,6 @@ fun RecipeCard(recipe: RecipeDTO, onClick: () -> Unit = {}) {
           color = Gray500
         )
         Spacer(Modifier.height(4.dp))
-        // Date de création
-        val date = recipe.createdAt
         Text(
           "Créée $timeLabel",
           style = Typography.labelSmall,

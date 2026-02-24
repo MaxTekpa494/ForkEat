@@ -51,4 +51,19 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
             RETURN count(r)
             """)
     long countByAuthorUsername(@Param("username") String username);
+
+    @Query("""
+            MATCH (u:User {id: $userId})
+            MATCH (r:Recipe {id: $recipeId})
+            MERGE (u)-[l:LIKED]->(r)
+            """)
+    void likeRecipe(@Param("userId") UUID userId, @Param("recipeId") UUID recipeId);
+
+    @Query("""
+            MATCH (u:User {id: $userId})
+            MATCH (r:Recipe {id: $recipeId})
+            MATCH (u)-[l:LIKED]->(r)
+            DELETE (l)
+            """)
+    void unlikeRecipe(@Param("userId") UUID userId, @Param("recipeId") UUID recipeId);
 }
