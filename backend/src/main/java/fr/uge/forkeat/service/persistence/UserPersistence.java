@@ -1,6 +1,8 @@
 package fr.uge.forkeat.service.persistence;
 
 import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
+import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -23,4 +25,18 @@ public interface UserPersistence {
 	String findPasswordHashByUsername(String username);
 
 	void updateEmailVerified(UUID userId, boolean emailVerified);
+
+	long countFollowers(UUID userId);
+
+	long countFollowing(UUID userId);
+
+	long countTotalLikesReceived(UUID userId);
+
+	long countTotalSuperLikesReceived(UUID userId);
+
+	UserPublicProfile findPublicProfile(String username);
+
+	UserSocialStats findUserSocialStats(String username);
+
+	boolean isFollowing(String followerUsername, String followedUsername);
 }

@@ -4,7 +4,7 @@ import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.persistence.UserPersistence;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import fr.uge.forkeat.service.port.PasswordHasher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -15,17 +15,17 @@ import java.util.Objects;
 @Service
 public class UserUpdateService {
   private final UserPersistence userPersistence;
-  private final UserQueryService userQueryService;
-  private final PasswordEncoder passwordEncoder;
+  private final UserService userService;
+  private final PasswordHasher passwordHasher;
   private final EmailVerificationService emailVerificationService;
 
   UserUpdateService(UserPersistence userPersistence,
-                    UserQueryService userQueryService,
-                    PasswordEncoder passwordEncoder,
+                    UserService userService,
+                    PasswordHasher passwordHasher,
                     EmailVerificationService emailVerificationService) {
     this.userPersistence = Objects.requireNonNull(userPersistence);
-    this.userQueryService = Objects.requireNonNull(userQueryService);
-    this.passwordEncoder = Objects.requireNonNull(passwordEncoder);
+    this.userService = Objects.requireNonNull(userService);
+    this.passwordHasher = Objects.requireNonNull(passwordHasher);
     this.emailVerificationService = Objects.requireNonNull(emailVerificationService);
   }
 
@@ -34,7 +34,7 @@ public class UserUpdateService {
           timeout = 10
   )
   public User updateProfile(String currentUsername, String newUsername, String firstName, String lastName) {
-    var user = userQueryService.getUserByUsername(currentUsername);
+    var user = userService.getUserByUsername(currentUsername);
 
     if (!user.username().equals(newUsername)) {
       if (userPersistence.existsByUsername(newUsername)) {
@@ -72,11 +72,11 @@ public class UserUpdateService {
           timeout = 10
   )
   public void requestEmailChange(String username, String newEmail, String currentPassword, String newPassword) {
-    var user = userQueryService.getUserByUsername(username);
+    var user = userService.getUserByUsername(username);
 
     if (user.authMode() == AuthMode.LOCAL) {
       var storedHash = userPersistence.findPasswordHashByUsername(username);
-      if (!passwordEncoder.matches(currentPassword, storedHash)) {
+      if (!passwordHasher.matches(currentPassword, storedHash)) {
         throw new CheckProfileUpdateFailureException("Incorrect password");
       }
     }
@@ -108,14 +108,14 @@ public class UserUpdateService {
       throw new CheckProfileUpdateFailureException("New password must be at least 8 characters");
     }
 
-    var user = userQueryService.getUserByUsername(username);
+    var user = userService.getUserByUsername(username);
     var storedHash = userPersistence.findPasswordHashByUsername(username);
 
-    if (!passwordEncoder.matches(currentPassword, storedHash)) {
+    if (!passwordHasher.matches(currentPassword, storedHash)) {
       throw new CheckProfileUpdateFailureException("Incorrect current password");
     }
 
-    if (passwordEncoder.matches(newPassword, storedHash)) {
+    if (passwordHasher.matches(newPassword, storedHash)) {
       throw new CheckProfileUpdateFailureException("Passwords are the same");
     }
 
@@ -134,7 +134,7 @@ public class UserUpdateService {
       throw new CheckProfileUpdateFailureException("New password must be at least 8 characters");
     }
 
-    var user = userQueryService.getUserByUsername(username);
+    var user = userService.getUserByUsername(username);
 
     if (user.authMode() != AuthMode.GOOGLE) {
       throw new CheckProfileUpdateFailureException("This user already has a local password");
@@ -153,6 +153,6 @@ public class UserUpdateService {
             Instant.now(),
             user.emailVerified());
 
-    userPersistence.saveUser(updatedUser, passwordEncoder.encode(newPassword));
+    userPersistence.saveUser(updatedUser, passwordHasher.hash(newPassword));
   }
 }

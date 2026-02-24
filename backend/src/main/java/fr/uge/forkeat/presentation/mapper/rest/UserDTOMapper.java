@@ -1,11 +1,11 @@
 package fr.uge.forkeat.presentation.mapper.rest;
 
 import fr.uge.forkeat.presentation.dto.user.UserDTO;
+import fr.uge.forkeat.presentation.dto.user.UserLoginDTO;
 import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
 import fr.uge.forkeat.service.model.user.User;
-import fr.uge.forkeat.service.model.user.UserRegister;
-import fr.uge.forkeat.presentation.dto.user.UserLoginDTO;
 import fr.uge.forkeat.service.model.user.UserLogin;
+import fr.uge.forkeat.service.model.user.UserRegister;
 
 import java.util.Objects;
 

@@ -1,5 +1,6 @@
 package fr.uge.forkeat.infrastructure.security;
 
+import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.strategy.PrincipalExtractor;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.port.AuthenticationPort;
@@ -20,9 +21,11 @@ import java.util.List;
 public class AuthenticationAdapter implements AuthenticationPort {
 
     private final List<PrincipalExtractor> extractors;
+    private final JwtUtils jwtUtils;
 
-    public AuthenticationAdapter(List<PrincipalExtractor> extractors) {
+    public AuthenticationAdapter(List<PrincipalExtractor> extractors, JwtUtils jwtUtils) {
         this.extractors = extractors;
+        this.jwtUtils = jwtUtils;
     }
 
     @Override
@@ -57,6 +60,11 @@ public class AuthenticationAdapter implements AuthenticationPort {
 
         return extractors.stream().filter(extractor -> extractor.supports(principal)).findFirst()
                 .map(extractor -> extractor.isOAuth2(principal)).orElse(false);
+    }
+
+    @Override
+    public String generateToken(String username) {
+        return jwtUtils.generateToken(username);
     }
 
     @Override

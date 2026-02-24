@@ -1,12 +1,16 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
+import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.UserSocialCountsProjection;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jUserRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
-import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.UserProfileView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -28,16 +32,19 @@ class UserPersistenceAdapterTest {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private Neo4jUserRepository neo4jUserRepository;
+
     @InjectMocks
     private UserPersistenceAdapter adapter;
 
-    private User createTestUser(UUID id, String username, String email) {
+    private User createTestUser(UUID id) {
         return new User(
                 id,
-                username,
+                "testuser",
                 "John",
                 "Doe",
-                email,
+                "test@example.com",
                 UserRole.MEMBER,
                 UserStatus.ACTIVE,
                 AuthMode.LOCAL,
@@ -67,7 +74,7 @@ class UserPersistenceAdapterTest {
     void saveUser_ShouldSaveAndReturnUser() {
         // Given
         var userId = UUID.randomUUID();
-        var userDomain = createTestUser(userId, "testuser", "test@example.com");
+        var userDomain = createTestUser(userId);
         var savedEntity = createTestUserEntity(userId, "testuser", "test@example.com");
 
         when(userRepository.save(any(UserEntity.class))).thenReturn(savedEntity);
@@ -251,5 +258,156 @@ class UserPersistenceAdapterTest {
         // Then
         assertFalse(result);
         verify(userRepository).existsByUsername(username);
+    }
+
+    @Nested
+    class SocialStats {
+
+        @Test
+        void countFollowers_ShouldDelegateToNeo4j() {
+            var userId = UUID.randomUUID();
+            when(neo4jUserRepository.countFollowers(userId)).thenReturn(5L);
+
+            long result = adapter.countFollowers(userId);
+
+            assertEquals(5L, result);
+            verify(neo4jUserRepository).countFollowers(userId);
+        }
+
+        @Test
+        void countFollowers_ShouldThrowWhenIdIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.countFollowers(null));
+        }
+
+        @Test
+        void countFollowing_ShouldDelegateToNeo4j() {
+            var userId = UUID.randomUUID();
+            when(neo4jUserRepository.countFollowing(userId)).thenReturn(3L);
+
+            long result = adapter.countFollowing(userId);
+
+            assertEquals(3L, result);
+            verify(neo4jUserRepository).countFollowing(userId);
+        }
+
+        @Test
+        void countFollowing_ShouldThrowWhenIdIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.countFollowing(null));
+        }
+
+        @Test
+        void countTotalLikesReceived_ShouldDelegateToNeo4j() {
+            var userId = UUID.randomUUID();
+            when(neo4jUserRepository.countTotalLikesReceived(userId)).thenReturn(42L);
+
+            long result = adapter.countTotalLikesReceived(userId);
+
+            assertEquals(42L, result);
+            verify(neo4jUserRepository).countTotalLikesReceived(userId);
+        }
+
+        @Test
+        void countTotalLikesReceived_ShouldThrowWhenIdIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.countTotalLikesReceived(null));
+        }
+
+        @Test
+        void countTotalSuperLikesReceived_ShouldDelegateToNeo4j() {
+            var userId = UUID.randomUUID();
+            when(neo4jUserRepository.countTotalSuperLikesReceived(userId)).thenReturn(7L);
+
+            long result = adapter.countTotalSuperLikesReceived(userId);
+
+            assertEquals(7L, result);
+            verify(neo4jUserRepository).countTotalSuperLikesReceived(userId);
+        }
+
+        @Test
+        void countTotalSuperLikesReceived_ShouldThrowWhenIdIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.countTotalSuperLikesReceived(null));
+        }
+    }
+
+    @Nested
+    class FindUserProfile {
+
+        @Test
+        void shouldReturnPublicProfile_WhenUserExists() {
+            var userId = UUID.randomUUID();
+            var profileView = mock(UserProfileView.class);
+            when(profileView.getUsername()).thenReturn("testuser");
+            when(profileView.getFirstName()).thenReturn("John");
+            when(profileView.getLastName()).thenReturn("Doe");
+
+            when(userRepository.findProfileByUsername("testuser")).thenReturn(Optional.of(profileView));
+
+            var result = adapter.findPublicProfile("testuser");
+
+            assertNotNull(result);
+            assertEquals("testuser", result.username());
+            assertEquals("John", result.firstName());
+            assertEquals("Doe", result.lastName());
+            verify(userRepository).findProfileByUsername("testuser");
+        }
+
+        @Test
+        void shouldReturnSocialStats_WhenUserExists() {
+            var userId = UUID.randomUUID();
+            var userEntity = createTestUserEntity(userId, "testuser", "test@example.com");
+            var counts = new UserSocialCountsProjection(10L, 5L, 30L, 2L);
+
+            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(userEntity));
+            when(neo4jUserRepository.findSocialCountsByUserId(userId)).thenReturn(counts);
+
+            var result = adapter.findUserSocialStats("testuser");
+
+            assertNotNull(result);
+            assertEquals(10L, result.followerCount());
+            assertEquals(5L, result.followingCount());
+            assertEquals(30L, result.totalLikeCount());
+            assertEquals(2L, result.totalSuperLikeCount());
+            verify(userRepository).findByUsername("testuser");
+            verify(neo4jUserRepository).findSocialCountsByUserId(userId);
+        }
+
+        @Test
+        void shouldReturnZeroStats_WhenNeo4jReturnsNull() {
+            var userId = UUID.randomUUID();
+            var userEntity = createTestUserEntity(userId, "testuser", "test@example.com");
+
+            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(userEntity));
+            when(neo4jUserRepository.findSocialCountsByUserId(userId)).thenReturn(null);
+
+            var result = adapter.findUserSocialStats("testuser");
+
+            assertEquals(0L, result.followerCount());
+            assertEquals(0L, result.followingCount());
+            assertEquals(0L, result.totalLikeCount());
+            assertEquals(0L, result.totalSuperLikeCount());
+        }
+
+        @Test
+        void shouldThrow_WhenUserNotFound_ForPublicProfile() {
+            when(userRepository.findProfileByUsername("unknown")).thenReturn(Optional.empty());
+
+            assertThrows(ResourceNotFoundException.class, () -> adapter.findPublicProfile("unknown"));
+        }
+
+        @Test
+        void shouldThrow_WhenUserNotFound_ForSocialStats() {
+            when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
+
+            assertThrows(ResourceNotFoundException.class, () -> adapter.findUserSocialStats("unknown"));
+        }
+
+        @Test
+        void shouldThrow_WhenUsernameIsNull_ForPublicProfile() {
+            assertThrows(NullPointerException.class, () -> adapter.findPublicProfile(null));
+        }
+
+        @Test
+        void shouldThrow_WhenUsernameIsNull_ForSocialStats() {
+            assertThrows(NullPointerException.class, () -> adapter.findUserSocialStats(null));
+        }
     }
 }

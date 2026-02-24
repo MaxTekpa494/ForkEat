@@ -4,7 +4,7 @@ import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.WithdrawalException;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.BankInfoService;
-import fr.uge.forkeat.service.user.UserQueryService;
+import fr.uge.forkeat.service.user.UserService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -17,18 +17,18 @@ import java.util.Objects;
 @Controller("walletWebController")
 public class WalletWebController {
 
-    private final UserQueryService userQueryService;
+    private final UserService userService;
     private final WalletService walletService;
     private final BankInfoService bankInfoService;
     private final AuthenticationPort authPort;
 
     public WalletWebController(
-            UserQueryService userQueryService,
+            UserService userService,
             WalletService walletService,
             BankInfoService bankInfoService,
             AuthenticationPort authPort
     ) {
-        this.userQueryService = Objects.requireNonNull(userQueryService);
+        this.userService = Objects.requireNonNull(userService);
         this.walletService = Objects.requireNonNull(walletService);
         this.bankInfoService = Objects.requireNonNull(bankInfoService);
         this.authPort = Objects.requireNonNull(authPort);
@@ -40,7 +40,7 @@ public class WalletWebController {
             Model model
     ) {
         var username = authPort.extractUsername();
-        var user = userQueryService.getUserByUsername(username);
+        var user = userService.getUserByUsername(username);
         var balance = walletService.getBalance(user.id());
         var transactions = walletService.getTransactionHistory(user.id());
         var bankInfo = bankInfoService.getBankInfoByUserId(user.id()).orElse(null);
@@ -63,7 +63,7 @@ public class WalletWebController {
     @PostMapping("/wallet/recharge")
     public String recharge(@RequestParam("amount") Long amountInEuros) {
         var username = authPort.extractUsername();
-        var user = userQueryService.getUserByUsername(username);
+        var user = userService.getUserByUsername(username);
 
         var amountInCents = amountInEuros * 100;
         var paymentUrl = walletService.prepareTopUp(user.id(), user.email(), amountInCents, null);
@@ -79,7 +79,7 @@ public class WalletWebController {
             RedirectAttributes redirectAttributes
     ) {
         var username = authPort.extractUsername();
-        var user = userQueryService.getUserByUsername(username);
+        var user = userService.getUserByUsername(username);
 
         try {
             bankInfoService.createOrUpdateBankInfo(user.id(), user.email(), bankName, iban.toUpperCase(), bic.toUpperCase());
@@ -97,7 +97,7 @@ public class WalletWebController {
             RedirectAttributes redirectAttributes
     ) {
         var username = authPort.extractUsername();
-        var user = userQueryService.getUserByUsername(username);
+        var user = userService.getUserByUsername(username);
 
         try {
             var amountInCents = amountInEuros * 100;

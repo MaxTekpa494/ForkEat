@@ -1,8 +1,9 @@
 package fr.uge.forkeat.presentation.mapper.web;
 
-import java.util.Objects;
 import fr.uge.forkeat.presentation.web.form.RegisterFormDTO;
 import fr.uge.forkeat.service.model.user.UserRegister;
+
+import java.util.Objects;
 
 public class UserFormDTOMapper {
 

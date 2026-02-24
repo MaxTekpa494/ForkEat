@@ -30,23 +30,23 @@
         <div class="container mx-auto px-4">
             <div class="flex items-center space-x-6">
                 <div class="w-24 h-24 bg-primary-500 rounded-full flex items-center justify-center text-white font-bold text-4xl shadow-xl ring-4 ring-white/20">
-                    <span th:text="${#strings.substring(user.firstName, 0, 1).toUpperCase() + #strings.substring(user.lastName, 0, 1).toUpperCase()}">AB</span>
+                    <span th:text="${#strings.substring(vm.user().firstName(), 0, 1).toUpperCase() + #strings.substring(vm.user().lastName(), 0, 1).toUpperCase()}">AB</span>
                 </div>
 
                 <div class="flex-1">
                     <h1 class="font-display font-bold text-4xl mb-2">
-                        <span th:text="${user.firstName + ' ' + user.lastName}">Nom Utilisateur</span>
+                        <span th:text="${vm.user().firstName() + ' ' + vm.user().lastName()}">Nom Utilisateur</span>
                     </h1>
                     <p class="text-secondary-200 text-lg">
-                        @<span th:text="${user.username}">username</span>
+                        @<span th:text="${vm.user().username()}">username</span>
                     </p>
                     <div class="flex items-center space-x-4 mt-3">
                         <span class="text-sm text-secondary-300">
                             <i class="fas fa-calendar-alt mr-2"></i>
-                            Membre depuis <span th:text="${#temporals.format(user.createdAt, 'MMMM yyyy')}">janvier 2026</span>
+                            Membre depuis <span th:text="${#temporals.format(vm.user().createdAt(), 'MMMM yyyy')}">janvier 2026</span>
                         </span>
                         <span class="px-3 py-1 bg-primary-500/20 text-primary-300 rounded-full text-xs font-bold">
-                            <span th:text="${user.role}">MEMBER</span>
+                            <span th:text="${vm.user().role()}">MEMBER</span>
                         </span>
                     </div>
                 </div>
@@ -75,33 +75,33 @@
                             <div class="grid md:grid-cols-2 gap-4">
                                 <div>
                                     <label class="text-xs text-gray-500 uppercase font-bold tracking-wider">Prénom</label>
-                                    <div class="text-secondary-900 font-medium mt-1" th:text="${user.firstName}">Jean</div>
+                                    <div class="text-secondary-900 font-medium mt-1" th:text="${vm.user().firstName()}">Jean</div>
                                 </div>
                                 <div>
                                     <label class="text-xs text-gray-500 uppercase font-bold tracking-wider">Nom</label>
-                                    <div class="text-secondary-900 font-medium mt-1" th:text="${user.lastName}">Dupont</div>
+                                    <div class="text-secondary-900 font-medium mt-1" th:text="${vm.user().lastName()}">Dupont</div>
                                 </div>
                             </div>
 
                             <div>
                                 <label class="text-xs text-gray-500 uppercase font-bold tracking-wider">Nom d'utilisateur</label>
-                                <div class="text-secondary-900 font-medium mt-1">@<span th:text="${user.username}">jeandupont</span></div>
+                                <div class="text-secondary-900 font-medium mt-1">@<span th:text="${vm.user().username()}">jeandupont</span></div>
                             </div>
 
                             <div>
                                 <div class="flex items-center space-x-2">
                                     <label class="text-xs text-gray-500 uppercase font-bold tracking-wider">Email</label>
-                                    <span th:if="${user.emailVerified}"
+                                    <span th:if="${vm.user().emailVerified()}"
                                           class="px-2 py-0.5 bg-green-100 text-green-700 rounded-full text-xs font-bold">
                                         <i class="fas fa-check-circle mr-1"></i>Vérifié
                                     </span>
-                                    <span th:unless="${user.emailVerified}"
+                                    <span th:unless="${vm.user().emailVerified()}"
                                           class="px-2 py-0.5 bg-yellow-100 text-yellow-700 rounded-full text-xs font-bold">
                                         <i class="fas fa-exclamation-circle mr-1"></i>Non vérifié
                                     </span>
                                 </div>
-                                <div class="text-secondary-900 font-medium mt-1" th:text="${user.email}">jean@exemple.com</div>
-                                <form th:unless="${user.emailVerified}" th:action="@{/profile/resend-confirmation}" method="post" class="mt-2">
+                                <div class="text-secondary-900 font-medium mt-1" th:text="${vm.user().email()}">jean@exemple.com</div>
+                                <form th:unless="${vm.user().emailVerified()}" th:action="@{/account/resend-confirmation}" method="post" class="mt-2">
                                     <button type="submit"
                                             class="text-sm text-primary-500 hover:text-primary-600 font-medium transition">
                                         <i class="fas fa-paper-plane mr-1"></i>Renvoyer le lien de confirmation
@@ -110,18 +110,18 @@
                             </div>
                         </div>
 
-                        <form id="info-edit" class="p-6 space-y-4 hidden" th:action="@{/profile/update}" method="post">
+                        <form id="info-edit" class="p-6 space-y-4 hidden" th:action="@{/account/update}" method="post">
                             <div class="grid md:grid-cols-2 gap-4">
                                 <div>
                                     <label for="firstName" class="block text-sm font-medium text-secondary-900 mb-2">Prénom</label>
                                     <input type="text" id="firstName" name="firstName"
-                                           th:value="${user.firstName}"
+                                           th:value="${vm.user().firstName()}"
                                            class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                                 </div>
                                 <div>
                                     <label for="lastName" class="block text-sm font-medium text-secondary-900 mb-2">Nom</label>
                                     <input type="text" id="lastName" name="lastName"
-                                           th:value="${user.lastName}"
+                                           th:value="${vm.user().lastName()}"
                                            class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                                 </div>
                             </div>
@@ -129,7 +129,7 @@
                             <div>
                                 <label for="username" class="block text-sm font-medium text-secondary-900 mb-2">Nom d'utilisateur</label>
                                 <input type="text" id="username" name="username"
-                                       th:value="${user.username}"
+                                       th:value="${vm.user().username()}"
                                        class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500">
                             </div>
 
@@ -159,7 +159,7 @@
                             <div class="flex items-center justify-between p-4 bg-surface rounded-xl">
                                 <div>
                                     <div class="font-medium text-secondary-900">Adresse email</div>
-                                    <div class="text-sm text-gray-500" th:text="${user.email}">email@exemple.com</div>
+                                    <div class="text-sm text-gray-500" th:text="${vm.user().email()}">email@exemple.com</div>
                                 </div>
                                 <button onclick="openEmailModal()"
                                         class="text-primary-500 hover:text-primary-600 font-medium transition">
@@ -168,7 +168,7 @@
                             </div>
 
                             <!-- Mot de passe : LOCAL -->
-                            <div th:if="${user.authMode.name() == 'LOCAL'}"
+                            <div th:if="${vm.user().authMode().name() == 'LOCAL'}"
                                  class="flex items-center justify-between p-4 bg-surface rounded-xl">
                                 <div>
                                     <div class="font-medium text-secondary-900">Mot de passe</div>
@@ -181,7 +181,7 @@
                             </div>
 
                             <!-- Mot de passe : GOOGLE -->
-                            <div th:if="${user.authMode.name() == 'GOOGLE'}"
+                            <div th:if="${vm.user().authMode().name() == 'GOOGLE'}"
                                  class="p-4 bg-blue-50 border border-blue-200 rounded-xl">
                                 <div class="flex items-start space-x-3 mb-3">
                                     <i class="fas fa-google text-blue-600 mt-1"></i>
@@ -197,43 +197,6 @@
                                         class="text-primary-500 hover:text-primary-600 font-medium text-sm transition">
                                     <i class="fas fa-key mr-1"></i>Définir un mot de passe
                                 </button>
-                            </div>
-
-                            <div class="flex items-center justify-between p-4 bg-surface rounded-xl">
-                                <div>
-                                    <div class="font-medium text-secondary-900">Authentification à deux facteurs</div>
-                                    <div class="text-sm text-gray-500">Sécurisez davantage votre compte</div>
-                                </div>
-                                <button class="px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full text-sm font-medium transition">
-                                    Activer
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-
-                    <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
-                        <div class="p-6 border-b border-gray-100">
-                            <h2 class="font-display font-bold text-xl text-secondary-900">
-                                <i class="fas fa-laptop mr-2 text-secondary-600"></i>
-                                Sessions actives
-                            </h2>
-                        </div>
-
-                        <div class="p-6">
-                            <div class="flex items-start space-x-4 p-4 bg-green-50 border border-green-200 rounded-xl">
-                                <div class="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center">
-                                    <i class="fas fa-desktop text-green-600"></i>
-                                </div>
-                                <div class="flex-1">
-                                    <div class="font-medium text-secondary-900">Cette session (actuelle)</div>
-                                    <div class="text-sm text-gray-600 mt-1">
-                                        <i class="fas fa-map-marker-alt mr-1"></i> Paris, France
-                                    </div>
-                                    <div class="text-xs text-gray-500 mt-1">
-                                        Dernière activité : il y a quelques secondes
-                                    </div>
-                                </div>
-                                <div class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                             </div>
                         </div>
                     </div>
@@ -270,24 +233,35 @@
                         <div class="space-y-4">
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-secondary-50 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-book text-secondary-800"></i>
+                                    <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-heart text-red-500"></i>
                                     </div>
                                     <div>
-                                        <div class="text-sm text-gray-600">Recettes</div>
-                                        <div class="font-bold text-secondary-900">0</div>
+                                        <div class="text-sm text-gray-600">Likes reçus</div>
+                                        <div class="font-bold text-secondary-900" th:text="${vm.socialStats().totalLikeCount()}">0</div>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-red-50 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-heart text-red-500"></i>
+                                    <div class="w-10 h-10 bg-yellow-50 rounded-lg flex items-center justify-center">
+                                        <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                            <defs>
+                                                <linearGradient id="goldGradientAccount" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" style="stop-color:#FFED8B;stop-opacity:1" />
+                                                    <stop offset="50%" style="stop-color:#FFC837;stop-opacity:1" />
+                                                    <stop offset="100%" style="stop-color:#DAA520;stop-opacity:1" />
+                                                </linearGradient>
+                                            </defs>
+                                            <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z" fill="url(#goldGradientAccount)"/>
+                                            <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z" fill="url(#goldGradientAccount)"/>
+                                            <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#FFED8B"/>
+                                        </svg>
                                     </div>
                                     <div>
-                                        <div class="text-sm text-gray-600">Likes reçus</div>
-                                        <div class="font-bold text-secondary-900">0</div>
+                                        <div class="text-sm text-gray-600">Super Likes</div>
+                                        <div class="font-bold text-secondary-900" th:text="${vm.socialStats().totalSuperLikeCount()}">0</div>
                                     </div>
                                 </div>
                             </div>
@@ -299,19 +273,19 @@
                                     </div>
                                     <div>
                                         <div class="text-sm text-gray-600">Abonnés</div>
-                                        <div class="font-bold text-secondary-900">0</div>
+                                        <div class="font-bold text-secondary-900" th:text="${vm.socialStats().followerCount()}">0</div>
                                     </div>
                                 </div>
                             </div>
 
                             <div class="flex items-center justify-between">
                                 <div class="flex items-center space-x-3">
-                                    <div class="w-10 h-10 bg-primary-50 rounded-lg flex items-center justify-center">
-                                        <i class="fas fa-star text-primary-500"></i>
+                                    <div class="w-10 h-10 bg-green-50 rounded-lg flex items-center justify-center">
+                                        <i class="fas fa-user-plus text-green-500"></i>
                                     </div>
                                     <div>
-                                        <div class="text-sm text-gray-600">Super Likes</div>
-                                        <div class="font-bold text-secondary-900">0</div>
+                                        <div class="text-sm text-gray-600">Abonnements</div>
+                                        <div class="font-bold text-secondary-900" th:text="${vm.socialStats().followingCount()}">0</div>
                                     </div>
                                 </div>
                             </div>
@@ -326,32 +300,14 @@
                         </div>
                     </div>
 
-                    <div class="bg-gradient-to-br from-primary-500 to-orange-600 rounded-2xl p-6 text-white shadow-xl">
-                        <div class="text-center">
-                            <div class="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center mx-auto mb-3">
-                                <i class="fas fa-trophy text-3xl"></i>
-                            </div>
-                            <h3 class="font-bold text-lg mb-2">Membre Bronze</h3>
-                            <p class="text-sm text-primary-100 mb-4">
-                                Continuez à partager vos recettes pour débloquer le niveau suivant !
-                            </p>
-                            <div class="bg-white/20 rounded-full h-2 overflow-hidden">
-                                <div class="bg-white h-full w-1/4 rounded-full"></div>
-                            </div>
-                            <div class="text-xs text-primary-100 mt-2">
-                                0 / 10 recettes pour Argent
-                            </div>
-                        </div>
-                    </div>
-
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
                         <h3 class="font-bold text-lg text-secondary-900 mb-4">Actions rapides</h3>
 
                         <div class="space-y-2">
-                            <a th:href="@{/dashboard}"
+                            <a th:href="@{/profile}"
                                class="flex items-center space-x-3 p-3 hover:bg-surface rounded-lg transition">
                                 <i class="fas fa-home text-secondary-600 w-5"></i>
-                                <span class="text-secondary-900">Dashboard</span>
+                                <span class="text-secondary-900">Mon profil</span>
                             </a>
                             <a th:href="@{/wallet}"
                                class="flex items-center space-x-3 p-3 hover:bg-surface rounded-lg transition">
@@ -390,7 +346,7 @@
                 </div>
             </div>
 
-            <form th:action="@{/profile/set-password}" method="post" class="space-y-4">
+            <form th:action="@{/account/set-password}" method="post" class="space-y-4">
                 <div>
                     <label for="setNewPassword" class="block text-sm font-medium text-secondary-900 mb-2">
                         Nouveau mot de passe
@@ -431,7 +387,7 @@
                 </button>
             </div>
 
-            <form th:action="@{/profile/request-email-change}" method="post" class="space-y-4">
+            <form th:action="@{/account/request-email-change}" method="post" class="space-y-4">
                 <div>
                     <label for="newEmail" class="block text-sm font-medium text-secondary-900 mb-2">
                         Nouvel email
@@ -441,7 +397,7 @@
                 </div>
 
                 <!-- For LOCAL users: current password -->
-                <div th:if="${user.authMode.name() == 'LOCAL'}">
+                <div th:if="${vm.user().authMode().name() == 'LOCAL'}">
                     <label for="currentPasswordEmail" class="block text-sm font-medium text-secondary-900 mb-2">
                         Mot de passe actuel (pour confirmation)
                     </label>
@@ -450,7 +406,7 @@
                 </div>
 
                 <!-- For GOOGLE users: must set a new password -->
-                <div th:if="${user.authMode.name() == 'GOOGLE'}" class="space-y-4">
+                <div th:if="${vm.user().authMode().name() == 'GOOGLE'}" class="space-y-4">
                     <div class="bg-blue-50 border border-blue-200 rounded-xl p-4">
                         <div class="flex items-start space-x-3">
                             <i class="fas fa-info-circle text-blue-600 mt-1"></i>
@@ -510,7 +466,7 @@
                 </button>
             </div>
 
-            <form th:action="@{/profile/request-password-change}" method="post" class="space-y-4">
+            <form th:action="@{/account/request-password-change}" method="post" class="space-y-4">
                 <div>
                     <label for="currentPasswordPwd" class="block text-sm font-medium text-secondary-900 mb-2">
                         Mot de passe actuel

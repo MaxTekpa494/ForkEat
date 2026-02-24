@@ -96,7 +96,7 @@
                                 <span class="line-through text-amber-400" th:text="${diff.originalTitle}"></span>
                             </div>
                         </div>
-                        <div class="flex items-center gap-2 ml-4 flex-shrink-0">
+                        <div class="flex items-center gap-2 flex-shrink-0">
                             <a th:if="${isAuthenticated}"
                                th:href="@{/recipes/create-variant(id=${recipe.id},title=${recipe.title},username=${recipe.username})}"
                                class="flex items-center space-x-2 bg-primary-50 hover:bg-primary-100 text-primary-600 px-4 py-2 rounded-lg font-medium transition text-sm border border-primary-200">
@@ -120,14 +120,15 @@
                         </div>
                     </div>
 
-                    <!-- Meta : auteur + temps de préparation -->
+                    <!-- Meta : auteur + temps de préparation + like -->
                     <div class="flex items-center space-x-6 text-secondary-500 mb-6 mt-5">
-                        <div class="flex items-center space-x-2">
+                        <a th:href="@{/profile/{username}(username=${recipe.username})}"
+                           class="flex items-center space-x-2 hover:text-primary-500 transition-colors">
                             <div class="w-8 h-8 bg-secondary-800 text-white rounded-full flex items-center justify-center text-xs font-bold">
                                 <span th:text="${#strings.toUpperCase(#strings.substring(recipe.username, 0, 1))}">U</span>
                             </div>
                             <span class="text-sm font-medium" th:text="${recipe.username}">Utilisateur</span>
-                        </div>
+                        </a>
                         <div class="flex items-center gap-2">
                             <span class="text-sm">
                                 <i class="fas fa-clock mr-1 text-primary-500"></i>
@@ -143,6 +144,23 @@
                                 <span th:text="${diff.timeDelta}"></span> min vs original
                             </span>
                         </div>
+                        <form id="like-form" th:action="@{/recipes/{id}/like(id=${recipe.id})}" method="post">
+                            <button type="button"
+                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 text-sm font-semibold cursor-pointer transition-all duration-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50"
+                                    th:classappend="${recipe.hasLiked} ? ' border-red-500 text-red-500 bg-red-50' : ''"
+                                    th:data-recipe-id="${recipe.id}"
+                                    th:data-liked="${recipe.hasLiked}"
+                                    onclick="handleLike(this)"
+                                    aria-label="J'aime cette recette">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
+                                     viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"
+                                     stroke-width="2" stroke-linecap="round" stroke-linejoin="round"
+                                     class="transition-transform duration-200">
+                                    <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/>
+                                </svg>
+                                <span th:text="${recipe.nbLike}">0</span>
+                            </button>
+                        </form>
                     </div>
 
                     <!-- Description / Summary -->
@@ -483,6 +501,40 @@
                 labelDiff.style.fontWeight  = '400';
                 labelDiff.style.color       = '#9ca3af';
                 document.querySelectorAll('.diff-unchanged').forEach(el => el.style.opacity = '1');
+            }
+        }
+
+        // ── Like / Unlike sans navigation ────────────────────────────────────
+        async function handleLike(button) {
+            const recipeId = button.dataset.recipeId;
+            const isLiked = button.dataset.liked === 'true';
+            const action = isLiked ? 'unlike' : 'like';
+
+            const form = document.getElementById('like-form');
+            form.action = '/recipes/' + recipeId + '/' + action;
+
+            const response = await fetch(form.action, {
+                method: 'POST',
+                body: new FormData(form)
+            });
+
+            if (response.url.includes('/login')) {
+                window.location.href = response.url;
+                return;
+            }
+
+            if (response.ok) {
+                const span = button.querySelector('span');
+                const count = parseInt(span.textContent);
+                if (isLiked) {
+                    span.textContent = count - 1;
+                    button.classList.remove('border-red-500', 'text-red-500', 'bg-red-50');
+                    button.dataset.liked = 'false';
+                } else {
+                    span.textContent = count + 1;
+                    button.classList.add('border-red-500', 'text-red-500', 'bg-red-50');
+                    button.dataset.liked = 'true';
+                }
             }
         }
 

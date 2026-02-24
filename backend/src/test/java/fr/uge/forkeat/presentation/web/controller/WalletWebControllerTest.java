@@ -1,6 +1,5 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
@@ -9,7 +8,7 @@ import fr.uge.forkeat.service.model.Transaction;
 import fr.uge.forkeat.service.model.TransactionStatus; // New import
 import fr.uge.forkeat.service.model.TransactionType;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.user.UserQueryService;
+import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
@@ -42,7 +41,7 @@ class WalletWebControllerTest {
     private final MockMvc mockMvc;
 
     @MockitoBean
-    private UserQueryService userQueryService;
+    private UserService userService;
 
     @MockitoBean
     private WalletService walletService;
@@ -53,8 +52,6 @@ class WalletWebControllerTest {
     @MockitoBean
     private BankInfoService bankInfoService;
 
-    @MockitoBean
-    private JwtFilter jwtFilter;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
@@ -89,7 +86,7 @@ class WalletWebControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void walletPage_ShouldReturnWalletView_WhenAuthenticated() throws Exception {
-        when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+        when(userService.getUserByUsername("testuser")).thenReturn(testUser);
         when(walletService.getBalance(testUser.id())).thenReturn(5000L);
         when(walletService.getTransactionHistory(testUser.id())).thenReturn(List.of());
 
@@ -106,7 +103,7 @@ class WalletWebControllerTest {
     @WithMockUser(username = "testuser")
     void walletPage_ShouldDisplayCorrectBalance() throws Exception {
         Long expectedBalance = 12500L;
-        when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+        when(userService.getUserByUsername("testuser")).thenReturn(testUser);
         when(walletService.getBalance(testUser.id())).thenReturn(expectedBalance);
         when(walletService.getTransactionHistory(testUser.id())).thenReturn(List.of());
 
@@ -118,7 +115,7 @@ class WalletWebControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void walletPage_ShouldDisplayZeroBalance_WhenNoFunds() throws Exception {
-        when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+        when(userService.getUserByUsername("testuser")).thenReturn(testUser);
         when(walletService.getBalance(testUser.id())).thenReturn(0L);
         when(walletService.getTransactionHistory(testUser.id())).thenReturn(List.of());
 
@@ -132,8 +129,8 @@ class WalletWebControllerTest {
     void walletPage_ShouldThrow_WhenUserNotFound() throws Exception {
         when(authPort.extractUsername()).thenReturn("unknownuser");
 
-        when(userQueryService.getUserByUsername("unknownuser"))
-                .thenThrow(new ResourceNotFoundException("Utilisateur non trouve"));
+        when(userService.getUserByUsername("unknownuser"))
+                .thenThrow(new ResourceNotFoundException("Utilisateur non trouvé"));
 
         mockMvc.perform(get("/wallet"))
                 .andExpect(status().isNotFound());
@@ -142,7 +139,7 @@ class WalletWebControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void walletPage_ShouldSetPaymentSuccess_WhenQueryParam() throws Exception {
-        when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+        when(userService.getUserByUsername("testuser")).thenReturn(testUser);
         when(walletService.getBalance(testUser.id())).thenReturn(5000L);
         when(walletService.getTransactionHistory(testUser.id())).thenReturn(List.of());
 
@@ -154,7 +151,7 @@ class WalletWebControllerTest {
     @Test
     @WithMockUser(username = "testuser")
     void walletPage_ShouldSetPaymentCancel_WhenQueryParam() throws Exception {
-        when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+        when(userService.getUserByUsername("testuser")).thenReturn(testUser);
         when(walletService.getBalance(testUser.id())).thenReturn(5000L);
         when(walletService.getTransactionHistory(testUser.id())).thenReturn(List.of());
 
@@ -172,7 +169,7 @@ class WalletWebControllerTest {
                 new Transaction(UUID.randomUUID(), null, walletId, 1000L, TransactionType.RECHARGE, Instant.now(), "tx_1", TransactionStatus.SUCCEEDED),
                 new Transaction(UUID.randomUUID(), null, walletId, 500L, TransactionType.RECHARGE, Instant.now(), "tx_2", TransactionStatus.SUCCEEDED)
         );
-        when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+        when(userService.getUserByUsername("testuser")).thenReturn(testUser);
         when(walletService.getBalance(testUser.id())).thenReturn(1500L);
         when(walletService.getTransactionHistory(testUser.id())).thenReturn(transactions);
 
@@ -185,7 +182,7 @@ class WalletWebControllerTest {
     @WithMockUser(username = "testuser")
     void recharge_ShouldRedirectToStripe() throws Exception {
         var expectedUrl = "https://checkout.stripe.com/pay/abc123";
-        when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+        when(userService.getUserByUsername("testuser")).thenReturn(testUser);
         when(walletService.prepareTopUp(eq(testUser.id()), eq("test@example.com"), eq(1000L), eq(null)))
                 .thenReturn(expectedUrl);
 

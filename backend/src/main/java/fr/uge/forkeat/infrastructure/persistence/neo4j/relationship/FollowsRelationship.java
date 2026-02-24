@@ -1,6 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.neo4j.relationship;
 
-import fr.uge.forkeat.infrastructure.persistence.neo4j.node.*;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.node.UserNode;
 import org.springframework.data.neo4j.core.schema.GeneratedValue;
 import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.RelationshipProperties;

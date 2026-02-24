@@ -1,7 +1,6 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -34,8 +33,6 @@ class AdminRestControllerTest {
 
     @MockitoBean
     private UserRegistrationService userRegistrationService;
-    @MockitoBean
-    private JwtFilter jwtFilter;
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 

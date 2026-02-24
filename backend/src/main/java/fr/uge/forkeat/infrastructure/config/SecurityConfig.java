@@ -2,8 +2,10 @@ package fr.uge.forkeat.infrastructure.config;
 
 import fr.uge.forkeat.infrastructure.security.CustomOAuth2UserService;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.core.annotation.Order;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
@@ -21,19 +23,24 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
+@PropertySource("classpath:bucket4j.properties")
+@EnableConfigurationProperties(RateLimitProperties.class)
 public class SecurityConfig {
 
 	private final CustomUserDetailsService customUserDetailsService;
 	private final JwtUtils jwtUtils;
 	private final CustomOAuth2UserService customOAuth2UserService;
 	private final PasswordEncoder passwordEncoder;
+	private final RateLimitProperties rateLimitProperties;
 
 	public SecurityConfig(CustomUserDetailsService customUserDetailsService, JwtUtils jwtUtils,
-			CustomOAuth2UserService customOAuth2UserService, PasswordEncoder passwordEncoder) {
+			CustomOAuth2UserService customOAuth2UserService, PasswordEncoder passwordEncoder,
+			RateLimitProperties rateLimitProperties) {
 		this.customUserDetailsService = customUserDetailsService;
 		this.jwtUtils = jwtUtils;
 		this.customOAuth2UserService = customOAuth2UserService;
 		this.passwordEncoder = passwordEncoder;
+		this.rateLimitProperties = rateLimitProperties;
 	}
 
 	@Bean
@@ -57,12 +64,14 @@ public class SecurityConfig {
 						}))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/me").authenticated()
-						.requestMatchers("/api/auth/**").permitAll().requestMatchers("/api/recipes/**").permitAll()
+						.requestMatchers("/api/auth/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
+						.requestMatchers("/api/recipes/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/wallet/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/*/user/*").authenticated().requestMatchers("/*/moderator/*")
 						.hasRole("MODERATOR").requestMatchers("/*/admin/*").hasRole("ADMIN").anyRequest()
 						.hasRole("ADMIN"))
-				.addFilterBefore(new RateLimitFilter(), UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(new RateLimitFilter(rateLimitProperties), UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(new JwtFilter(customUserDetailsService, jwtUtils),
 								 UsernamePasswordAuthenticationFilter.class)
 				.build();
@@ -89,7 +98,7 @@ public class SecurityConfig {
 						.requestMatchers("/profile/**").authenticated()
 						.anyRequest().authenticated())
 
-				.addFilterBefore(new RateLimitFilter(), UsernamePasswordAuthenticationFilter.class)
+				.addFilterBefore(new RateLimitFilter(rateLimitProperties), UsernamePasswordAuthenticationFilter.class)
 
 				.formLogin(form -> form
 						.loginPage("/auth/login")

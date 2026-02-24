@@ -1,64 +1,45 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
-import fr.uge.forkeat.presentation.dto.user.ChangePasswordConfirmCodeDTO;
-import fr.uge.forkeat.presentation.dto.user.ChangePasswordDTO;
+import fr.uge.forkeat.service.ProfileService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.exception.VerificationException;
-import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.user.User;
-import fr.uge.forkeat.service.model.user.UserRole;
-import fr.uge.forkeat.service.model.user.UserStatus;
-import fr.uge.forkeat.service.user.EmailVerificationService;
-import fr.uge.forkeat.service.user.UserQueryService;
-import fr.uge.forkeat.service.user.UserRegistrationService;
+import fr.uge.forkeat.service.model.PageResult;
+import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
+import fr.uge.forkeat.service.model.user.projection.PersonalizedUserProfile;
+import fr.uge.forkeat.service.model.user.projection.UserProfile;
+import fr.uge.forkeat.service.model.user.projection.UserProfileWithRecipes;
+import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
+import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
+import fr.uge.forkeat.service.port.AuthenticationPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.http.MediaType;
-import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
-import java.time.Instant;
-import java.util.UUID;
+import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ProfileRestController.class)
 @AutoConfigureMockMvc(addFilters = false)
-public class ProfileRestControllerTest {
+class ProfileRestControllerTest {
 
     private final MockMvc mockMvc;
-    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @MockitoBean
-    private UserQueryService userQueryService;
-
+    private ProfileService profileService;
     @MockitoBean
-    private EmailVerificationService emailVerificationService;
-
+    private AuthenticationPort authenticationPort;
     @MockitoBean
-    private PasswordEncoder passwordEncoder;
-    @MockitoBean
-    private AuthenticationManager authenticationManager;
-    @MockitoBean
-    private JwtUtils jwtUtils;
-    @MockitoBean
-    private JwtFilter jwtFilter;
-
+    private JwtUtils jwtUtils; // nécessaire pour SecurityConfig (évite @Value JWT_SECRET manquant)
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
@@ -67,113 +48,94 @@ public class ProfileRestControllerTest {
         this.mockMvc = mockMvc;
     }
 
-
-    private User createUser() {
-        return new User(UUID.randomUUID(), "testuser", "Test", "User",
-                "test@forkeat.fr", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL,
-                Instant.now(), Instant.now(), false);
+    @BeforeEach
+    void setUp() {
+        when(authenticationPort.extractUsername()).thenReturn("viewer");
     }
 
-    private ChangePasswordDTO createChangePasswordDTO() {
-        return new ChangePasswordDTO("test@forkeat.fr");
-    }
-
-    private ChangePasswordConfirmCodeDTO createChangePasswordConfirmCodeDTO() {
-        return new ChangePasswordConfirmCodeDTO("test@forkeat.fr", "000000", "Password1234", "Password1234");
-    }
-
-    @Nested
-    class ForgotPasswordTests{
-
-
-        @Test
-        public void AskingForgotPasswordSuccessfull() throws Exception {
-            var user = createUser();
-
-            when(userQueryService.getUserByEmail(any())).thenReturn(user);
-            doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any());
-
-
-            mockMvc.perform(post("/api/auth/forgot-password")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(createChangePasswordDTO())))
-                    .andExpect(status().isOk());
-        }
-
-        @Test
-        public void AskingForgotPasswordShouldReturnAnErrorWhenEmailNotExist() throws Exception {
-            var user = createUser();
-
-            when(userQueryService.getUserByEmail(any())).thenThrow(new ResourceNotFoundException("User not found with email: test@forkeat.fr"));
-            doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any());
-
-
-            mockMvc.perform(post("/api/auth/forgot-password")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(createChangePasswordDTO())))
-                    .andExpect(status().isOk());
-        }
-
+    private PersonalizedUserProfile buildProfile(String username, boolean followed) {
+        var publicProfile = new UserPublicProfile(username, "Jean", "Dupont");
+        var socialStats = new UserSocialStats(10, 5, 20, 3);
+        var profile = new UserProfile(publicProfile, socialStats);
+        var recipes = new PageResult<PersonalizedRecipeSummary>(List.of(), 0L);
+        var profileWithRecipes = new UserProfileWithRecipes(profile, recipes);
+        return new PersonalizedUserProfile(profileWithRecipes, followed);
     }
 
     @Nested
-    class ForgotPasswordCodeTests{
+    class GetProfileTests {
 
         @Test
-        public void ForgotPasswordCodeShouldReturnAnErrorWhenCodeIsWrong() throws Exception {
-            var user = createUser();
+        void shouldReturnProfile_WhenUserExists() throws Exception {
+            when(profileService.getProfileInfos(eq("chef"), anyInt(), anyInt(), eq("viewer")))
+                    .thenReturn(buildProfile("chef", false));
 
-            when(userQueryService.getUserByEmail(any())).thenReturn(user);
-            doThrow(new VerificationException("Code incorrect")).when(emailVerificationService).confirmPasswordChange(any(), any(), any());
+            mockMvc.perform(get("/api/profile/chef"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resource.profile.publicProfile.username").value("chef"))
+                    .andExpect(jsonPath("$.resource.profile.publicProfile.firstName").value("Jean"))
+                    .andExpect(jsonPath("$.resource.totalRecipes").value(0))
+                    .andExpect(jsonPath("$.resource.currentPage").value(0))
+                    .andExpect(jsonPath("$.resource.followedByCurrentUser").value(false));
 
-
-            mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(createChangePasswordConfirmCodeDTO())))
-                    .andExpect(status().isBadRequest());
-        }
-
-
-        @Test
-        public void ForgotPasswordCodeShouldReturnAnErrorWhenCodeIsExpired() throws Exception {
-            var user = createUser();
-
-            when(userQueryService.getUserByEmail(any())).thenReturn(user);
-            doThrow(new VerificationException("Le code a expiré. Veuillez recommencer.")).when(emailVerificationService).confirmPasswordChange(any(), any(), any());
-
-
-            mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(createChangePasswordConfirmCodeDTO())))
-                    .andExpect(status().isBadRequest());
+            verify(profileService).getProfileInfos("chef", 0, 10, "viewer");
         }
 
         @Test
-        public void ForgotPasswordCodeShouldReturnAnErrorWhenEmailIsNotAskingAResetPassword() throws Exception {
-            var user = createUser();
+        void shouldReturnFollowedTrue_WhenCurrentUserFollows() throws Exception {
+            when(profileService.getProfileInfos(eq("chef"), anyInt(), anyInt(), eq("viewer")))
+                    .thenReturn(buildProfile("chef", true));
 
-            when(userQueryService.getUserByEmail(any())).thenReturn(user);
-            doThrow(new VerificationException("Aucun changement de mot de passe en attente")).when(emailVerificationService).confirmPasswordChange(any(), any(), any());
-
-
-            mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(createChangePasswordConfirmCodeDTO())))
-                    .andExpect(status().isBadRequest());
+            mockMvc.perform(get("/api/profile/chef"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resource.followedByCurrentUser").value(true));
         }
 
         @Test
-        public void ForgotPasswordCodeSuccessfull() throws Exception {
-            var user = createUser();
+        void shouldUseDefaultPagination() throws Exception {
+            when(profileService.getProfileInfos(any(), anyInt(), anyInt(), any()))
+                    .thenReturn(buildProfile("chef", false));
 
-            when(userQueryService.getUserByEmail(any())).thenReturn(user);
-            doNothing().when(emailVerificationService).confirmPasswordChange(any(), any(), any());
-
-
-            mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content(objectMapper.writeValueAsString(createChangePasswordConfirmCodeDTO())))
+            mockMvc.perform(get("/api/profile/chef"))
                     .andExpect(status().isOk());
+
+            verify(profileService).getProfileInfos("chef", 0, 10, "viewer");
+        }
+
+        @Test
+        void shouldForwardPaginationParams() throws Exception {
+            when(profileService.getProfileInfos(eq("chef"), eq(2), eq(5), eq("viewer")))
+                    .thenReturn(buildProfile("chef", false));
+
+            mockMvc.perform(get("/api/profile/chef")
+                            .param("page", "2")
+                            .param("size", "5"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resource.currentPage").value(2));
+
+            verify(profileService).getProfileInfos("chef", 2, 5, "viewer");
+        }
+
+        @Test
+        void shouldReturnNotFound_WhenUserDoesNotExist() throws Exception {
+            when(profileService.getProfileInfos(eq("unknown"), anyInt(), anyInt(), any()))
+                    .thenThrow(new ResourceNotFoundException("User not found: unknown"));
+
+            mockMvc.perform(get("/api/profile/unknown"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Not Found"))
+                    .andExpect(jsonPath("$.message").value("User not found: unknown"));
+        }
+
+        @Test
+        void shouldExtractCurrentUsernameFromAuth() throws Exception {
+            when(profileService.getProfileInfos(any(), anyInt(), anyInt(), any()))
+                    .thenReturn(buildProfile("chef", false));
+
+            mockMvc.perform(get("/api/profile/chef"))
+                    .andExpect(status().isOk());
+
+            verify(authenticationPort).extractUsername();
         }
     }
 }

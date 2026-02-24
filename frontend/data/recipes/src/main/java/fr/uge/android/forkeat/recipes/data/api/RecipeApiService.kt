@@ -1,12 +1,16 @@
 package fr.uge.android.forkeat.recipes.data.api
 
 import fr.uge.android.forkeat.recipes.data.dto.CreateRecipeFormDataResponse
+import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
+import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsResponseDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeItemResponse
 import fr.uge.android.forkeat.recipes.data.dto.RecipesListResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
+import retrofit2.http.DELETE
 import retrofit2.http.GET
+import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.Part
@@ -18,6 +22,7 @@ interface RecipeApiService {
 
     @GET("api/recipes")
     suspend fun getRecipes(
+        @Header("Authorization") token: String,
         @Query("status") status: String = "PUBLISHED",
         @Query("size") size: Int = 10,
         @Query("page") page: Int = 0,
@@ -26,7 +31,10 @@ interface RecipeApiService {
     ): Response<RecipesListResponse>
 
     @GET("api/recipes/{id}")
-    suspend fun getRecipe(@Path("id") id: UUID): Response<RecipeItemResponse>
+    suspend fun getRecipeWithId(
+        @Header("Authorization") token: String,
+        @Path("id") id: UUID
+    ): Response<RecipeDetailsResponseDTO>
 
     @GET("api/recipes/create")
     suspend fun getCreateRecipeData(): Response<CreateRecipeFormDataResponse>
@@ -51,4 +59,16 @@ interface RecipeApiService {
 
     @POST("api/recipes/{id}/delete")
     suspend fun deleteRecipe(@Path("id") id: UUID): Response<Void>
+
+    @POST("api/recipes/{id}/like")
+    suspend fun likeRecipe(
+        @Header("Authorization") token: String,
+        @Path("id") id: UUID
+    ): Response<Unit>
+
+    @DELETE("api/recipes/{id}/like")
+    suspend fun unlikeRecipe(
+        @Header("Authorization") token: String,
+        @Path("id") id: UUID
+    ): Response<Unit>
 }

@@ -3,7 +3,6 @@ package fr.uge.forkeat.infrastructure.security.strategy;
 import fr.uge.forkeat.service.model.user.User;
 import org.springframework.core.Ordered;
 import org.springframework.core.annotation.Order;
-import org.springframework.security.core.Authentication;
 import org.springframework.stereotype.Component;
 
 @Component

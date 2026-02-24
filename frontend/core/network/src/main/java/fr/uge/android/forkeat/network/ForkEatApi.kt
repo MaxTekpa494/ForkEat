@@ -22,19 +22,11 @@ import kotlin.time.Instant
 
 class InstantAdapter : JsonSerializer<Instant>, JsonDeserializer<Instant> {
 
-    override fun serialize(
-        src: Instant,
-        typeOfSrc: Type,
-        context: JsonSerializationContext
-    ): JsonElement {
+    override fun serialize(src: Instant, typeOfSrc: Type, context: JsonSerializationContext): JsonElement {
         return JsonPrimitive(src.toString())
     }
 
-    override fun deserialize(
-        json: JsonElement,
-        typeOfT: Type,
-        context: JsonDeserializationContext
-    ): Instant {
+    override fun deserialize(json: JsonElement, typeOfT: Type, context: JsonDeserializationContext): Instant {
         return Instant.parse(json.asString)
     }
 }
@@ -61,12 +53,16 @@ object ForkEatApi {
         level = HttpLoggingInterceptor.Level.BODY
     }
 
+    private val gson: Gson = GsonBuilder()
+        .registerTypeAdapter(Instant::class.java, InstantAdapter())
+        .create()
+
     private val okHttpClient by lazy {
         OkHttpClient.Builder()
             .addInterceptor { chain ->
                 val requestBuilder = chain.request().newBuilder()
                 tokenManager?.getToken()?.let { token ->
-                    requestBuilder.addHeader("Authorization", "Bearer $token")
+                    requestBuilder.addHeader("Authorization", "$token")
                 }
                 chain.proceed(requestBuilder.build())
             }
@@ -76,10 +72,6 @@ object ForkEatApi {
             .readTimeout(15, TimeUnit.SECONDS)
             .build()
     }
-
-    val gson: Gson = GsonBuilder()
-        .registerTypeAdapter(Instant::class.java, InstantAdapter())
-        .create()
 
     private val retrofit: Retrofit by lazy {
         Retrofit.Builder()

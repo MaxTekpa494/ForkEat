@@ -1,7 +1,6 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.presentation.dto.user.TopUpRequestDTO;
 import fr.uge.forkeat.presentation.dto.user.CreateBankInfoRequestDTO; // New import
 import fr.uge.forkeat.presentation.dto.user.WithdrawalRequestDTO;     // New import
@@ -17,7 +16,7 @@ import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.BankInfoService;                  // New import
-import fr.uge.forkeat.service.user.UserQueryService;
+import fr.uge.forkeat.service.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -52,13 +51,10 @@ class WalletRestControllerIntegrationTest { // Renamed class
     private AuthenticationPort authPort;
 
     @MockitoBean
-    private UserQueryService userQueryService;
+    private UserService userService;
 
     @MockitoBean
     private BankInfoService bankInfoService; // New mock
-
-    @MockitoBean
-    private JwtFilter jwtFilter;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
@@ -83,7 +79,7 @@ class WalletRestControllerIntegrationTest { // Renamed class
         testBankInfo = new BankInfo(testUser.id(), "My Bank", "ext_acct_test123");
 
         when(authPort.extractUsername()).thenReturn("testuser");
-        when(userQueryService.getUserByUsername("testuser")).thenReturn(testUser);
+        when(userService.getUserByUsername("testuser")).thenReturn(testUser);
     }
 
     @Test
