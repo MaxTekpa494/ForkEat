@@ -393,14 +393,14 @@ class WalletPersistenceAdapterTest {
         var userId = UUID.randomUUID();
         var balance = 5000L;
 
-        when(walletRepository.findBalanceByUserId(userId)).thenReturn(balance);
+        when(walletRepository.findBalanceByUserIdReadOnly(userId)).thenReturn(balance);
 
         // When
         var result = adapter.getBalance(userId);
 
         // Then
         assertEquals(balance, result);
-        verify(walletRepository).findBalanceByUserId(userId);
+        verify(walletRepository).findBalanceByUserIdReadOnly(userId);
     }
 
     @Test
@@ -408,13 +408,13 @@ class WalletPersistenceAdapterTest {
         // Given
         var userId = UUID.randomUUID();
 
-        when(walletRepository.findBalanceByUserId(userId)).thenReturn(null);
+        when(walletRepository.findBalanceByUserIdReadOnly(userId)).thenReturn(null);
 
         // When
         var result = adapter.getBalance(userId);
 
         // Then
         assertEquals(0L, result);
-        verify(walletRepository).findBalanceByUserId(userId);
+        verify(walletRepository).findBalanceByUserIdReadOnly(userId);
     }
 }

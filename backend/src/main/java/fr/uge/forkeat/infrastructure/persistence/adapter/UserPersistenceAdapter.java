@@ -1,15 +1,17 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
-import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jUserRepository;
 import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.SuperLikeEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.SuperLikeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
 import java.util.Optional;
@@ -22,9 +24,15 @@ public class UserPersistenceAdapter implements UserPersistence {
 
     private final Neo4jUserRepository neo4jUserRepository;
 
-	public UserPersistenceAdapter(UserRepository userRepository, Neo4jUserRepository neo4jUserRepository) {
+    private final SuperLikeRepository superLikeRepository;
+
+    private final WalletRepository walletRepository;
+
+	public UserPersistenceAdapter(UserRepository userRepository, Neo4jUserRepository neo4jUserRepository, SuperLikeRepository superLikeRepository, WalletRepository walletRepository) {
 		this.userRepository = userRepository;
         this.neo4jUserRepository = neo4jUserRepository;
+        this.superLikeRepository = superLikeRepository;
+        this.walletRepository = walletRepository;
 	}
 
 	@Override
@@ -116,5 +124,21 @@ public class UserPersistenceAdapter implements UserPersistence {
     @Override
     public void unlikeRecipe(UUID userId, UUID recipeId){
         neo4jUserRepository.unlikeRecipe(userId, recipeId);
+    }
+
+    @Override
+    public void superLikeRecipe(UUID userId, UUID recipeId){
+        var superLike = new SuperLikeEntity(userId, recipeId);
+        var balance = walletRepository.findBalanceByUserId(userId);
+        if(balance < 100){
+            throw new InsufficientFundsException(balance, 100L);
+        }
+        walletRepository.decrementBalanceByUserId(userId, 100L);
+        superLikeRepository.save(superLike);
+    }
+
+    @Override
+    public boolean hasSuperLikedRecipe(UUID userId, UUID recipeId){
+        return this.superLikeRepository.existsByRecipeIdAndUserId(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
     }
 }

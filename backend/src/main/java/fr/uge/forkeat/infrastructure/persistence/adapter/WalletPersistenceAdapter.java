@@ -8,7 +8,6 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.Transaction
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.Transaction;
 import fr.uge.forkeat.service.model.user.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
@@ -91,7 +90,7 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 
 	@Override
 	public Long getBalance(UUID userId) {
-		var balance = walletRepository.findBalanceByUserId(userId);
+		var balance = walletRepository.findBalanceByUserIdReadOnly(userId);
 
 		// Si l'utilisateur n'a pas de wallet (ne devrait pas arriver), on renvoie 0
 		return balance != null ? balance : 0L;

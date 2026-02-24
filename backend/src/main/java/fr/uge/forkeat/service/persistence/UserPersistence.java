@@ -28,7 +28,9 @@ public interface UserPersistence {
 
     void likeRecipe(UUID userId, UUID recipeId);
 
-
     void unlikeRecipe(UUID userId, UUID recipeId);
 
+    void superLikeRecipe(UUID userId, UUID recipeId);
+
+    boolean hasSuperLikedRecipe(UUID userId, UUID recipeId);
 }

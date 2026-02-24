@@ -38,4 +38,17 @@ public class UserService {
     public boolean hasLikedRecipe(UUID userId, UUID recipeId){
         return this.userPersistence.hasLikedRecipe(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
     }
+
+    @Transactional
+    public boolean hasSuperLikedRecipe(UUID userId, UUID recipeId){
+        return this.userPersistence.hasSuperLikedRecipe(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
+    }
+
+    @Transactional
+    public void superLikeRecipe(UUID userId, UUID recipeId){
+        if(this.userPersistence.hasSuperLikedRecipe(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId))){
+            return;
+        }
+        this.userPersistence.superLikeRecipe(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
+    }
 }

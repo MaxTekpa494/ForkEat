@@ -100,6 +100,14 @@ public final class RecipeRestController {
         return ResponseEntity.ok().build();
     }
 
+    @PostMapping("/{id}/super-like")
+    public ResponseEntity<?> superLikeRecipe(@PathVariable UUID id) {
+        var user = this.userQueryService.getUserByUsername(authPort.extractUsername());
+        this.recipeService.findById(id);
+        this.userService.superLikeRecipe(user.id(), id);
+        return ResponseEntity.ok().build();
+    }
+
     @DeleteMapping("/{id}/like")
     public ResponseEntity<?> unlikeRecipe(@PathVariable UUID id) {
         var user = this.userQueryService.getUserByUsername(authPort.extractUsername());
