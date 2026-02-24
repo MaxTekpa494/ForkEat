@@ -14,6 +14,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
@@ -36,9 +37,20 @@ import java.util.Calendar
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ProfileScreen(
-    profileViewModel: ProfileViewModel = viewModel()
+    profileViewModel: ProfileViewModel = viewModel(),
+    onNavigateToCreateRecipe: () -> Unit = {},
+    onNavigateToMyRecipes: () -> Unit = {}
 ) {
     val uiState by profileViewModel.uiState.collectAsState()
+
+    LaunchedEffect(Unit) {
+        profileViewModel.navigationEvent.collect { event ->
+            when (event) {
+                is ProfileNavigationEvent.NavigateToCreateRecipe -> onNavigateToCreateRecipe()
+                is ProfileNavigationEvent.NavigateToMyRecipes -> onNavigateToMyRecipes()
+            }
+        }
+    }
     val newEmail by profileViewModel.newEmail.collectAsState()
     val currentPasswordEmailConfirm by profileViewModel.currentPasswordEmailConfirm.collectAsState()
     val currentPassword by profileViewModel.currentPassword.collectAsState()
@@ -63,7 +75,8 @@ fun ProfileScreen(
             ) {
                 ProfileInformationCard(uiState, profileViewModel)
                 SecurityCard(uiState, profileViewModel)
-                MyStatisticsCard(uiState)
+                MyStatisticsCard(uiState, profileViewModel)
+                QuickActionsProfileCard(profileViewModel)
                 MembershipLevelCard()
                 ActiveSessionsCard()
                 DangerZoneCard(profileViewModel)
@@ -424,7 +437,7 @@ fun DangerZoneCard(profileViewModel: ProfileViewModel) {
 }
 
 @Composable
-fun MyStatisticsCard(uiState: ProfileUiState) {
+fun MyStatisticsCard(uiState: ProfileUiState, profileViewModel: ProfileViewModel) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
@@ -464,7 +477,7 @@ fun MyStatisticsCard(uiState: ProfileUiState) {
             )
             Spacer(Modifier.height(16.dp))
             Button(
-                onClick = { /* TODO: Navigate to My Recipes */ },
+                onClick = profileViewModel::navigateToMyRecipes,
                 modifier = Modifier.fillMaxWidth(),
                 colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFF5F5F5)),
                 shape = RoundedCornerShape(12.dp)
@@ -575,6 +588,11 @@ fun QuickActionsProfileCard(profileViewModel: ProfileViewModel) {
                 icon = Icons.Default.Wallet,
                 label = "Mon wallet",
                 onClick = profileViewModel::navigateToWallet
+            )
+            QuickActionItem(
+                icon = Icons.Default.Book,
+                label = "Mes recettes",
+                onClick = profileViewModel::navigateToMyRecipes
             )
             QuickActionItem(
                 icon = Icons.Default.Add,

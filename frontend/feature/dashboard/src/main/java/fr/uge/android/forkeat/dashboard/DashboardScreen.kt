@@ -43,7 +43,8 @@ import java.text.DecimalFormat
 fun DashboardScreen(
     dashboardViewModel: DashboardViewModel = viewModel(),
     onNavigateToProfile: () -> Unit,
-    onNavigateToWallet: () -> Unit = {}
+    onNavigateToWallet: () -> Unit = {},
+    onNavigateToCreateRecipe: () -> Unit = {}
 ) {
     val uiState by dashboardViewModel.uiState.collectAsState()
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -62,7 +63,7 @@ fun DashboardScreen(
         dashboardViewModel.navigationEvent.collect { event ->
             when (event) {
                 is DashboardNavigationEvent.NavigateToProfile -> onNavigateToProfile()
-                DashboardNavigationEvent.NavigateToCreateRecipe -> TODO()
+                DashboardNavigationEvent.NavigateToCreateRecipe -> onNavigateToCreateRecipe()
                 DashboardNavigationEvent.NavigateToWallet -> onNavigateToWallet()
             }
         }

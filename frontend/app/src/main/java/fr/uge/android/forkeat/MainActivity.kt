@@ -18,9 +18,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import fr.uge.android.forkeat.dashboard.DashboardScreen
 import fr.uge.android.forkeat.designsystem.theme.ForkEatTheme
 import fr.uge.android.forkeat.home.ForgotPasswordCodeScreen
@@ -31,7 +33,11 @@ import fr.uge.android.forkeat.home.LoginScreen
 import fr.uge.android.forkeat.home.RegisterScreen
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.profile.ProfileScreen
+import fr.uge.android.forkeat.recipes.MyRecipesScreen
+import fr.uge.android.forkeat.recipes.MyRecipesViewModel
 import fr.uge.android.forkeat.recipes.RecipeDetailScreen
+import fr.uge.android.forkeat.recipes.RecipeFormScreen
+import fr.uge.android.forkeat.recipes.RecipeFormViewModel
 import fr.uge.android.forkeat.recipes.RecipesListScreen
 import fr.uge.android.forkeat.recipes.RecipesViewModel
 import fr.uge.android.forkeat.wallet.WalletScreen
@@ -149,7 +155,8 @@ class MainActivity : ComponentActivity() {
                         ) {
                             DashboardScreen(
                                 onNavigateToProfile = { navController.navigate("profile") },
-                                onNavigateToWallet = { navController.navigate("wallet") }
+                                onNavigateToWallet = { navController.navigate("wallet") },
+                                onNavigateToCreateRecipe = { navController.navigate("recipe-form") }
                             )
                         }
                     }
@@ -159,7 +166,10 @@ class MainActivity : ComponentActivity() {
                             isLoggedIn = isLoggedIn,
                             onLogout = logout
                         ) {
-                            ProfileScreen()
+                            ProfileScreen(
+                                onNavigateToCreateRecipe = { navController.navigate("recipe-form") },
+                                onNavigateToMyRecipes = { navController.navigate("my-recipes") }
+                            )
                         }
                     }
                     composable("wallet") {
@@ -188,6 +198,9 @@ class MainActivity : ComponentActivity() {
                             onLoadMore = { recipesViewModel.loadMoreRecipes() },
                             errorMessage = errorMessageState.value,
                             isLoading = isLoadingState.value,
+                            isLoggedIn = isLoggedIn,
+                            onLogout = logout,
+                            onNavigateToCreateRecipe = { navController.navigate("recipe-form") },
                             navController = navController,
                             searchQuery = searchQueryState.value,
                             onSearchQueryChange = { query -> recipesViewModel.onSearchQueryChange(query) },
@@ -196,6 +209,25 @@ class MainActivity : ComponentActivity() {
                             selectedAllergens = selectedAllergensState.value,
                             onAllergenToggle = { allergen -> recipesViewModel.toggleAllergen(allergen) },
                             onClearFilters = { recipesViewModel.clearFilters() }
+                        )
+                    }
+                    composable(
+                        route = "recipe-form?recipeId={recipeId}&parentId={parentId}",
+                        arguments = listOf(
+                            navArgument("recipeId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                            navArgument("parentId") { type = NavType.StringType; nullable = true; defaultValue = null }
+                        )
+                    ) {
+                        val formViewModel: RecipeFormViewModel = viewModel()
+                        RecipeFormScreen(
+                            viewModel = formViewModel,
+                            onBack = { navController.popBackStack() },
+                            onSuccess = {
+                                recipesViewModel.loadRecipes(0)
+                                navController.navigate("recipes") {
+                                    popUpTo("recipe-form") { inclusive = true }
+                                }
+                            }
                         )
                     }
                     composable("recipes/{id}") { backStackEntry ->
@@ -209,6 +241,22 @@ class MainActivity : ComponentActivity() {
                                 Text("Recette introuvable", color = Color.Red)
                             }
                         }
+                    }
+                    composable("my-recipes") {
+                        val myRecipesViewModel: MyRecipesViewModel = viewModel()
+                        MyRecipesScreen(
+                            viewModel = myRecipesViewModel,
+                            isLoggedIn = isLoggedIn,
+                            onLogout = logout,
+                            onNavigateToCreateRecipe = { navController.navigate("recipe-form") },
+                            onNavigateToEdit = { recipeId ->
+                                navController.navigate("recipe-form?recipeId=$recipeId")
+                            },
+                            onNavigateToVariant = { parentId ->
+                                navController.navigate("recipe-form?parentId=$parentId")
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
                     }
                 }
             }

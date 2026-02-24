@@ -12,7 +12,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -21,9 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Red
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import fr.uge.android.forkeat.designsystem.theme.Primary500
 import fr.uge.android.forkeat.designsystem.theme.Secondary900
 import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
 import fr.uge.android.forkeat.home.ForkEatScaffold
@@ -39,7 +45,10 @@ fun RecipesListScreen(
   totalCount: Int,
   onLoadMore: () -> Unit,
   errorMessage: String? = null,
-  isLoading : Boolean = false,
+  isLoading: Boolean = false,
+  isLoggedIn: Boolean = false,
+  onLogout: () -> Unit = {},
+  onNavigateToCreateRecipe: () -> Unit = {},
   navController: NavHostController? = null,
   searchQuery: String = "",
   onSearchQueryChange: (String) -> Unit = {},
@@ -64,12 +73,24 @@ fun RecipesListScreen(
   }
   ForkEatScaffold(
     navController = navController,
-  ) { paddingValues ->
+    isLoggedIn = isLoggedIn,
+    onLogout = onLogout,
+    floatingActionButton = {
+      if (isLoggedIn) {
+        FloatingActionButton(
+          onClick = onNavigateToCreateRecipe,
+          containerColor = Primary500,
+          contentColor = Color.White
+        ) {
+          Icon(Icons.Default.Add, contentDescription = "Créer une recette")
+        }
+      }
+    }
+  ) {
     Column(
       modifier = Modifier
         .fillMaxSize()
         .background(SurfaceCream)
-        .padding(paddingValues)
         .padding(16.dp)
     ) {
       RecipeSearchFilterBar(

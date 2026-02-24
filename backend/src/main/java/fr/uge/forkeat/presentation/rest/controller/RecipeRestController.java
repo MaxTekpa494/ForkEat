@@ -35,7 +35,8 @@ public final class RecipeRestController {
 		this.authPort = authPort;
 	}
 
-	public record AllergensIngredients(List<AllergenDTO> allergens, List<String> ingredients){}
+	private record AllergensIngredients(List<AllergenDTO> allergens, List<String> ingredients){}
+	private record RecipeWithParent(RecipeDTO recipe, RecipeDTO parent){}
 
 	// Pourquoi pas faire un findwithparent avec {recipe:..., parent:...}
 	// Un endpoint recipe avec juste {recipe:...}
@@ -83,20 +84,29 @@ public final class RecipeRestController {
 	public ResponseEntity<HttpResponse<RecipeDTO>> updateRecipe(@PathVariable UUID id, @RequestPart RecipeDTO recipeDTO, @RequestPart(value = "image", required = false) MultipartFile image){
 		Objects.requireNonNull(recipeDTO);
 		var username = authPort.extractUsername();
+		var recipeToUpdate = recipeService.findById(id);
+		if(!recipeToUpdate.usernameAuthor().equals(username)){
+			throw new IllegalStateException("Vous ne pouvez pas modifier une recette qui ne vous appartient pas");
+		}
 		var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
 		var updatedRecipe = recipeService.updateRecipe(id, recipe, ImageMapper.toImageUpload(image));
 		return ResponseEntity.ok(new ItemResponse<>(RecipeDTOMapper.toDTO(updatedRecipe)));
 	}
 
-	@PostAuthorize("returnObject.owner == authentication.name")
+	//@PostAuthorize("returnObject.owner == authentication.name")
+	//@PreAuthorize("returnObject.owner == authentication.name")
 	@PostMapping("/{id}/delete")
 	public ResponseEntity<HttpResponse<Void>> deleteRecipe(@PathVariable UUID id){
 		Objects.requireNonNull(id);
+		var username = authPort.extractUsername();
+		var recipe = recipeService.findById(id);
+		if(!recipe.usernameAuthor().equals(username)){ // AccessDeniedException,
+			throw new IllegalStateException("Vous ne pouvez pas supprimer une recette qui ne vous appartient pas");
+		}
 		recipeService.deleteById(id);
 		return ResponseEntity.ok(new NotContentResponse());
 	}
 
-	//@PostAuthorize("returnObject.owner == authentication.name")
 	@GetMapping("my-recipes")
 	public ResponseEntity<HttpResponse<RecipeDTO>> myRecipes(){
 		var username = authPort.extractUsername();
@@ -104,5 +114,11 @@ public final class RecipeRestController {
 		return ResponseEntity.ok(new ListResponse<>(recipes.stream().map(RecipeDTOMapper::toDTO).toList(), recipes.size()));
 	}
 
+
+	@PostMapping("create-variant")
+	public ResponseEntity<HttpResponse<RecipeDTO>> createVariant(@RequestPart RecipeDTO recipeDTO, @RequestPart(value = "image", required = false) MultipartFile image){
+
+		throw new UnsupportedOperationException("Not yet implemented");
+	}
 
 }

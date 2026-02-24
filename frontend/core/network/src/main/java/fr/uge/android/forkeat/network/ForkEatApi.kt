@@ -43,12 +43,18 @@ object ForkEatApi {
 
     // 10.0.2.2 = host machine depuis l'émulateur Android
     // Pour un device physique, utiliser l'IP locale de la machine (ex: 192.168.x.x)
-    private const val BASE_URL = "http://10.0.2.2:8080/"
+    private const val BASE_URL = "http://10.0.2.2:8080/"//"http://192.168.1.39:8080/" //"http://10.0.2.2:8080/"
 
     private var tokenManager: TokenManager? = null
 
     fun init(context: Context) {
         tokenManager = TokenManager(context.applicationContext)
+    }
+
+    fun isLoggedIn(): Boolean = tokenManager?.isLoggedIn() ?: false
+
+    fun logout() {
+        tokenManager?.clearToken()
     }
 
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
@@ -86,4 +92,6 @@ object ForkEatApi {
     val authService: AuthApiService by lazy { retrofit.create(AuthApiService::class.java) }
     val recipeService: RecipeApiService by lazy { retrofit.create(RecipeApiService::class.java) }
     val walletService: WalletApiService by lazy { retrofit.create(WalletApiService::class.java) }
+
+    fun toJson(obj: Any): String = gson.toJson(obj)
 }

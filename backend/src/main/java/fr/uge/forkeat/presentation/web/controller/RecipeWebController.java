@@ -224,7 +224,7 @@ public class RecipeWebController {
     var currentUser = authPort.extractUsername();
     var dto = RecipeDTOMapper.recipeDTOWithUser(recipeDTO, currentUser);
     var hasNewImage = image != null && !image.isEmpty();
-    if (!hasNewImage && recipeDTO.parentId() != null) {
+    if (!hasNewImage && recipeDTO.parentId() != null) { // Normalement c'est toujours != null
       var parent = recipeService.findById(recipeDTO.parentId());
       dto = RecipeDTOMapper.recipeDTOWithImageUrl(dto, parent.imageUrl());
     }

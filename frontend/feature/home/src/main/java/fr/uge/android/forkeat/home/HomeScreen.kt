@@ -575,6 +575,7 @@ fun ForkEatScaffold(
     navController: NavHostController? = null,
     isLoggedIn: Boolean = false,
     onLogout: () -> Unit = {},
+    floatingActionButton: @Composable () -> Unit = {},
     content: @Composable () -> Unit
 ) {
     Scaffold(
@@ -592,7 +593,8 @@ fun ForkEatScaffold(
                     onNavigateToRegister = { navController?.navigate("register") },
                 )
             }
-        }
+        },
+        floatingActionButton = floatingActionButton
     ) { paddingValues ->
         Box(modifier = Modifier.padding(paddingValues)) {
             content()
