@@ -4,6 +4,7 @@ import com.stripe.exception.StripeException;
 import com.stripe.model.Account;
 import com.stripe.model.ExternalAccountCollection;
 import com.stripe.model.Transfer;
+import fr.uge.forkeat.infrastructure.payment.adapter.StripePayoutGatewayAdapter;
 import fr.uge.forkeat.infrastructure.config.StripeProperties;
 import fr.uge.forkeat.service.exception.PaymentException;
 import fr.uge.forkeat.service.model.Currency;

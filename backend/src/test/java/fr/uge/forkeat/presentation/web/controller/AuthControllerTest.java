@@ -9,9 +9,10 @@ import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRegister;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
-import fr.uge.forkeat.service.port.AuthenticationPort; // <--- Import ajouté
+import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.port.PasswordHasher;
 import fr.uge.forkeat.service.user.EmailVerificationService;
-import fr.uge.forkeat.service.user.UserQueryService;
+import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -20,7 +21,6 @@ import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.mail.javamail.JavaMailSender;
-import org.springframework.security.crypto.password.PasswordEncoder; // <--- Import ajouté
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -51,17 +51,17 @@ class AuthControllerTest {
     private EmailVerificationService emailVerificationService;
 
     @MockitoBean
-    private UserQueryService userQueryService;
+    private UserService userService;
 
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
     @MockitoBean
-    private JavaMailSender javaMailSender;
+    private PasswordHasher passwordHasher;
 
     @MockitoBean
-    private PasswordEncoder passwordEncoder;
+    private JavaMailSender javaMailSender;
 
     @Autowired
     public AuthControllerTest(MockMvc mockMvc) {
@@ -244,7 +244,7 @@ class AuthControllerTest {
         void forgotPasswordCode_ShouldReturnVerifyCodeView_WhenEmailExists() throws Exception {
             var user = new User(UUID.randomUUID(), "aziani", "Adel", "Ziani", "chef@forkeat.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
 
-            when(userQueryService.findByEmail("chef@forkeat.com")).thenReturn(java.util.Optional.of(user));
+            when(userService.findByEmail("chef@forkeat.com")).thenReturn(java.util.Optional.of(user));
             doNothing().when(emailVerificationService).sendPasswordChangeCode(user.id(), user.email());
 
             mockMvc.perform(post("/auth/forgot-password-code")
@@ -257,7 +257,7 @@ class AuthControllerTest {
 
         @Test
         void forgotPasswordCode_ShouldStillReturnCodeView_WhenEmailNotFound() throws Exception {
-            when(userQueryService.findByEmail("inconnu@forkeat.com"))
+            when(userService.findByEmail("inconnu@forkeat.com"))
                     .thenReturn(java.util.Optional.empty());
 
             mockMvc.perform(post("/auth/forgot-password-code")
@@ -275,8 +275,8 @@ class AuthControllerTest {
             var user = new User(UUID.randomUUID(), "aziani", "Adel", "Ziani", "chef@forkeat.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
 
 
-            when(userQueryService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
-            when(passwordEncoder.encode("NewPassword1")).thenReturn("hashedPassword");
+            when(userService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
+            when(passwordHasher.hash("NewPassword1")).thenReturn("hashedPassword");
             doNothing().when(emailVerificationService).confirmPasswordChange(user.id(), "123456", "hashedPassword");
 
             mockMvc.perform(post("/auth/forgot-password-verify-code")
@@ -295,8 +295,8 @@ class AuthControllerTest {
             var user = new User(UUID.randomUUID(), "aziani", "Adel", "Ziani", "chef@forkeat.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
 
 
-            when(userQueryService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
-            when(passwordEncoder.encode("NewPassword1")).thenReturn("hashedPassword");
+            when(userService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
+            when(passwordHasher.hash("NewPassword1")).thenReturn("hashedPassword");
             doThrow(new VerificationException("Code incorrect ou expiré"))
                     .when(emailVerificationService).confirmPasswordChange(user.id(), "000000", "hashedPassword");
 

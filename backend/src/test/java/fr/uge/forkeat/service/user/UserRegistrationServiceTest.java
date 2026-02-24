@@ -13,7 +13,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.security.crypto.password.PasswordEncoder;
+import fr.uge.forkeat.service.port.PasswordHasher;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -30,7 +30,7 @@ class UserRegistrationServiceTest {
   private UserPersistence userPersistence;
 
   @Mock
-  private PasswordEncoder passwordEncoder;
+  private PasswordHasher passwordHasher;
 
   @Mock
   private WalletService walletService;
@@ -69,7 +69,7 @@ class UserRegistrationServiceTest {
 
       when(userPersistence.existsByEmail("test@example.com")).thenReturn(false);
       when(userPersistence.existsByUsername("testuser")).thenReturn(false);
-      when(passwordEncoder.encode("Password123")).thenReturn("hashedPassword123");
+      when(passwordHasher.hash("Password123")).thenReturn("hashedPassword123");
       when(userPersistence.saveUser(any(User.class), anyString())).thenReturn(savedUser);
       when(walletService.createWallet(userId)).thenReturn(wallet);
 

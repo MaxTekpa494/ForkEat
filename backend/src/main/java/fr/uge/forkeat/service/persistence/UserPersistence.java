@@ -1,6 +1,8 @@
 package fr.uge.forkeat.service.persistence;
 
 import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
+import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 
 import java.util.Optional;
 import java.util.UUID;
@@ -24,13 +26,17 @@ public interface UserPersistence {
 
 	void updateEmailVerified(UUID userId, boolean emailVerified);
 
-    boolean hasLikedRecipe(UUID userId, UUID recipeId);
+	long countFollowers(UUID userId);
 
-    void likeRecipe(UUID userId, UUID recipeId);
+	long countFollowing(UUID userId);
 
-    void unlikeRecipe(UUID userId, UUID recipeId);
+	long countTotalLikesReceived(UUID userId);
 
-    void superLikeRecipe(UUID userId, UUID recipeId);
+	long countTotalSuperLikesReceived(UUID userId);
 
-    boolean hasSuperLikedRecipe(UUID userId, UUID recipeId);
+	UserPublicProfile findPublicProfile(String username);
+
+	UserSocialStats findUserSocialStats(String username);
+
+	boolean isFollowing(String followerUsername, String followedUsername);
 }

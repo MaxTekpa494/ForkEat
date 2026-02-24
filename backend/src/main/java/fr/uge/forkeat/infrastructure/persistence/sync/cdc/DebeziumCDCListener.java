@@ -44,6 +44,7 @@ public class DebeziumCDCListener {
                 default -> log.debug("Ignoring change for table: {}", table);
             }
         } catch (Exception e) {
+            // Politique de retry à mettre en place
             log.error("### Erreur lors du traitement de l'événement: {} ###", e.getMessage(), e);
         }
     }

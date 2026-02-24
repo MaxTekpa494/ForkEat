@@ -1,73 +1,62 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.service.PasswordValidator;
+import fr.uge.forkeat.presentation.mapper.web.UserFormDTOMapper;
 import fr.uge.forkeat.presentation.web.form.RegisterFormDTO;
+import fr.uge.forkeat.service.PasswordValidator;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.port.PasswordHasher;
 import fr.uge.forkeat.service.exception.VerificationException;
-import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
-import fr.uge.forkeat.service.user.UserQueryService;
+import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.validation.BindingResult;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
-import fr.uge.forkeat.presentation.mapper.web.UserFormDTOMapper;
-
-import java.util.Objects;
 
 @Controller
 @RequestMapping("/auth")
 public class AuthWebController {
 
-  private final UserRegistrationService userRegistrationService;
-  private final UserQueryService userQueryService;
-  private final PasswordEncoder passwordEncoder;
-  private final EmailVerificationService emailVerificationService;
+    private final UserRegistrationService userRegistrationService;
+    private final UserService userService;
+    private final EmailVerificationService emailVerificationService;
+    private final PasswordHasher passwordHasher;
 
-  public AuthWebController(UserRegistrationService userRegistrationService,
-                           EmailVerificationService emailVerificationService,
-                           UserQueryService userQueryService,
-                           PasswordEncoder passwordEncoder) {
-    this.userRegistrationService = Objects.requireNonNull(userRegistrationService);
-    this.emailVerificationService = Objects.requireNonNull(emailVerificationService);
-    this.userQueryService = Objects.requireNonNull(userQueryService);
-    this.passwordEncoder = Objects.requireNonNull(passwordEncoder);
-  }
-
-  @GetMapping("/login")
-  public String loginPage() {
-    if (isAuthenticated()) {
-      return "redirect:/dashboard";
+    public AuthWebController(UserRegistrationService userRegistrationService,
+                             EmailVerificationService emailVerificationService,
+                             UserService userService,
+                             PasswordHasher passwordHasher) {
+        this.userRegistrationService = userRegistrationService;
+        this.emailVerificationService = emailVerificationService;
+        this.userService = userService;
+        this.passwordHasher = passwordHasher;
     }
-    return "layout/login";
-  }
+
+    @GetMapping("/login")
+    public String loginPage() {
+        if (isAuthenticated()) {
+            return "redirect:/profile";
+        }
+        return "layout/login";
+    }
 
     @GetMapping("/forgot-password")
-    public String forgotPassword(RedirectAttributes redirectAttributes) {
+    public String forgotPassword() {
         return "layout/forgot-password";
     }
-
 
     @PostMapping("/forgot-password-code")
     public String forgotPasswordCode(
             @RequestParam("email") String email,
             Model model) {
         // Always show the code page — don't reveal whether the email exists
-        var userOpt = userQueryService.findByEmail(email);
+        var userOpt = userService.findByEmail(email);
         userOpt.ifPresent(user ->
                 emailVerificationService.sendPasswordChangeCode(user.id(), user.email()));
         model.addAttribute("email", email);
@@ -97,9 +86,9 @@ public class AuthWebController {
             return "layout/forgot-password-code";
         }
         try {
-            var user = userQueryService.getUserByEmail(email);
-            emailVerificationService.confirmPasswordChange(user.id(), verificationCode, passwordEncoder.encode(password));
-        } catch (VerificationException | ResourceNotFoundException e) {
+            var user = userService.getUserByEmail(email);
+            emailVerificationService.confirmPasswordChange(user.id(), verificationCode, passwordHasher.hash(password));
+        } catch (VerificationException e) {
             model.addAttribute("errorMessage", e.getMessage());
             model.addAttribute("email", email);
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -108,63 +97,59 @@ public class AuthWebController {
         return "layout/login";
     }
 
-  @GetMapping("/register")
-  public String registerPage(Model model) {
-    if (isAuthenticated()) {
-      return "redirect:/dashboard";
-    }
-    model.addAttribute("registerForm", new RegisterFormDTO());
-    return "layout/register";
-  }
-
-  @PostMapping("/register")
-  public String register(@Valid @ModelAttribute("registerForm") RegisterFormDTO form, BindingResult result,
-                         RedirectAttributes redirectAttributes, Model model, HttpServletResponse response) {
-
-    if (!form.getPassword().equals(form.getConfirmPassword())) {
-      result.rejectValue("confirmPassword", "error.registerForm", "Les mots de passe ne correspondent pas");
+    @GetMapping("/register")
+    public String registerPage(Model model) {
+        if (isAuthenticated()) {
+            return "redirect:/profile";
+        }
+        model.addAttribute("registerForm", new RegisterFormDTO());
+        return "layout/register";
     }
 
-    if (result.hasErrors()) {
-      response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-      return "layout/register";
+    @PostMapping("/register")
+    public String register(@Valid @ModelAttribute("registerForm") RegisterFormDTO form, BindingResult result,
+                           RedirectAttributes redirectAttributes, Model model, HttpServletResponse response) {
+        if (!form.getPassword().equals(form.getConfirmPassword())) {
+            result.rejectValue("confirmPassword", "error.registerForm", "Les mots de passe ne correspondent pas");
+        }
+        if (result.hasErrors()) {
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return "layout/register";
+        }
+        try {
+            userRegistrationService.registerUser(UserFormDTOMapper.toUserRegister(form));
+        } catch (RegisterFailureException e) {
+            model.addAttribute("errorMessage", e.getMessage());
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            return "layout/register";
+        }
+        redirectAttributes.addFlashAttribute("success",
+                "Compte créé ! Vérifiez votre email pour confirmer votre adresse.");
+        return "redirect:/auth/email-sent";
     }
 
-    try {
-      userRegistrationService.registerUser(UserFormDTOMapper.toUserRegister(form));
-    } catch (RegisterFailureException e) {
-      model.addAttribute("errorMessage", e.getMessage());
-      response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-      return "layout/register";
+    @GetMapping("/email-sent")
+    public String emailSentPage() {
+        return "layout/email-sent";
     }
 
-    redirectAttributes.addFlashAttribute("success",
-            "Compte créé ! Vérifiez votre email pour confirmer votre adresse.");
-    return "redirect:/auth/email-sent";
-  }
-
-  @GetMapping("/email-sent")
-  public String emailSentPage() {
-    return "layout/email-sent";
-  }
-
-  @GetMapping("/confirm-email")
-  public String confirmEmail(@RequestParam String token, RedirectAttributes redirectAttributes) {
-    try {
-      emailVerificationService.confirmEmail(token);
-      redirectAttributes.addFlashAttribute("success",
-              "Votre email a été confirmé avec succès ! Vous pouvez maintenant vous connecter.");
-    } catch (VerificationException e) {
-      redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+    @GetMapping("/confirm-email")
+    public String confirmEmail(@RequestParam String token, RedirectAttributes redirectAttributes) {
+        try {
+            emailVerificationService.confirmEmail(token);
+            redirectAttributes.addFlashAttribute("success",
+                    "Votre email a été confirmé avec succès ! Vous pouvez maintenant vous connecter.");
+        } catch (VerificationException e) {
+            redirectAttributes.addFlashAttribute("errorMessage", e.getMessage());
+        }
+        return "redirect:/auth/login";
     }
-    return "redirect:/auth/login";
-  }
 
-  private boolean isAuthenticated() {
-    var authentication = SecurityContextHolder.getContext().getAuthentication();
-    if (authentication == null || AnonymousAuthenticationToken.class.isAssignableFrom(authentication.getClass())) {
-      return false;
+    private boolean isAuthenticated() {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || AnonymousAuthenticationToken.class.isAssignableFrom(authentication.getClass())) {
+            return false;
+        }
+        return authentication.isAuthenticated();
     }
-    return authentication.isAuthenticated();
-  }
 }

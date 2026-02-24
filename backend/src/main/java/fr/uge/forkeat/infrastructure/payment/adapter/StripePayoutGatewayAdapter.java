@@ -1,4 +1,4 @@
-package fr.uge.forkeat.infrastructure.persistence.payment.adapter;
+package fr.uge.forkeat.infrastructure.payment.adapter;
 
 import com.stripe.exception.StripeException;
 import com.stripe.model.Account;

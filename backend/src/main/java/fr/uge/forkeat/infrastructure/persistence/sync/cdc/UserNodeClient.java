@@ -1,5 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.sync.cdc;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.stereotype.Component;
 
@@ -9,6 +10,9 @@ import java.util.Objects;
 public class UserNodeClient {
 
     private final Neo4jClient neo4jClient;
+
+    @Value("${app.system.earnings.username}")
+    private String systemEarningsUsername;
 
     public UserNodeClient(Neo4jClient neo4jClient) {
         this.neo4jClient = neo4jClient;
@@ -73,12 +77,13 @@ public class UserNodeClient {
         Objects.requireNonNull(userId);
         var cypher = """
             MATCH (u:User {id: $userId})-[oldPub:PUBLISHED]->(r:Recipe)
-            MATCH (system:User {username: 'system_earnings'})
+            MATCH (system:User {username: $systemUsername})
             DELETE oldPub
             MERGE (system)-[:PUBLISHED {date: datetime()}]->(r)
             """;
         neo4jClient.query(cypher)
             .bind(userId).to("userId")
+            .bind(systemEarningsUsername).to("systemUsername")
             .run();
     }
 

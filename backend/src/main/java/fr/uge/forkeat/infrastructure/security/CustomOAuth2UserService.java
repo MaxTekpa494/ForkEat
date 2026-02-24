@@ -7,13 +7,13 @@ import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserServ
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest;
 import org.springframework.security.oauth2.core.OAuth2AuthenticationException;
 import org.springframework.security.oauth2.core.user.OAuth2User;
-import org.springframework.stereotype.Service;
+import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Map;
 
-@Service
+@Component
 public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
 	private final UserRegistrationService userRegistrationService;
@@ -24,11 +24,11 @@ public class CustomOAuth2UserService extends DefaultOAuth2UserService {
 
 	/**
 	 * Gère l'authentification OAuth2 Google.
-	 *
+	 * <p>
 	 * registerUserFromOAuth2 gère les deux cas :
 	 * - User existant (LOCAL ou GOOGLE) : retourne le user tel quel
 	 * - Nouvel user : l'inscrit avec authMode=GOOGLE (password=null)
-	 *
+	 * <p>
 	 * On n'utilise PAS getUserByEmail car son @Transactional marquerait
 	 * la transaction rollback-only en cas de ResourceNotFoundException.
 	 */

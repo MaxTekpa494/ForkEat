@@ -2,7 +2,6 @@ package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.service.model.user.Wallet;
-import org.springframework.stereotype.Component;
 
 import java.util.Objects;
 

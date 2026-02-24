@@ -2,7 +2,6 @@ package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
 import jakarta.persistence.*;
 
-import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
 

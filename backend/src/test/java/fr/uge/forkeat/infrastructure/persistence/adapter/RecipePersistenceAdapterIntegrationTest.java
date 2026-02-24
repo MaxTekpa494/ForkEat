@@ -1,7 +1,8 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
-import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
+import fr.uge.forkeat.infrastructure.config.JpaConfig;
+import fr.uge.forkeat.infrastructure.config.Neo4jConfig;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
@@ -17,8 +18,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.data.neo4j.test.autoconfigure.AutoConfigureDataNeo4j;
 import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabase;
-import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.test.context.ActiveProfiles;
@@ -34,8 +35,9 @@ import static org.junit.jupiter.api.Assertions.*;
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
-@Transactional
-@Import(RecipePersistenceAdapter.class)
+@AutoConfigureDataNeo4j
+@Import({RecipePersistenceAdapter.class, Neo4jConfig.class, JpaConfig.class})
+@Transactional("transactionManager")
 class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
 
     private final RecipePersistenceAdapter adapter;
@@ -54,7 +56,8 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
     private Instant now;
 
     @Autowired
-    public RecipePersistenceAdapterIntegrationTest(RecipePersistenceAdapter adapter, RecipeRepository recipeRepository, UserRepository userRepository, AllergenRepository allergenRepository, IngredientRepository ingredientRepository) {
+    public RecipePersistenceAdapterIntegrationTest(RecipePersistenceAdapter adapter, RecipeRepository recipeRepository, UserRepository userRepository,
+                                                   AllergenRepository allergenRepository, IngredientRepository ingredientRepository) {
         this.adapter = adapter;
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
@@ -258,6 +261,83 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
 
             var found = recipeRepository.findById(saved.id());
             assertTrue(found.isEmpty());
+        }
+    }
+
+    @Nested
+    class FindRecipeSummaries {
+
+        @Test
+        void shouldReturnPublishedRecipesWithZeroLikes() {
+            adapter.save(createRecipe(UUID.randomUUID(), "Recette publiée", RecipeStatus.PUBLISHED));
+
+            var result = adapter.findRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 10, 0);
+
+            assertEquals(1, result.items().size());
+            var item = result.items().getFirst();
+            assertEquals("Recette publiée", item.title());
+        }
+
+        @Test
+        void shouldNotReturnDraftWhenFilteredOnPublished() {
+            adapter.save(createRecipe(UUID.randomUUID(), "Recette brouillon", RecipeStatus.DRAFT));
+
+            var result = adapter.findRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 10, 0);
+
+            assertTrue(result.items().isEmpty());
+        }
+
+        @Test
+        void shouldReturnDraftWhenFilteredOnDraft() {
+            adapter.save(createRecipe(UUID.randomUUID(), "Recette brouillon", RecipeStatus.DRAFT));
+
+            var result = adapter.findRecipeSummaries("chef_integration", RecipeStatus.DRAFT, 10, 0);
+
+            assertEquals(1, result.items().size());
+        }
+
+        @Test
+        void shouldReturnEmptyForUserWithNoRecipes() {
+            var result = adapter.findRecipeSummaries("utilisateur_inexistant", RecipeStatus.PUBLISHED, 10, 0);
+
+            assertTrue(result.items().isEmpty());
+            assertEquals(0L, result.total());
+        }
+
+        @Test
+        void shouldPaginateResults() {
+            for (int i = 1; i <= 5; i++) {
+                adapter.save(createRecipe(UUID.randomUUID(), "Recette " + i, RecipeStatus.PUBLISHED));
+            }
+
+            var firstPage = adapter.findRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 3, 0);
+            var secondPage = adapter.findRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 3, 1);
+
+            assertEquals(3, firstPage.items().size());
+            assertEquals(5L, firstPage.total());
+            assertEquals(2, secondPage.items().size());
+        }
+    }
+
+    @Nested
+    class FindUserRecipeInteractions {
+
+        @Test
+        void shouldReturnFalseWhenUserHasNotInteracted() {
+            var saved = adapter.save(createRecipe(UUID.randomUUID(), "Recette", RecipeStatus.PUBLISHED));
+
+            var result = adapter.findUserRecipeInteractions(List.of(saved.id()), "other_user");
+
+            var interaction = result.getOrDefault(saved.id(), RecipeUserInteraction.NONE);
+            assertFalse(interaction.likedByCurrentUser());
+            assertFalse(interaction.superLikedByCurrentUser());
+        }
+
+        @Test
+        void shouldReturnEmptyMapForEmptyList() {
+            var result = adapter.findUserRecipeInteractions(List.of(), "other_user");
+
+            assertTrue(result.isEmpty());
         }
     }
 

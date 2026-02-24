@@ -2,6 +2,7 @@ package fr.uge.forkeat.presentation.mapper.rest;
 
 import fr.uge.forkeat.presentation.dto.recipe.*;
 import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -155,25 +156,26 @@ public final class RecipeDTOMapper {
     }
 
 
-    public static RecipeDetailsDTO toRecipeWithMetaDataDTO(RecipeWithMetaData recipeWithMetaData, boolean hasLiked) {
-        Objects.requireNonNull(recipeWithMetaData);
+    public static RecipeDetailsDTO toPersonalizedRecipeDTO(PersonalizedRecipe personalizedRecipe) {
+        Objects.requireNonNull(personalizedRecipe);
+        var recipe = personalizedRecipe.recipe();
         return new RecipeDetailsDTO(
-                recipeWithMetaData.id(),
-                recipeWithMetaData.title(),
-                recipeWithMetaData.summary(),
-                recipeWithMetaData.parentId(),
-                recipeWithMetaData.usernameAuthor(),
-                recipeWithMetaData.preparationMinutes(),
-                recipeWithMetaData.imageUrl(),
-                recipeWithMetaData.status().name(),
-                toStepDTOs(recipeWithMetaData.stepByStepInstructions()),
-                toIngredientDTOs(recipeWithMetaData.ingredients()),
-                toAllergenDTOs(recipeWithMetaData.allergens()),
-                recipeWithMetaData.dietaryFlags(),
-                recipeWithMetaData.createdAt(),
-                recipeWithMetaData.updatedAt(),
-                recipeWithMetaData.nbLike(),
-                hasLiked
+                recipe.id(),
+                recipe.title(),
+                recipe.summary(),
+                recipe.parentId(),
+                recipe.usernameAuthor(),
+                recipe.preparationMinutes(),
+                recipe.imageUrl(),
+                recipe.status().name(),
+                toStepDTOs(recipe.stepByStepInstructions()),
+                toIngredientDTOs(recipe.ingredients()),
+                toAllergenDTOs(recipe.allergens()),
+                recipe.dietaryFlags(),
+                recipe.createdAt(),
+                recipe.updatedAt(),
+                personalizedRecipe.counts().likeCount(),
+                personalizedRecipe.interaction().likedByCurrentUser()
         );
     }
 }

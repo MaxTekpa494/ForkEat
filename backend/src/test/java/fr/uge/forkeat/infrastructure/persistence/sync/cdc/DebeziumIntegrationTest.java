@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestInstance;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.test.context.ActiveProfiles;
@@ -39,6 +40,9 @@ class DebeziumIntegrationTest extends AbstractIntegrationTest {
 
     private final EntityManager entityManager;
     private final Neo4jClient neo4jClient;
+
+    @Value("${app.system.earnings.username}")
+    private String systemEarningsUsername;
 
     @Autowired
     public DebeziumIntegrationTest(EntityManager entityManager, Neo4jClient neo4jClient) {
@@ -166,10 +170,11 @@ class DebeziumIntegrationTest extends AbstractIntegrationTest {
 
             await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
                 var reassigned = neo4jClient.query("""
-                        MATCH (u:User {username: 'system_earnings'})-[:PUBLISHED]->(r:Recipe {id: $id})
+                        MATCH (u:User {username: $systemUsername})-[:PUBLISHED]->(r:Recipe {id: $id})
                         RETURN count(r) > 0
                         """)
                         .bind(dummyRecipeId).to("id")
+                        .bind(systemEarningsUsername).to("systemUsername")
                         .fetchAs(Boolean.class).one().orElse(false);
                 assertThat(reassigned).as("Recipe should be reassigned to system_earnings").isTrue();
             });
@@ -307,10 +312,11 @@ class DebeziumIntegrationTest extends AbstractIntegrationTest {
                 assertThat(isDeleted).as("Recipe should be marked deleted").isTrue();
 
                 var ownedBySystem = neo4jClient.query("""
-                        MATCH (u:User {username: 'system_earnings'})-[:PUBLISHED]->(r:Recipe {title: $title})
+                        MATCH (u:User {username: $systemUsername})-[:PUBLISHED]->(r:Recipe {title: $title})
                         RETURN count(r) > 0
                         """)
                         .bind(recipe.getTitle()).to("title")
+                        .bind(systemEarningsUsername).to("systemUsername")
                         .fetchAs(Boolean.class).one().orElse(false);
                 assertThat(ownedBySystem).as("Recipe should be reassigned to system").isTrue();
             });
