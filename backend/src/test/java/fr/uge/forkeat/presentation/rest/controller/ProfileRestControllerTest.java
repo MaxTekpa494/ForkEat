@@ -5,6 +5,7 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.presentation.dto.user.ChangePasswordConfirmCodeDTO;
 import fr.uge.forkeat.presentation.dto.user.ChangePasswordDTO;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
@@ -55,6 +56,9 @@ public class ProfileRestControllerTest {
     private AuthenticationManager authenticationManager;
     @MockitoBean
     private JwtUtils jwtUtils;
+
+    @MockitoBean
+    private AuthenticationPort authPort;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
