@@ -2,6 +2,8 @@ package fr.uge.android.forkeat.network
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Base64
+import org.json.JSONObject
 
 class TokenManager(context: Context) {
 
@@ -19,6 +21,23 @@ class TokenManager(context: Context) {
     }
 
     fun isLoggedIn(): Boolean = getToken() != null
+
+    fun getCurrentUsername(): String? {
+        val token = getToken() ?: return null
+        // Token stocké sous la forme "Bearer <header>.<payload>.<sig>"
+        val jwt = if (token.startsWith("Bearer ")) token.substring(7) else token
+        return try {
+            val parts = jwt.split(".")
+            if (parts.size < 2) return null
+            val payload = String(
+                Base64.decode(parts[1], Base64.URL_SAFE or Base64.NO_PADDING),
+                Charsets.UTF_8
+            )
+            JSONObject(payload).optString("sub").takeIf { it.isNotEmpty() }
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     companion object {
         private const val PREFS_NAME = "forkeat_auth"

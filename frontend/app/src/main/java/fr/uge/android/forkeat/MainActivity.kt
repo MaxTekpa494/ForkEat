@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -21,9 +22,11 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import fr.uge.android.forkeat.dashboard.DashboardScreen
 import fr.uge.android.forkeat.designsystem.theme.ForkEatTheme
 import fr.uge.android.forkeat.home.ForgotPasswordCodeScreen
@@ -34,7 +37,11 @@ import fr.uge.android.forkeat.home.LoginScreen
 import fr.uge.android.forkeat.home.RegisterScreen
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.profile.ProfileScreen
+import fr.uge.android.forkeat.recipes.MyRecipesScreen
+import fr.uge.android.forkeat.recipes.MyRecipesViewModel
 import fr.uge.android.forkeat.recipes.RecipeDetailScreen
+import fr.uge.android.forkeat.recipes.RecipeFormScreen
+import fr.uge.android.forkeat.recipes.RecipeFormViewModel
 import fr.uge.android.forkeat.recipes.RecipesListScreen
 import fr.uge.android.forkeat.recipes.RecipesViewModel
 import androidx.compose.foundation.layout.padding
@@ -143,7 +150,6 @@ class MainActivity : ComponentActivity() {
                       newUser = true
                     )
                   }
-
                   composable("register") {
                     RegisterScreen(
                       onNavigateBack = { navController.popBackStack() },
@@ -160,67 +166,122 @@ class MainActivity : ComponentActivity() {
                     DashboardScreen(
                       onNavigateToProfile = { navController.navigate("profile") },
                       onNavigateToWallet = { navController.navigate("wallet") },
-                      onNavigateToRecipes = {
-                        navController.navigate("recipes")
-                      }
+                      onNavigateToRecipes = { navController.navigate("recipes") },
+                      onNavigateToCreateRecipe = { navController.navigate("recipe-form") }
                     )
                   }
                   composable("profile") {
-                    ProfileScreen()
+                    ProfileScreen(
+                      onNavigateToCreateRecipe = { navController.navigate("recipe-form") },
+                      onNavigateToMyRecipes = { navController.navigate("my-recipes") }
+                    )
                   }
                   composable("wallet") {
                     WalletScreen(
                       onNavigateBack = { navController.popBackStack() }
                     )
                   }
-                    composable(
-                      "recipes",
-                    ) {
-                      val recipes by recipesViewModel.recipes.collectAsState()
-                      val totalCount by recipesViewModel.totalCount.collectAsState()
-                      val errorMessage by recipesViewModel.errorMessage.collectAsState()
-                      val searchQuery by recipesViewModel.searchQuery.collectAsState()
-                      val selectedAllergens by recipesViewModel.selectedAllergens.collectAsState()
-                      val availableAllergens by recipesViewModel.availableAllergens.collectAsState()
-                      val isLoading by recipesViewModel.isLoading.collectAsState()
+                  composable("recipes") {
+                    val recipes by recipesViewModel.recipes.collectAsState()
+                    val totalCount by recipesViewModel.totalCount.collectAsState()
+                    val errorMessage by recipesViewModel.errorMessage.collectAsState()
+                    val searchQuery by recipesViewModel.searchQuery.collectAsState()
+                    val selectedAllergens by recipesViewModel.selectedAllergens.collectAsState()
+                    val availableAllergens by recipesViewModel.availableAllergens.collectAsState()
+                    val isLoading by recipesViewModel.isLoading.collectAsState()
 
-                      RecipesListScreen(
-                        recipes = recipes,
-                        totalCount = totalCount,
-                        onLoadMore = { recipesViewModel.loadMoreRecipes() },
-                        errorMessage = errorMessage,
-                        isLoading = isLoading,
-                        searchQuery = searchQuery,
-                        onSearchQueryChange = { query -> recipesViewModel.onSearchQueryChange(query) },
-                        onSearchSubmit = { recipesViewModel.onSearchSubmit() },
-                        availableAllergens = availableAllergens,
-                        selectedAllergens = selectedAllergens,
-                        onAllergenToggle = { allergen -> recipesViewModel.toggleAllergen(allergen) },
-                        onClearFilters = { recipesViewModel.clearFilters() },
-                        onRecipeClick = { id -> navController.navigate("recipes/$id") },
-                      )
+                    RecipesListScreen(
+                      recipes = recipes,
+                      totalCount = totalCount,
+                      onLoadMore = { recipesViewModel.loadMoreRecipes() },
+                      errorMessage = errorMessage,
+                      isLoading = isLoading,
+                      isLoggedIn = isLoggedIn,
+                      onNavigateToCreateRecipe = { navController.navigate("recipe-form") },
+                      searchQuery = searchQuery,
+                      onSearchQueryChange = { query -> recipesViewModel.onSearchQueryChange(query) },
+                      onSearchSubmit = { recipesViewModel.onSearchSubmit() },
+                      availableAllergens = availableAllergens,
+                      selectedAllergens = selectedAllergens,
+                      onAllergenToggle = { allergen -> recipesViewModel.toggleAllergen(allergen) },
+                      onClearFilters = { recipesViewModel.clearFilters() },
+                      onRecipeClick = { id -> navController.navigate("recipes/$id") },
+                    )
+                  }
+                    composable(
+                        route = "recipe-form?recipeId={recipeId}&parentId={parentId}",
+                        arguments = listOf(
+                            navArgument("recipeId") { type = NavType.StringType; nullable = true; defaultValue = null },
+                            navArgument("parentId") { type = NavType.StringType; nullable = true; defaultValue = null }
+                        )
+                    ) {
+                        val formViewModel: RecipeFormViewModel = viewModel()
+                        RecipeFormScreen(
+                            viewModel = formViewModel,
+                            onBack = { navController.popBackStack() },
+                            onSuccess = {
+                                recipesViewModel.loadRecipes(0)
+                                navController.navigate("recipes") {
+                                    popUpTo("recipe-form") { inclusive = true }
+                                }
+                            }
+                        )
                     }
                     composable("recipes/{id}") { backStackEntry ->
-                      recipesViewModel.loadRecipeWithId(
-                        UUID.fromString(
-                          backStackEntry.arguments?.getString(
-                            "id"
-                          )
-                        )
-                      )
-                      val recipe = recipesViewModel.currentRecipe.collectAsState().value
-                      if (recipe != null) {
-                        RecipeDetailScreen(
-                          recipe = recipe,
-                          onBack = { navController.popBackStack() })
-                      } else {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                          Text("Recette introuvable", color = Color.Red)
+                        val idStr = backStackEntry.arguments?.getString("id") ?: return@composable
+                        val id = remember(idStr) { UUID.fromString(idStr) }
+
+                        LaunchedEffect(id) {
+                            recipesViewModel.loadRecipeWithId(id)
                         }
-                      }
+
+                        val recipe by recipesViewModel.currentRecipe.collectAsState()
+                        val parent by recipesViewModel.currentParent.collectAsState()
+                        val diff   by recipesViewModel.currentDiff.collectAsState()
+                        val currentUsername = remember { ForkEatApi.getCurrentUsername() }
+
+                        when (val r = recipe) {
+                            null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = fr.uge.android.forkeat.designsystem.theme.Primary500)
+                            }
+                            else -> RecipeDetailScreen(
+                                recipe = r,
+                                parent = parent,
+                                diff = diff,
+                                isOwner = currentUsername != null && currentUsername == r.username,
+                                isAuthenticated = isLoggedIn,
+                                onBack = { navController.popBackStack() },
+                                onEdit = { navController.navigate("recipe-form?recipeId=${r.id}") },
+                                onDelete = {
+                                    recipesViewModel.deleteRecipe(r.id) {
+                                        navController.popBackStack()
+                                    }
+                                },
+                                onCreateVariant = { navController.navigate("recipe-form?parentId=${r.id}") }
+                            )
+                        }
                     }
-                  }
+                    composable("my-recipes") {
+                        val myRecipesViewModel: MyRecipesViewModel = viewModel()
+                        MyRecipesScreen(
+                            viewModel = myRecipesViewModel,
+                            isLoggedIn = isLoggedIn,
+                            onLogout = logout,
+                            onNavigateToCreateRecipe = { navController.navigate("recipe-form") },
+                            onNavigateToEdit = { recipeId ->
+                                navController.navigate("recipe-form?recipeId=$recipeId")
+                            },
+                            onNavigateToVariant = { parentId ->
+                                navController.navigate("recipe-form?parentId=$parentId")
+                            },
+                            onNavigateToDetail = { recipeId ->
+                                navController.navigate("recipes/$recipeId")
+                            },
+                            onBack = { navController.popBackStack() }
+                        )
+                    }
                 }
+              }
             }
         }
     }

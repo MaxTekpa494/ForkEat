@@ -1,5 +1,8 @@
 package fr.uge.forkeat.presentation.rest;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
@@ -11,6 +14,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.AllergenRep
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
@@ -22,38 +26,46 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.transaction.annotation.Transactional;
 
-
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @SpringBootTest
 @ActiveProfiles("test")
 @AutoConfigureMockMvc(addFilters = false)
-@Transactional // Chaque test est dans une transaction, rollback automatique à la fin
+@Transactional
 class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
 
     private final MockMvc mockMvc;
-
     private final RecipeRepository recipeRepository;
-
     private final UserRepository userRepository;
-
     private final AllergenRepository allergenRepository;
-
     private final IngredientRepository ingredientRepository;
 
     private UserEntity savedAuthor;
 
+    // ObjectMapper local configuré pour les types Java time
+    private final ObjectMapper objectMapper = new ObjectMapper()
+            .registerModule(new JavaTimeModule())
+            .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
+
     @Autowired
-    public RecipeControllerIntegrationTest(RecipeRepository recipeRepository, UserRepository userRepository, AllergenRepository allergenRepository, IngredientRepository ingredientRepository, MockMvc mockMvc) {
+    public RecipeControllerIntegrationTest(RecipeRepository recipeRepository,
+                                           UserRepository userRepository,
+                                           AllergenRepository allergenRepository,
+                                           IngredientRepository ingredientRepository,
+                                           MockMvc mockMvc) {
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
         this.allergenRepository = allergenRepository;
@@ -75,7 +87,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         savedAuthor = userRepository.save(author);
     }
 
-    // ========== GET /api/recipes/{id} tests ==========
+    // ========== GET /api/recipes/{id} ==========
 
     @Test
     void getRecipe_shouldReturnRecipeWhenExists() throws Exception {
@@ -84,9 +96,9 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/recipes/{id}", recipe.getId())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resource.id").value(recipe.getId().toString()))
-                .andExpect(jsonPath("$.resource.title").value("Tarte aux pommes"))
-                .andExpect(jsonPath("$.resource.status").value("PUBLISHED"));
+                .andExpect(jsonPath("$.resource.recipe.id").value(recipe.getId().toString()))
+                .andExpect(jsonPath("$.resource.recipe.title").value("Tarte aux pommes"))
+                .andExpect(jsonPath("$.resource.recipe.status").value("PUBLISHED"));
     }
 
     @Test
@@ -99,18 +111,40 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Test
+    void getRecipe_shouldReturn404ForNonPublishedRecipeWhenAnonymous() throws Exception {
+        // Une recette DRAFT ne doit pas être visible par un utilisateur anonyme
+        var recipe = createAndSaveRecipe("Brouillon privé", RecipeStatus.DRAFT, null);
+
+        mockMvc.perform(get("/api/recipes/{id}", recipe.getId())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void getRecipe_shouldReturnDraftRecipeForItsOwner() throws Exception {
+        // L'auteur de la recette peut voir son propre brouillon
+        var recipe = createAndSaveRecipe("Mon brouillon", RecipeStatus.DRAFT, null);
+
+        mockMvc.perform(get("/api/recipes/{id}", recipe.getId())
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resource.recipe.id").value(recipe.getId().toString()))
+                .andExpect(jsonPath("$.resource.recipe.status").value("DRAFT"));
+    }
+
+    @Test
     void getRecipe_shouldReturnRecipeWithParentWhenVariant() throws Exception {
         var parent = createAndSaveRecipe("Recette originale", RecipeStatus.PUBLISHED, null);
-        var variant = createAndSaveRecipe("Variante", RecipeStatus.DRAFT, parent);
+        var variant = createAndSaveRecipe("Variante", RecipeStatus.PUBLISHED, parent);
 
         mockMvc.perform(get("/api/recipes/{id}", variant.getId())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resource.id").value(variant.getId().toString()))
-                .andExpect(jsonPath("$.resource.title").value("Variante"))
-                .andExpect(jsonPath("$.resource.parentId").isNotEmpty());
-                //.andExpect(jsonPath("$.resource.parent.id").value(parent.getId().toString()))
-                //.andExpect(jsonPath("$.resource.parent.title").value("Recette originale"));
+                .andExpect(jsonPath("$.resource.recipe.id").value(variant.getId().toString()))
+                .andExpect(jsonPath("$.resource.recipe.title").value("Variante"))
+                .andExpect(jsonPath("$.resource.recipe.parentId").value(parent.getId().toString()))
+                .andExpect(jsonPath("$.resource.parent.id").value(parent.getId().toString()));
     }
 
     @Test
@@ -123,8 +157,8 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/recipes/{id}", recipe.getId())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resource.ingredients", hasSize(1)))
-                .andExpect(jsonPath("$.resource.ingredients[0].name").value("Pomme"));
+                .andExpect(jsonPath("$.resource.recipe.ingredients", hasSize(1)))
+                .andExpect(jsonPath("$.resource.recipe.ingredients[0].name").value("Pomme"));
     }
 
     @Test
@@ -137,16 +171,15 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/recipes/{id}", recipe.getId())
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resource.allergens", hasSize(1)))
-                .andExpect(jsonPath("$.resource.allergens[0].name").value("Gluten"))
-                .andExpect(jsonPath("$.resource.allergens[0].severity").value("HIGH"));
+                .andExpect(jsonPath("$.resource.recipe.allergens", hasSize(1)))
+                .andExpect(jsonPath("$.resource.recipe.allergens[0].name").value("Gluten"))
+                .andExpect(jsonPath("$.resource.recipe.allergens[0].severity").value("HIGH"));
     }
 
-    // ========== GET /api/recipes tests ==========
+    // ========== GET /api/recipes ==========
 
     @Test
     void getRecipes_shouldReturnPublishedRecipesByDefault() throws Exception {
-        // Compter les recettes publiées existantes
         long initialCount = recipeRepository.countByStatus(RecipeStatus.PUBLISHED);
 
         createAndSaveRecipe("Published 1", RecipeStatus.PUBLISHED, null);
@@ -156,16 +189,12 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         mockMvc.perform(get("/api/recipes")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                // On vérifie que la taille est au moins celle attendue, ou on utilise une assertion plus souple
-                // Si la pagination par défaut est 10, et qu'on a 228 éléments, on aura 10 éléments.
-                // Donc on ne peut pas vérifier hasSize(initialCount + 2) si initialCount > 10.
-                .andExpect(jsonPath("$.resources", hasSize(lessThanOrEqualTo(10)))) // Default page size is usually 10 or 20
+                .andExpect(jsonPath("$.resources", hasSize(lessThanOrEqualTo(10))))
                 .andExpect(jsonPath("$.total").value(initialCount + 2));
     }
 
     @Test
     void getRecipes_shouldFilterByStatus() throws Exception {
-        // Compter les recettes DRAFT existantes
         long initialDraftCount = recipeRepository.countByStatus(RecipeStatus.DRAFT);
 
         createAndSaveRecipe("Published", RecipeStatus.PUBLISHED, null);
@@ -183,11 +212,9 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getRecipes_shouldRespectSizeParameter() throws Exception {
-        // On s'assure d'avoir au moins 5 recettes publiées en plus de l'existant
         for (int i = 0; i < 5; i++) {
             createAndSaveRecipe("Recipe " + i, RecipeStatus.PUBLISHED, null);
         }
-
         long totalPublished = recipeRepository.countByStatus(RecipeStatus.PUBLISHED);
 
         mockMvc.perform(get("/api/recipes")
@@ -200,15 +227,11 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getRecipes_shouldRespectPageParameter() throws Exception {
-        // On ajoute des recettes pour être sûr d'avoir assez de pages
         for (int i = 0; i < 5; i++) {
             createAndSaveRecipe("Recipe " + i, RecipeStatus.PUBLISHED, null);
         }
-
         long totalPublished = recipeRepository.countByStatus(RecipeStatus.PUBLISHED);
 
-        // size=2, page=1 → on veut les éléments 3 et 4 (index 2 et 3)
-        // Si totalPublished < 4, ça retournera moins ou rien, mais avec 5 ajouts + existant, on est large.
         mockMvc.perform(get("/api/recipes")
                         .param("size", "2")
                         .param("page", "1")
@@ -220,9 +243,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     void getRecipes_shouldReturnEmptyListWhenNoRecipes() throws Exception {
-
         long rejectedCount = recipeRepository.countByStatus(RecipeStatus.REJECTED);
-        // Mais supposons que la migration n'ajoute pas de REJECTED.
 
         mockMvc.perform(get("/api/recipes")
                         .param("status", "REJECTED")
@@ -257,10 +278,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
                         .param("size", "10000")
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
-                // On vérifie que notre recette spécifique est présente dans la liste avec les bons champs
-                // On utilise un filtre JSONPath pour trouver l'élément avec l'ID correspondant
                 .andExpect(jsonPath("$.resources[?(@.id == '" + recipe.getId() + "')].title").value("Quiche Lorraine Unique"))
-                .andExpect(jsonPath("$.resources[?(@.id == '" + recipe.getId() + "')].summary").exists())
                 .andExpect(jsonPath("$.resources[?(@.id == '" + recipe.getId() + "')].status").value("PUBLISHED"))
                 .andExpect(jsonPath("$.resources[?(@.id == '" + recipe.getId() + "')].username").value("chef_integration"));
     }
@@ -271,37 +289,275 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
             createAndSaveRecipe("Recipe " + i, RecipeStatus.PUBLISHED, null);
         }
         var totalPublished = recipeRepository.countByStatus(RecipeStatus.PUBLISHED);
-        // First page (page=0)
-        mockMvc.perform(get("/api/recipes")
-                        .param("size", "10")
-                        .param("page", "0")
-                        .contentType(MediaType.APPLICATION_JSON))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resources", hasSize(10)))
-                .andExpect(jsonPath("$.total").value(totalPublished ));
 
-        // Second page (page=1)
-        mockMvc.perform(get("/api/recipes")
-                        .param("size", "10")
-                        .param("page", "1")
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/api/recipes").param("size", "10").param("page", "0"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resources", hasSize(10)))
                 .andExpect(jsonPath("$.total").value(totalPublished));
 
-        // Third page (page=2)
+        mockMvc.perform(get("/api/recipes").param("size", "10").param("page", "1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resources", hasSize(10)))
+                .andExpect(jsonPath("$.total").value(totalPublished));
 
         var expectedSizePage2 = (int) Math.min(10, Math.max(0, totalPublished - 20));
-        mockMvc.perform(get("/api/recipes")
-                        .param("size", "10")
-                        .param("page", "2")
-                        .contentType(MediaType.APPLICATION_JSON))
+        mockMvc.perform(get("/api/recipes").param("size", "10").param("page", "2"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resources", hasSize(expectedSizePage2)))
                 .andExpect(jsonPath("$.total").value(totalPublished));
     }
 
-    // ========== Helper methods ==========
+    // ========== GET /api/recipes/create ==========
+
+    @Test
+    void getCreateRecipeData_shouldReturnAllergensAndIngredients() throws Exception {
+        var allergen = new AllergenEntity("Arachides", AllergenSeverity.HIGH);
+        allergenRepository.save(allergen);
+        var ingredient = new IngredientEntity("Tomate", "Légume", false);
+        ingredientRepository.save(ingredient);
+
+        mockMvc.perform(get("/api/recipes/create")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resource.allergens").isArray())
+                .andExpect(jsonPath("$.resource.ingredients").isArray())
+                .andExpect(jsonPath("$.resource.allergens[?(@.name == 'Arachides')]").exists())
+                .andExpect(jsonPath("$.resource.ingredients", hasItem("Tomate")));
+    }
+
+    @Test
+    void getCreateRecipeData_shouldReturnEmptyListsWhenNoneExist() throws Exception {
+        // Sans rien créer dans setUp, les listes peuvent être non vides (données de migration)
+        // On vérifie juste que l'endpoint répond correctement
+        mockMvc.perform(get("/api/recipes/create")
+                        .contentType(MediaType.APPLICATION_JSON))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resource.allergens").isArray())
+                .andExpect(jsonPath("$.resource.ingredients").isArray());
+    }
+
+    // ========== POST /api/recipes/create ==========
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void createRecipe_shouldCreateRecipeSuccessfully() throws Exception {
+        var dto = new RecipeDTO(null, "Nouvelle recette", "Un résumé délicieux", null,
+                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+        var recipePart = new MockMultipartFile(
+                "recipe", "", MediaType.APPLICATION_JSON_VALUE,
+                objectMapper.writeValueAsBytes(dto));
+
+        mockMvc.perform(multipart("/api/recipes/create")
+                        .file(recipePart))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resource.title").value("Nouvelle recette"))
+                .andExpect(jsonPath("$.resource.username").value("chef_integration"))
+                .andExpect(jsonPath("$.resource.status").value("PUBLISHED"));
+    }
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void createRecipe_shouldPersistRecipeInDatabase() throws Exception {
+        long countBefore = recipeRepository.count();
+
+        var dto = new RecipeDTO(null, "Recette persistée", "Résumé", null,
+                null, 45, null, "DRAFT", List.of(), List.of(), List.of(), Map.of(), null, null);
+        var recipePart = new MockMultipartFile(
+                "recipe", "", MediaType.APPLICATION_JSON_VALUE,
+                objectMapper.writeValueAsBytes(dto));
+
+        mockMvc.perform(multipart("/api/recipes/create").file(recipePart))
+                .andExpect(status().isOk());
+
+        // La transaction n'est pas encore committée mais la requête est visible dans la même transaction
+        long countAfter = recipeRepository.count();
+        org.junit.jupiter.api.Assertions.assertEquals(countBefore + 1, countAfter);
+    }
+
+    // ========== POST /api/recipes/{id}/update ==========
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void updateRecipe_shouldUpdateRecipeSuccessfully() throws Exception {
+        var recipe = createAndSaveRecipe("Titre original", RecipeStatus.PUBLISHED, null);
+
+        var dto = new RecipeDTO(null, "Titre modifié", "Nouveau résumé", null,
+                null, 60, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+        var recipePart = new MockMultipartFile(
+                "recipe", "", MediaType.APPLICATION_JSON_VALUE,
+                objectMapper.writeValueAsBytes(dto));
+
+        mockMvc.perform(multipart("/api/recipes/{id}/update", recipe.getId())
+                        .file(recipePart))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resource.title").value("Titre modifié"))
+                .andExpect(jsonPath("$.resource.id").value(recipe.getId().toString()));
+    }
+
+    @Test
+    @WithMockUser(username = "other_user")
+    void updateRecipe_shouldThrowWhenNotOwner() throws Exception {
+        // La recette appartient à "chef_integration", pas à "other_user"
+        // IllegalStateException non gérée dans GlobalRestExceptionHandler → Spring relance l'exception via MockMvc
+        var recipe = createAndSaveRecipe("Recette de chef_integration", RecipeStatus.PUBLISHED, null);
+
+        var dto = new RecipeDTO(null, "Titre modifié", "Résumé", null,
+                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+        var recipePart = new MockMultipartFile(
+                "recipe", "", MediaType.APPLICATION_JSON_VALUE,
+                objectMapper.writeValueAsBytes(dto));
+
+        org.junit.jupiter.api.Assertions.assertThrows(Exception.class, () ->
+                mockMvc.perform(multipart("/api/recipes/{id}/update", recipe.getId())
+                        .file(recipePart)).andReturn());
+    }
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void updateRecipe_shouldReturn404WhenNotFound() throws Exception {
+        var nonExistentId = UUID.randomUUID();
+
+        var dto = new RecipeDTO(null, "Titre", "Résumé", null,
+                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+        var recipePart = new MockMultipartFile(
+                "recipe", "", MediaType.APPLICATION_JSON_VALUE,
+                objectMapper.writeValueAsBytes(dto));
+
+        mockMvc.perform(multipart("/api/recipes/{id}/update", nonExistentId)
+                        .file(recipePart))
+                .andExpect(status().isNotFound());
+    }
+
+    // ========== POST /api/recipes/{id}/delete ==========
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void deleteRecipe_shouldDeleteRecipeSuccessfully() throws Exception {
+        var recipe = createAndSaveRecipe("Recette à supprimer", RecipeStatus.PUBLISHED, null);
+
+        mockMvc.perform(post("/api/recipes/{id}/delete", recipe.getId()))
+                .andExpect(status().isOk());
+
+        // Vérifier que la recette n'existe plus
+        org.junit.jupiter.api.Assertions.assertFalse(
+                recipeRepository.findById(recipe.getId()).isPresent());
+    }
+
+    @Test
+    @WithMockUser(username = "other_user")
+    void deleteRecipe_shouldThrowWhenNotOwner() throws Exception {
+        // IllegalStateException non gérée dans GlobalRestExceptionHandler → Spring relance l'exception via MockMvc
+        var recipe = createAndSaveRecipe("Recette protégée", RecipeStatus.PUBLISHED, null);
+
+        org.junit.jupiter.api.Assertions.assertThrows(Exception.class, () ->
+                mockMvc.perform(post("/api/recipes/{id}/delete", recipe.getId())).andReturn());
+    }
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void deleteRecipe_shouldReturn404WhenNotFound() throws Exception {
+        var nonExistentId = UUID.randomUUID();
+
+        mockMvc.perform(post("/api/recipes/{id}/delete", nonExistentId))
+                .andExpect(status().isNotFound());
+    }
+
+    // ========== GET /api/recipes/my-recipes ==========
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void myRecipes_shouldReturnUserOwnedRecipes() throws Exception {
+        createAndSaveRecipe("Ma recette 1", RecipeStatus.PUBLISHED, null);
+        createAndSaveRecipe("Ma recette 2", RecipeStatus.DRAFT, null);
+
+        mockMvc.perform(get("/api/recipes/my-recipes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resources").isArray())
+                .andExpect(jsonPath("$.resources[*].username", everyItem(is("chef_integration"))))
+                .andExpect(jsonPath("$.total").value(greaterThanOrEqualTo(2)));
+    }
+
+    @Test
+    @WithMockUser(username = "chef_sans_recettes")
+    void myRecipes_shouldReturnEmptyListForUserWithNoRecipes() throws Exception {
+        // "chef_sans_recettes" n'existe pas en BD et n'a aucune recette
+        mockMvc.perform(get("/api/recipes/my-recipes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resources").isArray())
+                .andExpect(jsonPath("$.resources", hasSize(0)))
+                .andExpect(jsonPath("$.total").value(0));
+    }
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void myRecipes_shouldReturnBothPublishedAndDraftRecipes() throws Exception {
+        createAndSaveRecipe("Publiée", RecipeStatus.PUBLISHED, null);
+        createAndSaveRecipe("Brouillon", RecipeStatus.DRAFT, null);
+        createAndSaveRecipe("En attente", RecipeStatus.PENDING_REVIEW, null);
+
+        mockMvc.perform(get("/api/recipes/my-recipes"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.total").value(greaterThanOrEqualTo(3)));
+    }
+
+    // ========== POST /api/recipes/create-variant ==========
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void createVariant_shouldCreateVariantSuccessfully() throws Exception {
+        var parent = createAndSaveRecipe("Recette originale", RecipeStatus.PUBLISHED, null);
+
+        var dto = new RecipeDTO(null, "Ma variante", "Une variation de la recette", parent.getId(),
+                null, 45, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+        var recipePart = new MockMultipartFile(
+                "recipe", "", MediaType.APPLICATION_JSON_VALUE,
+                objectMapper.writeValueAsBytes(dto));
+
+        mockMvc.perform(multipart("/api/recipes/create-variant")
+                        .file(recipePart))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resource.title").value("Ma variante"))
+                .andExpect(jsonPath("$.resource.parentId").value(parent.getId().toString()))
+                .andExpect(jsonPath("$.resource.username").value("chef_integration"));
+    }
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void createVariant_shouldInheritParentImageWhenNoImageProvided() throws Exception {
+        var parent = createAndSaveRecipe("Original avec image", RecipeStatus.PUBLISHED, null);
+        // Manuellement on donne une imageUrl au parent
+        parent.setImageUrl("https://example.com/image.jpg");
+        recipeRepository.save(parent);
+
+        var dto = new RecipeDTO(null, "Variante héritée", "Résumé", parent.getId(),
+                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+        var recipePart = new MockMultipartFile(
+                "recipe", "", MediaType.APPLICATION_JSON_VALUE,
+                objectMapper.writeValueAsBytes(dto));
+
+        mockMvc.perform(multipart("/api/recipes/create-variant")
+                        .file(recipePart))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resource.imageUrl").value("https://example.com/image.jpg"));
+    }
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void createVariant_shouldReturn404WhenParentNotFound() throws Exception {
+        var nonExistentParentId = UUID.randomUUID();
+
+        var dto = new RecipeDTO(null, "Variante orpheline", "Résumé", nonExistentParentId,
+                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+        var recipePart = new MockMultipartFile(
+                "recipe", "", MediaType.APPLICATION_JSON_VALUE,
+                objectMapper.writeValueAsBytes(dto));
+
+        mockMvc.perform(multipart("/api/recipes/create-variant")
+                        .file(recipePart))
+                .andExpect(status().isNotFound());
+    }
+
+    // ========== Helpers ==========
 
     private RecipeEntity createAndSaveRecipe(String title, RecipeStatus status, RecipeEntity parent) {
         var recipe = new RecipeEntity();

@@ -53,20 +53,17 @@ public class StripeWebhookRestController {
 		Event event = paymentGateway.initEvent(payload, sigHeader, endpointSecret);
 
 		switch (event.getType()) {
-			case CHECKOUT_SESSION_COMPLETED:
-				handleCheckoutSessionCompleted(event);
-				break;
-			case TRANSFER_CREATED:
-				handleTransferCreated(event);
-				break;
-			case PAYOUT_FAILED:
+			case CHECKOUT_SESSION_COMPLETED -> handleCheckoutSessionCompleted(event);
+			case TRANSFER_CREATED -> handleTransferCreated(event);
+			case PAYOUT_FAILED ->{
 				if (connectedAccountId != null) {
 					handlePayoutFailed(event);
 				}
-				break;
-			default:
+			}
+			default -> {
 				log.debug("Event Stripe ignore: {}", event.getType());
 				return ResponseEntity.ok("Event ignored");
+			}
 		}
 
 		return ResponseEntity.ok("OK");

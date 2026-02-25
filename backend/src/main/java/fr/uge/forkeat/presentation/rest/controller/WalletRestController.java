@@ -28,14 +28,14 @@ public class WalletRestController {
     private final WalletService walletService;
     private final AuthenticationPort authPort;
     private final UserService userService;
-    private final BankInfoService bankInfoService; // New injected dependency
+    private final BankInfoService bankInfoService;
 
     public WalletRestController(WalletService walletService, AuthenticationPort authPort,
-                                UserService userQueryService, BankInfoService bankInfoService) { // Added BankInfoService
+                                UserService userQueryService, BankInfoService bankInfoService) {
         this.walletService = Objects.requireNonNull(walletService);
         this.authPort = Objects.requireNonNull(authPort);
         this.userService = Objects.requireNonNull(userQueryService);
-        this.bankInfoService = Objects.requireNonNull(bankInfoService); // Assign BankInfoService
+        this.bankInfoService = Objects.requireNonNull(bankInfoService);
     }
 
     @PostMapping("/recharge")
@@ -59,7 +59,6 @@ public class WalletRestController {
         return ResponseEntity.ok(transactions);
     }
 
-    // New Endpoint: Create or Update Bank Information
     @PostMapping("/bank-info")
     public ResponseEntity<BankInfoResponseDTO> createOrUpdateBankInfo(@RequestBody @Valid CreateBankInfoRequestDTO request) {
         var user = userService.getUserByUsername(authPort.extractUsername());
@@ -67,7 +66,6 @@ public class WalletRestController {
         return ResponseEntity.status(HttpStatus.CREATED).body(BankInfoDTOMapper.toResponseDTO(bankInfo));
     }
 
-    // New Endpoint: Get Bank Information
     @GetMapping("/bank-info")
     public ResponseEntity<BankInfoResponseDTO> getBankInfo() {
         var user = userService.getUserByUsername(authPort.extractUsername());
@@ -76,7 +74,6 @@ public class WalletRestController {
         return ResponseEntity.ok(BankInfoDTOMapper.toResponseDTO(bankInfo));
     }
 
-    // New Endpoint: Request Withdrawal
     @PostMapping("/withdraw")
     public ResponseEntity<Map<String, String>> requestWithdrawal(@RequestBody @Valid WithdrawalRequestDTO request) {
         var user = userService.getUserByUsername(authPort.extractUsername());

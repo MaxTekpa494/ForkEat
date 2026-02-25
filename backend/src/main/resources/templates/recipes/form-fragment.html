@@ -134,6 +134,19 @@
                         <option value="tbsp" th:selected="${ing.unit == 'tbsp'}">c. à soupe</option>
                         <option value="pcs" th:selected="${ing.unit == 'pcs'}">pièce(s)</option>
                         <option value="pinch" th:selected="${ing.unit == 'pinch'}">pincée</option>
+                        <!-- Unité non standard provenant de la BDD -->
+                        <option th:if="${ing.unit != null
+                                        and ing.unit != 'g'
+                                        and ing.unit != 'kg'
+                                        and ing.unit != 'ml'
+                                        and ing.unit != 'L'
+                                        and ing.unit != 'tsp'
+                                        and ing.unit != 'tbsp'
+                                        and ing.unit != 'pcs'
+                                        and ing.unit != 'pinch'}"
+                                th:value="${ing.unit}"
+                                th:text="${ing.unit}"
+                                selected></option>
                     </select>
                     <button type="button" onclick="removeRow(this, 'ingredient')"
                             class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
