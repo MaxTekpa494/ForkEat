@@ -9,6 +9,7 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
+import fr.uge.android.forkeat.network.api.AdminApiService
 import fr.uge.android.forkeat.network.api.AuthApiService
 import fr.uge.android.forkeat.network.api.WalletApiService
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
@@ -44,6 +45,8 @@ object ForkEatApi {
     }
 
     fun isLoggedIn(): Boolean = tokenManager?.isLoggedIn() ?: false
+
+    fun isAdmin(): Boolean = tokenManager?.isAdmin() ?: false
 
     fun getCurrentUsername(): String? = tokenManager?.getCurrentUsername()
 
@@ -86,6 +89,7 @@ object ForkEatApi {
     val authService: AuthApiService by lazy { retrofit.create(AuthApiService::class.java) }
     val recipeService: RecipeApiService by lazy { retrofit.create(RecipeApiService::class.java) }
     val walletService: WalletApiService by lazy { retrofit.create(WalletApiService::class.java) }
+    val adminService: AdminApiService by lazy { retrofit.create(AdminApiService::class.java) }
 
     fun toJson(obj: Any): String = gson.toJson(obj)
 }
