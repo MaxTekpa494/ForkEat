@@ -171,10 +171,17 @@ class MainActivity : ComponentActivity() {
                     )
                   }
                   composable("profile") {
-                    ProfileScreen(
-                      onNavigateToCreateRecipe = { navController.navigate("recipe-form") },
-                      onNavigateToMyRecipes = { navController.navigate("my-recipes") }
-                    )
+                    if (isLoggedIn) {
+                      ProfileScreen(
+                        onNavigateToCreateRecipe = { navController.navigate("recipe-form") },
+                        onNavigateToMyRecipes = { navController.navigate("my-recipes") })
+                    } else {
+                      ProfileGuestScreen(
+                        onNavigateToLogin = { navController.navigate("login") },
+                        onNavigateToRegister = { navController.navigate("register") }
+                      )
+                    }
+
                   }
                   composable("wallet") {
                     WalletScreen(
