@@ -2,11 +2,13 @@ package fr.uge.forkeat.service.user;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import fr.uge.forkeat.service.port.PasswordHasher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,6 +41,18 @@ public class UserService {
     public User getUserByUsername(String username) {
         return userPersistence.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+    }
+
+    @Transactional(readOnly = true)
+    public List<User> getUsersByRole(UserRole role) {
+        Objects.requireNonNull(role);
+        return userPersistence.findAllByRole(role);
+    }
+
+    @Transactional(readOnly = true)
+    public long countByRole(UserRole role) {
+        Objects.requireNonNull(role);
+        return userPersistence.countByRole(role);
     }
 
     public boolean checkUserPassword(String username, String rawPassword) {
