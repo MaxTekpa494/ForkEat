@@ -7,6 +7,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -227,23 +228,38 @@ class MainActivity : ComponentActivity() {
                         )
                     }
                     composable("recipes/{id}") { backStackEntry ->
-                      recipesViewModel.loadRecipeWithId(
-                        UUID.fromString(
-                          backStackEntry.arguments?.getString(
-                            "id"
-                          )
-                        )
-                      )
-                      val recipe = recipesViewModel.currentRecipe.collectAsState().value
-                      if (recipe != null) {
-                        RecipeDetailScreen(
-                          recipe = recipe,
-                          onBack = { navController.popBackStack() })
-                      } else {
-                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                          Text("Recette introuvable", color = Color.Red)
+                        val idStr = backStackEntry.arguments?.getString("id") ?: return@composable
+                        val id = remember(idStr) { UUID.fromString(idStr) }
+
+                        LaunchedEffect(id) {
+                            recipesViewModel.loadRecipeWithId(id)
                         }
-                      }
+
+                        val recipe by recipesViewModel.currentRecipe.collectAsState()
+                        val parent by recipesViewModel.currentParent.collectAsState()
+                        val diff   by recipesViewModel.currentDiff.collectAsState()
+                        val currentUsername = remember { ForkEatApi.getCurrentUsername() }
+
+                        when (val r = recipe) {
+                            null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = fr.uge.android.forkeat.designsystem.theme.Primary500)
+                            }
+                            else -> RecipeDetailScreen(
+                                recipe = r,
+                                parent = parent,
+                                diff = diff,
+                                isOwner = currentUsername != null && currentUsername == r.username,
+                                isAuthenticated = isLoggedIn,
+                                onBack = { navController.popBackStack() },
+                                onEdit = { navController.navigate("recipe-form?recipeId=${r.id}") },
+                                onDelete = {
+                                    recipesViewModel.deleteRecipe(r.id) {
+                                        navController.popBackStack()
+                                    }
+                                },
+                                onCreateVariant = { navController.navigate("recipe-form?parentId=${r.id}") }
+                            )
+                        }
                     }
                     composable("my-recipes") {
                         val myRecipesViewModel: MyRecipesViewModel = viewModel()
@@ -257,6 +273,9 @@ class MainActivity : ComponentActivity() {
                             },
                             onNavigateToVariant = { parentId ->
                                 navController.navigate("recipe-form?parentId=$parentId")
+                            },
+                            onNavigateToDetail = { recipeId ->
+                                navController.navigate("recipes/$recipeId")
                             },
                             onBack = { navController.popBackStack() }
                         )

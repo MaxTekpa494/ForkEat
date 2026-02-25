@@ -7,7 +7,7 @@ data class RecipeDetailsDTO(
     val id: UUID,
     val title: String,
     val summary: String,
-    val parent: RecipeDTO? = null,
+    val parentId: java.util.UUID? = null,
     val username: String,
     val preparationMinutes: Int,
     val imageUrl: String,

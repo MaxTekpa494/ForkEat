@@ -128,7 +128,7 @@ class RecipeFormViewModel(
             val token = tokenManager.getToken()?.toString() ?: ""
             val response = api.getRecipeWithId(token, id)
             if (response.isSuccessful) {
-                val recipe = response.body()?.resource ?: return
+                val recipe = response.body()?.resource?.recipe ?: return
                 _uiState.value = _uiState.value.copy(
                     title = recipe.title,
                     summary = recipe.summary,
@@ -267,7 +267,8 @@ class RecipeFormViewModel(
 
                 val response = when (val m = mode) {
                     is RecipeFormMode.Edit -> api.updateRecipe(m.recipeId, jsonBody, imagePart)
-                    else -> api.createRecipe(jsonBody, imagePart)
+                    is RecipeFormMode.CreateVariant -> api.createVariant(jsonBody, imagePart)
+                    is RecipeFormMode.Create -> api.createRecipe(jsonBody, imagePart)
                 }
 
                 if (response.isSuccessful) {

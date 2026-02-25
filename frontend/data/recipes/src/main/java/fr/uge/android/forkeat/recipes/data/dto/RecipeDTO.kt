@@ -7,7 +7,7 @@ data class RecipeDTO(
   val id: UUID,
   val title: String,
   val summary: String,
-  val parent: RecipeDTO? = null, // Ici il faut qu'on change en UUID
+  val parentId: UUID? = null,
   val username: String,
   val preparationMinutes: Int,
   val imageUrl: String,
