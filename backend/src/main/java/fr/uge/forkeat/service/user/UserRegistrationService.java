@@ -167,6 +167,34 @@ public class UserRegistrationService {
     return userPersistence.saveUser(user, passwordHasher.hash(userRegister.password()));
   }
 
+  @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
+  public User registerAdmin(UserRegister userRegister) {
+    Objects.requireNonNull(userRegister);
+    if (userPersistence.existsByEmail(userRegister.email())) {
+      throw new RegisterFailureException("This email is already in use");
+    }
+
+    if (userPersistence.existsByUsername(userRegister.username())) {
+      throw new RegisterFailureException("This username is already taken");
+    }
+
+    logger.info("Registering admin with username: {}", userRegister.username());
+    var user = new User(UUID.randomUUID(),
+            userRegister.username(),
+            userRegister.firstName(),
+            userRegister.lastName(),
+            userRegister.email(),
+            UserRole.ADMIN,
+            UserStatus.ACTIVE,
+            AuthMode.LOCAL,
+            Instant.now(), Instant.now(),
+            true // email verified by default
+    );
+
+    // Admin has no personal wallet per platform specification
+    return userPersistence.saveUser(user, passwordEncoder.encode(userRegister.password()));
+  }
+
   private String generateUsername(String email) {
         var baseUsername = email.split("@")[0].replaceAll("[^a-zA-Z0-9]", "");
 
