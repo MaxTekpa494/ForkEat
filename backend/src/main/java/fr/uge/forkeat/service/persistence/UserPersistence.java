@@ -1,9 +1,11 @@
 package fr.uge.forkeat.service.persistence;
 
 import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
 import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -39,4 +41,8 @@ public interface UserPersistence {
 	UserSocialStats findUserSocialStats(String username);
 
 	boolean isFollowing(String followerUsername, String followedUsername);
+
+	List<User> findAllByRole(UserRole role);
+
+	long countByRole(UserRole role);
 }
