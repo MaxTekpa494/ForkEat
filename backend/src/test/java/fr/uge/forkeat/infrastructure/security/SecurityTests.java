@@ -49,7 +49,7 @@ public class SecurityTests extends AbstractIntegrationTest {
     public void authenticationTest() throws Exception {
         // Create admin user manually
         var admin = new UserEntity();
-        admin.setUsername("admin");
+        admin.setUsername("admin1");
         admin.setFirstName("Admin");
         admin.setLastName("System");
         admin.setEmail("admin@forkeat.app");
@@ -57,6 +57,7 @@ public class SecurityTests extends AbstractIntegrationTest {
         admin.setRole(UserRole.ADMIN);
         admin.setStatus(UserStatus.ACTIVE);
         admin.setAuthMode(AuthMode.LOCAL);
+        admin.setEmailVerified(true);
         userRepository.save(admin);
 
         var user = new UserRegisterDTO("S1dAli", "SidAli", "Cherrati", "Password1", "sidali@gmail.com");
@@ -105,6 +106,6 @@ public class SecurityTests extends AbstractIntegrationTest {
                         .header("Authorization", tokenAdmin)
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(moderatorDTO)))
-                .andExpect(status().isOk());
+                .andExpect(status().isCreated());
     }
 }
