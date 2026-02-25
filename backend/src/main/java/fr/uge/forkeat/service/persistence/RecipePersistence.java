@@ -34,6 +34,10 @@ public interface RecipePersistence {
 
   void deleteById(UUID id);
 
+  Recipe updateStatus(UUID id, RecipeStatus status);
+
+  long countByStatus(RecipeStatus status);
+
   PageResult<RecipeSummary> findRecipeSummaries(String username, RecipeStatus status, int size, int page);
 
   RecipeCounts findRecipeCounts(UUID recipeId);
