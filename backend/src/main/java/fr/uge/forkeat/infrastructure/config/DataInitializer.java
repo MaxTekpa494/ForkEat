@@ -11,15 +11,11 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.crypto.password.PasswordEncoder;
 
-import java.time.Instant;
-
 /**
- * This file is temporary will be deleted for the merge with develop
+ * Platform wallets (EARNINGS + REDISTRIBUTION) are initialized by the V6 Flyway migration.
  */
-
 @Configuration
 public class DataInitializer {
-
 
     @Value("${app.admin.username}")
     private String adminUsername;
@@ -27,13 +23,13 @@ public class DataInitializer {
     @Value("${app.admin.password:admin}")
     private String adminPassword;
 
-
     @Bean
     public CommandLineRunner initData(UserRepository userRepo, PasswordEncoder passwordEncoder) {
         return args -> {
-
-            if (userRepo.count() == 1) {
-                var admin = new UserEntity(adminUsername, "admin", "admin", passwordEncoder.encode(adminPassword), "admin@admin.com", UserRole.ADMIN, UserStatus.ACTIVE, AuthMode.LOCAL);
+            if (!userRepo.existsByUsername(adminUsername)) {
+                var admin = new UserEntity(adminUsername, "admin", "admin",
+                        passwordEncoder.encode(adminPassword), "admin@admin.com",
+                        UserRole.ADMIN, UserStatus.ACTIVE, AuthMode.LOCAL, true);
                 userRepo.save(admin);
             }
         };

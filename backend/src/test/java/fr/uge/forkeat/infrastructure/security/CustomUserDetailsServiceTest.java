@@ -35,7 +35,7 @@ class CustomUserDetailsServiceTest {
 
     private UserEntity createUserEntity(UserRole role, boolean emailVerified, String password) {
         var entity = new UserEntity("testuser", "Test", "User", password, "test@forkeat.fr",
-                role, UserStatus.ACTIVE, AuthMode.LOCAL);
+                role, UserStatus.ACTIVE, AuthMode.LOCAL, true);
         entity.setId(UUID.randomUUID());
         entity.setEmailVerified(emailVerified);
         return entity;

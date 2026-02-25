@@ -1,15 +1,15 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,7 +38,6 @@ public class UserPersistenceAdapter implements UserPersistence {
 		var saved = userRepository.save(entity);
 		return UserEntityMapper.toDomain(saved);
 	}
-
 
 	@Override
 	public User updateUser(User user) {
@@ -96,6 +95,20 @@ public class UserPersistenceAdapter implements UserPersistence {
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 		entity.setEmailVerified(emailVerified);
 		userRepository.save(entity);
+	}
+
+	@Override
+	public List<User> findAllByRole(UserRole role) {
+		Objects.requireNonNull(role);
+		return userRepository.findByRole(role).stream()
+				.map(UserEntityMapper::toDomain)
+				.toList();
+	}
+
+	@Override
+	public long countByRole(UserRole role) {
+		Objects.requireNonNull(role);
+		return userRepository.countByRole(role);
 	}
 
 }

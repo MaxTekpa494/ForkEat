@@ -5,6 +5,7 @@ import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.model.user.*;
+import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
