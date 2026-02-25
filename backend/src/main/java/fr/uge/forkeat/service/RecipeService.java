@@ -137,4 +137,16 @@ public class RecipeService {
     return recipePersistence.findByAuthorUsername(authorUsername);
   }
 
+  @Transactional
+  public Recipe updateStatus(UUID id, RecipeStatus status) {
+    Objects.requireNonNull(id);
+    Objects.requireNonNull(status);
+    return recipePersistence.updateStatus(id, status);
+  }
+
+  public long countByStatus(RecipeStatus status) {
+    Objects.requireNonNull(status);
+    return recipePersistence.countByStatus(status);
+  }
+
 }

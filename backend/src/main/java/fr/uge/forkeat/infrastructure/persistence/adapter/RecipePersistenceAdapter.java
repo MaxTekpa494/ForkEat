@@ -193,6 +193,22 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     recipeRepository.deleteById(id);
   }
 
+  @Override
+  public Recipe updateStatus(UUID id, RecipeStatus status) {
+    Objects.requireNonNull(id);
+    Objects.requireNonNull(status);
+    var entity = recipeRepository.findById(id)
+            .orElseThrow(() -> new IllegalStateException("Recipe not found: " + id));
+    entity.setStatus(status);
+    return RecipeEntityMapper.toDomain(recipeRepository.save(entity));
+  }
+
+  @Override
+  public long countByStatus(RecipeStatus status) {
+    Objects.requireNonNull(status);
+    return recipeRepository.countByStatus(status);
+  }
+
   /**
    * Récupère les ingrédients existants et crée/persiste les nouveaux si nécessaire
    * Pour eviter le fait que ça plante quand t-on rajoute de nouveaux à la creation/modification d'une

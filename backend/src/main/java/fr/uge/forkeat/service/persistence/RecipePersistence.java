@@ -34,4 +34,8 @@ public interface RecipePersistence {
 
   void deleteById(UUID id);
 
+  Recipe updateStatus(UUID id, RecipeStatus status);
+
+  long countByStatus(RecipeStatus status);
+
 }
