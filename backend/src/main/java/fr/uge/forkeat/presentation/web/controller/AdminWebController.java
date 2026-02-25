@@ -8,8 +8,8 @@ import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.model.user.UserRegister;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
+import fr.uge.forkeat.service.user.UserService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,13 +27,13 @@ public class AdminWebController {
 
     private static final int RECIPES_PAGE_SIZE = 20;
 
-    private final UserQueryService userQueryService;
+    private final UserService userQueryService;
     private final RecipeService recipeService;
     private final PlatformWalletService platformWalletService;
     private final AuthenticationPort authPort;
     private final UserRegistrationService userRegistrationService;
 
-    public AdminWebController(UserQueryService userQueryService,
+    public AdminWebController(UserService userQueryService,
                               RecipeService recipeService,
                               PlatformWalletService platformWalletService,
                               AuthenticationPort authPort,

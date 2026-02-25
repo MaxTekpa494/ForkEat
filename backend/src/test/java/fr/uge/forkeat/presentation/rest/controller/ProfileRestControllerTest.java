@@ -47,12 +47,6 @@ class ProfileRestControllerTest {
     @MockitoBean
     private AuthenticationManager authenticationManager;
     @MockitoBean
-    private AuthenticationPort authPort;
-
-    @MockitoBean
-    private AuthenticationPort authPort;
-
-    @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
     @Autowired

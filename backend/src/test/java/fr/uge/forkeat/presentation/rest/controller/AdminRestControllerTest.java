@@ -14,8 +14,8 @@ import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
-import fr.uge.forkeat.service.user.UserQueryService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
+import fr.uge.forkeat.service.user.UserService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,7 +45,7 @@ class AdminRestControllerTest {
     @MockitoBean
     private UserRegistrationService userRegistrationService;
     @MockitoBean
-    private UserQueryService userQueryService;
+    private UserService userQueryService;
     @MockitoBean
     private RecipeService recipeService;
     @MockitoBean
