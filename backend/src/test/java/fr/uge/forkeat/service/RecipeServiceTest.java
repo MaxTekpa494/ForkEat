@@ -298,6 +298,25 @@ class RecipeServiceTest {
     }
 
     @Nested
+    class UpdateRecipeByStatus {
+        @Test
+        void shouldUpdateRecipeStatus() {
+            var recipeId = UUID.randomUUID();
+            when(recipePersistence.updateByStatus(recipeId, RecipeStatus.PUBLISHED)).thenReturn(RecipeStatus.PUBLISHED);
+
+            assertEquals(RecipeStatus.PUBLISHED, recipeService.updateRecipeByStatus(recipeId, RecipeStatus.PUBLISHED));
+        }
+
+        @Test
+        void shouldThrowWhenRecipeNotFound() {
+            var recipeId = UUID.randomUUID();
+            when(recipePersistence.updateByStatus(recipeId, RecipeStatus.PUBLISHED)).thenThrow(RecipeNotFoundException.class);
+
+            assertThrows(RecipeNotFoundException.class, () -> recipeService.updateRecipeByStatus(recipeId, RecipeStatus.PUBLISHED));
+        }
+    }
+
+    @Nested
     class DeleteById {
 
         @Test

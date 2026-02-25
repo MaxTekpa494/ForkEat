@@ -727,6 +727,47 @@ class RecipePersistenceAdapterTest {
         }
     }
 
+    @Nested
+    class UpdateByStatus {
+        @Test
+        void shouldUpdateStatusSuccessfully() {
+            var recipeId = UUID.randomUUID();
+            var existingEntity = createRecipeEntity(recipeId, "Old Title", RecipeStatus.DRAFT);
+
+            when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
+            when(recipeRepository.save(any(RecipeEntity.class))).thenReturn(existingEntity);
+
+            var result = adapter.updateByStatus(recipeId, RecipeStatus.PUBLISHED);
+
+            assertNotNull(result);
+            assertEquals(RecipeStatus.PUBLISHED, result);
+            verify(recipeRepository).save(any(RecipeEntity.class));
+        }
+
+        @Test
+        void shouldThrowWhenRecipeNotFound() {
+            var recipeId = UUID.randomUUID();
+
+            when(recipeRepository.findById(recipeId)).thenReturn(Optional.empty());
+
+            assertThrows(IllegalStateException.class, () -> adapter.updateByStatus(recipeId, RecipeStatus.PUBLISHED));
+        }
+
+        @Test
+        void shouldThrowWhenIdIsNull() {
+            var recipe = createRecipe(UUID.randomUUID(), "Test", RecipeStatus.DRAFT);
+
+            assertThrows(NullPointerException.class, () -> adapter.updateByStatus(null, RecipeStatus.PUBLISHED));
+        }
+
+        @Test
+        void shouldThrowWhenStatusIsNull() {
+            var recipeId = UUID.randomUUID();
+
+            assertThrows(NullPointerException.class, () -> adapter.updateByStatus(recipeId, null));
+        }
+    }
+
     private RecipeEntity createRecipeEntity(UUID id, String title, RecipeStatus status) {
         var entity = new RecipeEntity();
         entity.setId(id);

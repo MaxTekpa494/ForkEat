@@ -191,6 +191,21 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
+    public RecipeStatus updateByStatus(UUID id, RecipeStatus status) {
+        Objects.requireNonNull(id);
+        Objects.requireNonNull(status);
+
+        var existingEntity = recipeRepository.findById(id)
+                .orElseThrow(() -> new IllegalStateException("Recipe not found: " + id));
+
+        existingEntity.setStatus(status);
+
+        var saved = recipeRepository.save(existingEntity);
+
+        return saved.getStatus();
+    }
+
+    @Override
     public void deleteById(UUID id) {
         recipeRepository.deleteById(id);
     }

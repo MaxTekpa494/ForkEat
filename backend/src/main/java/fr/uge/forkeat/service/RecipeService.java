@@ -20,7 +20,7 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class RecipeService {
   private final StoragePort storageService;
-  private final RecipePersistence recipePersistence;
+  private final RecipePersistence  recipePersistence;
   private final Logger logger = LoggerFactory.getLogger(RecipeService.class);
   private static final String FOLDER_STORAGE = "recipes";
 
@@ -89,6 +89,12 @@ public class RecipeService {
 
     logger.info("Recipe {} updated", id);
     return recipePersistence.update(id, recipeToSave);
+  }
+
+  @Transactional
+  public RecipeStatus updateRecipeByStatus(UUID id, RecipeStatus status) {
+    logger.info("Recipe {} status updated to {}", id, status);
+    return recipePersistence.updateByStatus(id, status);
   }
 
   @Transactional
