@@ -1,4 +1,18 @@
-// Menu mobile toggle
+// Bouton "Retour au tableau de bord" - visible uniquement si on vient de /admin
+document.addEventListener('DOMContentLoaded', function() {
+    const backBtn = document.getElementById('back-to-dashboard');
+    if (backBtn) {
+        try {
+            if (document.referrer) {
+                const refPath = new URL(document.referrer).pathname;
+                if (refPath === '/admin') {
+                    backBtn.classList.remove('hidden');
+                }
+            }
+        } catch (e) { /* ignore */ }
+    }
+});
+
 document.addEventListener('DOMContentLoaded', function() {
     const mobileMenuButton = document.getElementById('mobile-menu-button');
     const mobileMenu = document.getElementById('mobile-menu');
@@ -7,7 +21,6 @@ document.addEventListener('DOMContentLoaded', function() {
         mobileMenuButton.addEventListener('click', function() {
             mobileMenu.classList.toggle('hidden');
 
-            // Changer l'icône
             const icon = mobileMenuButton.querySelector('i');
             if (mobileMenu.classList.contains('hidden')) {
                 icon.classList.remove('fa-times');
@@ -54,7 +67,7 @@ if (userMenuButton && userMenuDropdown) {
     });
 }
 
-// Smooth scroll pour les ancres
+// Smooth scroll
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         e.preventDefault();
