@@ -3,11 +3,19 @@ package fr.uge.android.forkeat.profile
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
+
 import java.time.LocalDate
+
+sealed class ProfileNavigationEvent {
+    data object NavigateToCreateRecipe : ProfileNavigationEvent()
+    data object NavigateToMyRecipes : ProfileNavigationEvent()
+}
 
 data class ProfileUiState(
     val firstName: String = "",
@@ -28,6 +36,9 @@ data class ProfileUiState(
 )
 
 class ProfileViewModel : ViewModel() {
+    private val _navigationEvent = Channel<ProfileNavigationEvent>()
+    val navigationEvent = _navigationEvent.receiveAsFlow()
+
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
@@ -187,7 +198,9 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun navigateToMyRecipes() {
-        // TODO: Handle navigation to my recipes screen
+        viewModelScope.launch {
+            _navigationEvent.send(ProfileNavigationEvent.NavigateToMyRecipes)
+        }
     }
 
     fun navigateToDashboard() {
@@ -199,6 +212,8 @@ class ProfileViewModel : ViewModel() {
     }
 
     fun navigateToCreateRecipe() {
-        // TODO: Handle navigation to create recipe screen
+        viewModelScope.launch {
+            _navigationEvent.send(ProfileNavigationEvent.NavigateToCreateRecipe)
+        }
     }
 }

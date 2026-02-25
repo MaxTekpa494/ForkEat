@@ -426,7 +426,7 @@ private fun FeaturesSection() {
             iconBgColor = Secondary50,
             iconTint = Secondary800,
             title = "Partage Simple",
-            description = "Publiez vos meilleures recettes en quelques clics et inspirez la communaut\u00e9.",
+            description = "Publiez vos meilleures recettes en quelques clics et inspirez la communauté.",
         )
 
         Spacer(Modifier.height(16.dp))
@@ -435,8 +435,8 @@ private fun FeaturesSection() {
             icon = Icons.Default.MonetizationOn,
             iconBgColor = Primary100,
             iconTint = Primary500,
-            title = "Mon\u00e9tisation",
-            description = "Gagnez de l'argent gr\u00e2ce aux Super Likes et au soutien de vos fans.",
+            title = "Monétisation",
+            description = "Gagnez de l'argent grâce aux Super Likes et au soutien de vos fans.",
         )
 
         Spacer(Modifier.height(16.dp))
@@ -445,8 +445,8 @@ private fun FeaturesSection() {
             icon = Icons.Default.Group,
             iconBgColor = Orange50,
             iconTint = Orange500,
-            title = "Communaut\u00e9",
-            description = "\u00c9changez avec des chefs et amateurs passionn\u00e9s du monde entier.",
+            title = "Communauté",
+            description = "Échangez avec des chefs et amateurs passionnés du monde entier.",
         )
     }
 }
@@ -533,7 +533,7 @@ private fun Footer() {
         Spacer(Modifier.height(12.dp))
 
         Text(
-            text = "\u00a9 2026 ForkEat. Fait avec passion.",
+            text = "© 2026 ForkEat. Fait avec passion.",
             color = Secondary200,
             fontSize = 12.sp,
         )

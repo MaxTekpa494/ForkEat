@@ -81,7 +81,9 @@ class DashboardViewModel : ViewModel() {
     }
 
     fun navigateToCreateRecipe() {
-        // TODO: Handle navigation to create recipe screen
+        viewModelScope.launch {
+            _navigationEvent.send(DashboardNavigationEvent.NavigateToCreateRecipe)
+        }
     }
 
     fun navigateToProfile() {

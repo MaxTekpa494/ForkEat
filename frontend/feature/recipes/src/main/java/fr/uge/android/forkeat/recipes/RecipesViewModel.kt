@@ -7,6 +7,7 @@ import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.TokenManager
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
+import fr.uge.android.forkeat.recipes.data.dto.RecipeDiffDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -26,8 +27,14 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
 
     private val _recipeIds = mutableSetOf<UUID>()
 
-    private val _currentRecipe =  MutableStateFlow<RecipeDetailsDTO?>(null)
+    private val _currentRecipe = MutableStateFlow<RecipeDetailsDTO?>(null)
     val currentRecipe: StateFlow<RecipeDetailsDTO?> = _currentRecipe
+
+    private val _currentParent = MutableStateFlow<RecipeDTO?>(null)
+    val currentParent: StateFlow<RecipeDTO?> = _currentParent
+
+    private val _currentDiff = MutableStateFlow<RecipeDiffDTO?>(null)
+    val currentDiff: StateFlow<RecipeDiffDTO?> = _currentDiff
 
 
     private val _totalCount = MutableStateFlow(0)
@@ -186,18 +193,17 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
 
     fun loadRecipeWithId(id: UUID) {
         viewModelScope.launch {
+            _currentRecipe.value = null
+            _currentParent.value = null
+            _currentDiff.value = null
             try {
-                var token = "";
-                if(tokenManager.getToken() != null){
-                    token = tokenManager.getToken().toString()
-                }
-                val response = api.getRecipeWithId(
-                    token = token.toString() ,
-                    id= id
-                )
+                val token = tokenManager.getToken()?.toString() ?: ""
+                val response = api.getRecipeWithId(token = token, id = id)
                 if (response.isSuccessful) {
-                    val body = response.body()
-                    _currentRecipe.value = body?.resource ?: null
+                    val data = response.body()?.resource
+                    _currentRecipe.value = data?.recipe
+                    _currentParent.value = data?.parent
+                    _currentDiff.value = data?.diff
                     _errorMessage.value = null
                 } else {
                     val code = response.code()
@@ -209,6 +215,25 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Le serveur est indisponible, veuillez réessayer plus tard."
+            }
+        }
+    }
+
+    fun deleteRecipe(id: UUID, onSuccess: () -> Unit) {
+        viewModelScope.launch {
+            try {
+                val response = api.deleteRecipe(id)
+                if (response.isSuccessful) {
+                    _currentRecipe.value = null
+                    _currentParent.value = null
+                    _currentDiff.value = null
+                    loadRecipes(0)
+                    onSuccess()
+                } else {
+                    _errorMessage.value = "Erreur lors de la suppression (${response.code()})"
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Erreur : ${e.message}"
             }
         }
     }

@@ -3,13 +3,12 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
+import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
 import fr.uge.forkeat.service.RecipeService;
-import fr.uge.forkeat.service.exception.ImageUploadException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
-import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.user.UserService;
@@ -68,7 +67,7 @@ public class RecipeWebController {
         logger.info("Creating recipe 2 {}", recipe);
         logger.info("Creating recipe status 2 {}", recipe.status());
         logger.info("Creating recipe 3 {}", image);
-        var savedRecipe = recipeService.createRecipe(recipe, toImageUpload(image));
+        var savedRecipe = recipeService.createRecipe(recipe, ImageMapper.toImageUpload(image));
         return "redirect:/recipes/" + savedRecipe.id();
     }
 
@@ -85,7 +84,6 @@ public class RecipeWebController {
         model.addAttribute("username", username);
         return "recipes/my-recipes";
     }
-
 
     @GetMapping
     public String listRecipes(RecipeSearchDTO form, Model model) {
@@ -198,7 +196,7 @@ public class RecipeWebController {
 
         logger.info("Updating recipe {}", id);
         var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, currentUser));
-        var updatedRecipe = recipeService.updateRecipe(id, recipe, toImageUpload(image));
+        var updatedRecipe = recipeService.updateRecipe(id, recipe, ImageMapper.toImageUpload(image));
         logger.info("Recipe {} updated", updatedRecipe);
         return "redirect:/recipes/" + updatedRecipe.id();
     }
@@ -240,17 +238,8 @@ public class RecipeWebController {
             logger.info("Adding image from parent {}\n\n\n", parent);
             dto = RecipeDTOMapper.recipeDTOWithImageUrl(dto, parent.imageUrl());
         }
-        var savedRecipe = recipeService.createRecipe(RecipeDTOMapper.toDomain(dto), hasNewImage ? toImageUpload(image) : null);
+        var savedRecipe = recipeService.createRecipe(RecipeDTOMapper.toDomain(dto), hasNewImage ? ImageMapper.toImageUpload(image) : null);
         return "redirect:/recipes/" + savedRecipe.id();
-    }
-
-    private ImageUpload toImageUpload(MultipartFile file) {
-        if (file == null || file.isEmpty()) return null;
-        try {
-            return new ImageUpload(file.getBytes(), file.getContentType(), file.getOriginalFilename());
-        } catch (Exception e) { // EST-CE LE BON ENDROIT ??
-            throw new ImageUploadException("Failed to upload image", e);
-        }
     }
 
     @PostMapping("/{id}/like")
