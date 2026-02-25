@@ -50,6 +50,9 @@ class ProfileRestControllerTest {
     private AuthenticationPort authPort;
 
     @MockitoBean
+    private AuthenticationPort authPort;
+
+    @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
     @Autowired
