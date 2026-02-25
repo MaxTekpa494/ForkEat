@@ -1,4 +1,4 @@
-package fr.uge.forkeat.service.model;
+package fr.uge.forkeat.service.model.wallet;
 
 public enum Currency {
     EUR("eur", "€", "Euro");

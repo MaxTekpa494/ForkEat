@@ -7,7 +7,7 @@ import com.stripe.model.Transfer;
 import fr.uge.forkeat.infrastructure.config.StripeProperties;
 import fr.uge.forkeat.service.exception.PaymentException;
 import fr.uge.forkeat.service.external.PayoutGateway;
-import fr.uge.forkeat.service.model.Currency;
+import fr.uge.forkeat.service.model.wallet.Currency;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
