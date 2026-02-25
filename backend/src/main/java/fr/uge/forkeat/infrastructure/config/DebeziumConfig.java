@@ -84,7 +84,7 @@ public class DebeziumConfig {
                 .with("database.server.name", "forkeat")
                 .with("topic.prefix", "forkeat")
                 // Liste des tables à surveiller pour les changements
-                .with("table.include.list", "public.users,public.recipes,public.super_like")
+                .with("table.include.list", "public.users,public.recipes,public.super_likes")
                 // Plugin de décodage PostgreSQL (pgoutput est le standard)
                 .with("plugin.name", "pgoutput")
                 // Création automatique de la publication PostgreSQL

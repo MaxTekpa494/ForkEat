@@ -7,7 +7,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 @Entity
-@Table(name = "super_like")
+@Table(name = "super_likes")
 public class SuperLikeEntity {
     @Id
     @Column(columnDefinition = "UUID")
@@ -19,6 +19,9 @@ public class SuperLikeEntity {
     @Column(name = "recipe_id", nullable = false)
     private UUID recipeId;
 
+    @Column(name = "amount", nullable = false)
+    private long amount;
+
     @PrePersist
     private void onCreate() {
         if (id == null) {
@@ -28,9 +31,10 @@ public class SuperLikeEntity {
 
     public SuperLikeEntity() {}
 
-    public SuperLikeEntity(UUID userId, UUID recipeId) {
+    public SuperLikeEntity(UUID userId, UUID recipeId, long amount) {
         this.userId = userId;
         this.recipeId = recipeId;
+        this.amount = amount;
     }
 
     public UUID getId() {
@@ -55,6 +59,14 @@ public class SuperLikeEntity {
 
     public void setRecipeId(UUID recipeId) {
         this.recipeId = recipeId;
+    }
+
+    public long getAmount() {
+        return this.amount;
+    }
+
+    public void setAmount(long amount) {
+        this.amount = amount;
     }
 
 

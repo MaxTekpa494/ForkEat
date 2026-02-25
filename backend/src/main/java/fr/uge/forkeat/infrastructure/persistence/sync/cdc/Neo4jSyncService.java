@@ -153,7 +153,9 @@ public class Neo4jSyncService {
                 ? after.get("user_id").asText() : null;
         var recipeId = after.has("recipe_id") && !after.get("recipe_id").isNull()
                 ? after.get("recipe_id").asText() : null;
-        userNodeClient.addSuperLike(userId, recipeId);
+
+        var amount = after.has("amount") ? after.get("amount").asLong() : 0;
+        userNodeClient.addSuperLike(userId, recipeId, amount);
 
         logger.info("Created SuperLikeRelationShip: {}", id);
     }

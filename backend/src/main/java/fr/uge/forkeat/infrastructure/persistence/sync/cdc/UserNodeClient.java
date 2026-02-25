@@ -87,17 +87,18 @@ public class UserNodeClient {
             .run();
     }
 
-    public void addSuperLike(String userId, String recipeId) {
+    public void addSuperLike(String userId, String recipeId, long amount) {
         Objects.requireNonNull(userId);
         Objects.requireNonNull(recipeId);
         var cypher = """
             MATCH (u:User {id: $userId})
             MATCH (r:Recipe {id: $recipeId})
-            MERGE (u)-[:SUPER_LIKED]->(r)
+            MERGE (u)-[:SUPER_LIKED {amount: $amount}]->(r)
             """;
         neo4jClient.query(cypher)
                 .bind(userId).to("userId")
                 .bind(recipeId).to("recipeId")
+                .bind(amount).to("amount")
                 .run();
     }
 

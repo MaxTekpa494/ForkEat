@@ -3,6 +3,7 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.TransactionEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.PlatformWalletRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.TransactionRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
@@ -41,6 +42,9 @@ class WalletPersistenceAdapterTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private PlatformWalletRepository platformWalletRepository;
 
     @InjectMocks
     private WalletPersistenceAdapter adapter;

@@ -289,13 +289,13 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public void superLikeRecipe(UUID userId, UUID recipeId){
-        var superLike = new SuperLikeEntity(userId, recipeId);
+    public void superLikeRecipe(UUID userId, UUID recipeId, long amount){
+        var superLike = new SuperLikeEntity(userId, recipeId, amount);
         var balance = walletRepository.findBalanceByUserId(userId);
-        if(balance < 100){
-            throw new InsufficientFundsException(balance, 100L);
+        if(balance < amount){
+            throw new InsufficientFundsException(balance, amount);
         }
-        walletRepository.decrementBalanceByUserId(userId, 100L);
+        walletRepository.decrementBalanceByUserId(userId, amount);
         superLikeRepository.save(superLike);
     }
 

@@ -6,12 +6,14 @@ import fr.uge.forkeat.infrastructure.persistence.mapper.TransactionEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.TransactionEntity;
 import fr.uge.forkeat.infrastructure.persistence.mapper.WalletEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.PlatformWalletRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.TransactionRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.Transaction;
+import fr.uge.forkeat.service.model.WalletType;
 import fr.uge.forkeat.service.model.user.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import org.springframework.stereotype.Component;
@@ -27,12 +29,14 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 	private final WalletRepository walletRepository;
 	private final TransactionRepository transactionRepository;
 	private final UserRepository userRepository;
+    private final PlatformWalletRepository platformWalletRepository;
 
 	public WalletPersistenceAdapter(WalletRepository walletRepository,
-			TransactionRepository transactionRepository, UserRepository userRepository) {
+			TransactionRepository transactionRepository, UserRepository userRepository, PlatformWalletRepository platformWalletRepository) {
 		this.walletRepository = Objects.requireNonNull(walletRepository);
 		this.transactionRepository = Objects.requireNonNull(transactionRepository);
 		this.userRepository = Objects.requireNonNull(userRepository);
+        this.platformWalletRepository = Objects.requireNonNull(platformWalletRepository);
 	}
 
 	@Override
@@ -148,5 +152,21 @@ public class WalletPersistenceAdapter implements WalletPersistence {
         }
 
         return TransactionEntityMapper.toDomain(transactionRepository.save(existingEntity));
+    }
+
+    public Wallet getEarningsWallet(){
+        var platformWallet =platformWalletRepository.findByType(WalletType.EARNINGS).orElseThrow(()-> new AssertionError("Should have a earningWallet"));
+        var wallet = walletRepository.getReferenceById(platformWallet.getWalletId());
+        return WalletEntityMapper.toDomain(wallet);
+    }
+
+    public Wallet getRedistributionWallet(){
+        var platformWallet =platformWalletRepository.findByType(WalletType.REDISTRIBUTION).orElseThrow(()-> new AssertionError("Should have a earningWallet"));
+        var wallet = walletRepository.getReferenceById(platformWallet.getWalletId());
+        return WalletEntityMapper.toDomain(wallet);
+    }
+
+    public void incrementBalanceById(UUID id, long amount){
+        this.walletRepository.incrementBalanceById(id, amount);
     }
 }
