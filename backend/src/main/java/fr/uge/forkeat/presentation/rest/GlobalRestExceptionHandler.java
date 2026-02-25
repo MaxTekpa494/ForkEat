@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.Map;
 
 // À CHANGER POUR UTILISER DES HTTPRESPONSES PLUTOT QUE DES MAPS
-@RestControllerAdvice(basePackages = "fr.uge.forkeat.presentation.rest")
+@RestControllerAdvice(basePackages = "fr.uge.forkeat.presentation")
 public class GlobalRestExceptionHandler {
 
   @ExceptionHandler(RecipeNotFoundException.class)
