@@ -22,7 +22,9 @@ public record RecipeDetailsDTO(
         Instant createdAt,
         Instant updatedAt,
         long nbLike,
-        boolean hasLiked
+        boolean hasLiked,
+        long nbSuperLike,
+        boolean hasSuperLiked
 ) {
 
     public RecipeDTO toRecipeDTO(){

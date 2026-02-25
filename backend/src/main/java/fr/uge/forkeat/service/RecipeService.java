@@ -162,6 +162,9 @@ public class RecipeService {
 
   @Transactional
     public void superLikeRecipe(UUID userId, UUID recipeId) {
+      if(recipePersistence.hasSuperLikedRecipe(userId,  recipeId)){
+          return;
+      }
       recipePersistence.superLikeRecipe(userId, recipeId);
   }
 
