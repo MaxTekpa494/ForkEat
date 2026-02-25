@@ -47,6 +47,7 @@ dependencies {
   implementation(project(":feature:profile"))
   implementation(project(":feature:recipes"))
   implementation(project(":feature:wallet"))
+  implementation(project(":feature:admin"))
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.activity.compose)

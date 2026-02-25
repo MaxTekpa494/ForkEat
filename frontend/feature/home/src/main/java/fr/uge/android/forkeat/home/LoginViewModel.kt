@@ -46,6 +46,12 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 if (response.isSuccessful && response.body() != null) {
                     val token = response.body()!!.token
                     tokenManager.saveToken(token)
+                    try {
+                        val meResponse = ForkEatApi.authService.me()
+                        if (meResponse.isSuccessful) {
+                            tokenManager.saveRole(meResponse.body()?.resource?.role ?: "MEMBER")
+                        }
+                    } catch (_: Exception) { /* non-bloquant */ }
                     _uiState.value = LoginUiState(isSuccess = true)
                 } else {
                     _uiState.value = LoginUiState(
@@ -91,6 +97,12 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
                 val response = ForkEatApi.authService.loginWithGoogle(GoogleLoginRequest(idToken))
                 if (response.isSuccessful && response.body() != null) {
                     tokenManager.saveToken(response.body()!!.token)
+                    try {
+                        val meResponse = ForkEatApi.authService.me()
+                        if (meResponse.isSuccessful) {
+                            tokenManager.saveRole(meResponse.body()?.resource?.role ?: "MEMBER")
+                        }
+                    } catch (_: Exception) { /* non-bloquant */ }
                     _uiState.value = LoginUiState(isSuccess = true)
                 } else {
                     _uiState.value = LoginUiState(
