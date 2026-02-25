@@ -113,7 +113,7 @@ public class RecipeWebController {
     var recipe = recipeService.findById(id);
     var recipeDTO = RecipeDTOMapper.toDTO(recipe);
     var currentUser = authPort.extractUsername();
-    if (!recipe.status().equals(RecipeStatus.PUBLISHED) && (currentUser == null || !currentUser.equals(recipe.usernameAuthor()))) {
+    if (!recipe.status().equals(RecipeStatus.PUBLISHED) && !authPort.isAdmin() && (currentUser == null || !currentUser.equals(recipe.usernameAuthor()))) {
       throw new RecipeNotFoundException(id);
     }
     if (recipe.isVariant()) {

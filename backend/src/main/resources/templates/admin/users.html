@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title th:text="${pageTitle}">Gestion des utilisateurs - ForkEat</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <!-- En-tête -->
+    <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <a id="back-to-dashboard" th:href="@{/admin}" class="hidden text-secondary-300 hover:text-white text-sm mb-2 inline-block">
+                        <i class="fas fa-arrow-left mr-1"></i> Retour au tableau de bord
+                    </a>
+                    <h1 class="font-display font-bold text-3xl mt-1">
+                        Gestion des <span class="text-primary-500"
+                                          th:text="${selectedRole.name() == 'MEMBER'} ? 'Membres' : 'Modérateurs'">Utilisateurs</span>
+                    </h1>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Filtres -->
+    <section class="py-6 bg-white border-b border-gray-100">
+        <div class="container mx-auto px-4">
+            <div class="flex gap-3">
+                <a th:href="@{/admin/users(role=MEMBER)}"
+                   th:classappend="${selectedRole.name() == 'MEMBER'} ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                   class="px-4 py-2 rounded-lg font-medium text-sm transition">
+                    <i class="fas fa-user mr-1"></i> Membres
+                </a>
+                <a th:href="@{/admin/users(role=MODERATOR)}"
+                   th:classappend="${selectedRole.name() == 'MODERATOR'} ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                   class="px-4 py-2 rounded-lg font-medium text-sm transition">
+                    <i class="fas fa-shield-alt mr-1"></i> Modérateurs
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Liste des utilisateurs -->
+    <section class="py-12 bg-surface">
+        <div class="container mx-auto px-4">
+
+            <div th:if="${users.isEmpty()}" class="bg-white rounded-2xl p-8 text-center border border-gray-100">
+                <i class="fas fa-users text-4xl text-gray-300 mb-4"></i>
+                <p class="text-gray-500">Aucun utilisateur trouvé.</p>
+            </div>
+
+            <div th:if="${!users.isEmpty()}" class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+                <div class="px-6 py-4 border-b border-gray-100">
+                    <span class="text-sm text-gray-500"
+                          th:text="${users.size()} + ' utilisateur(s)'">0 utilisateur(s)</span>
+                </div>
+                <table class="w-full">
+                    <thead>
+                        <tr class="bg-gray-50 text-left">
+                            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Utilisateur</th>
+                            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
+                            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
+                            <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Inscrit le</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-100">
+                        <tr th:each="user : ${users}" class="hover:bg-gray-50 transition">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center gap-3">
+                                    <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
+                                        <span class="text-primary-600 font-bold text-sm"
+                                              th:text="${#strings.toUpperCase(#strings.substring(user.firstName(), 0, 1))}">U</span>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-secondary-900"
+                                             th:text="${user.firstName()} + ' ' + ${user.lastName()}">Prénom Nom</div>
+                                        <div class="text-sm text-gray-500" th:text="'@' + ${user.username()}">@username</div>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-600" th:text="${user.email()}">email@example.com</td>
+                            <td class="px-6 py-4">
+                                <span th:text="${user.status()}"
+                                      th:classappend="${user.status().name() == 'ACTIVE'} ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'"
+                                      class="px-2 py-1 rounded-full text-xs font-medium">ACTIVE</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-gray-500"
+                                th:text="${#temporals.format(user.createdAt(), 'dd/MM/yyyy')}">01/01/2024</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+        </div>
+    </section>
+
+</div>
+</body>
+</html>
