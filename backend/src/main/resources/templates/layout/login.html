@@ -22,7 +22,6 @@
           </p>
         </div>
 
-        <!-- Messages d'erreur/succès -->
         <div th:if="${param.error}" class="mt-4 bg-red-50 border-l-4 border-red-500 p-4 rounded-md animate-fadeInUp">
           <div class="flex">
             <div class="flex-shrink-0">
@@ -58,11 +57,9 @@
 
         <div class="mt-8">
 
-          <!-- ✅ BOUTON GOOGLE OAUTH2 - NOUVEAU -->
           <div class="mb-6">
             <a th:href="@{/oauth2/authorization/google}"
                class="w-full flex items-center justify-center gap-3 py-3 px-4 border-2 border-gray-300 rounded-xl shadow-sm text-sm font-semibold text-gray-700 bg-white hover:bg-gray-50 hover:border-gray-400 transition-all duration-200 transform hover:-translate-y-0.5">
-              <!-- Logo Google SVG -->
               <svg class="w-5 h-5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
                 <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                 <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -73,7 +70,6 @@
             </a>
           </div>
 
-          <!-- Séparateur -->
           <div class="relative mb-6">
             <div class="absolute inset-0 flex items-center">
               <div class="w-full border-t border-gray-300"></div>
@@ -84,9 +80,7 @@
               </span>
             </div>
           </div>
-          <!-- ✅ FIN OAUTH2 -->
 
-          <!-- Form LOGIN classique -->
           <form th:action="@{/auth/login}" method="POST" class="space-y-6">
 
             <div>
@@ -168,7 +162,6 @@
       </div>
     </div>
 
-    <!-- Image côté droit -->
     <div class="hidden lg:block relative w-0 flex-1 overflow-hidden">
       <img class="absolute inset-0 h-full w-full object-cover"
            src="https://www.lejournaldelamaison.fr/wp-content/uploads/sites/8/2025/12/cuisines-blanches-depassees-ces-tendances-cuisine-2026-vont-transformer-votre-cuisine-sans-tout-refaire.jpeg"
