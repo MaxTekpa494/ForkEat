@@ -93,7 +93,7 @@ public class UserNodeClient {
         var cypher = """
             MATCH (u:User {id: $userId})
             MATCH (r:Recipe {id: $recipeId})
-            MERGE (u)-[:SUPER_LIKED {amount: $amount}]->(r)
+            MERGE (u)-[:SUPER_LIKED {amount: $amount, date: datetime()}]->(r)
             """;
         neo4jClient.query(cypher)
                 .bind(userId).to("userId")
