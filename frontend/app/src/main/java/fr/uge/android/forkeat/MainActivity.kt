@@ -86,8 +86,9 @@ class MainActivity : ComponentActivity() {
                 val shouldShowBars = currentRoute !in hideBarsRoutes
                     && currentRoute?.startsWith("admin-users") != true
                     && currentRoute != null
-                var isLoggedIn by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
-                var isAdmin by remember { mutableStateOf(ForkEatApi.isAdmin()) }
+                var isCheckingAuth by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
+                var isLoggedIn by remember { mutableStateOf(false) }
+                var isAdmin by remember { mutableStateOf(false) }
                 // ViewModel partage pour toute la navigation
                 val recipesViewModel: RecipesViewModel = viewModel()
 
@@ -99,8 +100,23 @@ class MainActivity : ComponentActivity() {
                         popUpTo(0) { inclusive = true }
                     }
                 }
-                // Handle deep link navigation
+                // Validation du token au démarrage + deep link
                 LaunchedEffect(Unit) {
+                    if (ForkEatApi.isLoggedIn()) {
+                        try {
+                            val response = ForkEatApi.authService.me()
+                            if (response.isSuccessful && response.body() != null) {
+                                val role = response.body()!!.resource.role
+                                isLoggedIn = true
+                                isAdmin = role == "ADMIN"
+                            } else {
+                                ForkEatApi.logout()
+                            }
+                        } catch (_: Exception) {
+                            ForkEatApi.logout()
+                        }
+                    }
+                    isCheckingAuth = false
                     pendingDeepLink?.let { dest ->
                         pendingDeepLink = null
                         navController.navigate(dest) {
@@ -108,7 +124,11 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-              ForkEatScaffold(
+              if (isCheckingAuth) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = fr.uge.android.forkeat.designsystem.theme.Primary500)
+                }
+              } else ForkEatScaffold(
                 navController = navController,
                 onLogout = logout,
                 isLoggedIn = isLoggedIn,
