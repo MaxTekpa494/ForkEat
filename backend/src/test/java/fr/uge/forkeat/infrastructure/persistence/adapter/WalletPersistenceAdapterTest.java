@@ -12,7 +12,7 @@ import fr.uge.forkeat.service.model.Transaction;
 import fr.uge.forkeat.service.model.TransactionType;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
-import fr.uge.forkeat.service.model.user.Wallet;
+import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.model.TransactionStatus; // New import
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;

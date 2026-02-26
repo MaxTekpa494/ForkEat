@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title th:text="${pageTitle}">Administration - ForkEat</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <!-- En-tête admin -->
+    <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="font-display font-bold text-4xl mb-2">
+                        Tableau de bord <span class="text-primary-500">Administrateur</span>
+                    </h1>
+                    <p class="text-secondary-200 text-lg">
+                        Bienvenue, <span th:text="${admin.firstName()}">Admin</span>. Vue d'ensemble de la plateforme.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistiques membres -->
+    <section class="py-12 bg-surface">
+        <div class="container mx-auto px-4">
+            <h2 class="font-display font-bold text-2xl text-secondary-900 mb-6">
+                <i class="fas fa-users mr-2 text-primary-500"></i>Membres
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <a th:href="@{/admin/users(role=MEMBER)}"
+                   class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:border-primary-500 transition">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-user text-blue-500 text-2xl"></i>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                    </div>
+                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${memberCount}">0</div>
+                    <div class="text-gray-500 text-sm font-medium">Membres</div>
+                </a>
+
+                <a th:href="@{/admin/users(role=MODERATOR)}"
+                   class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:border-primary-500 transition">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-purple-50 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-shield-alt text-purple-500 text-2xl"></i>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                    </div>
+                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${moderatorCount}">0</div>
+                    <div class="text-gray-500 text-sm font-medium">Modérateurs</div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Statistiques recettes -->
+    <section class="py-12 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="font-display font-bold text-2xl text-secondary-900 mb-6">
+                <i class="fas fa-book mr-2 text-primary-500"></i>Recettes
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <a th:href="@{/admin/recipes}"
+                   class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:border-green-400 hover:shadow-lg transition block">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-check-circle text-green-500 text-2xl"></i>
+                        </div>
+                        <i class="fas fa-arrow-right text-gray-400"></i>
+                    </div>
+                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${publishedCount}">0</div>
+                    <div class="text-gray-500 text-sm font-medium">Recettes publiées</div>
+                </a>
+
+                <a th:href="@{/admin/recipes/pending}"
+                   class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:border-yellow-400 hover:shadow-lg transition block relative">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-yellow-50 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-clock text-yellow-500 text-2xl"></i>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span th:if="${pendingCount > 0}"
+                                  class="bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full animate-pulse"
+                                  th:text="${pendingCount}">0</span>
+                            <i class="fas fa-arrow-right text-gray-400"></i>
+                        </div>
+                    </div>
+                    <div class="text-3xl font-bold text-secondary-900 mb-1" th:text="${pendingCount}">0</div>
+                    <div class="text-gray-500 text-sm font-medium">En attente de validation</div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- Wallets plateforme -->
+    <section class="py-12 bg-surface">
+        <div class="container mx-auto px-4">
+            <h2 class="font-display font-bold text-2xl text-secondary-900 mb-6">
+                <i class="fas fa-university mr-2 text-primary-500"></i>Porte-monnaies de la plateforme
+            </h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+
+                <a th:href="@{/admin/wallets}"
+                   class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 block">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-coins text-2xl"></i>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-primary-100 text-sm">Bénéfices</span>
+                            <i class="fas fa-arrow-right text-primary-200 text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="text-3xl font-bold mb-1">
+                        <span th:text="${#numbers.formatDecimal(benefitsWallet.balance() / 100.0, 1, 2)}">0.00</span> €
+                    </div>
+                    <div class="text-primary-100 text-sm font-medium">Porte-monnaie des bénéfices</div>
+                    <div class="text-primary-200 text-xs mt-2"
+                         th:text="'Mis à jour : ' + ${#temporals.format(benefitsWallet.updatedAt(), 'dd/MM/yyyy HH:mm')}">
+                    </div>
+                </a>
+
+                <a th:href="@{/admin/wallets}"
+                   class="bg-gradient-to-br from-secondary-700 to-secondary-900 rounded-2xl p-6 text-white shadow-xl hover:shadow-2xl hover:-translate-y-1 transition-all duration-200 block">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
+                            <i class="fas fa-exchange-alt text-2xl"></i>
+                        </div>
+                        <div class="flex items-center gap-2">
+                            <span class="text-secondary-200 text-sm">Redistribution</span>
+                            <i class="fas fa-arrow-right text-secondary-300 text-sm"></i>
+                        </div>
+                    </div>
+                    <div class="text-3xl font-bold mb-1">
+                        <span th:text="${#numbers.formatDecimal(redistributionWallet.balance() / 100.0, 1, 2)}">0.00</span> €
+                    </div>
+                    <div class="text-secondary-200 text-sm font-medium">Porte-monnaie de redistribution</div>
+                    <div class="text-secondary-300 text-xs mt-2"
+                         th:text="'Mis à jour : ' + ${#temporals.format(redistributionWallet.updatedAt(), 'dd/MM/yyyy HH:mm')}">
+                    </div>
+                </a>
+            </div>
+        </div>
+    </section>
+
+</div>
+</body>
+</html>

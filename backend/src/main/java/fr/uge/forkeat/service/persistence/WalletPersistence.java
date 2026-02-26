@@ -2,7 +2,7 @@ package fr.uge.forkeat.service.persistence;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.user.Wallet;
+import fr.uge.forkeat.service.model.wallet.Wallet;
 
 import java.util.List;
 import java.util.Optional;

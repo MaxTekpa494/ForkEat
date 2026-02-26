@@ -5,7 +5,6 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
-import fr.uge.forkeat.service.model.user.Wallet;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

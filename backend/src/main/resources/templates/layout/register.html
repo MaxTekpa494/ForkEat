@@ -49,7 +49,6 @@
                 <div class="mt-8">
                     <form th:action="@{/auth/register}" th:object="${registerForm}" method="POST" class="space-y-5">
 
-                        <!-- Erreur globale (ex: email/username déjà utilisé) -->
                         <div th:if="${errorMessage}" class="rounded-xl bg-red-50 border border-red-200 p-4">
                             <div class="flex items-center">
                                 <i class="fas fa-exclamation-circle text-red-500 mr-2"></i>

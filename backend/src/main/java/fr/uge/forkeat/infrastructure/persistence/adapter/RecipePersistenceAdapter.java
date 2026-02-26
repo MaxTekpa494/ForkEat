@@ -196,6 +196,22 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
+    public Recipe updateStatus(UUID id, RecipeStatus status) {
+    Objects.requireNonNull(id);
+    Objects.requireNonNull(status);
+    var entity = recipeRepository.findById(id)
+            .orElseThrow(() -> new IllegalStateException("Recipe not found: " + id));
+    entity.setStatus(status);
+    return RecipeEntityMapper.toDomain(recipeRepository.save(entity));
+    }
+
+    @Override
+    public long countByStatus(RecipeStatus status) {
+    Objects.requireNonNull(status);
+    return recipeRepository.countByStatus(status);
+    }
+
+    @Override
     public PageResult<RecipeSummary> findRecipeSummaries(String username, RecipeStatus status, int size, int page) {
         Objects.requireNonNull(username);
         Objects.requireNonNull(status);
@@ -279,7 +295,6 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         Objects.requireNonNull(recipeId);
         neo4jRecipeRepository.unlikeRecipe(userId, recipeId);
     }
-
     /**
      * Récupère les ingrédients existants et crée/persiste les nouveaux si nécessaire.
      * Pour eviter le fait que ça plante quand on rajoute de nouveaux à la creation/modification d'une

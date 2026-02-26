@@ -68,6 +68,23 @@ public class AuthenticationAdapter implements AuthenticationPort {
     }
 
     @Override
+    public boolean isAuthenticated() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        return auth != null && auth.isAuthenticated()
+                && !(auth.getPrincipal() instanceof String s && s.equals("anonymousUser"));
+    }
+
+    @Override
+    public boolean isAdmin() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return false;
+        }
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+    }
+
+    @Override
     public void refreshAuthentication(User user) {
         String roleName = user.role().name().startsWith("ROLE_")
                 ? user.role().name()

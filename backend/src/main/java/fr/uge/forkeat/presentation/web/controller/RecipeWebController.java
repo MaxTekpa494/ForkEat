@@ -116,7 +116,7 @@ public class RecipeWebController {
         var personalizedRecipe = recipeService.findPersonalizedRecipeById(id, currentUser);
         var recipe = personalizedRecipe.recipe();
 
-        if (!recipe.isPublished() && (currentUser == null || !currentUser.equals(recipe.usernameAuthor()))) {
+        if (!recipe.isPublished() && !authPort.isAdmin() && (currentUser == null || !currentUser.equals(recipe.usernameAuthor()))) {
             throw new RecipeNotFoundException(id);
         }
 

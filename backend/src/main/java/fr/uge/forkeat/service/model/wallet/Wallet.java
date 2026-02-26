@@ -1,4 +1,4 @@
-package fr.uge.forkeat.service.model.user;
+package fr.uge.forkeat.service.model.wallet;
 
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 

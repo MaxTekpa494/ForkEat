@@ -1,6 +1,6 @@
 package fr.uge.forkeat.service.external;
 
-import fr.uge.forkeat.service.model.Currency;
+import fr.uge.forkeat.service.model.wallet.Currency;
 import java.util.UUID;
 
 public interface PayoutGateway {
