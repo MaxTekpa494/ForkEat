@@ -47,15 +47,15 @@
     <section class="py-12 bg-surface">
         <div class="container mx-auto px-4">
 
-            <div th:if="${users.isEmpty()}" class="bg-white rounded-2xl p-8 text-center border border-gray-100">
+            <div th:if="${users.items().isEmpty()}" class="bg-white rounded-2xl p-8 text-center border border-gray-100">
                 <i class="fas fa-users text-4xl text-gray-300 mb-4"></i>
                 <p class="text-gray-500">Aucun utilisateur trouvé.</p>
             </div>
 
-            <div th:if="${!users.isEmpty()}" class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
+            <div th:if="${!users.items().isEmpty()}" class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
                 <div class="px-6 py-4 border-b border-gray-100">
                     <span class="text-sm text-gray-500"
-                          th:text="${users.size()} + ' utilisateur(s)'">0 utilisateur(s)</span>
+                          th:text="${users.total()} + ' utilisateur(s)'">0 utilisateur(s)</span>
                 </div>
                 <table class="w-full">
                     <thead>
@@ -67,7 +67,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
-                        <tr th:each="user : ${users}" class="hover:bg-gray-50 transition">
+                        <tr th:each="user : ${users.items()}" class="hover:bg-gray-50 transition">
                             <td class="px-6 py-4">
                                 <div class="flex items-center gap-3">
                                     <div class="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center">
