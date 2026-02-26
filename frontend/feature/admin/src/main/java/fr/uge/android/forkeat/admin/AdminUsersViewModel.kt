@@ -44,13 +44,13 @@ class AdminUsersViewModel : ViewModel() {
 
                 _uiState.value = _uiState.value.copy(
                     members    = if (membersResponse.isSuccessful)
-                        membersResponse.body()?.resources ?: emptyList()
+                        membersResponse.body()?.items ?: emptyList()
                     else emptyList(),
                     moderators = if (moderatorsResponse.isSuccessful)
-                        moderatorsResponse.body()?.resources ?: emptyList()
+                        moderatorsResponse.body()?.items ?: emptyList()
                     else emptyList(),
                     admins     = if (adminsResponse.isSuccessful)
-                        (adminsResponse.body()?.resources ?: emptyList())
+                        (adminsResponse.body()?.items ?: emptyList())
                             .filter { it.username != currentUsername }
                     else emptyList(),
                     isLoading  = false

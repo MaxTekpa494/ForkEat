@@ -195,7 +195,8 @@ fun AdminRecipesScreen(
                         recipes = uiState.pendingRecipes,
                         actionInProgress = uiState.actionInProgress,
                         onValidate = { viewModel.validateRecipe(it) },
-                        onReject = { viewModel.rejectRecipe(it) }
+                        onReject = { viewModel.rejectRecipe(it) },
+                        onNavigateToRecipe = onNavigateToRecipe
                     )
                     1 -> PublishedRecipesTab(
                         recipes = uiState.publishedRecipes,
@@ -220,7 +221,8 @@ private fun PendingRecipesTab(
     recipes: List<AdminRecipeDTO>,
     actionInProgress: String?,
     onValidate: (String) -> Unit,
-    onReject: (String) -> Unit
+    onReject: (String) -> Unit,
+    onNavigateToRecipe: (String) -> Unit
 ) {
     if (recipes.isEmpty()) {
         Box(
@@ -245,7 +247,8 @@ private fun PendingRecipesTab(
                     recipe = recipe,
                     isActionInProgress = actionInProgress == recipe.id,
                     onValidate = { onValidate(recipe.id) },
-                    onReject = { onReject(recipe.id) }
+                    onReject = { onReject(recipe.id) },
+                    onNavigateToRecipe = { onNavigateToRecipe(recipe.id) }
                 )
             }
         }
@@ -257,7 +260,8 @@ private fun PendingRecipeCard(
     recipe: AdminRecipeDTO,
     isActionInProgress: Boolean,
     onValidate: () -> Unit,
-    onReject: () -> Unit
+    onReject: () -> Unit,
+    onNavigateToRecipe: () -> Unit
 ) {
     var showRejectDialog by remember { mutableStateOf(false) }
 
@@ -294,7 +298,9 @@ private fun PendingRecipeCard(
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(enabled = !isActionInProgress) { onNavigateToRecipe() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             // Badge statut + titre
