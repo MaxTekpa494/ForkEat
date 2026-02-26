@@ -9,5 +9,5 @@ data class CreateRecipeDTO(
     val ingredients: List<RecipeIngredientDTO>,
     val allergens: List<AllergenDTO>,
     val parentId: String? = null,
-    val dietaryFlags: Map<String, Boolean> = emptyMap()
+    val dietaries: List<String> = emptyList()
 )

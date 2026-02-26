@@ -245,53 +245,12 @@
         <p class="text-sm text-gray-500 mb-4">Indiquez les régimes alimentaires compatibles avec cette recette.</p>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
-                <input type="checkbox" name="dietaryFlags[vegan]" value="true"
-                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['vegan'] == true}"
+            <label th:each="dietaryName : ${allDietaryNames}"
+                   class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
+                <input type="checkbox" name="dietaries" th:value="${dietaryName}"
+                       th:checked="${recipe != null and recipe.dietaries != null and #lists.contains(recipe.dietaries, dietaryName)}"
                        class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                <span class="ml-3 text-sm font-medium text-secondary-900">Vegan</span>
-            </label>
-            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
-                <input type="checkbox" name="dietaryFlags[vegetarian]" value="true"
-                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['vegetarian'] == true}"
-                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                <span class="ml-3 text-sm font-medium text-secondary-900">Végétarien</span>
-            </label>
-            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
-                <input type="checkbox" name="dietaryFlags[gluten-free]" value="true"
-                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['gluten-free'] == true}"
-                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                <span class="ml-3 text-sm font-medium text-secondary-900">Sans gluten</span>
-            </label>
-            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
-                <input type="checkbox" name="dietaryFlags[dairy-free]" value="true"
-                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['dairy-free'] == true}"
-                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                <span class="ml-3 text-sm font-medium text-secondary-900">Sans lactose</span>
-            </label>
-            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
-                <input type="checkbox" name="dietaryFlags[halal]" value="true"
-                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['halal'] == true}"
-                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                <span class="ml-3 text-sm font-medium text-secondary-900">Halal</span>
-            </label>
-            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
-                <input type="checkbox" name="dietaryFlags[kosher]" value="true"
-                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['kosher'] == true}"
-                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                <span class="ml-3 text-sm font-medium text-secondary-900">Casher</span>
-            </label>
-            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
-                <input type="checkbox" name="dietaryFlags[nut-free]" value="true"
-                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['nut-free'] == true}"
-                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                <span class="ml-3 text-sm font-medium text-secondary-900">Sans noix</span>
-            </label>
-            <label class="flex items-center p-3 border border-gray-200 rounded-xl cursor-pointer hover:border-green-300 hover:bg-green-50/50 transition">
-                <input type="checkbox" name="dietaryFlags[low-carb]" value="true"
-                       th:checked="${recipe != null and recipe.dietaryFlags != null and recipe.dietaryFlags['low-carb'] == true}"
-                       class="h-4 w-4 text-green-600 focus:ring-green-500 border-gray-300 rounded">
-                <span class="ml-3 text-sm font-medium text-secondary-900">Low-carb</span>
+                <span class="ml-3 text-sm font-medium text-secondary-900" th:text="${dietaryName}">Régime</span>
             </label>
         </div>
     </div>
