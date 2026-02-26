@@ -2,6 +2,7 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.DietaryEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
@@ -28,6 +29,8 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     private final Neo4jRecipeRepository neo4jRecipeRepository;
     private final RecipeAllergenRepository recipeAllergenRepository;
     private final RecipeIngredientRepository recipeIngredientRepository;
+    private final RecipeDietaryRepository recipeDietaryRepository;
+    private final DietaryRepository dietaryRepository;
     private final EntityManager entityManager;
 
     public RecipePersistenceAdapter(RecipeRepository recipeRepository, UserRepository userRepository,
@@ -35,7 +38,8 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                                     Neo4jRecipeRepository neo4jRecipeRepository,
                                     RecipeAllergenRepository recipeAllergenRepository,
                                     RecipeIngredientRepository recipeIngredientRepository,
-                                    EntityManager entityManager) {
+                                    RecipeDietaryRepository recipeDietaryRepository,
+                                    DietaryRepository dietaryRepository, EntityManager entityManager) {
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
         this.allergenRepository = allergenRepository;
@@ -43,7 +47,9 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         this.neo4jRecipeRepository = neo4jRecipeRepository;
         this.recipeAllergenRepository = recipeAllergenRepository;
         this.recipeIngredientRepository = recipeIngredientRepository;
+        this.recipeDietaryRepository = recipeDietaryRepository;
         this.entityManager = entityManager;
+        this.dietaryRepository = dietaryRepository;
     }
 
     @Override
@@ -116,6 +122,14 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
+    public List<String> findAllDietaryNames() {
+        return dietaryRepository.findAll().stream()
+                .map(d -> d.getName())
+                .sorted()
+                .toList();
+    }
+
+    @Override
     public Recipe save(Recipe recipe) {
         Objects.requireNonNull(recipe);
 
@@ -135,8 +149,9 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                 .map(RecipeIngredient::name).toList();
         var ingredients = getOrCreateIngredients(ingredientNames);
 
+        var dietaries = getOrCreateDietaries(recipe.dietaries());
         var entity = RecipeEntityMapper.toEntity(
-                recipe, parent, author, List.copyOf(allergens), ingredients
+                recipe, parent, author, List.copyOf(allergens), ingredients, dietaries
         );
         var saved = recipeRepository.save(entity);
 
@@ -158,6 +173,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         // D'ailleurs le orphanRemoval ne fonctionne qu'à la fin de la transactions (oh joie)
         recipeAllergenRepository.deleteByRecipeId(id);
         recipeIngredientRepository.deleteByRecipeId(id);
+        recipeDietaryRepository.deleteByRecipeId(id);
         entityManager.flush();
         entityManager.clear();
 
@@ -169,7 +185,6 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         existingEntity.setPreparationMinutes(recipe.preparationMinutes());
         existingEntity.setImageUrl(recipe.imageUrl());
         existingEntity.setStatus(recipe.status());
-        existingEntity.setDietaryFlag(recipe.dietaryFlags());
         existingEntity.setStepByStepInstructions(
                 RecipeEntityMapper.toEntitySteps(recipe.stepByStepInstructions())
         );
@@ -186,6 +201,8 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                 RecipeEntityMapper.toRecipeIngredientEntities(recipe.ingredients(), ingredients, existingEntity)
         );
 
+        var dietaries = getOrCreateDietaries(recipe.dietaries());
+        existingEntity.setDietaries(RecipeEntityMapper.toRecipeDietaryEntities(recipe.dietaries(), dietaries, existingEntity));
         var saved = recipeRepository.save(existingEntity);
         return RecipeEntityMapper.toDomain(saved);
     }
@@ -306,6 +323,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         var existingNames = existingIngredients.stream()
                 .map(ing -> ing.getName().toLowerCase())
                 .toList();
+        // Ici en plus de ça, on peut faire une distance de levenshtein
         var newIngredientNames = ingredientNames.stream()
                 .filter(name -> !existingNames.contains(name.toLowerCase()))
                 .toList();
@@ -322,5 +340,20 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         var allIngredients = new ArrayList<>(existingIngredients);
         allIngredients.addAll(newIngredients);
         return List.copyOf(allIngredients);
+    }
+
+    private List<DietaryEntity> getOrCreateDietaries(List<String> dietariesNames){
+        var existingDietaries = dietaryRepository.findByNameIn(dietariesNames);
+        var existingNames = existingDietaries.stream().map(die ->
+                die.getName().toLowerCase()).toList();
+        var newDietariesNames = dietariesNames.stream().filter(name -> !existingNames.contains(name.toLowerCase())).toList();
+        var newDietaries = new ArrayList<DietaryEntity>();
+        newDietariesNames.forEach(name -> {
+            var newDietary = new DietaryEntity(name);
+            newDietaries.add(dietaryRepository.save(newDietary));
+        });
+        var allDietaries = new ArrayList<>(existingDietaries);
+        allDietaries.addAll(newDietaries);
+        return List.copyOf(allDietaries);
     }
 }

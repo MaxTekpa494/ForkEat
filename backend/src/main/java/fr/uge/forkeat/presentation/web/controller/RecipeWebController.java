@@ -45,10 +45,12 @@ public class RecipeWebController {
                 .map(RecipeDTOMapper::toDTO)
                 .toList();
         var allIngredientNames = recipeService.findAllIngredientNames();
+        var allDietaryNames = recipeService.findAllDietaryNames();
         var username = authPort.extractUsername();
 
         model.addAttribute("allAllergens", allAllergens);
         model.addAttribute("allIngredientNames", allIngredientNames);
+        model.addAttribute("allDietaryNames", allDietaryNames);
         model.addAttribute("selectedAllergenIds", Set.of());
         model.addAttribute("username", username);
         model.addAttribute("formAction", "/recipes");
@@ -130,8 +132,7 @@ public class RecipeWebController {
         }
 
         var isOwner = currentUser != null && currentUser.equals(recipe.usernameAuthor());
-        var hasActiveDietaryFlags = recipeDTO.dietaryFlags() != null &&
-                recipeDTO.dietaryFlags().values().stream().anyMatch(Boolean.TRUE::equals);
+        var hasActiveDietaryFlags = recipeDTO.dietaries() != null && !recipeDTO.dietaries().isEmpty();
         model.addAttribute("recipe", recipeDTO);
         model.addAttribute("isOwner", isOwner);
         model.addAttribute("isAuthenticated", currentUser != null);
@@ -169,11 +170,13 @@ public class RecipeWebController {
                 .map(RecipeDTOMapper::toDTO)
                 .toList();
         var allIngredientNames = recipeService.findAllIngredientNames();
+        var allDietaryNames = recipeService.findAllDietaryNames();
         var selectedAllergenIds = recipeDTO.allergens().stream().map(AllergenDTO::id).toList();
 
         model.addAttribute("recipe", recipeDTO);
         model.addAttribute("allAllergens", allAllergens);
         model.addAttribute("allIngredientNames", allIngredientNames);
+        model.addAttribute("allDietaryNames", allDietaryNames);
         model.addAttribute("selectedAllergenIds", selectedAllergenIds);
         model.addAttribute("username", currentUser);
         model.addAttribute("formAction", "/recipes/" + id + "/edit");
@@ -210,6 +213,7 @@ public class RecipeWebController {
                 .map(RecipeDTOMapper::toDTO)
                 .toList();
         var allIngredientNames = recipeService.findAllIngredientNames();
+        var allDietaryNames = recipeService.findAllDietaryNames();
         var username = authPort.extractUsername();
 
         var selectedAllergenIds = recipeParentDTO.allergens().stream().map(AllergenDTO::id).toList();
@@ -219,6 +223,7 @@ public class RecipeWebController {
         model.addAttribute("recipe", recipeParentDTO);
         model.addAttribute("allAllergens", allAllergens);
         model.addAttribute("allIngredientNames", allIngredientNames);
+        model.addAttribute("allDietaryNames", allDietaryNames);
         model.addAttribute("selectedAllergenIds", selectedAllergenIds);
         model.addAttribute("username", username);
         model.addAttribute("formAction", "/recipes/create-variant");

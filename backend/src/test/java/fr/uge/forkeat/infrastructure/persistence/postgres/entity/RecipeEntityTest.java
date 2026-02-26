@@ -86,7 +86,6 @@ class RecipeEntityTest extends AbstractIntegrationTest {
                     new RecipeStep(1, "Préchauffer le four à 180°C"),
                     new RecipeStep(2, "Éplucher les pommes")
             ));
-            recipe.setDietaryFlag(Map.of("vegetarian", true, "vegan", false, "glutenFree", false));
 
             entityManager.persist(recipe);
             entityManager.flush();
@@ -111,7 +110,6 @@ class RecipeEntityTest extends AbstractIntegrationTest {
             recipe.setAuthor(author);
             recipe.setStatus(RecipeStatus.DRAFT);
             recipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Mélanger")));
-            recipe.setDietaryFlag(Map.of("vegetarian", true));
 
             var recipeIngredient1 = new RecipeIngredientEntity(recipe, ingredient1, new BigDecimal("500"), "g");
             var recipeIngredient2 = new RecipeIngredientEntity(recipe, ingredient2, new BigDecimal("250"), "g");
@@ -139,7 +137,6 @@ class RecipeEntityTest extends AbstractIntegrationTest {
             recipe.setAuthor(author);
             recipe.setStatus(RecipeStatus.PUBLISHED);
             recipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Mélanger la farine")));
-            recipe.setDietaryFlag(Map.of("vegetarian", true));
 
             var recipeAllergen1 = new RecipeAllergenEntity(recipe, allergen1);
             var recipeAllergen2 = new RecipeAllergenEntity(recipe, allergen2);
@@ -162,7 +159,6 @@ class RecipeEntityTest extends AbstractIntegrationTest {
             parentRecipe.setAuthor(author);
             parentRecipe.setStatus(RecipeStatus.PUBLISHED);
             parentRecipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Étape 1")));
-            parentRecipe.setDietaryFlag(Map.of("vegetarian", true));
             entityManager.persist(parentRecipe);
 
             var childRecipe = new RecipeEntity();
@@ -172,7 +168,6 @@ class RecipeEntityTest extends AbstractIntegrationTest {
             childRecipe.setParent(parentRecipe);
             childRecipe.setStatus(RecipeStatus.DRAFT);
             childRecipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Étape modifiée")));
-            childRecipe.setDietaryFlag(Map.of("vegetarian", true, "vegan", true));
             entityManager.persist(childRecipe);
 
             entityManager.flush();
@@ -199,7 +194,6 @@ class RecipeEntityTest extends AbstractIntegrationTest {
             recipe.setAuthor(author);
             recipe.setStatus(RecipeStatus.DRAFT);
             recipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Ajouter le sucre")));
-            recipe.setDietaryFlag(Map.of("vegetarian", true));
 
             var recipeIngredient = new RecipeIngredientEntity(recipe, ingredient, new BigDecimal("100"), "g");
             recipe.addIngredient(recipeIngredient);
@@ -228,7 +222,6 @@ class RecipeEntityTest extends AbstractIntegrationTest {
             recipe.setAuthor(author);
             recipe.setStatus(RecipeStatus.DRAFT);
             recipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Battre les œufs")));
-            recipe.setDietaryFlag(Map.of("vegetarian", true));
 
             var recipeAllergen = new RecipeAllergenEntity(recipe, allergen);
             recipe.addAllergen(recipeAllergen);
@@ -257,7 +250,6 @@ class RecipeEntityTest extends AbstractIntegrationTest {
             recipe.setAuthor(author);
             recipe.setStatus(RecipeStatus.DRAFT);
             recipe.setStepByStepInstructions(List.of(new RecipeStep(1, "Étape")));
-            recipe.setDietaryFlag(Map.of("vegetarian", false));
             entityManager.persist(recipe);
             entityManager.flush();
 
@@ -280,7 +272,6 @@ class RecipeEntityTest extends AbstractIntegrationTest {
             recipe1.setAuthor(author);
             recipe1.setStatus(RecipeStatus.PUBLISHED);
             recipe1.setStepByStepInstructions(List.of(new RecipeStep(1, "Mélanger")));
-            recipe1.setDietaryFlag(Map.of("vegetarian", true));
             recipe1.addIngredient(new RecipeIngredientEntity(recipe1, ingredientChocolat, BigDecimal.TEN, "g"));
             recipe1.addIngredient(new RecipeIngredientEntity(recipe1, ingredientFarine, BigDecimal.TEN, "g"));
             recipe1.addAllergen(new RecipeAllergenEntity(recipe1, allergenGluten));
@@ -292,7 +283,6 @@ class RecipeEntityTest extends AbstractIntegrationTest {
             recipe2.setAuthor(author);
             recipe2.setStatus(RecipeStatus.PUBLISHED);
             recipe2.setStepByStepInstructions(List.of(new RecipeStep(1, "Battre les oeufs")));
-            recipe2.setDietaryFlag(Map.of("vegetarian", true));
             recipe2.addIngredient(new RecipeIngredientEntity(recipe2, ingredientChocolat, BigDecimal.TEN, "g"));
             entityManager.persist(recipe2);
 

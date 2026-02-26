@@ -2,12 +2,9 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RecipeCountsProjection;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RecipeUserInteractionProjection;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.*;
 import fr.uge.forkeat.service.model.recipe.RecipeUserInteraction;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -33,7 +30,6 @@ import org.springframework.data.domain.PageRequest;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -64,6 +60,12 @@ class RecipePersistenceAdapterTest {
     private RecipeIngredientRepository recipeIngredientRepository;
     @Mock
     private RecipeAllergenRepository recipeAllergenRepository;
+    @Mock
+    private RecipeDietaryRepository recipeDietaryRepository;
+
+    @Mock
+    private DietaryRepository dietaryRepository;
+
 
     @Mock
     private EntityManager entityManager;
@@ -72,14 +74,15 @@ class RecipePersistenceAdapterTest {
     private UserEntity author;
     private Instant now;
 
-    @BeforeEach
+
+  @BeforeEach
     void setUp() {
         adapter = new RecipePersistenceAdapter(
                 recipeRepository, userRepository,
                 allergenRepository, ingredientRepository,
                 neo4jRecipeRepository,
                 recipeAllergenRepository, recipeIngredientRepository,
-                entityManager);
+                recipeDietaryRepository, dietaryRepository, entityManager);
         now = Instant.now();
 
         author = new UserEntity();
@@ -229,7 +232,7 @@ class RecipePersistenceAdapterTest {
             var parentEntity = createRecipeEntity(parentId, "Parent", RecipeStatus.PUBLISHED);
             var recipe = new Recipe(
                     recipeId, "Variante", "Summary", parentId, "chef_test",
-                    30, null, RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now
+                    30, null, RecipeStatus.DRAFT, List.of(), List.of(), List.of(), List.of(), now, now
             );
             var savedEntity = createRecipeEntity(recipeId, "Variante", RecipeStatus.DRAFT);
 
@@ -250,7 +253,7 @@ class RecipePersistenceAdapterTest {
             var parentId = UUID.randomUUID();
             var recipe = new Recipe(
                     UUID.randomUUID(), "Variante", "Summary", parentId, "chef_test",
-                    30, null, RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now
+                    30, null, RecipeStatus.DRAFT, List.of(), List.of(), List.of(), List.of(), now, now
             );
 
             when(userRepository.findByUsername("chef_test")).thenReturn(Optional.of(author));
@@ -269,7 +272,7 @@ class RecipePersistenceAdapterTest {
             var recipe = new Recipe(
                     recipeId, "Recette avec allergene", "Summary", null, "chef_test",
                     30, null, RecipeStatus.DRAFT, List.of(), List.of(),
-                    List.of(new Allergen(allergenId, "Gluten", AllergenSeverity.HIGH)), Map.of(), now, now
+                    List.of(new Allergen(allergenId, "Gluten", AllergenSeverity.HIGH)), List.of(), now, now
             );
             var savedEntity = createRecipeEntity(recipeId, "Recette avec allergene", RecipeStatus.DRAFT);
 
@@ -294,7 +297,7 @@ class RecipePersistenceAdapterTest {
                     recipeId, "Recette avec ingredient", "Summary", null, "chef_test",
                     30, null, RecipeStatus.DRAFT, List.of(),
                     List.of(new RecipeIngredient("Farine", 250.0, "g")),
-                    List.of(), Map.of(), now, now
+                    List.of(), List.of(), now, now
             );
             var savedEntity = createRecipeEntity(recipeId, "Recette avec ingredient", RecipeStatus.DRAFT);
 
@@ -407,6 +410,37 @@ class RecipePersistenceAdapterTest {
             adapter.deleteById(recipeId);
 
             verify(recipeRepository).deleteById(recipeId);
+        }
+    }
+
+    @Nested
+    class FindAllDietaryNames {
+
+        @Test
+        void shouldReturnSortedDietaryNames() {
+            var vegan = new DietaryEntity("vegan");
+            vegan.setId(UUID.randomUUID());
+            var halal = new DietaryEntity("halal");
+            halal.setId(UUID.randomUUID());
+            var vegetarian = new DietaryEntity("végétarien");
+            vegetarian.setId(UUID.randomUUID());
+            when(dietaryRepository.findAll()).thenReturn(List.of(vegan, halal, vegetarian));
+
+            var result = adapter.findAllDietaryNames();
+
+            assertEquals(3, result.size());
+            assertEquals(List.of("halal", "vegan", "végétarien"), result);
+            verify(dietaryRepository).findAll();
+        }
+
+        @Test
+        void shouldReturnEmptyListWhenNoDietaries() {
+            when(dietaryRepository.findAll()).thenReturn(List.of());
+
+            var result = adapter.findAllDietaryNames();
+
+            assertTrue(result.isEmpty());
+            verify(dietaryRepository).findAll();
         }
     }
 
@@ -540,12 +574,13 @@ class RecipePersistenceAdapterTest {
                     recipeId, "Updated Title", "Updated summary", null, "chef_test",
                     45, "http://new-image.jpg", RecipeStatus.PUBLISHED,
                     List.of(new fr.uge.forkeat.service.model.recipe.RecipeStep(1, "New step")),
-                    List.of(), List.of(), Map.of("vegan", true), now, now
+                    List.of(), List.of(), List.of(), now, now
             );
 
             when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
             when(allergenRepository.findAllById(any())).thenReturn(List.of());
             when(ingredientRepository.findByNameIn(any())).thenReturn(List.of());
+            when(dietaryRepository.findByNameIn(any())).thenReturn(List.of());
             when(recipeRepository.save(any(RecipeEntity.class))).thenReturn(existingEntity);
 
             var result = adapter.update(recipeId, updatedRecipe);
@@ -557,6 +592,7 @@ class RecipePersistenceAdapterTest {
             assertEquals(RecipeStatus.PUBLISHED, result.status());
             verify(recipeAllergenRepository).deleteByRecipeId(recipeId);
             verify(recipeIngredientRepository).deleteByRecipeId(recipeId);
+            verify(recipeDietaryRepository).deleteByRecipeId(recipeId);
             verify(entityManager).flush();
             verify(entityManager).clear();
             verify(recipeRepository).save(any(RecipeEntity.class));
@@ -604,7 +640,7 @@ class RecipePersistenceAdapterTest {
                             new RecipeIngredient("Farine", 250.0, "g"),
                             new RecipeIngredient("Nouvel Ingredient", 100.0, "g")
                     ),
-                    List.of(), Map.of(), now, now
+                    List.of(), List.of(), now, now
             );
 
             when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
@@ -638,7 +674,7 @@ class RecipePersistenceAdapterTest {
                     30, null, RecipeStatus.DRAFT,
                     List.of(), List.of(),
                     List.of(new Allergen(allergenId, "Gluten", AllergenSeverity.HIGH)),
-                    Map.of(), now, now
+                    List.of(), now, now
             );
 
             when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
@@ -663,7 +699,7 @@ class RecipePersistenceAdapterTest {
 
             var updatedRecipe = new Recipe(
                     recipeId, "Updated Variant", "New summary", parentId, "chef_test",
-                    30, null, RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now
+                    30, null, RecipeStatus.DRAFT, List.of(), List.of(), List.of(), List.of(), now, now
             );
 
             when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
@@ -686,13 +722,15 @@ class RecipePersistenceAdapterTest {
             when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
             when(allergenRepository.findAllById(any())).thenReturn(List.of());
             when(ingredientRepository.findByNameIn(any())).thenReturn(List.of());
+            when(dietaryRepository.findByNameIn(any())).thenReturn(List.of());
             when(recipeRepository.save(any(RecipeEntity.class))).thenReturn(existingEntity);
 
             adapter.update(recipeId, updatedRecipe);
 
-            var inOrder = inOrder(recipeAllergenRepository, recipeIngredientRepository, entityManager, recipeRepository);
+            var inOrder = inOrder(recipeAllergenRepository, recipeIngredientRepository, recipeDietaryRepository, entityManager, recipeRepository);
             inOrder.verify(recipeAllergenRepository).deleteByRecipeId(recipeId);
             inOrder.verify(recipeIngredientRepository).deleteByRecipeId(recipeId);
+            inOrder.verify(recipeDietaryRepository).deleteByRecipeId(recipeId);
             inOrder.verify(entityManager).flush();
             inOrder.verify(entityManager).clear();
             inOrder.verify(recipeRepository).findById(recipeId);
@@ -712,7 +750,7 @@ class RecipePersistenceAdapterTest {
                             new fr.uge.forkeat.service.model.recipe.RecipeStep(2, "Step 2"),
                             new fr.uge.forkeat.service.model.recipe.RecipeStep(3, "Step 3")
                     ),
-                    List.of(), List.of(), Map.of(), now, now
+                    List.of(), List.of(), List.of(), now, now
             );
 
             when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
@@ -736,7 +774,6 @@ class RecipePersistenceAdapterTest {
         entity.setStatus(status);
         entity.setPreparationMinutes(30);
         entity.setStepByStepInstructions(List.of(new fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeStep(1, "Default step")));
-        entity.setDietaryFlag(Map.of());
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
         return entity;
@@ -745,7 +782,7 @@ class RecipePersistenceAdapterTest {
     private Recipe createRecipe(UUID id, String title, RecipeStatus status) {
         return new Recipe(
                 id, title, "Summary for " + title, null, "chef_test",
-                30, null, status, List.of(), List.of(), List.of(), Map.of(), now, now
+                30, null, status, List.of(), List.of(), List.of(), List.of(), now, now
         );
     }
 }

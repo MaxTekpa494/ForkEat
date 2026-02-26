@@ -28,6 +28,8 @@ public interface RecipePersistence {
 
   List<String> findAllIngredientNames();
 
+  List<String> findAllDietaryNames();
+
   Recipe save(Recipe recipe);
 
   Recipe update(UUID id, Recipe recipe);

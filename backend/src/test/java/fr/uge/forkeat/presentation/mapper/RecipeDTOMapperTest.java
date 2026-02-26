@@ -10,7 +10,6 @@ import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -25,7 +24,7 @@ class RecipeDTOMapperTest {
 				"https://example.com/image.jpg", RecipeStatus.PUBLISHED,
 				List.of(new RecipeStep(1, "Préchauffer le four")), List.of(new RecipeIngredient("Pomme", 500.0, "g")),
 				List.of(new Allergen(UUID.randomUUID(), "Gluten", AllergenSeverity.HIGH)),
-				Map.of("vegetarian", true, "vegan", false), now, now);
+				List.of("vegetarian"), now, now);
 
 		var dto = RecipeDTOMapper.toDTO(recipe);
 
@@ -41,8 +40,8 @@ class RecipeDTOMapperTest {
 		assertEquals(1, dto.steps().size());
 		assertEquals(1, dto.ingredients().size());
 		assertEquals(1, dto.allergens().size());
-		assertTrue(dto.dietaryFlags().get("vegetarian"));
-		assertFalse(dto.dietaryFlags().get("vegan"));
+		assertTrue(dto.dietaries().contains("vegetarian"));
+		assertFalse(dto.dietaries().contains("vegan"));
 	}
 
 	@Test
@@ -52,10 +51,10 @@ class RecipeDTOMapperTest {
 		var now = Instant.now();
 
 		var parentDTO = new RecipeDTO(parentId, "Recette originale", "La base", null, "chef", 30, null, "PUBLISHED",
-				List.of(), List.of(), List.of(), Map.of(), now, now);
+				List.of(), List.of(), List.of(), List.of(), now, now);
 
 		var childRecipe = new Recipe(childId, "Variante", "Une variante", parentId, "chef", 35, null,
-				RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now);
+				RecipeStatus.DRAFT, List.of(), List.of(), List.of(), List.of(), now, now);
 
 		var dto = RecipeDTOMapper.toDTO(childRecipe);
 
@@ -131,7 +130,7 @@ class RecipeDTOMapperTest {
 		var dto = new RecipeDTO(id, "Crêpes bretonnes", "Des crêpes traditionnelles", null, "chef_user", 20,
 				"https://example.com/crepes.jpg", "PUBLISHED", List.of(new RecipeStepDTO(1, "Mélanger la farine")),
 				List.of(new RecipeIngredientDTO("Farine", 250.0, "g")),
-				List.of(new AllergenDTO(UUID.randomUUID(), "Gluten", "HIGH")), Map.of("vegetarian", true), now, now);
+				List.of(new AllergenDTO(UUID.randomUUID(), "Gluten", "HIGH")), List.of("vegetarian"), now, now);
 
 		var recipe = RecipeDTOMapper.toDomain(dto);
 
@@ -155,7 +154,7 @@ class RecipeDTOMapperTest {
 	@Test
 	void toDomain_shouldThrowWhenUsernameIsNull() {
 		var dto = new RecipeDTO(UUID.randomUUID(), "Test", "Summary", null, null, 10, null, "DRAFT", List.of(),
-				List.of(), List.of(), Map.of(), Instant.now(), Instant.now());
+				List.of(), List.of(), List.of(), Instant.now(), Instant.now());
 
 		assertThrows(NullPointerException.class, () -> RecipeDTOMapper.toDomain(dto));
 	}
@@ -163,7 +162,7 @@ class RecipeDTOMapperTest {
 	@Test
 	void toDomain_shouldDefaultToDraftStatusWhenNull() {
 		var dto = new RecipeDTO(UUID.randomUUID(), "Test", "Summary", null, "chef", 10, null, null, List.of(),
-				List.of(), List.of(), Map.of(), Instant.now(), Instant.now());
+				List.of(), List.of(), List.of(), Instant.now(), Instant.now());
 
 		var recipe = RecipeDTOMapper.toDomain(dto);
 
@@ -174,10 +173,10 @@ class RecipeDTOMapperTest {
 	void toDomain_shouldExtractParentIdFromParentDTO() {
 		var parentId = UUID.randomUUID();
 		var parentDTO = new RecipeDTO(parentId, "Parent", "Parent recipe", null, "chef", 30, null, "PUBLISHED",
-				List.of(), List.of(), List.of(), Map.of(), Instant.now(), Instant.now());
+				List.of(), List.of(), List.of(), List.of(), Instant.now(), Instant.now());
 
 		var dto = new RecipeDTO(UUID.randomUUID(), "Child", "Child recipe", parentDTO.id(), "chef", 25, null, "DRAFT",
-				List.of(), List.of(), List.of(), Map.of(), Instant.now(), Instant.now());
+				List.of(), List.of(), List.of(), List.of(), Instant.now(), Instant.now());
 
 		var recipe = RecipeDTOMapper.toDomain(dto);
 
@@ -188,7 +187,7 @@ class RecipeDTOMapperTest {
 	void toDomain_shouldConvertStepsDTOToDomain() {
 		var dto = new RecipeDTO(UUID.randomUUID(), "Test", "Summary", null, "chef", 10, null, "DRAFT",
 				List.of(new RecipeStepDTO(1, "Premier pas"), new RecipeStepDTO(2, "Deuxième pas")), List.of(),
-				List.of(), Map.of(), Instant.now(), Instant.now());
+				List.of(), List.of(), Instant.now(), Instant.now());
 
 		var recipe = RecipeDTOMapper.toDomain(dto);
 
@@ -201,7 +200,7 @@ class RecipeDTOMapperTest {
 	void toDomain_shouldConvertIngredientsDTOToDomain() {
 		var dto = new RecipeDTO(UUID.randomUUID(), "Test", "Summary", null, "chef", 10, null, "DRAFT", List.of(),
 				List.of(new RecipeIngredientDTO("Sel", 5.0, "g"), new RecipeIngredientDTO("Poivre", 2.0, "g")),
-				List.of(), Map.of(), Instant.now(), Instant.now());
+				List.of(), List.of(), Instant.now(), Instant.now());
 
 		var recipe = RecipeDTOMapper.toDomain(dto);
 
@@ -214,7 +213,7 @@ class RecipeDTOMapperTest {
 	void toDomain_shouldConvertAllergensDTOToDomain() {
 		var allergenId = UUID.randomUUID();
 		var dto = new RecipeDTO(UUID.randomUUID(), "Test", "Summary", null, "chef", 10, null, "DRAFT", List.of(),
-				List.of(), List.of(new AllergenDTO(allergenId, "Œuf", "CRITICAL")), Map.of(), Instant.now(),
+				List.of(), List.of(new AllergenDTO(allergenId, "Œuf", "CRITICAL")), List.of(), Instant.now(),
 				Instant.now());
 
 		var recipe = RecipeDTOMapper.toDomain(dto);
@@ -249,7 +248,7 @@ class RecipeDTOMapperTest {
 				List.of(new RecipeStep(1, "Préparer la pâte"), new RecipeStep(2, "Préparer la garniture")),
 				List.of(new RecipeIngredient("Lardons", 200.0, "g"), new RecipeIngredient("Crème fraîche", 30.0, "cl")),
 				List.of(new Allergen(allergenId, "Lait", AllergenSeverity.MEDIUM)),
-				Map.of("vegetarian", false, "glutenFree", false), now, now);
+				List.of(), now, now);
 
 		var dto = RecipeDTOMapper.toDTO(originalRecipe);
 		var reconvertedRecipe = RecipeDTOMapper.toDomain(dto);
@@ -267,6 +266,6 @@ class RecipeDTOMapperTest {
 	private Recipe createMinimalRecipe(List<RecipeStep> steps, List<RecipeIngredient> ingredients,
 			List<Allergen> allergens) {
 		return new Recipe(UUID.randomUUID(), "Test Recipe", "Test Summary", null, "test_user", 10, null,
-				RecipeStatus.DRAFT, steps, ingredients, allergens, Map.of(), Instant.now(), Instant.now());
+				RecipeStatus.DRAFT, steps, ingredients, allergens, List.of(), Instant.now(), Instant.now());
 	}
 }

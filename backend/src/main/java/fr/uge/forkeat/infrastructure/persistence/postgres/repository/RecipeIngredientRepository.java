@@ -13,7 +13,6 @@ import java.util.UUID;
 @Repository
 public interface RecipeIngredientRepository extends JpaRepository<RecipeIngredientEntity, UUID> {
     @Modifying
-    //@Transactional
     @Query("DELETE FROM RecipeIngredientEntity ri WHERE ri.recipe.id = :recipeId")
     void deleteByRecipeId(@Param("recipeId") UUID recipeId);
 }
