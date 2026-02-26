@@ -10,4 +10,5 @@ public interface PlatformWalletPersistence {
     Optional<PlatformWallet> findByType(PlatformWalletType type);
     PlatformWallet save(PlatformWallet wallet);
     List<PlatformWallet> findAll();
+    long balance(PlatformWalletType type);
 }

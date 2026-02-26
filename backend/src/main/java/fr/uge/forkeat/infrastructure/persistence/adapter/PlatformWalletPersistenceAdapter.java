@@ -49,4 +49,15 @@ public class PlatformWalletPersistenceAdapter implements PlatformWalletPersisten
                 .map(PlatformWalletEntityMapper::toDomain)
                 .toList();
     }
+
+    @Override
+    public long balance(PlatformWalletType type) {
+        Objects.requireNonNull(type);
+        var wallet = platformWalletRepository.findByType(type);
+
+        if(wallet.isEmpty()){
+            return 0L;
+        }
+        return wallet.get().getWallet().getBalance();
+    }
 }

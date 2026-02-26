@@ -28,7 +28,7 @@ public class PlatformWalletService {
 
     @Transactional(readOnly = true)
     public long getBalance(PlatformWalletType type) {
-        return getWallet(type).balance();
+        return platformWalletPersistence.balance(type);
     }
 
     @Transactional

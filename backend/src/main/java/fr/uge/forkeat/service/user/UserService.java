@@ -1,6 +1,7 @@
 package fr.uge.forkeat.service.user;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.persistence.UserPersistence;
@@ -44,7 +45,7 @@ public class UserService {
     }
 
     @Transactional(readOnly = true)
-    public List<User> getUsersByRole(UserRole role) {
+    public PageResult<User> getUsersByRole(UserRole role) {
         Objects.requireNonNull(role);
         return userPersistence.findAllByRole(role);
     }

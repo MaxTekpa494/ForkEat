@@ -61,23 +61,20 @@ public class AdminRestController {
 
     @GetMapping("/admins")
     public ResponseEntity<HttpResponse<UserDTO>> getAdmins() {
-        var admins = userService.getUsersByRole(UserRole.ADMIN)
-                .stream().map(UserDTOMapper::toDTO).toList();
-        return ResponseEntity.ok(new ListResponse<>(admins, admins.size()));
+        var admins = userService.getUsersByRole(UserRole.ADMIN);
+        return ResponseEntity.ok(new ListResponse<>(admins.items().stream().map(UserDTOMapper::toDTO).toList(), admins.total()));
     }
 
     @GetMapping("/users")
     public ResponseEntity<HttpResponse<UserDTO>> getMembers() {
-        var members = userService.getUsersByRole(UserRole.MEMBER)
-                .stream().map(UserDTOMapper::toDTO).toList();
-        return ResponseEntity.ok(new ListResponse<>(members, members.size()));
+        var members = userService.getUsersByRole(UserRole.MEMBER);
+        return ResponseEntity.ok(new ListResponse<>(members.items().stream().map(UserDTOMapper::toDTO).toList(), members.total()));
     }
 
     @GetMapping("/moderators")
     public ResponseEntity<HttpResponse<UserDTO>> getModerators() {
-        var moderators = userService.getUsersByRole(UserRole.MODERATOR)
-                .stream().map(UserDTOMapper::toDTO).toList();
-        return ResponseEntity.ok(new ListResponse<>(moderators, moderators.size()));
+        var moderators = userService.getUsersByRole(UserRole.MODERATOR);
+        return ResponseEntity.ok(new ListResponse<>(moderators.items().stream().map(UserDTOMapper::toDTO).toList(), moderators.total()));
     }
 
     @GetMapping("/stats/users")

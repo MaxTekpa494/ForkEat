@@ -3,6 +3,8 @@ package fr.uge.forkeat.infrastructure.persistence.postgres.repository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.UserProfileView;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -19,6 +21,6 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     Optional<UserEntity> findByEmail(String email);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
-    List<UserEntity> findByRole(UserRole role);
+    Page<UserEntity> findByRole(UserRole role, Pageable pageable);
     long countByRole(UserRole role);
 }

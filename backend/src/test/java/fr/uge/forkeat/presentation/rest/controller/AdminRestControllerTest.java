@@ -25,6 +25,8 @@ import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import fr.uge.forkeat.service.model.PageResult;
+
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -138,7 +140,7 @@ class AdminRestControllerTest {
             var member = new User(UUID.randomUUID(), "member1", "First", "Last",
                     "m@forkeat.fr", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL,
                     Instant.now(), Instant.now(), true);
-            when(userQueryService.getUsersByRole(UserRole.MEMBER)).thenReturn(List.of(member));
+            when(userQueryService.getUsersByRole(UserRole.MEMBER)).thenReturn(new PageResult<>(List.of(member), 1));
 
             mockMvc.perform(get("/api/admin/users"))
                     .andExpect(status().isOk())
@@ -148,7 +150,7 @@ class AdminRestControllerTest {
 
         @Test
         void shouldReturnModeratorList() throws Exception {
-            when(userQueryService.getUsersByRole(UserRole.MODERATOR)).thenReturn(List.of(createModerator()));
+            when(userQueryService.getUsersByRole(UserRole.MODERATOR)).thenReturn(new PageResult<>(List.of(createModerator()), 1));
 
             mockMvc.perform(get("/api/admin/moderators"))
                     .andExpect(status().isOk())
