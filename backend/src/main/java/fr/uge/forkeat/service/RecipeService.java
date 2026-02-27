@@ -48,7 +48,7 @@ public class RecipeService {
             recipe.stepByStepInstructions(),
             recipe.ingredients(),
             recipe.allergens(),
-            recipe.dietaryFlags(),
+            recipe.dietaries(),
             recipe.createdAt(),
             recipe.updatedAt()
     );
@@ -82,7 +82,7 @@ public class RecipeService {
             updatedRecipe.stepByStepInstructions(),
             updatedRecipe.ingredients(),
             updatedRecipe.allergens(),
-            updatedRecipe.dietaryFlags(),
+            updatedRecipe.dietaries(),
             existingRecipe.createdAt(),
             updatedRecipe.updatedAt()
     );
@@ -140,6 +140,10 @@ public class RecipeService {
 
   public List<String> findAllIngredientNames() {
     return recipePersistence.findAllIngredientNames();
+  }
+
+  public List<String> findAllDietaryNames() {
+    return recipePersistence.findAllDietaryNames();
   }
 
   public List<Recipe> findByAuthorUsername(String authorUsername) {

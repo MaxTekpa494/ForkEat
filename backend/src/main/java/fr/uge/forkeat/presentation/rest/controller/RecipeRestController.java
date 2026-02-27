@@ -37,7 +37,7 @@ public final class RecipeRestController {
     this.userService = userService;
   }
 
-  public record AllergensIngredients(List<AllergenDTO> allergens, List<String> ingredients) {
+  public record AllergensIngredients(List<AllergenDTO> allergens, List<String> ingredients, List<String> dietaries) {
   }
 
   public record RecipeData(RecipeDetailsDTO recipe, RecipeDTO parent, RecipeDiff diff) {
@@ -87,7 +87,8 @@ public final class RecipeRestController {
             .map(RecipeDTOMapper::toDTO)
             .toList();
     var allIngredientNames = recipeService.findAllIngredientNames();
-    return ResponseEntity.ok(new ItemResponse<>(new AllergensIngredients(allAllergens, allIngredientNames)));
+    var allDietaryNames = recipeService.findAllDietaryNames();
+    return ResponseEntity.ok(new ItemResponse<>(new AllergensIngredients(allAllergens, allIngredientNames, allDietaryNames)));
   }
 
   @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

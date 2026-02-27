@@ -1,8 +1,10 @@
 package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.DietaryEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeAllergenEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeDietaryEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeIngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
@@ -20,7 +22,6 @@ import org.junit.jupiter.api.Test;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -56,7 +57,10 @@ class RecipeEntityMapperTest {
                 new fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeStep(1, "Préchauffer le four"),
                 new fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeStep(2, "Préparer la pâte")
         ));
-        entity.setDietaryFlag(Map.of("vegetarian", true, "vegan", false));
+
+        var vegEntity = new DietaryEntity("vegetarian");
+        vegEntity.setId(UUID.randomUUID());
+        entity.addDietary(new RecipeDietaryEntity(entity, vegEntity));
 
         var recipe = RecipeEntityMapper.toDomain(entity);
 
@@ -69,8 +73,8 @@ class RecipeEntityMapperTest {
         assertEquals("https://example.com/tarte.jpg", recipe.imageUrl());
         assertEquals(RecipeStatus.PUBLISHED, recipe.status());
         assertEquals(2, recipe.stepByStepInstructions().size());
-        assertTrue(recipe.dietaryFlags().get("vegetarian"));
-        assertFalse(recipe.dietaryFlags().get("vegan"));
+        assertTrue(recipe.dietaries().contains("vegetarian"));
+        assertFalse(recipe.dietaries().contains("vegan"));
     }
 
     @Test
@@ -168,6 +172,25 @@ class RecipeEntityMapperTest {
     }
 
     @Test
+    void toDomain_shouldConvertDietariesCorrectly() {
+        var entity = createRecipeEntity(UUID.randomUUID(), "Test", "Summary");
+
+        var veganEntity = new DietaryEntity("vegan");
+        veganEntity.setId(UUID.randomUUID());
+        var halalEntity = new DietaryEntity("halal");
+        halalEntity.setId(UUID.randomUUID());
+
+        entity.addDietary(new RecipeDietaryEntity(entity, veganEntity));
+        entity.addDietary(new RecipeDietaryEntity(entity, halalEntity));
+
+        var recipe = RecipeEntityMapper.toDomain(entity);
+
+        assertEquals(2, recipe.dietaries().size());
+        assertTrue(recipe.dietaries().contains("vegan"));
+        assertTrue(recipe.dietaries().contains("halal"));
+    }
+
+    @Test
     void toDomain_shouldHandleNullQuantity() {
         var entity = createRecipeEntity(UUID.randomUUID(), "Test", "Summary");
 
@@ -193,6 +216,7 @@ class RecipeEntityMapperTest {
         assertNotNull(recipe.stepByStepInstructions());
         assertNotNull(recipe.ingredients());
         assertNotNull(recipe.allergens());
+        assertNotNull(recipe.dietaries());
     }
 
     @Test
@@ -214,7 +238,7 @@ class RecipeEntityMapperTest {
                 ),
                 List.of(new RecipeIngredient("Lardons", 200.0, "g")),
                 List.of(new Allergen(allergenId, "Lait", AllergenSeverity.MEDIUM)),
-                Map.of("vegetarian", false),
+                List.of(),
                 now,
                 now
         );
@@ -228,7 +252,8 @@ class RecipeEntityMapperTest {
         var entity = RecipeEntityMapper.toEntity(
                 recipe, null, author,
                 List.of(allergenEntity),
-                List.of(ingredientEntity)
+                List.of(ingredientEntity),
+                List.of()
         );
 
         assertNotNull(entity);
@@ -244,9 +269,42 @@ class RecipeEntityMapperTest {
     }
 
     @Test
+    void toEntity_shouldConvertDietariesToEntity() {
+        var recipeId = UUID.randomUUID();
+        var recipe = new Recipe(
+                recipeId,
+                "Recette végane",
+                "Une recette délicieuse",
+                null,
+                "chef_arnaud",
+                30,
+                null,
+                RecipeStatus.PUBLISHED,
+                List.of(),
+                List.of(),
+                List.of(),
+                List.of("vegan", "végétarien"),
+                now,
+                now
+        );
+
+        var veganEntity = new DietaryEntity("vegan");
+        veganEntity.setId(UUID.randomUUID());
+        var vegEntity = new DietaryEntity("végétarien");
+        vegEntity.setId(UUID.randomUUID());
+
+        var entity = RecipeEntityMapper.toEntity(
+                recipe, null, author, List.of(), List.of(), List.of(veganEntity, vegEntity)
+        );
+
+        assertNotNull(entity);
+        assertEquals(2, entity.getDietaries().size());
+    }
+
+    @Test
     void toEntity_shouldThrowWhenRecipeIsNull() {
         assertThrows(NullPointerException.class, () ->
-                RecipeEntityMapper.toEntity(null, null, author, List.of(), List.of())
+                RecipeEntityMapper.toEntity(null, null, author, List.of(), List.of(), List.of())
         );
     }
 
@@ -254,7 +312,7 @@ class RecipeEntityMapperTest {
     void toEntity_shouldThrowWhenAuthorIsNull() {
         var recipe = createMinimalRecipe();
         assertThrows(NullPointerException.class, () ->
-                RecipeEntityMapper.toEntity(recipe, null, null, List.of(), List.of())
+                RecipeEntityMapper.toEntity(recipe, null, null, List.of(), List.of(), List.of())
         );
     }
 
@@ -262,7 +320,7 @@ class RecipeEntityMapperTest {
     void toEntity_shouldThrowWhenAllergenEntitiesIsNull() {
         var recipe = createMinimalRecipe();
         assertThrows(NullPointerException.class, () ->
-                RecipeEntityMapper.toEntity(recipe, null, author, null, List.of())
+                RecipeEntityMapper.toEntity(recipe, null, author, null, List.of(), List.of())
         );
     }
 
@@ -270,7 +328,15 @@ class RecipeEntityMapperTest {
     void toEntity_shouldThrowWhenIngredientEntitiesIsNull() {
         var recipe = createMinimalRecipe();
         assertThrows(NullPointerException.class, () ->
-                RecipeEntityMapper.toEntity(recipe, null, author, List.of(), null)
+                RecipeEntityMapper.toEntity(recipe, null, author, List.of(), null, List.of())
+        );
+    }
+
+    @Test
+    void toEntity_shouldThrowWhenDietaryEntitiesIsNull() {
+        var recipe = createMinimalRecipe();
+        assertThrows(NullPointerException.class, () ->
+                RecipeEntityMapper.toEntity(recipe, null, author, List.of(), List.of(), null)
         );
     }
 
@@ -291,12 +357,12 @@ class RecipeEntityMapperTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                Map.of(),
+                List.of(),
                 now,
                 now
         );
 
-        var entity = RecipeEntityMapper.toEntity(recipe, parentEntity, author, List.of(), List.of());
+        var entity = RecipeEntityMapper.toEntity(recipe, parentEntity, author, List.of(), List.of(), List.of());
 
         assertNotNull(entity.getParent());
         assertEquals(parentId, entity.getParent().getId());
@@ -319,12 +385,12 @@ class RecipeEntityMapperTest {
                 ),
                 List.of(),
                 List.of(),
-                Map.of(),
+                List.of(),
                 now,
                 now
         );
 
-        var entity = RecipeEntityMapper.toEntity(recipe, null, author, List.of(), List.of());
+        var entity = RecipeEntityMapper.toEntity(recipe, null, author, List.of(), List.of(), List.of());
 
         assertEquals(2, entity.getStepByStepInstructions().size());
         assertEquals(1, entity.getStepByStepInstructions().get(0).stepNumber());
@@ -346,7 +412,7 @@ class RecipeEntityMapperTest {
                 List.of(),
                 List.of(),
                 List.of(new Allergen(unknownAllergenId, "Unknown", AllergenSeverity.LOW)),
-                Map.of(),
+                List.of(),
                 now,
                 now
         );
@@ -355,7 +421,7 @@ class RecipeEntityMapperTest {
         existingAllergenEntity.setId(UUID.randomUUID());
 
         assertThrows(IllegalStateException.class, () ->
-                RecipeEntityMapper.toEntity(recipe, null, author, List.of(existingAllergenEntity), List.of())
+                RecipeEntityMapper.toEntity(recipe, null, author, List.of(existingAllergenEntity), List.of(), List.of())
         );
     }
 
@@ -373,7 +439,7 @@ class RecipeEntityMapperTest {
                 List.of(),
                 List.of(new RecipeIngredient("Unknown", 100.0, "g")),
                 List.of(),
-                Map.of(),
+                List.of(),
                 now,
                 now
         );
@@ -382,7 +448,7 @@ class RecipeEntityMapperTest {
         existingIngredientEntity.setId(UUID.randomUUID());
 
         assertThrows(IllegalStateException.class, () ->
-                RecipeEntityMapper.toEntity(recipe, null, author, List.of(), List.of(existingIngredientEntity))
+                RecipeEntityMapper.toEntity(recipe, null, author, List.of(), List.of(existingIngredientEntity), List.of())
         );
     }
 
@@ -400,7 +466,7 @@ class RecipeEntityMapperTest {
                 List.of(),
                 List.of(new RecipeIngredient("FARINE", 250.0, "g")),
                 List.of(),
-                Map.of(),
+                List.of(),
                 now,
                 now
         );
@@ -408,7 +474,7 @@ class RecipeEntityMapperTest {
         var ingredientEntity = new IngredientEntity("farine", "Céréale", false);
         ingredientEntity.setId(UUID.randomUUID());
 
-        var entity = RecipeEntityMapper.toEntity(recipe, null, author, List.of(), List.of(ingredientEntity));
+        var entity = RecipeEntityMapper.toEntity(recipe, null, author, List.of(), List.of(ingredientEntity), List.of());
 
         assertEquals(1, entity.getIngredients().size());
         assertEquals("farine", entity.getIngredients().get(0).getIngredient().getName());
@@ -428,7 +494,7 @@ class RecipeEntityMapperTest {
                 List.of(),
                 List.of(new RecipeIngredient("Lait", 0.5, "L")),
                 List.of(),
-                Map.of(),
+                List.of(),
                 now,
                 now
         );
@@ -436,7 +502,7 @@ class RecipeEntityMapperTest {
         var ingredientEntity = new IngredientEntity("Lait", "Produit laitier", false);
         ingredientEntity.setId(UUID.randomUUID());
 
-        var entity = RecipeEntityMapper.toEntity(recipe, null, author, List.of(), List.of(ingredientEntity));
+        var entity = RecipeEntityMapper.toEntity(recipe, null, author, List.of(), List.of(ingredientEntity), List.of());
 
         assertEquals(new BigDecimal("0.5"), entity.getIngredients().get(0).getQuantity());
     }
@@ -451,7 +517,6 @@ class RecipeEntityMapperTest {
                 new fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeStep(1, "Step 1"),
                 new fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeStep(2, "Step 2")
         ));
-        originalEntity.setDietaryFlag(Map.of("vegetarian", true));
 
         var recipe = RecipeEntityMapper.toDomain(originalEntity);
 
@@ -461,6 +526,7 @@ class RecipeEntityMapperTest {
         assertEquals(30, recipe.preparationMinutes());
         assertEquals(RecipeStatus.PUBLISHED, recipe.status());
         assertEquals(2, recipe.stepByStepInstructions().size());
+        assertTrue(recipe.dietaries().isEmpty());
     }
 
     private RecipeEntity createRecipeEntity(UUID id, String title, String summary) {
@@ -471,7 +537,6 @@ class RecipeEntityMapperTest {
         entity.setAuthor(author);
         entity.setStatus(RecipeStatus.DRAFT);
         entity.setStepByStepInstructions(List.of(new fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeStep(1, "Default step")));
-        entity.setDietaryFlag(Map.of());
         entity.setCreatedAt(now);
         entity.setUpdatedAt(now);
         return entity;
@@ -490,7 +555,7 @@ class RecipeEntityMapperTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                Map.of(),
+                List.of(),
                 now,
                 now
         );

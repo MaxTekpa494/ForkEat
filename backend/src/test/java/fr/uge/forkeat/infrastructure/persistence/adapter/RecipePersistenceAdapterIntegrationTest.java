@@ -108,7 +108,7 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
                     60, null, RecipeStatus.DRAFT,
                     List.of(new RecipeStep(1, "Melanger")),
                     List.of(new RecipeIngredient("Farine", 250.0, "g")),
-                    List.of(), Map.of(), now, now
+                    List.of(), List.of(), now, now
             );
 
             var saved = adapter.save(recipe);
@@ -128,7 +128,7 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
                     UUID.randomUUID(), "Pain", "Du bon pain", null, "chef_integration",
                     120, null, RecipeStatus.DRAFT, List.of(), List.of(),
                     List.of(new Allergen(savedAllergen.getId(), "Gluten", AllergenSeverity.HIGH)),
-                    Map.of(), now, now
+                    List.of(), now, now
             );
 
             var saved = adapter.save(recipe);
@@ -146,7 +146,7 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
 
             var variantRecipe = new Recipe(
                     UUID.randomUUID(), "Variante", "Une variante", savedParent.id(), "chef_integration",
-                    30, null, RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now
+                    30, null, RecipeStatus.DRAFT, List.of(), List.of(), List.of(), List.of(), now, now
             );
 
             var savedVariant = adapter.save(variantRecipe);
@@ -169,7 +169,7 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
             var updated = new Recipe(
                     recipeId, "Titre modifie", "Summary modifie", null, "chef_integration",
                     45, "https://image.com/new.jpg", RecipeStatus.PUBLISHED,
-                    List.of(), List.of(), List.of(), Map.of(), now, now
+                    List.of(), List.of(), List.of(), List.of(), now, now
             );
             var result = adapter.save(updated);
 
@@ -344,7 +344,7 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
     private Recipe createRecipe(UUID id, String title, RecipeStatus status) {
         return new Recipe(
                 id, title, "Summary for " + title, null, "chef_integration",
-                30, null, status, List.of(), List.of(), List.of(), Map.of(), now, now
+                30, null, status, List.of(), List.of(), List.of(), List.of(), now, now
         );
     }
 }
