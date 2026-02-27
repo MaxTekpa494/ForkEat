@@ -306,6 +306,44 @@ class RecipeWebControllerTest {
         }
     }
 
+    @Nested
+    class SuperLikeRecipe{
+
+        @Test
+        @WithMockUser(username = "john")
+        void likeShouldWork() throws Exception {
+
+            var id = UUID.randomUUID();
+
+
+            when(userService.getUserByUsername(any())).thenReturn(createUser());
+            when(authenticationPort.extractUsername()).thenReturn(createUser().username());
+            doNothing().when(recipeService).superLikeRecipe(any(), any());
+            mockMvc.perform(post("/recipes/{id}/super-like", id))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(view().name("redirect:/recipes/" + id));
+
+
+        }
+
+        @Test
+        @WithMockUser(username = "john")
+        void unlikeShouldWork() throws Exception {
+
+            var id = UUID.randomUUID();
+
+
+            when(userService.getUserByUsername(any())).thenReturn(createUser());
+            when(authenticationPort.extractUsername()).thenReturn(createUser().username());
+            doNothing().when(recipeService).unlikeRecipe(any(), any());
+            mockMvc.perform(post("/recipes/{id}/unlike", id))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(view().name("redirect:/recipes/" + id));
+
+
+        }
+    }
+
     private Recipe createRecipe(String title, RecipeStatus status) {
         return createRecipeWithId(UUID.randomUUID(), title, status, null);
     }

@@ -737,6 +737,44 @@ class RecipeControllerTest {
         }
     }
 
+    @Nested
+    class SuperLike{
+
+        @Test
+        void ShouldReturnOkWhenSuperLikeGoesWell() {
+            var user = createUser(UUID.randomUUID());
+            when(userService.getUserByUsername(any())).thenReturn(user);
+            doNothing().when(recipeService).superLikeRecipe(any(), any());
+            when(authPort.extractUsername()).thenReturn(user.username());
+
+            var response = recipeController.superLikeRecipe(UUID.randomUUID());
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+        }
+
+
+        @Test
+        void ShouldReturnErrorWhenUserUnFoundWhenSuperLike() {
+            var user = createUser(UUID.randomUUID());
+            when(userService.getUserByUsername(any())).thenThrow(new ResourceNotFoundException("User not found with username: PaxGPT"));
+            when(authPort.extractUsername()).thenReturn(user.username());
+
+            assertThrows(ResourceNotFoundException.class, () -> recipeController.superLikeRecipe(UUID.randomUUID()));
+        }
+
+
+        @Test
+        void ShouldReturnErrorWhenRecipeNotFoundWhenSuperLike() {
+            var user = createUser(UUID.randomUUID());
+            when(userService.getUserByUsername(any())).thenReturn(user);
+            doThrow(new ResourceNotFoundException("Recipe not found with username: PaxGPT")).when(recipeService).superLikeRecipe(any(), any());
+            when(authPort.extractUsername()).thenReturn(user.username());
+
+            assertThrows(ResourceNotFoundException.class, () -> recipeController.superLikeRecipe(UUID.randomUUID()));
+        }
+
+
+    }
+
     // ========== Helpers ==========
 
     private User createUser(UUID id) {

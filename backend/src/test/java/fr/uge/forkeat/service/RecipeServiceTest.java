@@ -439,7 +439,22 @@ class RecipeServiceTest {
             doNothing().when(walletPersistence).incrementBalanceById(any(), anyLong());
 
             recipeService.superLikeRecipe(userId, recipeId);
+        }
 
+        @Test
+        void ShouldNotSuperLikeWhenItAlreadySuperLiked(){
+            var userId = UUID.randomUUID();
+            var recipeId = UUID.randomUUID();
+
+            when(recipePersistence.hasSuperLikedRecipe(any(), any())).thenReturn(true);
+
+            recipeService.superLikeRecipe(userId, recipeId);
+
+            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong());
+            verify(walletPersistence, never()).incrementBalanceById(any(), anyLong());
+            verify(walletPersistence, never()).getRedistributionWallet();
+            verify(walletPersistence, never()).getEarningsWallet();
+            verify(recipePersistence, times(1)).hasSuperLikedRecipe(any(), any());
         }
     }
 
