@@ -63,16 +63,33 @@
 
                 <!-- Image -->
                 <div th:if="${recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}"
-                     class="aspect-[16/9] bg-secondary-100 overflow-hidden relative">
+                     class="aspect-[16/9] bg-secondary-100 overflow-hidden relative group">
                     <img th:src="${recipe.imageUrl}"
                          th:alt="${recipe.title}"
-                         class="w-full h-full object-cover">
+                         class="w-full h-full object-cover cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.02]"
+                         onclick="openImageModal(this.src, this.alt)">
+                    <!-- Indicateur zoom -->
+                    <div class="absolute bottom-3 right-3 bg-black/40 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                        <i class="fas fa-search-plus text-[10px]"></i> Agrandir
+                    </div>
                     <!-- Badge image modifiée -->
                     <div th:if="${diff != null and diff.imageChanged}"
                          class="absolute top-3 right-3 flex items-center gap-1.5 bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
                         <i class="fas fa-image"></i>
                         Image modifiée
                     </div>
+                </div>
+
+                <!-- Lightbox modal -->
+                <div id="imageModal"
+                     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                     onclick="closeImageModal()">
+                    <button class="absolute top-4 right-4 text-white text-2xl hover:text-gray-300 transition" onclick="closeImageModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <img id="modalImage" src="" alt=""
+                         class="max-h-[90vh] max-w-[90vw] object-contain rounded-xl shadow-2xl"
+                         onclick="event.stopPropagation()">
                 </div>
                 <!-- Badge image ajoutée si parent n'en avait pas -->
                 <div th:if="${diff != null and diff.imageChanged and (recipe.imageUrl == null or recipe.imageUrl.isEmpty())}"
@@ -532,6 +549,27 @@
                 }
             }
         }
+
+        // ── Lightbox image ───────────────────────────────────────────────────
+        function openImageModal(src, alt) {
+            const modal = document.getElementById('imageModal');
+            document.getElementById('modalImage').src = src;
+            document.getElementById('modalImage').alt = alt;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeImageModal();
+        });
 
         // ── Confirmation de suppression ──────────────────────────────────────
         function confirmDelete() {
