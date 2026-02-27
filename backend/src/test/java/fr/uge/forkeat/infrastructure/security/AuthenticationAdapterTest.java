@@ -73,9 +73,9 @@ class AuthenticationAdapterTest {
         }
 
         @Test
-        void shouldThrowWhenNoAuthentication() {
+        void shouldReturnNullWhenNoAuthentication() {
             SecurityContextHolder.clearContext();
-            assertThrows(Exception.class, () -> adapter.extractUsername());
+            assertNull(adapter.extractUsername());
         }
     }
 

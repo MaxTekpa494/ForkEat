@@ -12,7 +12,9 @@ import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
+import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
@@ -223,6 +225,42 @@ class RecipeControllerTest {
         }
     }
 
+    // ========== GetAllergens ==========
+
+    @Nested
+    class GetAllergens {
+
+        @Test
+        void shouldReturnAllAllergens() {
+            var allergen1 = new Allergen(UUID.randomUUID(), "Gluten", AllergenSeverity.HIGH);
+            var allergen2 = new Allergen(UUID.randomUUID(), "Lactose", AllergenSeverity.MEDIUM);
+            when(recipeService.findAllAllergens()).thenReturn(List.of(allergen1, allergen2));
+
+            var response = recipeController.getAllergens();
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            assertInstanceOf(ListResponse.class, response.getBody());
+            var listResponse = (ListResponse<?>) response.getBody();
+            assertEquals(2, listResponse.resources().size());
+            assertEquals(2, listResponse.total());
+            verify(recipeService).findAllAllergens();
+        }
+
+        @Test
+        void shouldReturnEmptyListWhenNoAllergens() {
+            when(recipeService.findAllAllergens()).thenReturn(List.of());
+
+            var response = recipeController.getAllergens();
+
+            assertEquals(HttpStatus.OK, response.getStatusCode());
+            var listResponse = (ListResponse<?>) response.getBody();
+            assertNotNull(listResponse);
+            assertTrue(listResponse.resources().isEmpty());
+            assertEquals(0, listResponse.total());
+            verify(recipeService).findAllAllergens();
+        }
+    }
+
     // ========== PageCreateRecipe ==========
 
     @Nested
@@ -266,9 +304,9 @@ class RecipeControllerTest {
 
         @Test
         void shouldReturnPaginatedList() {
-            var recipe1 = createRecipe(UUID.randomUUID(), "Recette 1", null, RecipeStatus.PUBLISHED);
-            var recipe2 = createRecipe(UUID.randomUUID(), "Recette 2", null, RecipeStatus.PUBLISHED);
-            var pageResult = new PageResult<>(List.of(recipe1, recipe2), 10);
+            var ps1 = createPersonalizedRecipeSummary(UUID.randomUUID(), "Recette 1");
+            var ps2 = createPersonalizedRecipeSummary(UUID.randomUUID(), "Recette 2");
+            var pageResult = new PageResult<>(List.of(ps1, ps2), 10L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 12, 0);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -284,7 +322,7 @@ class RecipeControllerTest {
 
         @Test
         void shouldReturnEmptyListWhenNoRecipes() {
-            var pageResult = new PageResult<Recipe>(List.of(), 0);
+            var pageResult = new PageResult<PersonalizedRecipeSummary>(List.of(), 0L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.DRAFT, null, List.of(), 12, 0);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -300,8 +338,8 @@ class RecipeControllerTest {
 
         @Test
         void shouldRespectSizeParameter() {
-            var recipe = createRecipe(UUID.randomUUID(), "Recette", null, RecipeStatus.PUBLISHED);
-            var pageResult = new PageResult<>(List.of(recipe), 100);
+            var ps = createPersonalizedRecipeSummary(UUID.randomUUID(), "Recette");
+            var pageResult = new PageResult<>(List.of(ps), 100L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 5, 0);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -313,8 +351,8 @@ class RecipeControllerTest {
 
         @Test
         void shouldRespectPageParameter() {
-            var recipe = createRecipe(UUID.randomUUID(), "Recette", null, RecipeStatus.PUBLISHED);
-            var pageResult = new PageResult<>(List.of(recipe), 100);
+            var ps = createPersonalizedRecipeSummary(UUID.randomUUID(), "Recette");
+            var pageResult = new PageResult<>(List.of(ps), 100L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 12, 2);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -326,8 +364,8 @@ class RecipeControllerTest {
 
         @Test
         void shouldFilterByStatus() {
-            var draftRecipe = createRecipe(UUID.randomUUID(), "Brouillon", null, RecipeStatus.DRAFT);
-            var pageResult = new PageResult<>(List.of(draftRecipe), 1);
+            var ps = createPersonalizedRecipeSummary(UUID.randomUUID(), "Brouillon");
+            var pageResult = new PageResult<>(List.of(ps), 1L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.DRAFT, null, List.of(), 12, 0);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -339,8 +377,8 @@ class RecipeControllerTest {
 
         @Test
         void shouldHandlePendingReviewStatus() {
-            var pendingRecipe = createRecipe(UUID.randomUUID(), "En attente", null, RecipeStatus.PENDING_REVIEW);
-            var pageResult = new PageResult<>(List.of(pendingRecipe), 1);
+            var ps = createPersonalizedRecipeSummary(UUID.randomUUID(), "En attente");
+            var pageResult = new PageResult<>(List.of(ps), 1L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PENDING_REVIEW, null, List.of(), 12, 0);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -358,8 +396,8 @@ class RecipeControllerTest {
 
         @Test
         void shouldSearchWhenSearchParameterProvided() {
-            var recipe = createRecipe(UUID.randomUUID(), "Tarte aux pommes", null, RecipeStatus.PUBLISHED);
-            var pageResult = new PageResult<>(List.of(recipe), 1);
+            var ps = createPersonalizedRecipeSummary(UUID.randomUUID(), "Tarte aux pommes");
+            var pageResult = new PageResult<>(List.of(ps), 1L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "tarte", List.of(), 12, 0);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -382,9 +420,9 @@ class RecipeControllerTest {
 
         @Test
         void shouldFilterByAllergensWhenProvided() {
-            var recipe = createRecipe(UUID.randomUUID(), "Recette sans gluten", null, RecipeStatus.PUBLISHED);
+            var ps = createPersonalizedRecipeSummary(UUID.randomUUID(), "Recette sans gluten");
             var allergens = List.of("gluten", "lactose");
-            var pageResult = new PageResult<>(List.of(recipe), 1);
+            var pageResult = new PageResult<>(List.of(ps), 1L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, allergens, 12, 0);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -401,9 +439,9 @@ class RecipeControllerTest {
 
         @Test
         void shouldFilterByAllergensAndSearchWhenBothProvided() {
-            var recipe = createRecipe(UUID.randomUUID(), "Tarte sans gluten", null, RecipeStatus.PUBLISHED);
+            var ps = createPersonalizedRecipeSummary(UUID.randomUUID(), "Tarte sans gluten");
             var allergens = List.of("gluten");
-            var pageResult = new PageResult<>(List.of(recipe), 1);
+            var pageResult = new PageResult<>(List.of(ps), 1L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "tarte", allergens, 12, 0);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -417,8 +455,8 @@ class RecipeControllerTest {
 
         @Test
         void shouldWorkWithEmptyAllergensList() {
-            var recipe = createRecipe(UUID.randomUUID(), "Recette", null, RecipeStatus.PUBLISHED);
-            var pageResult = new PageResult<>(List.of(recipe), 1);
+            var ps = createPersonalizedRecipeSummary(UUID.randomUUID(), "Recette");
+            var pageResult = new PageResult<>(List.of(ps), 1L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 12, 0);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -742,6 +780,11 @@ class RecipeControllerTest {
     private User createUser(UUID id) {
         return new User(id, "PaxGPT", "Pax", "Pekpa", "a@gmail.com",
                 UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
+    }
+
+    private PersonalizedRecipeSummary createPersonalizedRecipeSummary(UUID id, String title) {
+        var summary = new RecipeSummary(id, title, "Summary for " + title, null, 30, now, "chef_test");
+        return new PersonalizedRecipeSummary(summary, RecipeCounts.ZERO, RecipeUserInteraction.NONE);
     }
 
     private Recipe createRecipe(UUID id, String title, UUID parentId, RecipeStatus status) {

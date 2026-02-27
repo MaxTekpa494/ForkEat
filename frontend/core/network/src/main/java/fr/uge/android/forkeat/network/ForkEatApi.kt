@@ -9,7 +9,9 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonPrimitive
 import com.google.gson.JsonSerializationContext
 import com.google.gson.JsonSerializer
+import fr.uge.android.forkeat.network.api.AccountApiService
 import fr.uge.android.forkeat.network.api.AuthApiService
+import fr.uge.android.forkeat.network.api.ProfileApiService
 import fr.uge.android.forkeat.network.api.WalletApiService
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
 import okhttp3.OkHttpClient
@@ -86,6 +88,8 @@ object ForkEatApi {
     val authService: AuthApiService by lazy { retrofit.create(AuthApiService::class.java) }
     val recipeService: RecipeApiService by lazy { retrofit.create(RecipeApiService::class.java) }
     val walletService: WalletApiService by lazy { retrofit.create(WalletApiService::class.java) }
+    val profileService: ProfileApiService by lazy { retrofit.create(ProfileApiService::class.java) }
+    val accountService: AccountApiService by lazy { retrofit.create(AccountApiService::class.java) }
 
     fun toJson(obj: Any): String = gson.toJson(obj)
 }

@@ -4,9 +4,14 @@ import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.ProfileService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.model.user.projection.PersonalizedUserProfile;
+import fr.uge.forkeat.service.model.user.projection.UserAccountDetails;
 import fr.uge.forkeat.service.model.user.projection.UserProfile;
 import fr.uge.forkeat.service.model.user.projection.UserProfileWithRecipes;
 import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
@@ -22,6 +27,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
+import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
@@ -78,7 +84,7 @@ class ProfileRestControllerTest {
                     .andExpect(jsonPath("$.resource.currentPage").value(0))
                     .andExpect(jsonPath("$.resource.followedByCurrentUser").value(false));
 
-            verify(profileService).getProfileInfos("chef", 0, 10, "viewer");
+            verify(profileService).getProfileInfos("chef", 0, 12, "viewer");
         }
 
         @Test
@@ -99,7 +105,7 @@ class ProfileRestControllerTest {
             mockMvc.perform(get("/api/profile/chef"))
                     .andExpect(status().isOk());
 
-            verify(profileService).getProfileInfos("chef", 0, 10, "viewer");
+            verify(profileService).getProfileInfos("chef", 0, 12, "viewer");
         }
 
         @Test
@@ -137,5 +143,48 @@ class ProfileRestControllerTest {
 
             verify(authenticationPort).extractUsername();
         }
+    }
+
+    @Nested
+    class GetMyProfileTests {
+
+        @Test
+        void shouldReturnDashboard_WhenAuthenticated() throws Exception {
+            when(profileService.getAccountDetails("viewer")).thenReturn(buildAccountDetails("viewer"));
+
+            mockMvc.perform(get("/api/profile"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resource.user.username").value("viewer"))
+                    .andExpect(jsonPath("$.resource.followerCount").value(10))
+                    .andExpect(jsonPath("$.resource.walletBalance").value(1000))
+                    .andExpect(jsonPath("$.resource.recipeCount").value(5));
+        }
+
+        @Test
+        void shouldCallGetAccountDetailsWithCurrentUsername() throws Exception {
+            when(profileService.getAccountDetails("viewer")).thenReturn(buildAccountDetails("viewer"));
+
+            mockMvc.perform(get("/api/profile"))
+                    .andExpect(status().isOk());
+
+            verify(profileService).getAccountDetails("viewer");
+        }
+
+        @Test
+        void shouldReturn404_WhenUserNotFound() throws Exception {
+            when(profileService.getAccountDetails(any()))
+                    .thenThrow(new ResourceNotFoundException("User not found: viewer"));
+
+            mockMvc.perform(get("/api/profile"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message").value("User not found: viewer"));
+        }
+    }
+
+    private UserAccountDetails buildAccountDetails(String username) {
+        var user = new User(UUID.randomUUID(), username, "Jean", "Dupont", "jean@example.com",
+                UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
+        var socialStats = new UserSocialStats(10, 5, 20, 3);
+        return new UserAccountDetails(user, socialStats, 1000L, 5L);
     }
 }

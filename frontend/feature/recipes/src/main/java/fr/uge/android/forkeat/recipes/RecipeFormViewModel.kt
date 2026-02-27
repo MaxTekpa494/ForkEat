@@ -46,7 +46,7 @@ data class RecipeFormUiState(
     val title: String = "",
     val summary: String = "",
     val preparationMinutes: String = "",
-    val status: String = "PUBLISHED",
+    val status: String = "PENDING_REVIEW",
     val steps: List<StepState> = emptyList(),
     val ingredients: List<IngredientState> = emptyList(),
     val selectedAllergenIds: Set<String> = emptySet(),
@@ -133,7 +133,7 @@ class RecipeFormViewModel(
                     title = recipe.title,
                     summary = recipe.summary,
                     preparationMinutes = recipe.preparationMinutes.toString(),
-                    status = if (isVariant) "PUBLISHED" else recipe.status,
+                    status = if (isVariant) "PENDING_REVIEW" else recipe.status,
                     steps = recipe.steps.map { StepState(it.instruction) },
                     ingredients = recipe.ingredients.map {
                         IngredientState(it.name, it.quantity.toString(), it.unit)

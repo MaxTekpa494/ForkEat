@@ -25,12 +25,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AccountCircle
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.automirrored.filled.Login
 import androidx.compose.material.icons.filled.Menu
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material.icons.filled.ManageAccounts
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.PersonAdd
@@ -223,8 +223,8 @@ private fun ForkEatTopBar(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ForkEatLoggedInTopBar(
-    onNavigateToDashboard: () -> Unit,
     onNavigateToProfile: () -> Unit,
+    onNavigateToAccount: () -> Unit,
     onNavigateToWallet: () -> Unit,
     onLogout: () -> Unit
 ) {
@@ -256,14 +256,14 @@ private fun ForkEatLoggedInTopBar(
                     letterSpacing = 1.sp,
                 )
                 DropdownMenuItem(
-                    text = { Text("Dashboard", fontWeight = FontWeight.SemiBold, color = Secondary900) },
-                    onClick = { menuExpanded = false; onNavigateToDashboard() },
-                    leadingIcon = { Icon(Icons.Default.Dashboard, contentDescription = null, tint = Secondary700) },
-                )
-                DropdownMenuItem(
                     text = { Text("Mon Profil", fontWeight = FontWeight.SemiBold, color = Secondary900) },
                     onClick = { menuExpanded = false; onNavigateToProfile() },
                     leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, tint = Secondary700) },
+                )
+                DropdownMenuItem(
+                    text = { Text("Mon compte", fontWeight = FontWeight.SemiBold, color = Secondary900) },
+                    onClick = { menuExpanded = false; onNavigateToAccount() },
+                    leadingIcon = { Icon(Icons.Default.ManageAccounts, contentDescription = null, tint = Secondary700) },
                 )
                 DropdownMenuItem(
                     text = { Text("Mon Wallet", fontWeight = FontWeight.SemiBold, color = Secondary900) },
@@ -616,16 +616,20 @@ fun ForkEatScaffold(
     navController: NavHostController? = null,
     isLoggedIn: Boolean = false,
     onLogout: () -> Unit = {},
+    onNavigateToAccount: () -> Unit = { navController?.navigate("account") },
     showBars: Boolean = true,
     content: @Composable (PaddingValues) -> Unit
 ) {
     // Observer la destination courante
     val navBackStackEntry = navController?.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry?.value?.destination?.route
-    val selectedTab = when (currentRoute) {
-        "home" -> NavBarTab.HOME
-        "recipes" -> NavBarTab.SEARCH
-        "profile" -> NavBarTab.PROFILE
+    val selectedTab = when {
+        currentRoute == "home" -> NavBarTab.HOME
+        currentRoute == "recipes" || currentRoute == "recipe-form" ||
+            currentRoute?.startsWith("recipes/") == true ||
+            currentRoute?.startsWith("user/") == true -> NavBarTab.SEARCH
+        currentRoute == "profile" || currentRoute == "account" ||
+            currentRoute == "wallet" || currentRoute == "my-recipes" -> NavBarTab.PROFILE
         else -> NavBarTab.HOME
     }
     Scaffold(
@@ -633,8 +637,8 @@ fun ForkEatScaffold(
           if (showBars) {
             if (isLoggedIn) {
               ForkEatLoggedInTopBar(
-                onNavigateToDashboard = { navController?.navigate("dashboard") },
                 onNavigateToProfile = { navController?.navigate("profile") },
+                onNavigateToAccount = onNavigateToAccount,
                 onNavigateToWallet = { navController?.navigate("wallet") },
                 onLogout = onLogout
               )

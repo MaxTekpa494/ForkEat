@@ -5,7 +5,7 @@ plugins {
 }
 
 android {
-    namespace = "fr.uge.android.forkeat.profile"
+    namespace = "fr.uge.android.forkeat.account"
     compileSdk {
         version = release(36)
     }
@@ -37,7 +37,6 @@ kotlin {
 }
 
 dependencies {
-    implementation(project(":feature:recipes"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:network"))
     implementation(libs.androidx.core.ktx)
@@ -48,7 +47,6 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.coil.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

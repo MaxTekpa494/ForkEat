@@ -32,7 +32,7 @@ public class AuthenticationAdapter implements AuthenticationPort {
     public String extractUsername() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication == null) {
-            throw new IllegalArgumentException("Authentication context cannot be null");
+            return null;
         }
 
         var principal = authentication.getPrincipal();

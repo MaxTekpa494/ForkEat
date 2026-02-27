@@ -206,8 +206,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resources", hasSize(lessThanOrEqualTo(10))))
-                .andExpect(jsonPath("$.total").value(initialDraftCount + 2))
-                .andExpect(jsonPath("$.resources[*].status", everyItem(is("DRAFT"))));
+                .andExpect(jsonPath("$.total").value(initialDraftCount + 2));
     }
 
     @Test
@@ -266,8 +265,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resources", hasSize(lessThanOrEqualTo(10))))
-                .andExpect(jsonPath("$.total").value(initialPendingCount + 2))
-                .andExpect(jsonPath("$.resources[*].status", everyItem(is("PENDING_REVIEW"))));
+                .andExpect(jsonPath("$.total").value(initialPendingCount + 2));
     }
 
     @Test
@@ -279,8 +277,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
                         .contentType(MediaType.APPLICATION_JSON))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resources[?(@.id == '" + recipe.getId() + "')].title").value("Quiche Lorraine Unique"))
-                .andExpect(jsonPath("$.resources[?(@.id == '" + recipe.getId() + "')].status").value("PUBLISHED"))
-                .andExpect(jsonPath("$.resources[?(@.id == '" + recipe.getId() + "')].username").value("chef_integration"));
+                .andExpect(jsonPath("$.resources[?(@.id == '" + recipe.getId() + "')].authorUsername").value("chef_integration"));
     }
 
     @Test

@@ -7,6 +7,7 @@ import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -57,13 +58,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import fr.uge.android.forkeat.designsystem.theme.Gray500
 import fr.uge.android.forkeat.designsystem.theme.Primary500
 import fr.uge.android.forkeat.designsystem.theme.Secondary700
 import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
 import fr.uge.android.forkeat.designsystem.theme.Typography
+import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.recipes.data.dto.AllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
@@ -87,10 +88,15 @@ fun RecipeDetailScreen(
     onBack: () -> Unit,
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {},
-    onCreateVariant: () -> Unit = {}
+    onCreateVariant: () -> Unit = {},
+    onNavigateToUserProfile: (String) -> Unit = {},
+    onNavigateToMyProfile: () -> Unit = {},
+    onLike: (UUID) -> Unit = {},
+    onUnlike: (UUID) -> Unit = {}
 ) {
     var diffModeActive by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
+    val currentUsername = remember { ForkEatApi.getCurrentUsername() }
 
     // ── Dialogue de confirmation de suppression ──────────────────────────────
     if (showDeleteDialog) {
@@ -222,12 +228,29 @@ fun RecipeDetailScreen(
             }
 
             // ── Like ─────────────────────────────────────────────────────────
-            LikeButton(recipe.nbLike.toInt(), recipe.hasLiked, recipe.id, Modifier)
+            LikeButton(
+                initialCount = recipe.nbLike.toInt(),
+                isLike = recipe.hasLiked,
+                recipeId = recipe.id,
+                onLike = onLike,
+                onUnlike = onUnlike
+            )
             Spacer(Modifier.height(8.dp))
 
             // ── Auteur + temps ───────────────────────────────────────────────
             Row(verticalAlignment = Alignment.CenterVertically) {
-                Text("Par ${recipe.username}", style = Typography.labelSmall, color = Gray500)
+                Text(
+                    "@${recipe.username}",
+                    style = Typography.labelSmall,
+                    color = Gray500,
+                    modifier = Modifier.clickable {
+                        if (currentUsername != null && recipe.username == currentUsername) {
+                            onNavigateToMyProfile()
+                        } else {
+                            onNavigateToUserProfile(recipe.username)
+                        }
+                    }
+                )
                 Spacer(Modifier.width(16.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -858,9 +881,10 @@ fun LikeButton(
     initialCount: Int = 0,
     isLike: Boolean = false,
     recipeId: UUID,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onLike: (UUID) -> Unit = {},
+    onUnlike: (UUID) -> Unit = {}
 ) {
-    val recipesViewModel: RecipesViewModel = viewModel()
     var isLiked by remember { mutableStateOf(isLike) }
     var count by remember { mutableIntStateOf(initialCount) }
 
@@ -885,10 +909,11 @@ fun LikeButton(
 
     Surface(
         onClick = {
-            isLiked = !isLiked
-            count = if (isLiked) count + 1 else count - 1
-            if (isLiked) recipesViewModel.likeRecipe(recipeId)
-            else recipesViewModel.unlikeRecipe(recipeId)
+            val targetLiked = !isLiked
+            isLiked = targetLiked
+            count = if (targetLiked) count + 1 else count - 1
+            if (targetLiked) onLike(recipeId)
+            else onUnlike(recipeId)
         },
         modifier = modifier,
         shape = RoundedCornerShape(50),
