@@ -3,6 +3,8 @@ package fr.uge.forkeat.service.user;
 import fr.uge.forkeat.service.external.PayoutGateway;
 import fr.uge.forkeat.service.model.user.BankInfo;
 import fr.uge.forkeat.service.persistence.BankInfoPersistence;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.util.Objects;
@@ -11,6 +13,8 @@ import java.util.UUID;
 
 @Service
 public class BankInfoService {
+
+    private static final Logger log = LoggerFactory.getLogger(BankInfoService.class);
 
     private final BankInfoPersistence bankInfoPersistence;
     private final PayoutGateway payoutGateway;
@@ -49,7 +53,14 @@ public class BankInfoService {
                 userId, userEmail, bankName, iban, bic, existingConnectAccountId);
 
         BankInfo bankInfo = new BankInfo(userId, bankName, connectAccountId);
-        return bankInfoPersistence.saveBankInfo(bankInfo, userId);
+        try {
+            return bankInfoPersistence.saveBankInfo(bankInfo, userId);
+        } catch (Exception e) {
+            log.error("STRIPE_ACCOUNT_ORPHAN: Stripe Connect account created but DB save failed. " +
+                    "userId={}, connectAccountId={}. Manual reconciliation required.",
+                    userId, connectAccountId, e);
+            throw e;
+        }
     }
 
     public Optional<BankInfo> getBankInfoByUserId(UUID userId) {

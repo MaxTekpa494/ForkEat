@@ -8,6 +8,7 @@ import java.util.Optional;
 
 public interface PlatformWalletPersistence {
     Optional<PlatformWallet> findByType(PlatformWalletType type);
+    Optional<PlatformWallet> findByTypeWithLock(PlatformWalletType type);
     PlatformWallet save(PlatformWallet wallet);
     List<PlatformWallet> findAll();
     long balance(PlatformWalletType type);
