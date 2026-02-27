@@ -129,6 +129,11 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
+    public List<String> findAllUnitNames() {
+        return recipeIngredientRepository.findAllDistinctUnits();
+    }
+
+    @Override
     public List<String> findAllDietaryNames() {
         return dietaryRepository.findAll().stream()
                 .map(d -> d.getName())

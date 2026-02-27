@@ -1,7 +1,10 @@
 package fr.uge.android.forkeat.recipes
 
 import android.app.Application
+import android.content.ContentValues
+import android.content.Context
 import android.net.Uri
+import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
@@ -55,7 +58,8 @@ data class RecipeFormUiState(
     val availableDietaries: List<String> = emptyList(),
     val selectedDietaries: Set<String> = emptySet(),
     val currentImageUrl: String? = null, // image existante (edit / variante)
-    val imageUri: Uri? = null,            // nouvelle image choisie par l'utilisateur
+    val imageUri: Uri? = null,            // nouvelle image choisie (galerie ou caméra)
+    val cameraUri: Uri? = null,           // URI temporaire créée pour TakePicture
     val isLoadingFormData: Boolean = false,
     val isSubmitting: Boolean = false,
     val errorMessage: String? = null,
@@ -162,6 +166,17 @@ class RecipeFormViewModel(
     fun onPrepMinutesChange(v: String) { _uiState.value = _uiState.value.copy(preparationMinutes = v) }
     fun onStatusChange(v: String) { _uiState.value = _uiState.value.copy(status = v) }
     fun onImageSelected(uri: Uri?) { _uiState.value = _uiState.value.copy(imageUri = uri) }
+
+    /** Crée une URI MediaStore vide où TakePicture écrira la photo. */
+    fun createCameraUri(context: Context): Uri? {
+        val values = ContentValues().apply {
+            put(MediaStore.Images.Media.DISPLAY_NAME, "recipe_${System.currentTimeMillis()}.jpg")
+            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
+        }
+        val uri = context.contentResolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values)
+        _uiState.value = _uiState.value.copy(cameraUri = uri)
+        return uri
+    }
 
     // --- Étapes ---
 

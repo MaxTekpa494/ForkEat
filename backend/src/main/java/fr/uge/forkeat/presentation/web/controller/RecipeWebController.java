@@ -45,11 +45,13 @@ public class RecipeWebController {
                 .map(RecipeDTOMapper::toDTO)
                 .toList();
         var allIngredientNames = recipeService.findAllIngredientNames();
+        var allUnitNames = recipeService.findAllUnitNames();
         var allDietaryNames = recipeService.findAllDietaryNames();
         var username = authPort.extractUsername();
 
         model.addAttribute("allAllergens", allAllergens);
         model.addAttribute("allIngredientNames", allIngredientNames);
+        model.addAttribute("allUnitNames", allUnitNames);
         model.addAttribute("allDietaryNames", allDietaryNames);
         model.addAttribute("selectedAllergenIds", Set.of());
         model.addAttribute("username", username);
@@ -170,12 +172,14 @@ public class RecipeWebController {
                 .map(RecipeDTOMapper::toDTO)
                 .toList();
         var allIngredientNames = recipeService.findAllIngredientNames();
+        var allUnitNames = recipeService.findAllUnitNames();
         var allDietaryNames = recipeService.findAllDietaryNames();
         var selectedAllergenIds = recipeDTO.allergens().stream().map(AllergenDTO::id).toList();
 
         model.addAttribute("recipe", recipeDTO);
         model.addAttribute("allAllergens", allAllergens);
         model.addAttribute("allIngredientNames", allIngredientNames);
+        model.addAttribute("allUnitNames", allUnitNames);
         model.addAttribute("allDietaryNames", allDietaryNames);
         model.addAttribute("selectedAllergenIds", selectedAllergenIds);
         model.addAttribute("username", currentUser);
@@ -213,6 +217,7 @@ public class RecipeWebController {
                 .map(RecipeDTOMapper::toDTO)
                 .toList();
         var allIngredientNames = recipeService.findAllIngredientNames();
+        var allUnitNames = recipeService.findAllUnitNames();
         var allDietaryNames = recipeService.findAllDietaryNames();
         var username = authPort.extractUsername();
 
@@ -223,6 +228,7 @@ public class RecipeWebController {
         model.addAttribute("recipe", recipeParentDTO);
         model.addAttribute("allAllergens", allAllergens);
         model.addAttribute("allIngredientNames", allIngredientNames);
+        model.addAttribute("allUnitNames", allUnitNames);
         model.addAttribute("allDietaryNames", allDietaryNames);
         model.addAttribute("selectedAllergenIds", selectedAllergenIds);
         model.addAttribute("username", username);

@@ -145,6 +145,10 @@ public class RecipeService {
     return recipePersistence.findAllIngredientNames();
   }
 
+  public List<String> findAllUnitNames() {
+    return recipePersistence.findAllUnitNames();
+  }
+
   public List<String> findAllDietaryNames() {
     return recipePersistence.findAllDietaryNames();
   }
