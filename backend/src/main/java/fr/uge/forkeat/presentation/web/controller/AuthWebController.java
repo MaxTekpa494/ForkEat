@@ -70,6 +70,7 @@ public class AuthWebController {
             @RequestParam("password") String password,
             @RequestParam("confirmPassword") String confirmPassword,
             Model model,
+            RedirectAttributes redirectAttributes,
             HttpServletResponse response) {
         if (!password.equals(confirmPassword)) {
             model.addAttribute("errorMessage", "Les mots de passe ne correspondent pas");
@@ -94,7 +95,9 @@ public class AuthWebController {
             response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
             return "layout/forgot-password-code";
         }
-        return "layout/login";
+        redirectAttributes.addFlashAttribute("success",
+                "Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter.");
+        return "redirect:/auth/login";
     }
 
     @GetMapping("/register")
@@ -131,6 +134,34 @@ public class AuthWebController {
     @GetMapping("/email-sent")
     public String emailSentPage() {
         return "layout/email-sent";
+    }
+
+    @GetMapping("/email-verification-required")
+    public String emailVerificationRequired() {
+        return "layout/email-verification-required";
+    }
+
+    @PostMapping("/resend-verification")
+    public String resendVerification(RedirectAttributes redirectAttributes) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth instanceof AnonymousAuthenticationToken) {
+            return "redirect:/auth/login";
+        }
+        try {
+            var principal = auth.getName();
+            var userOpt = userService.findByEmail(principal);
+            if (userOpt.isEmpty()) {
+                userOpt = java.util.Optional.of(userService.getUserByUsername(principal));
+            }
+            userOpt.ifPresent(user ->
+                    emailVerificationService.sendEmailConfirmation(user.id(), user.email()));
+            redirectAttributes.addFlashAttribute("success",
+                    "Email de confirmation renvoyé ! Vérifiez votre boîte de réception.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Impossible de renvoyer l'email. Réessayez dans quelques instants.");
+        }
+        return "redirect:/auth/email-verification-required";
     }
 
     @GetMapping("/confirm-email")
