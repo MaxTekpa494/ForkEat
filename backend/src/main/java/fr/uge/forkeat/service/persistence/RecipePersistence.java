@@ -28,11 +28,17 @@ public interface RecipePersistence {
 
   List<String> findAllIngredientNames();
 
+  List<String> findAllDietaryNames();
+
   Recipe save(Recipe recipe);
 
   Recipe update(UUID id, Recipe recipe);
 
   void deleteById(UUID id);
+
+  Recipe updateStatus(UUID id, RecipeStatus status);
+
+  long countByStatus(RecipeStatus status);
 
   PageResult<RecipeSummary> findRecipeSummaries(String username, RecipeStatus status, int size, int page);
 

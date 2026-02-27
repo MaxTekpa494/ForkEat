@@ -1,7 +1,7 @@
 package fr.uge.forkeat.presentation.mapper.rest;
 
 import fr.uge.forkeat.presentation.dto.user.WalletDTO;
-import fr.uge.forkeat.service.model.user.Wallet;
+import fr.uge.forkeat.service.model.wallet.Wallet;
 
 import java.util.Objects;
 

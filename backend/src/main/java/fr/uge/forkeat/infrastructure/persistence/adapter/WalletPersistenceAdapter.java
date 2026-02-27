@@ -14,7 +14,8 @@ import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.Transaction;
 import fr.uge.forkeat.service.model.WalletType;
-import fr.uge.forkeat.service.model.user.Wallet;
+import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
+import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import org.springframework.stereotype.Component;
 
@@ -155,14 +156,14 @@ public class WalletPersistenceAdapter implements WalletPersistence {
     }
 
     public Wallet getEarningsWallet(){
-        var platformWallet =platformWalletRepository.findByType(WalletType.EARNINGS).orElseThrow(()-> new AssertionError("Should have a earningWallet"));
-        var wallet = walletRepository.getReferenceById(platformWallet.getWalletId());
+        var platformWallet =platformWalletRepository.findByType(PlatformWalletType.EARNINGS).orElseThrow(()-> new AssertionError("Should have a earningWallet"));
+        var wallet = platformWallet.getWallet();
         return WalletEntityMapper.toDomain(wallet);
     }
 
     public Wallet getRedistributionWallet(){
-        var platformWallet =platformWalletRepository.findByType(WalletType.REDISTRIBUTION).orElseThrow(()-> new AssertionError("Should have a earningWallet"));
-        var wallet = walletRepository.getReferenceById(platformWallet.getWalletId());
+        var platformWallet =platformWalletRepository.findByType(PlatformWalletType.REDISTRIBUTION).orElseThrow(()-> new AssertionError("Should have a earningWallet"));
+        var wallet = platformWallet.getWallet();
         return WalletEntityMapper.toDomain(wallet);
     }
 

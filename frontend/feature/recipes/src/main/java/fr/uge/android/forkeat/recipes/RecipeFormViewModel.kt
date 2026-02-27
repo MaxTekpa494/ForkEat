@@ -52,6 +52,8 @@ data class RecipeFormUiState(
     val selectedAllergenIds: Set<String> = emptySet(),
     val availableAllergens: List<AllergenDTO> = emptyList(),
     val availableIngredientNames: List<String> = emptyList(),
+    val availableDietaries: List<String> = emptyList(),
+    val selectedDietaries: Set<String> = emptySet(),
     val currentImageUrl: String? = null, // image existante (edit / variante)
     val imageUri: Uri? = null,            // nouvelle image choisie par l'utilisateur
     val isLoadingFormData: Boolean = false,
@@ -107,7 +109,8 @@ class RecipeFormViewModel(
                 response.body()?.resource?.let { formData ->
                     _uiState.value = _uiState.value.copy(
                         availableAllergens = formData.allergens,
-                        availableIngredientNames = formData.ingredients
+                        availableIngredientNames = formData.ingredients,
+                        availableDietaries = formData.dietaries
                     )
                 }
             }
@@ -139,6 +142,7 @@ class RecipeFormViewModel(
                         IngredientState(it.name, it.quantity.toString(), it.unit)
                     },
                     selectedAllergenIds = recipe.allergens.map { it.id }.toSet(),
+                    selectedDietaries = recipe.dietaries.toSet(),
                     currentImageUrl = recipe.imageUrl
                 )
             } else {
@@ -209,6 +213,14 @@ class RecipeFormViewModel(
         _uiState.value = _uiState.value.copy(selectedAllergenIds = current)
     }
 
+    // --- Régimes alimentaires ---
+
+    fun toggleDietary(name: String) {
+        val current = _uiState.value.selectedDietaries.toMutableSet()
+        if (!current.add(name)) current.remove(name)
+        _uiState.value = _uiState.value.copy(selectedDietaries = current)
+    }
+
     // --- Soumission ---
 
     fun submitRecipe() {
@@ -248,7 +260,8 @@ class RecipeFormViewModel(
                         .filter { it.name.isNotBlank() }
                         .map { RecipeIngredientDTO(it.name.trim(), it.quantity.toDoubleOrNull() ?: 0.0, it.unit.trim()) },
                     allergens = selectedAllergens,
-                    parentId = parentId
+                    parentId = parentId,
+                    dietaries = state.selectedDietaries.toList()
                 )
 
                 val jsonBody = ForkEatApi.toJson(dto)

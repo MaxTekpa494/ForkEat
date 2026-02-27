@@ -13,7 +13,7 @@ public record Recipe(UUID id, String title, String summary, UUID parentId, // Ic
                      String usernameAuthor, int preparationMinutes, String imageUrl, RecipeStatus status,
                      List<RecipeStep> stepByStepInstructions, List<RecipeIngredient> ingredients,
                      List<Allergen> allergens,
-                     Map<String, Boolean> dietaryFlags, Instant createdAt, Instant updatedAt) {
+                     List<String> dietaries, Instant createdAt, Instant updatedAt) {
 
     public Recipe {
         Objects.requireNonNull(id);
@@ -27,12 +27,10 @@ public record Recipe(UUID id, String title, String summary, UUID parentId, // Ic
         if (preparationMinutes < 0) {
             throw new IllegalArgumentException("preparationMinutes cannot be negative");
         }
-        // Objects.requireNonNull(imageUrl); On ne sait (peut-être des recttes sans
-        // iamges ?)
         stepByStepInstructions = stepByStepInstructions == null ? List.of() : List.copyOf(stepByStepInstructions);
         ingredients = ingredients == null ? List.of() : List.copyOf(ingredients);
         allergens = allergens == null ? List.of() : List.copyOf(allergens);
-        dietaryFlags = dietaryFlags == null ? Map.of() : Map.copyOf(dietaryFlags);
+        dietaries = dietaries == null ? List.of() : List.copyOf(dietaries);
         var now = Instant.now();
         createdAt = createdAt == null ? now : createdAt;
         updatedAt = updatedAt == null ? now : updatedAt;

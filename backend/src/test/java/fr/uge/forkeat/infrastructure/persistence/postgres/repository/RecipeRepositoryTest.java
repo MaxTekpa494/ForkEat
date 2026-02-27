@@ -64,7 +64,6 @@ class RecipeRepositoryTest extends AbstractIntegrationTest {
     recipe.setStatus(status);
     recipe.setAuthor(savedAuthor);
     recipe.setStepByStepInstructions(List.of(new RecipeStep(1, "First step")));
-    recipe.setDietaryFlag(Map.of("vegetarian", false, "vegan", false));
     return recipe;
   }
 

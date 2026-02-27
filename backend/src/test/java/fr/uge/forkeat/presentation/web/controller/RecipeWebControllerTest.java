@@ -365,7 +365,7 @@ class RecipeWebControllerTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                Map.of(),
+                List.of(),
                 null,
                 null
         );

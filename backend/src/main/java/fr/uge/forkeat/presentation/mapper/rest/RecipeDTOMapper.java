@@ -30,7 +30,7 @@ public final class RecipeDTOMapper {
                 toStepDTOs(recipe.stepByStepInstructions()),
                 toIngredientDTOs(recipe.ingredients()),
                 toAllergenDTOs(recipe.allergens()),
-                recipe.dietaryFlags(),
+                recipe.dietaries(),
                 recipe.createdAt(),
                 recipe.updatedAt()
         );
@@ -43,7 +43,7 @@ public final class RecipeDTOMapper {
                 recipeDTO.username(), recipeDTO.preparationMinutes(),
                 imageUrl, recipeDTO.status(),
                 recipeDTO.steps(), recipeDTO.ingredients(),
-                recipeDTO.allergens(), recipeDTO.dietaryFlags(),
+                recipeDTO.allergens(), recipeDTO.dietaries(),
                 recipeDTO.createdAt(), recipeDTO.updatedAt());
     }
 
@@ -54,7 +54,7 @@ public final class RecipeDTOMapper {
                 username, recipeDTO.preparationMinutes(),
                 recipeDTO.imageUrl(), recipeDTO.status(),
                 recipeDTO.steps(), recipeDTO.ingredients(),
-                recipeDTO.allergens(), recipeDTO.dietaryFlags(),
+                recipeDTO.allergens(), recipeDTO.dietaries(),
                 recipeDTO.createdAt(), recipeDTO.updatedAt());
     }
 
@@ -87,7 +87,7 @@ public final class RecipeDTOMapper {
                 toStepsDomain(dto.steps()),
                 toIngredientsDomain(dto.ingredients()),
                 toAllergensDomain(dto.allergens()),
-                dto.dietaryFlags(),
+                dto.dietaries(),
                 dto.createdAt(),
                 dto.updatedAt()
         );
@@ -171,7 +171,7 @@ public final class RecipeDTOMapper {
                 toStepDTOs(recipe.stepByStepInstructions()),
                 toIngredientDTOs(recipe.ingredients()),
                 toAllergenDTOs(recipe.allergens()),
-                recipe.dietaryFlags(),
+                recipe.dietaries(),
                 recipe.createdAt(),
                 recipe.updatedAt(),
                 personalizedRecipe.counts().likeCount(),

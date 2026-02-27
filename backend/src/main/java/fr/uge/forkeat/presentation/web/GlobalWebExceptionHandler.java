@@ -68,21 +68,20 @@ public class GlobalWebExceptionHandler {
 	}
 
 	@ExceptionHandler(CheckProfileUpdateFailureException.class)
-	public String HandleUpdatePasswordFailure(CheckProfileUpdateFailureException ex, RedirectAttributes redirectAttributes){
+	public String HandleUpdatePasswordFailure(CheckProfileUpdateFailureException ex, RedirectAttributes redirectAttributes) {
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
 		return "redirect:/account";
 	}
 
 	@ExceptionHandler(VerificationException.class)
-	public String handleVerificationException(VerificationException ex, RedirectAttributes redirectAttributes){
+	public String handleVerificationException(VerificationException ex, RedirectAttributes redirectAttributes) {
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
 		return "redirect:/account";
 	}
 
 	@ExceptionHandler(ImageUploadException.class)
-	public String handleImageUploadException(ImageUploadException ex, RedirectAttributes redirectAttributes){
+	public String handleImageUploadException(ImageUploadException ex, RedirectAttributes redirectAttributes) {
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
 		return "redirect:/recipes/create";
 	}
-
 }

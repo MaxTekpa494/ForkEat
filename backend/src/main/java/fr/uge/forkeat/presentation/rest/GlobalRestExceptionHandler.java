@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.Map;
 
 // À CHANGER POUR UTILISER DES HTTPRESPONSES PLUTOT QUE DES MAPS
-@RestControllerAdvice(basePackages = "fr.uge.forkeat.presentation.rest")
+@RestControllerAdvice(basePackages = "fr.uge.forkeat.presentation")
 public class GlobalRestExceptionHandler {
 
   @ExceptionHandler(RecipeNotFoundException.class)
@@ -78,3 +78,40 @@ public class GlobalRestExceptionHandler {
     }
 
 }
+
+// S'inspirer pour corriger le controllerAdvance
+/*
+@RestControllerAdvice
+public class GlobalExceptionHandler {
+
+    // 404 - Ressource non trouvée
+    @ExceptionHandler({RecipeNotFoundException.class, UserNotFoundException.class})
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    public ProblemDetail handleNotFound(RuntimeException ex) { }
+
+    // 400 - Validation échouée
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    public Map<String, String> handleValidation(MethodArgumentNotValidException ex) { }
+
+    // 409 - Conflit (contrainte unique)
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    @ResponseStatus(HttpStatus.CONFLICT)
+    public ProblemDetail handleConflict(DataIntegrityViolationException ex) { }
+
+    // 401 - Non authentifié
+    @ExceptionHandler(UnauthorizedException.class)
+    @ResponseStatus(HttpStatus.UNAUTHORIZED)
+    public ProblemDetail handleUnauthorized(UnauthorizedException ex) { }
+
+    // 403 - Interdit (pas les droits)
+    @ExceptionHandler(AccessDeniedException.class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    public ProblemDetail handleForbidden(AccessDeniedException ex) { }
+
+    // 500 - Erreur serveur générique
+    @ExceptionHandler(Exception.class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    public ProblemDetail handleGeneric(Exception ex) { }
+}
+ */

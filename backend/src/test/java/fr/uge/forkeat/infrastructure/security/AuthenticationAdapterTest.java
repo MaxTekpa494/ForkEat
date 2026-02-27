@@ -143,6 +143,63 @@ class AuthenticationAdapterTest {
     }
 
     @Nested
+    class IsAuthenticatedTests {
+
+        @Test
+        void shouldReturnTrueWhenUserIsAuthenticated() {
+            var auth = new UsernamePasswordAuthenticationToken("testuser", null,
+                    List.of(new SimpleGrantedAuthority("ROLE_MEMBER")));
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            assertTrue(adapter.isAuthenticated());
+        }
+
+        @Test
+        void shouldReturnFalseWhenContextIsEmpty() {
+            SecurityContextHolder.clearContext();
+
+            assertFalse(adapter.isAuthenticated());
+        }
+
+        @Test
+        void shouldReturnFalseWhenPrincipalIsAnonymousUser() {
+            var auth = new UsernamePasswordAuthenticationToken("anonymousUser", null);
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            assertFalse(adapter.isAuthenticated());
+        }
+    }
+
+    @Nested
+    class IsAdminTests {
+
+        @Test
+        void shouldReturnTrueWhenUserHasAdminRole() {
+            var auth = new UsernamePasswordAuthenticationToken("admin", null,
+                    List.of(new SimpleGrantedAuthority("ROLE_ADMIN")));
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            assertTrue(adapter.isAdmin());
+        }
+
+        @Test
+        void shouldReturnFalseWhenUserHasMemberRole() {
+            var auth = new UsernamePasswordAuthenticationToken("user", null,
+                    List.of(new SimpleGrantedAuthority("ROLE_MEMBER")));
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            assertFalse(adapter.isAdmin());
+        }
+
+        @Test
+        void shouldReturnFalseWhenContextIsEmpty() {
+            SecurityContextHolder.clearContext();
+
+            assertFalse(adapter.isAdmin());
+        }
+    }
+
+    @Nested
     class RefreshAuthenticationTests {
 
         @Test

@@ -1,8 +1,9 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
-import fr.uge.forkeat.service.model.WalletType;
+import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import jakarta.persistence.*;
 
+import java.util.Objects;
 import java.util.UUID;
 
 @Entity
@@ -10,32 +11,43 @@ import java.util.UUID;
 public class PlatformWalletEntity {
 
     @Id
+    @Column(columnDefinition = "UUID")
     private UUID id;
 
-    @Column(name = "wallet_id", unique = true, nullable = false)
-    private UUID walletId;
-
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
-    private WalletType type;
+    @Column(name = "type", nullable = false, unique = true, length = 20)
+    private PlatformWalletType type;
 
-    public UUID getId() {
-        return id;
-    }
-    public void setId(UUID id) {
+    @OneToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "wallet_id", nullable = false, unique = true)
+    private WalletEntity wallet;
+
+    public PlatformWalletEntity() {}
+
+    public PlatformWalletEntity(UUID id, PlatformWalletType type, WalletEntity wallet) {
         this.id = id;
-    }
-    public UUID getWalletId() {
-        return walletId;
-    }
-    public void setWalletId(UUID walletId) {
-        this.walletId = walletId;
-    }
-    public WalletType getType() {
-        return type;
-    }
-    public void setType(WalletType type) {
         this.type = type;
+        this.wallet = wallet;
     }
 
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+
+    public PlatformWalletType getType() { return type; }
+    public void setType(PlatformWalletType type) { this.type = type; }
+
+    public WalletEntity getWallet() { return wallet; }
+    public void setWallet(WalletEntity wallet) { this.wallet = wallet; }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof PlatformWalletEntity that)) return false;
+        return id != null && id.equals(that.id);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(id);
+    }
 }

@@ -1,7 +1,7 @@
 package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
-import fr.uge.forkeat.service.model.user.Wallet;
+import fr.uge.forkeat.service.model.wallet.Wallet;
 
 import java.util.Objects;
 

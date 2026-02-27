@@ -69,9 +69,10 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
 						.requestMatchers("/api/recipes/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/wallet/**").hasAuthority("EMAIL_VERIFIED")
-						.requestMatchers("/*/user/*").authenticated().requestMatchers("/*/moderator/*")
-						.hasRole("MODERATOR").requestMatchers("/*/admin/*").hasRole("ADMIN").anyRequest()
-						.hasRole("ADMIN"))
+						.requestMatchers("/api/admin/**").hasRole("ADMIN")
+						.requestMatchers("/api/moderator/**").hasRole("MODERATOR")
+						.requestMatchers("/api/user/**").authenticated()
+						.anyRequest().authenticated())
 				.addFilterBefore(new RateLimitFilter(rateLimitProperties), UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(new JwtFilter(customUserDetailsService, jwtUtils),
 								 UsernamePasswordAuthenticationFilter.class)
@@ -89,8 +90,9 @@ public class SecurityConfig {
 						.requestMatchers("/", "/auth/**", "/login", "/css/**", "/js/**", "/images/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
 						.requestMatchers("/recipes/my").authenticated()
-						.requestMatchers("/recipes/create", "/recipes/*/edit", "/recipes/*/delete").hasAuthority("EMAIL_VERIFIED") // edit et delete c pas EMAIL verified
-																																		// à corriger quand on les fait
+						.requestMatchers("/recipes/create", "/recipes/*/edit").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers("/recipes/*/delete").authenticated() // edit et delete c pas EMAIL verified
+																				// à corriger quand on les fait
 
 						.requestMatchers("/wallet/webhooks/**").permitAll()
 						.requestMatchers("/wallet/**").hasAuthority("EMAIL_VERIFIED")
@@ -104,14 +106,22 @@ public class SecurityConfig {
 				.formLogin(form -> form
 						.loginPage("/auth/login")
 						.loginProcessingUrl("/auth/login")
-						.defaultSuccessUrl("/recipes", true)
+						.successHandler((request, response, authentication) -> {
+							var isAdmin = authentication.getAuthorities().stream()
+									.anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+							response.sendRedirect(isAdmin ? "/admin" : "/recipes");
+						})
 						.failureUrl("/auth/login?error=true")
 						.permitAll())
 
 				.oauth2Login(oauth2 -> oauth2
 						.loginPage("/auth/login")
 						.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-						.defaultSuccessUrl("/recipes", true)
+						.successHandler((request, response, authentication) -> {
+							var isAdmin = authentication.getAuthorities().stream()
+									.anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+							response.sendRedirect(isAdmin ? "/admin" : "/recipes");
+						})
 						.failureUrl("/auth/login?error=true"))
 
 				.logout(logout -> logout

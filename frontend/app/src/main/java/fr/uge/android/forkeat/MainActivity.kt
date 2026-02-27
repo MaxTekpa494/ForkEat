@@ -46,6 +46,11 @@ import fr.uge.android.forkeat.recipes.RecipesListScreen
 import fr.uge.android.forkeat.recipes.RecipesViewModel
 import androidx.compose.foundation.layout.padding
 import androidx.navigation.compose.currentBackStackEntryAsState
+import fr.uge.android.forkeat.admin.AdminCreateUserScreen
+import fr.uge.android.forkeat.admin.AdminDashboardScreen
+import fr.uge.android.forkeat.admin.AdminRecipesScreen
+import fr.uge.android.forkeat.admin.AdminUsersScreen
+import fr.uge.android.forkeat.admin.AdminWalletsScreen
 import fr.uge.android.forkeat.profile.ProfileGuestScreen
 import fr.uge.android.forkeat.wallet.WalletScreen
 import kotlin.collections.contains
@@ -76,21 +81,42 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
-                val hideBarsRoutes = listOf("login", "register", "forgot-password", "forgot-password-code", "recipes/{id}")
-                val shouldShowBars = currentRoute !in hideBarsRoutes && currentRoute != null
-                var isLoggedIn by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
+                val adminRoutes = listOf("admin-dashboard", "admin-recipes", "admin-wallets", "admin-create")
+                val hideBarsRoutes = listOf("login", "register", "forgot-password", "forgot-password-code", "recipes/{id}") + adminRoutes
+                val shouldShowBars = currentRoute !in hideBarsRoutes
+                    && currentRoute?.startsWith("admin-users") != true
+                    && currentRoute != null
+                var isCheckingAuth by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
+                var isLoggedIn by remember { mutableStateOf(false) }
+                var isAdmin by remember { mutableStateOf(false) }
                 // ViewModel partage pour toute la navigation
                 val recipesViewModel: RecipesViewModel = viewModel()
 
                 val logout: () -> Unit = {
                     ForkEatApi.logout()
                     isLoggedIn = false
+                    isAdmin = false
                     navController.navigate("home") {
                         popUpTo(0) { inclusive = true }
                     }
                 }
-                // Handle deep link navigation
+                // Validation du token au démarrage + deep link
                 LaunchedEffect(Unit) {
+                    if (ForkEatApi.isLoggedIn()) {
+                        try {
+                            val response = ForkEatApi.authService.me()
+                            if (response.isSuccessful && response.body() != null) {
+                                val role = response.body()!!.resource.role
+                                isLoggedIn = true
+                                isAdmin = role == "ADMIN"
+                            } else {
+                                ForkEatApi.logout()
+                            }
+                        } catch (_: Exception) {
+                            ForkEatApi.logout()
+                        }
+                    }
+                    isCheckingAuth = false
                     pendingDeepLink?.let { dest ->
                         pendingDeepLink = null
                         navController.navigate(dest) {
@@ -98,7 +124,11 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-              ForkEatScaffold(
+              if (isCheckingAuth) {
+                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    CircularProgressIndicator(color = fr.uge.android.forkeat.designsystem.theme.Primary500)
+                }
+              } else ForkEatScaffold(
                 navController = navController,
                 onLogout = logout,
                 isLoggedIn = isLoggedIn,
@@ -116,7 +146,9 @@ class MainActivity : ComponentActivity() {
                       onNavigateToRegister = { navController.navigate("register") },
                       onLoginSuccess = {
                         isLoggedIn = true
-                        navController.navigate("recipes") {
+                        isAdmin = ForkEatApi.isAdmin()
+                        val destination = if (isAdmin) "admin-dashboard" else "recipes"
+                        navController.navigate(destination) {
                           popUpTo("home") { inclusive = true }
                         }
                       },
@@ -143,7 +175,9 @@ class MainActivity : ComponentActivity() {
                       onNavigateToRegister = { navController.navigate("register") },
                       onLoginSuccess = {
                         isLoggedIn = true
-                        navController.navigate("recipes") {
+                        isAdmin = ForkEatApi.isAdmin()
+                        val destination = if (isAdmin) "admin-dashboard" else "recipes"
+                        navController.navigate(destination) {
                           popUpTo("home") { inclusive = true }
                         }
                       },
@@ -171,10 +205,17 @@ class MainActivity : ComponentActivity() {
                     )
                   }
                   composable("profile") {
-                    ProfileScreen(
-                      onNavigateToCreateRecipe = { navController.navigate("recipe-form") },
-                      onNavigateToMyRecipes = { navController.navigate("my-recipes") }
-                    )
+                    if (isLoggedIn) {
+                      ProfileScreen(
+                        onNavigateToCreateRecipe = { navController.navigate("recipe-form") },
+                        onNavigateToMyRecipes = { navController.navigate("my-recipes") })
+                    } else {
+                      ProfileGuestScreen(
+                        onNavigateToLogin = { navController.navigate("login") },
+                        onNavigateToRegister = { navController.navigate("register") }
+                      )
+                    }
+
                   }
                   composable("wallet") {
                     WalletScreen(
@@ -278,6 +319,67 @@ class MainActivity : ComponentActivity() {
                                 navController.navigate("recipes/$recipeId")
                             },
                             onBack = { navController.popBackStack() }
+                        )
+                    }
+                    // ── Admin routes ───────────────────────────────────────────────
+                    composable("admin-dashboard") {
+                        AdminDashboardScreen(
+                            currentRoute = "admin-dashboard",
+                            onNavigateToMembers = { navController.navigate("admin-users?tab=0") },
+                            onNavigateToModerators = { navController.navigate("admin-users?tab=1") },
+                            onNavigateToAdmins = { navController.navigate("admin-users?tab=2") },
+                            onNavigateToRecipes = { navController.navigate("admin-recipes") },
+                            onNavigateToWallets = { navController.navigate("admin-wallets") },
+                            onNavigateToCreate = { navController.navigate("admin-create") },
+                            onLogout = logout
+                        )
+                    }
+                    composable(
+                        route = "admin-users?tab={tab}",
+                        arguments = listOf(
+                            navArgument("tab") { type = NavType.IntType; defaultValue = 0 }
+                        )
+                    ) { backStackEntry ->
+                        val tab = backStackEntry.arguments?.getInt("tab") ?: 0
+                        AdminUsersScreen(
+                            currentRoute = "admin-users",
+                            initialTab = tab,
+                            onNavigateToDashboard = { navController.navigate("admin-dashboard") },
+                            onNavigateToRecipes = { navController.navigate("admin-recipes") },
+                            onNavigateToWallets = { navController.navigate("admin-wallets") },
+                            onNavigateToCreate = { navController.navigate("admin-create") },
+                            onLogout = logout
+                        )
+                    }
+                    composable("admin-recipes") {
+                        AdminRecipesScreen(
+                            currentRoute = "admin-recipes",
+                            onNavigateToDashboard = { navController.navigate("admin-dashboard") },
+                            onNavigateToUsers = { navController.navigate("admin-users") },
+                            onNavigateToWallets = { navController.navigate("admin-wallets") },
+                            onNavigateToCreate = { navController.navigate("admin-create") },
+                            onNavigateToRecipe = { id -> navController.navigate("recipes/$id") },
+                            onLogout = logout
+                        )
+                    }
+                    composable("admin-wallets") {
+                        AdminWalletsScreen(
+                            currentRoute = "admin-wallets",
+                            onNavigateToDashboard = { navController.navigate("admin-dashboard") },
+                            onNavigateToUsers = { navController.navigate("admin-users") },
+                            onNavigateToRecipes = { navController.navigate("admin-recipes") },
+                            onNavigateToCreate = { navController.navigate("admin-create") },
+                            onLogout = logout
+                        )
+                    }
+                    composable("admin-create") {
+                        AdminCreateUserScreen(
+                            currentRoute = "admin-create",
+                            onNavigateToDashboard = { navController.navigate("admin-dashboard") },
+                            onNavigateToUsers = { navController.navigate("admin-users") },
+                            onNavigateToRecipes = { navController.navigate("admin-recipes") },
+                            onNavigateToWallets = { navController.navigate("admin-wallets") },
+                            onLogout = logout
                         )
                     }
                 }
