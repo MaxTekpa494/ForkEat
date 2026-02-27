@@ -28,6 +28,8 @@ public interface RecipePersistence {
 
   List<String> findAllIngredientNames();
 
+  List<String> findAllUnitNames();
+
   List<String> findAllDietaryNames();
 
   Recipe save(Recipe recipe);
