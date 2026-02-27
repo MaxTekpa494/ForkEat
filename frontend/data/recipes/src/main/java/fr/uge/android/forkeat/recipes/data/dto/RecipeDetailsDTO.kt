@@ -15,7 +15,7 @@ data class RecipeDetailsDTO(
     val steps: List<RecipeStepDTO>,
     val ingredients: List<RecipeIngredientDTO>,
     val allergens: List<AllergenDTO>,
-    val dietaryFlags: Map<String, Boolean>,
+    val dietaries: List<String>,
     val createdAt: Instant,
     val updatedAt: Instant,
     val nbLike: Long,

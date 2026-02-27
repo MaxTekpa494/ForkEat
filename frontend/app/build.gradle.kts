@@ -6,9 +6,7 @@ plugins {
 
 android {
   namespace = "fr.uge.android.forkeat"
-  compileSdk {
-    version = release(36)
-  }
+  compileSdk = 36
 
   defaultConfig {
     applicationId = "fr.uge.android.forkeat"
@@ -30,6 +28,7 @@ android {
     compose = true
   }
   compileOptions {
+    isCoreLibraryDesugaringEnabled = true
     sourceCompatibility = JavaVersion.VERSION_17
     targetCompatibility = JavaVersion.VERSION_17
   }
@@ -40,6 +39,7 @@ kotlin {
 }
 
 dependencies {
+  coreLibraryDesugaring(libs.desugarJdkLibs)
   implementation(project(":core:designsystem"))
   implementation(project(":core:network"))
   implementation(project(":feature:home"))
@@ -47,6 +47,7 @@ dependencies {
   implementation(project(":feature:profile"))
   implementation(project(":feature:recipes"))
   implementation(project(":feature:wallet"))
+  implementation(project(":feature:admin"))
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.lifecycle.runtime.ktx)
   implementation(libs.androidx.activity.compose)

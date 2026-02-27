@@ -48,7 +48,7 @@ public class RecipeService {
             recipe.stepByStepInstructions(),
             recipe.ingredients(),
             recipe.allergens(),
-            recipe.dietaryFlags(),
+            recipe.dietaries(),
             recipe.createdAt(),
             recipe.updatedAt()
     );
@@ -82,7 +82,7 @@ public class RecipeService {
             updatedRecipe.stepByStepInstructions(),
             updatedRecipe.ingredients(),
             updatedRecipe.allergens(),
-            updatedRecipe.dietaryFlags(),
+            updatedRecipe.dietaries(),
             existingRecipe.createdAt(),
             updatedRecipe.updatedAt()
     );
@@ -148,6 +148,10 @@ public class RecipeService {
     return recipePersistence.findAllIngredientNames();
   }
 
+  public List<String> findAllDietaryNames() {
+    return recipePersistence.findAllDietaryNames();
+  }
+
   public List<Recipe> findByAuthorUsername(String authorUsername) {
     return recipePersistence.findByAuthorUsername(authorUsername);
   }
@@ -164,6 +168,18 @@ public class RecipeService {
     Objects.requireNonNull(userId);
     findById(recipeId); // vérifie que la recette existe
     recipePersistence.unlikeRecipe(userId, recipeId);
+  }
+
+  @Transactional
+  public Recipe updateStatus(UUID id, RecipeStatus status) {
+    Objects.requireNonNull(id);
+    Objects.requireNonNull(status);
+    return recipePersistence.updateStatus(id, status);
+  }
+
+  public long countByStatus(RecipeStatus status) {
+    Objects.requireNonNull(status);
+    return recipePersistence.countByStatus(status);
   }
 
 }

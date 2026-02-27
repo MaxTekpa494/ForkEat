@@ -7,11 +7,12 @@ import com.stripe.model.Payout;
 import com.stripe.model.Transfer;
 import com.stripe.model.checkout.Session;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.presentation.external.StripeWebhook;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.DuplicateTransactionException;
 import fr.uge.forkeat.service.exception.StripEventException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
-import fr.uge.forkeat.service.exception.WithdrawalException; // New import
 import fr.uge.forkeat.service.external.PaymentGateway;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -33,7 +34,7 @@ import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@WebMvcTest(controllers = StripeWebhookRestController.class, properties = "stripe.webhook.secret=whsec_fake123")
+@WebMvcTest(controllers = StripeWebhook.class, properties = "stripe.webhook.secret=whsec_fake123")
 @AutoConfigureMockMvc(addFilters = false)
 class StripeWebhookControllerTest {
 
@@ -42,6 +43,9 @@ class StripeWebhookControllerTest {
     @MockitoBean
     private WalletService walletService;
 
+
+    @MockitoBean
+    private AuthenticationPort authPort;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;

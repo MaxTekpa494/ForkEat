@@ -2,7 +2,6 @@ package fr.uge.forkeat.presentation.dto.recipe;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 public record RecipeDTO(
@@ -19,7 +18,7 @@ public record RecipeDTO(
         List<RecipeStepDTO> steps,
         List<RecipeIngredientDTO> ingredients,
         List<AllergenDTO> allergens,
-        Map<String, Boolean> dietaryFlags,
+        List<String> dietaries,
         Instant createdAt,
         Instant updatedAt
 ) {

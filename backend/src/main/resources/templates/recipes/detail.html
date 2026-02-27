@@ -239,28 +239,26 @@
                         </h2>
                         <div class="flex flex-wrap gap-2">
                             <th:block th:each="flag : ${diff.dietaryFlags}">
-                                <th:block th:with="lbl=${flag.flagName == 'vegan' ? 'Vegan' : (flag.flagName == 'vegetarian' ? 'Végétarien' : (flag.flagName == 'gluten-free' ? 'Sans gluten' : (flag.flagName == 'dairy-free' ? 'Sans lactose' : (flag.flagName == 'halal' ? 'Halal' : (flag.flagName == 'kosher' ? 'Casher' : (flag.flagName == 'nut-free' ? 'Sans noix' : (flag.flagName == 'low-carb' ? 'Low-carb' : flag.flagName)))))))}">
-                                    <!-- UNCHANGED -->
-                                    <span th:if="${flag.type.name() == 'UNCHANGED'}"
-                                          th:text="${lbl}"
-                                          class="diff-item diff-unchanged px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">
-                                        Régime
-                                    </span>
-                                    <!-- ADDED -->
-                                    <span th:if="${flag.type.name() == 'ADDED'}"
-                                          class="diff-item diff-added flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium border border-green-400">
-                                        <i class="fas fa-plus text-green-600 text-xs"></i>
-                                        <span th:text="${lbl}"></span>
-                                        <span class="text-xs font-bold text-green-700 bg-green-50 px-1.5 rounded-full">Ajouté</span>
-                                    </span>
-                                    <!-- REMOVED -->
-                                    <span th:if="${flag.type.name() == 'REMOVED'}"
-                                          class="diff-item diff-removed flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-400 rounded-full text-sm font-medium border border-red-200 line-through">
-                                        <i class="fas fa-minus text-red-400 text-xs"></i>
-                                        <span th:text="${lbl}"></span>
-                                        <span class="text-xs font-bold text-red-500 bg-red-100 px-1.5 rounded-full" style="text-decoration: none;">Retiré</span>
-                                    </span>
-                                </th:block>
+                                <!-- UNCHANGED -->
+                                <span th:if="${flag.type.name() == 'UNCHANGED'}"
+                                      th:text="${flag.flagName}"
+                                      class="diff-item diff-unchanged px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">
+                                    Régime
+                                </span>
+                                <!-- ADDED -->
+                                <span th:if="${flag.type.name() == 'ADDED'}"
+                                      class="diff-item diff-added flex items-center gap-1.5 px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm font-medium border border-green-400">
+                                    <i class="fas fa-plus text-green-600 text-xs"></i>
+                                    <span th:text="${flag.flagName}"></span>
+                                    <span class="text-xs font-bold text-green-700 bg-green-50 px-1.5 rounded-full">Ajouté</span>
+                                </span>
+                                <!-- REMOVED -->
+                                <span th:if="${flag.type.name() == 'REMOVED'}"
+                                      class="diff-item diff-removed flex items-center gap-1.5 px-3 py-1 bg-red-50 text-red-400 rounded-full text-sm font-medium border border-red-200 line-through">
+                                    <i class="fas fa-minus text-red-400 text-xs"></i>
+                                    <span th:text="${flag.flagName}"></span>
+                                    <span class="text-xs font-bold text-red-500 bg-red-100 px-1.5 rounded-full" style="text-decoration: none;">Retiré</span>
+                                </span>
                             </th:block>
                         </div>
                     </div>
@@ -271,14 +269,11 @@
                             <i class="fas fa-leaf text-green-500 mr-2"></i>Régimes alimentaires
                         </h2>
                         <div class="flex flex-wrap gap-2">
-                            <th:block th:each="entry : ${recipe.dietaryFlags}" th:if="${entry.value}">
-                                <th:block th:with="lbl=${entry.key == 'vegan' ? 'Vegan' : (entry.key == 'vegetarian' ? 'Végétarien' : (entry.key == 'gluten-free' ? 'Sans gluten' : (entry.key == 'dairy-free' ? 'Sans lactose' : (entry.key == 'halal' ? 'Halal' : (entry.key == 'kosher' ? 'Casher' : (entry.key == 'nut-free' ? 'Sans noix' : (entry.key == 'low-carb' ? 'Low-carb' : entry.key)))))))}">
-                                    <span th:text="${lbl}"
-                                          class="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">
-                                        Régime
-                                    </span>
-                                </th:block>
-                            </th:block>
+                            <span th:each="name : ${recipe.dietaries}"
+                                  th:text="${name}"
+                                  class="px-3 py-1 bg-green-50 text-green-700 rounded-full text-sm font-medium border border-green-200">
+                                Régime
+                            </span>
                         </div>
                     </div>
 

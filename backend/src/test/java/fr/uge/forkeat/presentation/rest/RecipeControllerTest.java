@@ -38,7 +38,6 @@ import org.springframework.web.multipart.MultipartFile;
 import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -80,7 +79,7 @@ class RecipeControllerTest {
             var recipeId = UUID.randomUUID();
             var savedRecipe = createRecipe(recipeId, "Tarte aux pommes", null, RecipeStatus.DRAFT);
             var dto = new RecipeDTO(null, "Tarte aux pommes", "Une bonne tarte", null,
-                    null, 30, null, "DRAFT", List.of(), List.of(), List.of(), Map.of(), null, null);
+                    null, 30, null, "DRAFT", List.of(), List.of(), List.of(), List.of(), null, null);
 
             when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipeService.createRecipe(any(), any())).thenReturn(savedRecipe);
@@ -98,7 +97,7 @@ class RecipeControllerTest {
             var recipeId = UUID.randomUUID();
             var savedRecipe = createRecipe(recipeId, "Recette", null, RecipeStatus.DRAFT);
             var dto = new RecipeDTO(null, "Recette", "Résumé", null,
-                    "intruder", 20, null, "DRAFT", List.of(), List.of(), List.of(), Map.of(), null, null);
+                    "intruder", 20, null, "DRAFT", List.of(), List.of(), List.of(), List.of(), null, null);
 
             when(authPort.extractUsername()).thenReturn("real_author");
             when(recipeService.createRecipe(any(), any())).thenReturn(savedRecipe);
@@ -229,10 +228,11 @@ class RecipeControllerTest {
     class PageCreateRecipe {
 
         @Test
-        void shouldReturnAllergensAndIngredients() {
+        void shouldReturnAllergensIngredientsAndDietaries() {
             var allergen = new Allergen(UUID.randomUUID(), "Gluten", AllergenSeverity.HIGH);
             when(recipeService.findAllAllergens()).thenReturn(List.of(allergen));
             when(recipeService.findAllIngredientNames()).thenReturn(List.of("Pomme", "Farine", "Beurre"));
+            when(recipeService.findAllDietaryNames()).thenReturn(List.of("vegan", "végétarien"));
 
             var response = recipeController.pageCreateRecipe();
 
@@ -241,14 +241,17 @@ class RecipeControllerTest {
             var data = (RecipeRestController.AllergensIngredients) ((ItemResponse<?>) response.getBody()).resource();
             assertEquals(1, data.allergens().size());
             assertEquals(3, data.ingredients().size());
+            assertEquals(2, data.dietaries().size());
             verify(recipeService).findAllAllergens();
             verify(recipeService).findAllIngredientNames();
+            verify(recipeService).findAllDietaryNames();
         }
 
         @Test
         void shouldReturnEmptyListsWhenNoneAvailable() {
             when(recipeService.findAllAllergens()).thenReturn(List.of());
             when(recipeService.findAllIngredientNames()).thenReturn(List.of());
+            when(recipeService.findAllDietaryNames()).thenReturn(List.of());
 
             var response = recipeController.pageCreateRecipe();
 
@@ -256,6 +259,7 @@ class RecipeControllerTest {
             var data = (RecipeRestController.AllergensIngredients) ((ItemResponse<?>) response.getBody()).resource();
             assertTrue(data.allergens().isEmpty());
             assertTrue(data.ingredients().isEmpty());
+            assertTrue(data.dietaries().isEmpty());
         }
     }
 
@@ -441,7 +445,7 @@ class RecipeControllerTest {
             var existing = createRecipe(recipeId, "Ancien titre", null, RecipeStatus.PUBLISHED);
             var updated = createRecipe(recipeId, "Nouveau titre", null, RecipeStatus.PUBLISHED);
             var dto = new RecipeDTO(null, "Nouveau titre", "Résumé", null,
-                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
 
             when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipeService.findById(recipeId)).thenReturn(existing);
@@ -460,7 +464,7 @@ class RecipeControllerTest {
             var recipeId = UUID.randomUUID();
             var existing = createRecipe(recipeId, "Recette de chef_test", null, RecipeStatus.PUBLISHED);
             var dto = new RecipeDTO(null, "Nouveau titre", "Résumé", null,
-                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
 
             when(authPort.extractUsername()).thenReturn("intruder");
             when(recipeService.findById(recipeId)).thenReturn(existing);
@@ -473,7 +477,7 @@ class RecipeControllerTest {
         void shouldPropagateExceptionWhenRecipeNotFound() {
             var recipeId = UUID.randomUUID();
             var dto = new RecipeDTO(null, "Titre", "Résumé", null,
-                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
 
             when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipeService.findById(recipeId)).thenThrow(new RecipeNotFoundException(recipeId));
@@ -493,7 +497,7 @@ class RecipeControllerTest {
             var existing = createRecipe(recipeId, "Recette", null, RecipeStatus.PUBLISHED);
             var updated = createRecipe(recipeId, "Recette", null, RecipeStatus.PUBLISHED);
             var dto = new RecipeDTO(null, "Recette", "Résumé", null,
-                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
             var mockImage = mock(MultipartFile.class);
 
             when(authPort.extractUsername()).thenReturn("chef_test");
@@ -613,7 +617,7 @@ class RecipeControllerTest {
             var parentId = UUID.randomUUID();
             var parent = createRecipe(parentId, "Recette originale", null, RecipeStatus.PUBLISHED);
             var dto = new RecipeDTO(null, "Variante", "Résumé", parentId,
-                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
             var savedVariant = createRecipe(UUID.randomUUID(), "Variante", parentId, RecipeStatus.PUBLISHED);
 
             when(authPort.extractUsername()).thenReturn("chef_test");
@@ -633,7 +637,7 @@ class RecipeControllerTest {
         void shouldCreateVariantWithNewImageWhenImageProvided() {
             var parentId = UUID.randomUUID();
             var dto = new RecipeDTO(null, "Variante", "Résumé", parentId,
-                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
             var savedVariant = createRecipe(UUID.randomUUID(), "Variante", parentId, RecipeStatus.PUBLISHED);
             var mockImage = mock(MultipartFile.class);
 
@@ -653,7 +657,7 @@ class RecipeControllerTest {
         @Test
         void shouldNotFetchParentWhenNullParentId() {
             var dto = new RecipeDTO(null, "Variante sans parent", "Résumé", null,
-                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
             var savedVariant = createRecipe(UUID.randomUUID(), "Variante sans parent", null, RecipeStatus.PUBLISHED);
 
             when(authPort.extractUsername()).thenReturn("chef_test");
@@ -748,7 +752,7 @@ class RecipeControllerTest {
         return new Recipe(
                 id, title, "Summary for " + title, parentId,
                 "chef_test", 30, null, status,
-                List.of(), List.of(), List.of(), Map.of(), now, now
+                List.of(), List.of(), List.of(), List.of(), now, now
         );
     }
 

@@ -48,6 +48,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontStyle
@@ -302,16 +303,15 @@ fun RecipeDetailScreen(
             }
 
             // ── Régimes alimentaires ─────────────────────────────────────────
-            val activeDietaryFlags = recipe.dietaryFlags.filter { it.value }
             if (diff != null && diff.dietaryFlags.isNotEmpty()) {
                 Text("Régimes alimentaires", style = Typography.titleMedium, color = Color(0xFF4CAF50))
                 Spacer(Modifier.height(4.dp))
                 DiffDietaryFlagBadges(diff.dietaryFlags, diffModeActive)
                 Spacer(Modifier.height(8.dp))
-            } else if (activeDietaryFlags.isNotEmpty()) {
+            } else if (recipe.dietaries.isNotEmpty()) {
                 Text("Régimes alimentaires", style = Typography.titleMedium, color = Color(0xFF4CAF50))
                 Spacer(Modifier.height(4.dp))
-                DietaryFlagBadges(activeDietaryFlags)
+                DietaryFlagBadges(recipe.dietaries)
                 Spacer(Modifier.height(8.dp))
             }
 
@@ -482,7 +482,7 @@ private fun DiffAllergenBadges(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         allergens.forEach { allergen ->
-            if (diffModeActive && allergen.type == RecipeDiffDTO.DiffType.UNCHANGED) return@forEach
+            val alpha = if (diffModeActive && allergen.type == RecipeDiffDTO.DiffType.UNCHANGED) 0.15f else 1f
             val isRemoved = allergen.type == RecipeDiffDTO.DiffType.REMOVED
             val isAdded   = allergen.type == RecipeDiffDTO.DiffType.ADDED
             val bgColor = when (allergen.type) {
@@ -503,7 +503,8 @@ private fun DiffAllergenBadges(
             Surface(
                 color = bgColor,
                 shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, borderColor)
+                border = BorderStroke(1.dp, borderColor),
+                modifier = Modifier.alpha(alpha)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -534,34 +535,22 @@ private fun DiffAllergenBadges(
 // RÉGIMES ALIMENTAIRES
 // ══════════════════════════════════════════════════════════════════════════════
 
-private fun dietaryFlagLabel(key: String) = when (key) {
-    "vegan"       -> "Vegan"
-    "vegetarian"  -> "Végétarien"
-    "gluten-free" -> "Sans gluten"
-    "dairy-free"  -> "Sans lactose"
-    "halal"       -> "Halal"
-    "kosher"      -> "Casher"
-    "nut-free"    -> "Sans noix"
-    "low-carb"    -> "Low-carb"
-    else          -> key
-}
-
 @Composable
-private fun DietaryFlagBadges(flags: Map<String, Boolean>) {
+private fun DietaryFlagBadges(dietaries: List<String>) {
     Row(
         Modifier
             .padding(vertical = 4.dp)
             .horizontalScroll(rememberScrollState()),
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        flags.filter { it.value }.forEach { (key, _) ->
+        dietaries.forEach { name ->
             Surface(
                 color = Color(0xFFE8F5E9),
                 shape = RoundedCornerShape(12.dp),
                 border = BorderStroke(1.dp, Color(0xFFA5D6A7))
             ) {
                 Text(
-                    text = dietaryFlagLabel(key),
+                    text = name,
                     color = Color(0xFF2E7D32),
                     style = Typography.labelMedium,
                     modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
@@ -583,7 +572,7 @@ private fun DiffDietaryFlagBadges(
         horizontalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         flags.forEach { flag ->
-            if (diffModeActive && flag.type == RecipeDiffDTO.DiffType.UNCHANGED) return@forEach
+            val alpha = if (diffModeActive && flag.type == RecipeDiffDTO.DiffType.UNCHANGED) 0.15f else 1f
             val isRemoved = flag.type == RecipeDiffDTO.DiffType.REMOVED
             val isAdded   = flag.type == RecipeDiffDTO.DiffType.ADDED
             val bgColor = when (flag.type) {
@@ -604,7 +593,8 @@ private fun DiffDietaryFlagBadges(
             Surface(
                 color = bgColor,
                 shape = RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, borderColor)
+                border = BorderStroke(1.dp, borderColor),
+                modifier = Modifier.alpha(alpha)
             ) {
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -612,7 +602,7 @@ private fun DiffDietaryFlagBadges(
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
                     Text(
-                        text = dietaryFlagLabel(flag.flagName),
+                        text = flag.flagName,
                         color = textColor,
                         style = Typography.labelMedium,
                         textDecoration = if (isRemoved) TextDecoration.LineThrough else TextDecoration.None
@@ -663,7 +653,7 @@ private fun DiffIngredientCard(
     ingredient: RecipeDiffDTO.IngredientDiffDTO,
     diffModeActive: Boolean
 ) {
-    if (diffModeActive && ingredient.type == RecipeDiffDTO.DiffType.UNCHANGED) return
+    val alpha = if (diffModeActive && ingredient.type == RecipeDiffDTO.DiffType.UNCHANGED) 0.15f else 1f
     val isRemoved  = ingredient.type == RecipeDiffDTO.DiffType.REMOVED
     val isModified = ingredient.type == RecipeDiffDTO.DiffType.MODIFIED
     val isAdded    = ingredient.type == RecipeDiffDTO.DiffType.ADDED
@@ -696,7 +686,7 @@ private fun DiffIngredientCard(
         color = bgColor,
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, borderColor),
-        modifier = Modifier.padding(bottom = 8.dp)
+        modifier = Modifier.padding(bottom = 8.dp).alpha(alpha)
     ) {
         Row(
             Modifier.fillMaxWidth().padding(12.dp),
@@ -763,7 +753,7 @@ private fun DiffStepCard(
     step: RecipeDiffDTO.StepDiffDTO,
     diffModeActive: Boolean
 ) {
-    if (diffModeActive && step.type == RecipeDiffDTO.DiffType.UNCHANGED) return
+    val alpha = if (diffModeActive && step.type == RecipeDiffDTO.DiffType.UNCHANGED) 0.15f else 1f
     val isRemoved  = step.type == RecipeDiffDTO.DiffType.REMOVED
     val isModified = step.type == RecipeDiffDTO.DiffType.MODIFIED
     val isAdded    = step.type == RecipeDiffDTO.DiffType.ADDED
@@ -796,7 +786,7 @@ private fun DiffStepCard(
         color = bgColor,
         shape = RoundedCornerShape(16.dp),
         border = BorderStroke(1.dp, borderColor),
-        modifier = Modifier.padding(bottom = 8.dp)
+        modifier = Modifier.padding(bottom = 8.dp).alpha(alpha)
     ) {
         Row(
             Modifier.fillMaxWidth().padding(12.dp),
@@ -966,7 +956,7 @@ fun PreviewRecipeDetailScreen() {
             AllergenDTO("1", "Gluten", "élevé"),
             AllergenDTO("2", "Lait", "moyen")
         ),
-        dietaryFlags = mapOf("vegetarian" to true, "vegan" to false),
+        dietaries = listOf("vegetarian"),
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
         updatedAt = Instant.parse("2026-02-10T12:00:00Z"),
         nbLike = 10,
@@ -990,7 +980,7 @@ fun PreviewRecipeDetailScreenWithDiff() {
         steps = emptyList(),
         ingredients = emptyList(),
         allergens = emptyList(),
-        dietaryFlags = emptyMap(),
+        dietaries = emptyList(),
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
         updatedAt = Instant.parse("2026-02-10T12:00:00Z"),
         nbLike = 5,
@@ -1028,7 +1018,7 @@ fun PreviewRecipeDetailScreenWithDiff() {
         steps = listOf(RecipeStepDTO(1, "Préparez la pâte."), RecipeStepDTO(2, "Ajoutez la cannelle.")),
         ingredients = listOf(RecipeIngredientDTO("Farine", 250.0, "g")),
         allergens = listOf(AllergenDTO("1", "Gluten", "élevé")),
-        dietaryFlags = mapOf("vegetarian" to true),
+        dietaries = listOf("vegetarian"),
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
         updatedAt = Instant.parse("2026-02-10T12:00:00Z"),
         nbLike = 3,

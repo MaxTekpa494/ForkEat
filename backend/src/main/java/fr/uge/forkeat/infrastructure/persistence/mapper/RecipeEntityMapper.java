@@ -33,7 +33,7 @@ public final class RecipeEntityMapper {
             toRecipeSteps(entity.getStepByStepInstructions()),
             toRecipeIngredients(entity.getIngredients()),
             toAllergens(entity.getAllergens()),
-            entity.getDietaryFlag(),
+            toDietaries(entity.getDietaries()),
             entity.getCreatedAt(),
             entity.getUpdatedAt()
     );
@@ -58,12 +58,14 @@ public final class RecipeEntityMapper {
           RecipeEntity recipeParent,
           UserEntity author,
           List<AllergenEntity> allergenEntities,
-          List<IngredientEntity> ingredientEntities
+          List<IngredientEntity> ingredientEntities,
+          List<DietaryEntity> dietaryEntities
   ) {
     Objects.requireNonNull(recipe);
     Objects.requireNonNull(author);
     Objects.requireNonNull(allergenEntities);
     Objects.requireNonNull(ingredientEntities);
+    Objects.requireNonNull(dietaryEntities);
 
     var entity = new RecipeEntity();
     entity.setId(recipe.id());
@@ -74,13 +76,13 @@ public final class RecipeEntityMapper {
     entity.setPreparationMinutes(recipe.preparationMinutes());
     entity.setImageUrl(recipe.imageUrl());
     entity.setStatus(recipe.status());
-    entity.setDietaryFlag(recipe.dietaryFlags());
     entity.setCreatedAt(recipe.createdAt());
     entity.setUpdatedAt(recipe.updatedAt());
 
     entity.setStepByStepInstructions(toEntitySteps(recipe.stepByStepInstructions()));
     entity.setAllergens(toRecipeAllergenEntities(recipe.allergens(), allergenEntities, entity));
     entity.setIngredients(toRecipeIngredientEntities(recipe.ingredients(), ingredientEntities, entity));
+    entity.setDietaries(toRecipeDietaryEntities(recipe.dietaries(), dietaryEntities, entity));
 
     return entity;
   }
@@ -121,6 +123,13 @@ public final class RecipeEntityMapper {
                     recipeAllergen.getAllergen().getName(),
                     recipeAllergen.getAllergen().getSeverity()
             ))
+            .toList();
+  }
+
+
+  private static List<String> toDietaries(List<RecipeDietaryEntity> entityDietaryFlags) {
+    return entityDietaryFlags.stream()
+            .map(dietaryFlag -> dietaryFlag.getDietary().getName())
             .toList();
   }
 
@@ -185,5 +194,19 @@ public final class RecipeEntityMapper {
             .toList();
   }
 
+  public static List<RecipeDietaryEntity> toRecipeDietaryEntities(List<String> dietaryFlags, List<DietaryEntity> dietaryEntities, RecipeEntity recipe) {
+    if (dietaryFlags == null || dietaryFlags.isEmpty()) {
+      return List.of();
+    }
+    return dietaryFlags.stream().map(dietarie -> {
+      var dietaryEntity = dietaryEntities.stream()
+              .filter(d -> d.getName().equalsIgnoreCase(dietarie))
+              .findFirst()
+              .orElseThrow(() -> new IllegalStateException(
+                      "DietaryEntity not found for name: " + dietarie
+              ));
+      return new RecipeDietaryEntity(recipe, dietaryEntity);
+    }).toList();
+  }
 
 }

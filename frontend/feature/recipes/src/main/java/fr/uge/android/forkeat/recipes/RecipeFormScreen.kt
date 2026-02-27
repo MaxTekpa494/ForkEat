@@ -275,6 +275,34 @@ fun RecipeFormScreen(
                 }
             }
 
+            // Régimes alimentaires
+            if (uiState.availableDietaries.isNotEmpty()) {
+                FormSectionTitle("Régimes alimentaires")
+                LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    items(uiState.availableDietaries) { dietary ->
+                        val isSelected = uiState.selectedDietaries.contains(dietary)
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { viewModel.toggleDietary(dietary) },
+                            label = { Text(dietary) },
+                            shape = RoundedCornerShape(20.dp),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = Color(0xFFE8F5E9),
+                                selectedLabelColor = Color(0xFF2E7D32),
+                                containerColor = Color.White,
+                                labelColor = Gray500
+                            ),
+                            border = FilterChipDefaults.filterChipBorder(
+                                borderColor = Color(0xFFE5E7EB),
+                                selectedBorderColor = Color(0xFF4CAF50),
+                                enabled = true,
+                                selected = isSelected
+                            )
+                        )
+                    }
+                }
+            }
+
             // Bouton submit
             Spacer(Modifier.height(8.dp))
             Button(

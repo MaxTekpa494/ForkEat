@@ -5,6 +5,7 @@ import fr.uge.forkeat.presentation.mapper.rest.UserDTOMapper;
 import fr.uge.forkeat.presentation.mapper.rest.WalletDTOMapper;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.*;
+import fr.uge.forkeat.service.model.wallet.Wallet;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
