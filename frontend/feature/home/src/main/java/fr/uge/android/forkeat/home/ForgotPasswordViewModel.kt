@@ -36,7 +36,9 @@ class ForgotPasswordViewModel(application: Application) : AndroidViewModel(appli
 
         viewModelScope.launch {
             try {
-                MailForPasswordForgot.email = email;
+                MailForPasswordForgot.email = email
+                MailForPasswordForgot.password = password
+                MailForPasswordForgot.confirmPassword = confirmPassword
                 val response = ForkEatApi.authService.askForgottenPassword(ForgottenPasswordRequest(email, password))
                 if (response.isSuccessful) {
                     _uiState.value = ForgotPasswordUiState(isSuccess = true)
@@ -56,7 +58,7 @@ class ForgotPasswordViewModel(application: Application) : AndroidViewModel(appli
 
     fun sendCodeForgotPassword(code: String) {
         _uiState.value = ForgotPasswordUiState(isLoading = true)
-        if(MailForPasswordForgot.email == null){
+        if(MailForPasswordForgot.email == null || MailForPasswordForgot.password == null){
             _uiState.value = ForgotPasswordUiState(
                 errorMessage = "Erreur Veuillez Réessayer"
             )
@@ -65,7 +67,12 @@ class ForgotPasswordViewModel(application: Application) : AndroidViewModel(appli
         viewModelScope.launch {
             try {
                 val response = ForkEatApi.authService.sendForgottenPasswordCode(
-                    ForgottenPasswordCodeRequest(MailForPasswordForgot.email.toString(), code)
+                    ForgottenPasswordCodeRequest(
+                        MailForPasswordForgot.email.toString(),
+                        code,
+                        MailForPasswordForgot.password.toString(),
+                        MailForPasswordForgot.confirmPassword.toString()
+                    )
                 )
                 if (response.isSuccessful) {
                     _uiState.value = ForgotPasswordUiState(isSuccess = true)
