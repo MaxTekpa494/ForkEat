@@ -80,9 +80,19 @@
                         <i class="fas fa-camera text-primary-500 mr-1"></i>
                         Photo du plat
                     </label>
+                    <!-- Sélecteur galerie -->
                     <input id="image" name="image" type="file" accept="image/*"
                            onchange="previewImage(this)"
                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-600 hover:file:bg-primary-100 transition cursor-pointer">
+                    <!-- Capture caméra directe (mobile uniquement) -->
+                    <input id="cameraCapture" type="file" accept="image/*" capture="environment"
+                           onchange="onCameraCapture(this)"
+                           class="hidden">
+                    <button type="button" onclick="document.getElementById('cameraCapture').click()"
+                            class="mt-2 inline-flex items-center gap-2 px-4 py-2 text-sm font-medium text-primary-600 bg-primary-50 hover:bg-primary-100 rounded-full transition">
+                        <i class="fas fa-camera"></i>
+                        Prendre une photo
+                    </button>
                     <!-- Aperçu image -->
                     <div id="imagePreviewContainer" class="mt-2"
                          th:style="${recipe != null and recipe.imageUrl != null and !recipe.imageUrl.isEmpty()} ? '' : 'display:none'">
@@ -111,6 +121,11 @@
             <option th:each="name : ${allIngredientNames}" th:value="${name}"></option>
         </datalist>
 
+        <!-- Datalist pour l'autocomplétion des unités -->
+        <datalist id="unitSuggestions">
+            <option th:each="unit : ${allUnitNames}" th:value="${unit}"></option>
+        </datalist>
+
         <div id="ingredientsList" class="space-y-3">
             <!-- Lignes préremplies (édition) -->
             <th:block th:if="${recipe != null and recipe.ingredients != null}">
@@ -120,34 +135,13 @@
                            placeholder="Nom de l'ingrédient"
                            class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
                     <input type="number" th:name="'ingredients[' + ${iterStat.index} + '].quantity'"
-                           th:value="${ing.quantity}" min="0" step="0.1" required
+                           th:value="${ing.quantity}" min="0" step="any" required
                            placeholder="Qté"
                            class="w-24 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
-                    <select th:name="'ingredients[' + ${iterStat.index} + '].unit'" required
-                            class="w-28 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
-                        <option value="" disabled>Unité</option>
-                        <option value="g" th:selected="${ing.unit == 'g'}">g</option>
-                        <option value="kg" th:selected="${ing.unit == 'kg'}">kg</option>
-                        <option value="ml" th:selected="${ing.unit == 'ml'}">ml</option>
-                        <option value="L" th:selected="${ing.unit == 'L'}">L</option>
-                        <option value="tsp" th:selected="${ing.unit == 'tsp'}">c. à café</option>
-                        <option value="tbsp" th:selected="${ing.unit == 'tbsp'}">c. à soupe</option>
-                        <option value="pcs" th:selected="${ing.unit == 'pcs'}">pièce(s)</option>
-                        <option value="pinch" th:selected="${ing.unit == 'pinch'}">pincée</option>
-                        <!-- Unité non standard provenant de la BDD -->
-                        <option th:if="${ing.unit != null
-                                        and ing.unit != 'g'
-                                        and ing.unit != 'kg'
-                                        and ing.unit != 'ml'
-                                        and ing.unit != 'L'
-                                        and ing.unit != 'tsp'
-                                        and ing.unit != 'tbsp'
-                                        and ing.unit != 'pcs'
-                                        and ing.unit != 'pinch'}"
-                                th:value="${ing.unit}"
-                                th:text="${ing.unit}"
-                                selected></option>
-                    </select>
+                    <input type="text" th:name="'ingredients[' + ${iterStat.index} + '].unit'"
+                           th:value="${ing.unit}" list="unitSuggestions"
+                           placeholder="Unité"
+                           class="w-28 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
                     <button type="button" onclick="removeRow(this, 'ingredient')"
                             class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
                         <i class="fas fa-trash-alt"></i>
@@ -287,6 +281,17 @@
 <script th:inline="javascript">
     /*<![CDATA[*/
 
+    // ── Caméra → transfère le fichier vers l'input principal et affiche l'aperçu ──
+    function onCameraCapture(cameraInput) {
+        var mainInput = document.getElementById('image');
+        if (!cameraInput.files || !cameraInput.files[0]) return;
+        // Crée un DataTransfer pour injecter le fichier dans l'input principal
+        var dt = new DataTransfer();
+        dt.items.add(cameraInput.files[0]);
+        mainInput.files = dt.files;
+        previewImage(mainInput);
+    }
+
     // ── Aperçu image ─────────────────────────
     function previewImage(input) {
         var container = document.getElementById('imagePreviewContainer');
@@ -315,21 +320,12 @@
             '<input type="text" name="ingredients[' + idx + '].name" list="ingredientSuggestions" required ' +
             '       placeholder="Nom de l\'ingrédient" ' +
             '       class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">' +
-            '<input type="number" name="ingredients[' + idx + '].quantity" min="0" step="0.1" required ' +
+            '<input type="number" name="ingredients[' + idx + '].quantity" min="0" step="any" required ' +
             '       placeholder="Qté" ' +
             '       class="w-24 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">' +
-            '<select name="ingredients[' + idx + '].unit" required ' +
-            '        class="w-28 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">' +
-            '  <option value="" disabled selected>Unité</option>' +
-            '  <option value="g">g</option>' +
-            '  <option value="kg">kg</option>' +
-            '  <option value="ml">ml</option>' +
-            '  <option value="L">L</option>' +
-            '  <option value="tsp">c. à café</option>' +
-            '  <option value="tbsp">c. à soupe</option>' +
-            '  <option value="pcs">pièce(s)</option>' +
-            '  <option value="pinch">pincée</option>' +
-            '</select>' +
+            '<input type="text" name="ingredients[' + idx + '].unit" list="unitSuggestions" ' +
+            '       placeholder="Unité" ' +
+            '       class="w-28 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">' +
             '<button type="button" onclick="removeRow(this, \'ingredient\')" ' +
             '        class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">' +
             '  <i class="fas fa-trash-alt"></i>' +

@@ -1,8 +1,10 @@
 package fr.uge.android.forkeat.recipes
 
+import android.Manifest
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -70,9 +72,25 @@ fun RecipeFormScreen(
         }
     }
 
+    val context = LocalContext.current
+
     val imagePickerLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetContent()
     ) { uri: Uri? -> viewModel.onImageSelected(uri) }
+
+    val cameraLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.TakePicture()
+    ) { success ->
+        if (success) viewModel.onImageSelected(uiState.cameraUri)
+    }
+
+    val cameraPermissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { granted ->
+        if (granted) {
+            viewModel.createCameraUri(context)?.let { cameraLauncher.launch(it) }
+        }
+    }
 
     Surface(color = SurfaceCream, modifier = Modifier.fillMaxSize()) {
         Column(
@@ -192,7 +210,16 @@ fun RecipeFormScreen(
                 ) {
                     Icon(Icons.Default.Add, contentDescription = null, tint = Primary500)
                     Spacer(Modifier.width(4.dp))
-                    Text("Choisir une image", color = Primary500)
+                    Text("Galerie", color = Primary500)
+                }
+                OutlinedButton(
+                    onClick = { cameraPermissionLauncher.launch(Manifest.permission.CAMERA) },
+                    shape = RoundedCornerShape(12.dp),
+                    border = BorderStroke(1.dp, Primary500)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null, tint = Primary500)
+                    Spacer(Modifier.width(4.dp))
+                    Text("Caméra", color = Primary500)
                 }
                 // Nouvelle image sélectionnée → priorité sur l'image existante
                 val imageToShow = uiState.imageUri ?: uiState.currentImageUrl

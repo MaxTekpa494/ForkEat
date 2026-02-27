@@ -59,8 +59,6 @@ class RecipeRepositoryTest extends AbstractIntegrationTest {
     var recipe = new RecipeEntity();
     recipe.setTitle(title);
     recipe.setSummary("Summary for " + title);
-    recipe.setSource(source);
-    recipe.setExternalId(externalId);
     recipe.setStatus(status);
     recipe.setAuthor(savedAuthor);
     recipe.setStepByStepInstructions(List.of(new RecipeStep(1, "First step")));
@@ -77,42 +75,11 @@ class RecipeRepositoryTest extends AbstractIntegrationTest {
     assertEquals("Pasta Carbonara", found.get().getTitle());
   }
 
-  @Test
-  void shouldFindBySourceAndExternalId() {
-    var recipe = createRecipe("External Recipe", "spoonacular", "12345", RecipeStatus.PUBLISHED);
-    recipeRepository.save(recipe);
 
-    var found = recipeRepository.findBySourceAndExternalId("spoonacular", "12345");
-    assertTrue(found.isPresent());
-    assertEquals("External Recipe", found.get().getTitle());
-  }
 
-  @Test
-  void shouldReturnEmptyWhenSourceAndExternalIdNotFound() {
-    var found = recipeRepository.findBySourceAndExternalId("unknown", "99999");
-    assertTrue(found.isEmpty());
-  }
 
-  @Test
-  void shouldCheckIfExistsBySourceAndExternalId() {
-    var recipe = createRecipe("API Recipe", "api", "api-001", RecipeStatus.DRAFT);
-    recipeRepository.save(recipe);
 
-    assertTrue(recipeRepository.existsBySourceAndExternalId("api", "api-001"));
-    assertFalse(recipeRepository.existsBySourceAndExternalId("api", "api-999"));
-  }
 
-  @Test
-  void shouldFindBySource() {
-    int initialSpoonacularCount = recipeRepository.findBySource("spoonacular").size();
-
-    recipeRepository.save(createRecipe("Recipe 1", "spoonacular", "1", RecipeStatus.PUBLISHED));
-    recipeRepository.save(createRecipe("Recipe 2", "spoonacular", "2", RecipeStatus.PUBLISHED));
-    recipeRepository.save(createRecipe("Recipe 3", "internal", null, RecipeStatus.DRAFT));
-
-    var spoonacularRecipes = recipeRepository.findBySource("spoonacular");
-    assertEquals(initialSpoonacularCount + 2, spoonacularRecipes.size());
-  }
 
   @Test
   void shouldFindByStatus() {
@@ -138,20 +105,7 @@ class RecipeRepositoryTest extends AbstractIntegrationTest {
     assertEquals(2, authorRecipes.size());
   }
 
-  @Test
-  void shouldCountBySource() {
-    long initialSpoonacularCount = recipeRepository.countBySource("spoonacular");
-    long initialInternalCount = recipeRepository.countBySource("internal");
-    long initialUnknownCount = recipeRepository.countBySource("unknown");
 
-    recipeRepository.save(createRecipe("Recipe 1", "spoonacular", "1", RecipeStatus.PUBLISHED));
-    recipeRepository.save(createRecipe("Recipe 2", "spoonacular", "2", RecipeStatus.PUBLISHED));
-    recipeRepository.save(createRecipe("Recipe 3", "internal", null, RecipeStatus.DRAFT));
-
-    assertEquals(initialSpoonacularCount + 2, recipeRepository.countBySource("spoonacular"));
-    assertEquals(initialInternalCount + 1, recipeRepository.countBySource("internal"));
-    assertEquals(initialUnknownCount, recipeRepository.countBySource("unknown"));
-  }
 
   @Test
   void shouldFindByTitleContainingIgnoreCase() {
