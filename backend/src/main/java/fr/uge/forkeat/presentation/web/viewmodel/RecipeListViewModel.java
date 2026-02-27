@@ -1,12 +1,12 @@
 package fr.uge.forkeat.presentation.web.viewmodel;
 
 import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
+import fr.uge.forkeat.presentation.dto.recipe.PersonalizedRecipeSummaryDTO;
 
 import java.util.ArrayList;
 import java.util.List;
 
-public record RecipeListViewModel(List<RecipeDTO> recipes, int currentPage, int totalPages, long totalRecipes,
+public record RecipeListViewModel(List<PersonalizedRecipeSummaryDTO> recipes, int currentPage, int totalPages, long totalRecipes,
                                   String search, List<String> selectedAllergens, List<AllergenDTO> allAllergens) {
     /**
      * Retourne les numéros de page à afficher dans la pagination.

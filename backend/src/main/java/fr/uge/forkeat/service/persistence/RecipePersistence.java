@@ -14,11 +14,13 @@ public interface RecipePersistence {
 
   Optional<Recipe> findById(UUID id);
 
+  boolean existRecipe(UUID id);
+
   List<Recipe> findByStatus(RecipeStatus status);
 
   PageResult<Recipe> findByStatus(RecipeStatus status, int size, int page);
 
-  PageResult<Recipe> searchRecipes(RecipeSearchCriteria criteria);
+  PageResult<RecipeSummary> searchRecipes(RecipeSearchCriteria criteria);
 
   List<Recipe> findByAuthorId(UUID authorId);
 
@@ -34,7 +36,7 @@ public interface RecipePersistence {
 
   void deleteById(UUID id);
 
-  PageResult<RecipeSummary> findRecipeSummaries(String username, RecipeStatus status, int size, int page);
+  PageResult<RecipeSummary> findUserRecipeSummaries(String username, RecipeStatus status, int size, int page);
 
   RecipeCounts findRecipeCounts(UUID recipeId);
 

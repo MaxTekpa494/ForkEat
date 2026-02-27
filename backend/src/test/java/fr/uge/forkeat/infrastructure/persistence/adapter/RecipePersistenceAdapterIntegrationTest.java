@@ -271,7 +271,7 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
         void shouldReturnPublishedRecipesWithZeroLikes() {
             adapter.save(createRecipe(UUID.randomUUID(), "Recette publiée", RecipeStatus.PUBLISHED));
 
-            var result = adapter.findRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 10, 0);
+            var result = adapter.findUserRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 10, 0);
 
             assertEquals(1, result.items().size());
             var item = result.items().getFirst();
@@ -282,7 +282,7 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
         void shouldNotReturnDraftWhenFilteredOnPublished() {
             adapter.save(createRecipe(UUID.randomUUID(), "Recette brouillon", RecipeStatus.DRAFT));
 
-            var result = adapter.findRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 10, 0);
+            var result = adapter.findUserRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 10, 0);
 
             assertTrue(result.items().isEmpty());
         }
@@ -291,17 +291,27 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
         void shouldReturnDraftWhenFilteredOnDraft() {
             adapter.save(createRecipe(UUID.randomUUID(), "Recette brouillon", RecipeStatus.DRAFT));
 
-            var result = adapter.findRecipeSummaries("chef_integration", RecipeStatus.DRAFT, 10, 0);
+            var result = adapter.findUserRecipeSummaries("chef_integration", RecipeStatus.DRAFT, 10, 0);
 
             assertEquals(1, result.items().size());
         }
 
         @Test
         void shouldReturnEmptyForUserWithNoRecipes() {
-            var result = adapter.findRecipeSummaries("utilisateur_inexistant", RecipeStatus.PUBLISHED, 10, 0);
+            var result = adapter.findUserRecipeSummaries("utilisateur_inexistant", RecipeStatus.PUBLISHED, 10, 0);
 
             assertTrue(result.items().isEmpty());
             assertEquals(0L, result.total());
+        }
+
+        @Test
+        void shouldPopulateAuthorUsernameFromParameter() {
+            adapter.save(createRecipe(UUID.randomUUID(), "Recette publiée", RecipeStatus.PUBLISHED));
+
+            var result = adapter.findUserRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 10, 0);
+
+            assertEquals(1, result.items().size());
+            assertEquals("chef_integration", result.items().getFirst().authorUsername());
         }
 
         @Test
@@ -310,8 +320,8 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
                 adapter.save(createRecipe(UUID.randomUUID(), "Recette " + i, RecipeStatus.PUBLISHED));
             }
 
-            var firstPage = adapter.findRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 3, 0);
-            var secondPage = adapter.findRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 3, 1);
+            var firstPage = adapter.findUserRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 3, 0);
+            var secondPage = adapter.findUserRecipeSummaries("chef_integration", RecipeStatus.PUBLISHED, 3, 1);
 
             assertEquals(3, firstPage.items().size());
             assertEquals(5L, firstPage.total());

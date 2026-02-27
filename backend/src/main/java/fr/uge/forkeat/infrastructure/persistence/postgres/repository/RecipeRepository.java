@@ -1,6 +1,7 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.repository;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeBaseSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import org.springframework.data.domain.Page;
@@ -46,9 +47,17 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
     List<RecipeEntity> findByAuthorIdAndStatus(UUID authorId, RecipeStatus status);
 
     @Query("""
-            SELECT r FROM RecipeEntity r
+            SELECT r.id AS id,
+                   r.title AS title,
+                   r.summary AS summary,
+                   r.imageUrl AS imageUrl,
+                   r.preparationMinutes AS preparationMinutes,
+                   r.createdAt AS createdAt,
+                   u.username AS authorUsername
+            FROM RecipeEntity r
             LEFT JOIN r.ingredients ri
             LEFT JOIN ri.ingredient i
+            LEFT JOIN r.author u
             WHERE r.status = :status
             AND (
                 COALESCE(:search, '') = ''
@@ -61,7 +70,7 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
                 WHERE ra.recipe = r
                 AND a.name IN :allergens
             )
-            GROUP BY r.id
+            GROUP BY r.id, u.username
             ORDER BY
                 CASE
                     WHEN COALESCE(:search, '') != '' AND function('ts_match', r.title, :search) = true THEN 1
@@ -73,12 +82,12 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
                 END DESC,
                 r.createdAt DESC
             """)
-    Page<RecipeEntity> searchRecipes(
+    Page<RecipeSummaryView> searchRecipes(
             @Param("status") RecipeStatus status,
             @Param("search") String search,
             @Param("allergens") List<String> allergens,
             Pageable pageable
     );
 
-    Page<RecipeSummaryView> findByAuthorUsernameAndStatus(String username, RecipeStatus status, Pageable pageable);
+    Page<RecipeBaseSummaryView> findByAuthorUsernameAndStatus(String username, RecipeStatus status, Pageable pageable);
 }

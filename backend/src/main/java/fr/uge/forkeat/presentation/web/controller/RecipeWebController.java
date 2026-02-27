@@ -91,7 +91,7 @@ public class RecipeWebController {
                 RecipeStatus.valueOf(form.getStatus()), form.getSearch(), form.getAllergens(), form.getSize(), form.getPage());
         var pageResult = recipeService.searchRecipes(criteria);
         var recipes = pageResult.items().stream()
-                .map(RecipeDTOMapper::toDTO)
+                .map(RecipeDTOMapper::toSummaryDTO)
                 .toList();
         var allAllergens = recipeService.findAllAllergens().stream()
                 .map(RecipeDTOMapper::toDTO)

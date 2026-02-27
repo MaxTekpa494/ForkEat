@@ -1,13 +1,12 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
-import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RecipeCountsProjection;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RecipeUserInteractionProjection;
-import fr.uge.forkeat.service.model.recipe.RecipeUserInteraction;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeBaseSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -313,10 +312,23 @@ class RecipePersistenceAdapterTest {
     @Nested
     class SearchRecipes {
 
+        private RecipeSummaryView createSummaryView(UUID id, String title, String authorUsername) {
+            var view = mock(RecipeSummaryView.class);
+            when(view.getId()).thenReturn(id);
+            when(view.getTitle()).thenReturn(title);
+            when(view.getSummary()).thenReturn("Summary for " + title);
+            when(view.getImageUrl()).thenReturn(null);
+            when(view.getPreparationMinutes()).thenReturn(30);
+            when(view.getCreatedAt()).thenReturn(now);
+            when(view.getAuthorUsername()).thenReturn(authorUsername);
+            return view;
+        }
+
         @Test
         void shouldDelegateToRepository() {
-            var entity = createRecipeEntity(UUID.randomUUID(), "Tarte aux pommes", RecipeStatus.PUBLISHED);
-            var page = new PageImpl<>(List.of(entity), PageRequest.of(0, 12), 1);
+            var id = UUID.randomUUID();
+            var view = createSummaryView(id, "Tarte aux pommes", "chef_test");
+            var page = new PageImpl<>(List.of(view), PageRequest.of(0, 12), 1);
             when(recipeRepository.searchRecipes(RecipeStatus.PUBLISHED, "tarte", List.of(), PageRequest.of(0, 12)))
                     .thenReturn(page);
 
@@ -325,15 +337,16 @@ class RecipePersistenceAdapterTest {
 
             assertEquals(1, result.items().size());
             assertEquals("Tarte aux pommes", result.items().getFirst().title());
+            assertEquals("chef_test", result.items().getFirst().authorUsername());
             assertEquals(1L, result.total());
             verify(recipeRepository).searchRecipes(RecipeStatus.PUBLISHED, "tarte", List.of(), PageRequest.of(0, 12));
         }
 
         @Test
-        void shouldMapEntitiesToDomain() {
-            var entity1 = createRecipeEntity(UUID.randomUUID(), "Recette 1", RecipeStatus.PUBLISHED);
-            var entity2 = createRecipeEntity(UUID.randomUUID(), "Recette 2", RecipeStatus.PUBLISHED);
-            var page = new PageImpl<>(List.of(entity1, entity2), PageRequest.of(0, 12), 2);
+        void shouldMapViewsToDomain() {
+            var view1 = createSummaryView(UUID.randomUUID(), "Recette 1", "user1");
+            var view2 = createSummaryView(UUID.randomUUID(), "Recette 2", "user2");
+            var page = new PageImpl<>(List.of(view1, view2), PageRequest.of(0, 12), 2);
             when(recipeRepository.searchRecipes(RecipeStatus.PUBLISHED, "recette", List.of(), PageRequest.of(0, 12)))
                     .thenReturn(page);
 
@@ -341,14 +354,15 @@ class RecipePersistenceAdapterTest {
             var result = adapter.searchRecipes(criteria);
 
             assertEquals(2, result.items().size());
-            assertTrue(result.items().stream().allMatch(r -> r.status() == RecipeStatus.PUBLISHED));
+            assertEquals(List.of("Recette 1", "Recette 2"),
+                    result.items().stream().map(r -> r.title()).toList());
         }
 
         @Test
         void shouldWorkWithAllergens() {
-            var entity = createRecipeEntity(UUID.randomUUID(), "Salade", RecipeStatus.PUBLISHED);
+            var view = createSummaryView(UUID.randomUUID(), "Salade", "chef_test");
             var allergens = List.of("Gluten");
-            var page = new PageImpl<>(List.of(entity), PageRequest.of(0, 12), 1);
+            var page = new PageImpl<>(List.of(view), PageRequest.of(0, 12), 1);
             when(recipeRepository.searchRecipes(RecipeStatus.PUBLISHED, "salade", allergens, PageRequest.of(0, 12)))
                     .thenReturn(page);
 
@@ -398,6 +412,33 @@ class RecipePersistenceAdapterTest {
     }
 
     @Nested
+    class ExistRecipe {
+
+        @Test
+        void shouldReturnTrueWhenRecipeExists() {
+            var id = UUID.randomUUID();
+            when(recipeRepository.existsById(id)).thenReturn(true);
+
+            assertTrue(adapter.existRecipe(id));
+            verify(recipeRepository).existsById(id);
+        }
+
+        @Test
+        void shouldReturnFalseWhenRecipeDoesNotExist() {
+            var id = UUID.randomUUID();
+            when(recipeRepository.existsById(id)).thenReturn(false);
+
+            assertFalse(adapter.existRecipe(id));
+            verify(recipeRepository).existsById(id);
+        }
+
+        @Test
+        void shouldThrowWhenIdIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.existRecipe(null));
+        }
+    }
+
+    @Nested
     class DeleteById {
 
         @Test
@@ -416,7 +457,7 @@ class RecipePersistenceAdapterTest {
         @Test
         void shouldReturnSummariesWithCounts() {
             var recipeId = UUID.randomUUID();
-            var summaryView = mock(RecipeSummaryView.class);
+            var summaryView = mock(RecipeBaseSummaryView.class);
             when(summaryView.getId()).thenReturn(recipeId);
             when(summaryView.getTitle()).thenReturn("Tarte aux pommes");
             when(summaryView.getSummary()).thenReturn("Délicieuse tarte");
@@ -428,7 +469,7 @@ class RecipePersistenceAdapterTest {
             when(recipeRepository.findByAuthorUsernameAndStatus(eq("chef_test"), eq(RecipeStatus.PUBLISHED), any()))
                     .thenReturn(page);
 
-            var result = adapter.findRecipeSummaries("chef_test", RecipeStatus.PUBLISHED, 10, 0);
+            var result = adapter.findUserRecipeSummaries("chef_test", RecipeStatus.PUBLISHED, 10, 0);
 
             assertEquals(1, result.items().size());
             assertEquals(1L, result.total());
@@ -438,11 +479,11 @@ class RecipePersistenceAdapterTest {
 
         @Test
         void shouldReturnEmpty_WhenNoRecipesMatchStatus() {
-            Page<RecipeSummaryView> page = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
+            Page<RecipeBaseSummaryView> page = new PageImpl<>(List.of(), PageRequest.of(0, 10), 0);
             when(recipeRepository.findByAuthorUsernameAndStatus(eq("chef_test"), eq(RecipeStatus.PUBLISHED), any()))
                     .thenReturn(page);
 
-            var result = adapter.findRecipeSummaries("chef_test", RecipeStatus.PUBLISHED, 10, 0);
+            var result = adapter.findUserRecipeSummaries("chef_test", RecipeStatus.PUBLISHED, 10, 0);
 
             assertTrue(result.items().isEmpty());
             assertEquals(0L, result.total());
@@ -452,7 +493,7 @@ class RecipePersistenceAdapterTest {
         @Test
         void shouldReturnZeroCounts_WhenRecipeNotInNeo4j() {
             var recipeId = UUID.randomUUID();
-            var summaryView = mock(RecipeSummaryView.class);
+            var summaryView = mock(RecipeBaseSummaryView.class);
             when(summaryView.getId()).thenReturn(recipeId);
             when(summaryView.getTitle()).thenReturn("Quiche");
             when(summaryView.getSummary()).thenReturn("Bonne quiche");
@@ -464,7 +505,7 @@ class RecipePersistenceAdapterTest {
             when(recipeRepository.findByAuthorUsernameAndStatus(eq("chef_test"), eq(RecipeStatus.PUBLISHED), any()))
                     .thenReturn(page);
 
-            var result = adapter.findRecipeSummaries("chef_test", RecipeStatus.PUBLISHED, 10, 0);
+            var result = adapter.findUserRecipeSummaries("chef_test", RecipeStatus.PUBLISHED, 10, 0);
 
             var item = result.items().getFirst();
             assertNotNull(item);
@@ -472,12 +513,12 @@ class RecipePersistenceAdapterTest {
 
         @Test
         void shouldThrow_WhenUsernameIsNull() {
-            assertThrows(NullPointerException.class, () -> adapter.findRecipeSummaries(null, RecipeStatus.PUBLISHED, 10, 0));
+            assertThrows(NullPointerException.class, () -> adapter.findUserRecipeSummaries(null, RecipeStatus.PUBLISHED, 10, 0));
         }
 
         @Test
         void shouldThrow_WhenStatusIsNull() {
-            assertThrows(NullPointerException.class, () -> adapter.findRecipeSummaries("chef_test", null, 10, 0));
+            assertThrows(NullPointerException.class, () -> adapter.findUserRecipeSummaries("chef_test", null, 10, 0));
         }
     }
 

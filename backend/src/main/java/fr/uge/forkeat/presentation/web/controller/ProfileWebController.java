@@ -1,6 +1,7 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.dto.user.UserProfileDTO;
+import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.ProfileService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.springframework.stereotype.Controller;
@@ -41,9 +42,12 @@ public class ProfileWebController {
         var result = profileService.getProfileInfos(username, page, size, currentUsername);
         var profileWithRecipes = result.profileWithRecipes();
         int totalPages = size > 0 ? (int) Math.ceil((double) profileWithRecipes.recipes().total() / size) : 0;
+        var recipeDTOs = profileWithRecipes.recipes().items().stream()
+                .map(RecipeDTOMapper::toSummaryDTO)
+                .toList();
         var dto = new UserProfileDTO(
                 profileWithRecipes.profile(),
-                profileWithRecipes.recipes().items(),
+                recipeDTOs,
                 profileWithRecipes.recipes().total(),
                 page,
                 totalPages,
