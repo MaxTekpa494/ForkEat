@@ -32,6 +32,12 @@ public class PlatformWalletPersistenceAdapter implements PlatformWalletPersisten
     }
 
     @Override
+    public Optional<PlatformWallet> findByTypeWithLock(PlatformWalletType type) {
+        Objects.requireNonNull(type);
+        return platformWalletRepository.findByTypeWithLock(type).map(PlatformWalletEntityMapper::toDomain);
+    }
+
+    @Override
     public PlatformWallet save(PlatformWallet wallet) {
         Objects.requireNonNull(wallet);
         var entity = platformWalletRepository.findById(wallet.id())
