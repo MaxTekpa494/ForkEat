@@ -34,10 +34,10 @@ public class WalletPersistenceAdapter implements WalletPersistence {
 
 	public WalletPersistenceAdapter(WalletRepository walletRepository,
 			TransactionRepository transactionRepository, UserRepository userRepository, PlatformWalletRepository platformWalletRepository) {
-		this.walletRepository = Objects.requireNonNull(walletRepository);
-		this.transactionRepository = Objects.requireNonNull(transactionRepository);
-		this.userRepository = Objects.requireNonNull(userRepository);
-        this.platformWalletRepository = Objects.requireNonNull(platformWalletRepository);
+		this.walletRepository = walletRepository;
+		this.transactionRepository = transactionRepository;
+		this.userRepository = userRepository;
+        this.platformWalletRepository = platformWalletRepository;
 	}
 
 	@Override
