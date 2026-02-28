@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
@@ -188,7 +189,12 @@ public class RecipeService {
       if(recipePersistence.hasSuperLikedRecipe(userId,  recipeId)){
           return;
       }
+      var userBalance = walletPersistence.getBalance(userId);
       var amount = 100L;
+      if (userBalance < amount) {
+        logger.debug("User {} has not enough balance for this recipe", userId);
+        throw new InsufficientFundsException(userBalance, amount);
+      }
       var earningsWallet = walletPersistence.getEarningsWallet();
       var redistributionWallet = walletPersistence.getRedistributionWallet();
       var partForEarnings = Math.round(amount * 0.4);

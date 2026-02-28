@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
@@ -23,7 +24,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -457,12 +458,16 @@ class RecipeServiceTest {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
 
+            when(recipePersistence.hasSuperLikedRecipe(userId, recipeId)).thenReturn(false);
+            when(walletPersistence.getBalance(userId)).thenReturn(200L);
             when(walletPersistence.getEarningsWallet()).thenReturn(createWallet());
             when(walletPersistence.getRedistributionWallet()).thenReturn(createWallet());
             doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong());
             doNothing().when(walletPersistence).incrementBalanceById(any(), anyLong());
 
             recipeService.superLikeRecipe(userId, recipeId);
+
+            verify(recipePersistence).superLikeRecipe(eq(userId), eq(recipeId), anyLong());
         }
 
         @Test
@@ -479,6 +484,23 @@ class RecipeServiceTest {
             verify(walletPersistence, never()).getRedistributionWallet();
             verify(walletPersistence, never()).getEarningsWallet();
             verify(recipePersistence, times(1)).hasSuperLikedRecipe(any(), any());
+        }
+
+        @Test
+        void shouldThrowInsufficientFundsExceptionWhenBalanceTooLow(){
+            var userId = UUID.randomUUID();
+            var recipeId = UUID.randomUUID();
+
+            when(recipePersistence.hasSuperLikedRecipe(userId, recipeId)).thenReturn(false);
+            when(walletPersistence.getBalance(userId)).thenReturn(50L);
+
+            assertThrows(InsufficientFundsException.class,
+                    () -> recipeService.superLikeRecipe(userId, recipeId));
+
+            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong());
+            verify(walletPersistence, never()).incrementBalanceById(any(), anyLong());
+            verify(walletPersistence, never()).getEarningsWallet();
+            verify(walletPersistence, never()).getRedistributionWallet();
         }
     }
 
