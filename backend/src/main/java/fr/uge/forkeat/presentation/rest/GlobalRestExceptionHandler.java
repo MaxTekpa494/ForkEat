@@ -77,6 +77,13 @@ public class GlobalRestExceptionHandler {
                 .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
     }
 
+
+    @ExceptionHandler(AuthenticationTokenException.class)
+    public ResponseEntity<Map<String, Object>> authenticationException(AuthenticationTokenException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Unauthorized", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+    }
+
 }
 
 // S'inspirer pour corriger le controllerAdvance
