@@ -133,19 +133,19 @@ public record RecipeDiff(
     }
 
     private static List<DietaryFlagDiff> computeDietaryFlagDiffs(RecipeDTO parent, RecipeDTO variant) {
-        Map<String, Boolean> parentFlags  = parent.dietaryFlags()  != null ? parent.dietaryFlags()  : Map.of();
-        Map<String, Boolean> variantFlags = variant.dietaryFlags() != null ? variant.dietaryFlags() : Map.of();
-        var allKeys = new HashSet<String>();
-        allKeys.addAll(parentFlags.keySet());
-        allKeys.addAll(variantFlags.keySet());
+        var parentSet  = parent.dietaries()  != null ? new HashSet<>(parent.dietaries())  : new HashSet<String>();
+        var variantSet = variant.dietaries() != null ? new HashSet<>(variant.dietaries()) : new HashSet<String>();
+        var all = new HashSet<String>();
+        all.addAll(parentSet);
+        all.addAll(variantSet);
 
         var diffs = new ArrayList<DietaryFlagDiff>();
-        for (var key : allKeys) {
-            var inParent  = parentFlags.getOrDefault(key, false);
-            var inVariant = variantFlags.getOrDefault(key, false);
-            if      (inParent && inVariant)  diffs.add(new DietaryFlagDiff(DiffType.UNCHANGED, key));
-            else if (!inParent && inVariant) diffs.add(new DietaryFlagDiff(DiffType.ADDED,     key));
-            else if (inParent)               diffs.add(new DietaryFlagDiff(DiffType.REMOVED,   key));
+        for (var name : all) {
+            var inParent  = parentSet.contains(name);
+            var inVariant = variantSet.contains(name);
+            if      (inParent && inVariant)  diffs.add(new DietaryFlagDiff(DiffType.UNCHANGED, name));
+            else if (!inParent && inVariant) diffs.add(new DietaryFlagDiff(DiffType.ADDED,     name));
+            else                             diffs.add(new DietaryFlagDiff(DiffType.REMOVED,   name));
         }
         return diffs;
     }

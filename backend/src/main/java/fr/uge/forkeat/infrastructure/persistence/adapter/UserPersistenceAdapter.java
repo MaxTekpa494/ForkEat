@@ -5,12 +5,17 @@ import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jUserRepos
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.PageResult;
+import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.*;
 import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
 import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 import fr.uge.forkeat.service.persistence.UserPersistence;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -99,6 +104,20 @@ public class UserPersistenceAdapter implements UserPersistence {
 				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 		entity.setEmailVerified(emailVerified);
 		userRepository.save(entity);
+	}
+
+	@Override
+	public PageResult<User> findAllByRole(UserRole role) {
+		Objects.requireNonNull(role);
+		var pageResult = userRepository.findByRole(role, Pageable.unpaged());
+		var users = pageResult.getContent().stream().map(UserEntityMapper::toDomain).toList();
+		return new PageResult<>(users, pageResult.getTotalElements());
+	}
+	
+	@Override
+	public long countByRole(UserRole role) {
+		Objects.requireNonNull(role);
+		return userRepository.countByRole(role);
 	}
 
 	@Override

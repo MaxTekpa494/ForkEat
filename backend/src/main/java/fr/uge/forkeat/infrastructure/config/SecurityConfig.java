@@ -32,15 +32,18 @@ public class SecurityConfig {
 	private final CustomOAuth2UserService customOAuth2UserService;
 	private final PasswordEncoder passwordEncoder;
 	private final RateLimitProperties rateLimitProperties;
+	private final fr.uge.forkeat.infrastructure.security.CustomAccessDeniedHandler customAccessDeniedHandler;
 
 	public SecurityConfig(CustomUserDetailsService customUserDetailsService, JwtUtils jwtUtils,
 			CustomOAuth2UserService customOAuth2UserService, PasswordEncoder passwordEncoder,
-			RateLimitProperties rateLimitProperties) {
+			RateLimitProperties rateLimitProperties,
+			fr.uge.forkeat.infrastructure.security.CustomAccessDeniedHandler customAccessDeniedHandler) {
 		this.customUserDetailsService = customUserDetailsService;
 		this.jwtUtils = jwtUtils;
 		this.customOAuth2UserService = customOAuth2UserService;
 		this.passwordEncoder = passwordEncoder;
 		this.rateLimitProperties = rateLimitProperties;
+		this.customAccessDeniedHandler = customAccessDeniedHandler;
 	}
 
 	@Bean
@@ -70,9 +73,10 @@ public class SecurityConfig {
 						.requestMatchers("/api/wallet/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/account/**").authenticated()
 						.requestMatchers("/api/profile/**").authenticated()
-						.requestMatchers("/*/user/*").authenticated().requestMatchers("/*/moderator/*")
-						.hasRole("MODERATOR").requestMatchers("/*/admin/*").hasRole("ADMIN").anyRequest()
-						.hasRole("ADMIN"))
+						.requestMatchers("/api/admin/**").hasRole("ADMIN")
+						.requestMatchers("/api/moderator/**").hasRole("MODERATOR")
+						.requestMatchers("/api/user/**").authenticated()
+						.anyRequest().authenticated())
 				.addFilterBefore(new RateLimitFilter(rateLimitProperties), UsernamePasswordAuthenticationFilter.class)
 				.addFilterBefore(new JwtFilter(customUserDetailsService, jwtUtils),
 								 UsernamePasswordAuthenticationFilter.class)
@@ -86,14 +90,19 @@ public class SecurityConfig {
 				// On garde CSRF désactivé pour le développement il faut pense a le réactiver
 				.csrf(AbstractHttpConfigurer::disable)
 
+				.exceptionHandling(ex -> ex
+						.accessDeniedHandler(customAccessDeniedHandler))
+
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/", "/auth/**", "/login", "/css/**", "/js/**", "/images/**").permitAll()
+						.requestMatchers("/", "/auth/**", "/login", "/error/**", "/css/**", "/js/**", "/images/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
 						.requestMatchers("/recipes/my").authenticated()
-						.requestMatchers("/recipes/create", "/recipes/*/edit", "/recipes/*/delete").hasAuthority("EMAIL_VERIFIED") // edit et delete c pas EMAIL verified
-																																		// à corriger quand on les fait
+						.requestMatchers("/recipes/create", "/recipes/*/edit").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers("/recipes/*/delete").authenticated() // edit et delete c pas EMAIL verified
+																				// à corriger quand on les fait
 
 						.requestMatchers("/wallet/webhooks/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/wallet").authenticated()
 						.requestMatchers("/wallet/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/moderator/**").hasRole("MODERATOR")
@@ -105,14 +114,22 @@ public class SecurityConfig {
 				.formLogin(form -> form
 						.loginPage("/auth/login")
 						.loginProcessingUrl("/auth/login")
-						.defaultSuccessUrl("/recipes", true)
+						.successHandler((request, response, authentication) -> {
+							var isAdmin = authentication.getAuthorities().stream()
+									.anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+							response.sendRedirect(isAdmin ? "/admin" : "/recipes");
+						})
 						.failureUrl("/auth/login?error=true")
 						.permitAll())
 
 				.oauth2Login(oauth2 -> oauth2
 						.loginPage("/auth/login")
 						.userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
-						.defaultSuccessUrl("/recipes", true)
+						.successHandler((request, response, authentication) -> {
+							var isAdmin = authentication.getAuthorities().stream()
+									.anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+							response.sendRedirect(isAdmin ? "/admin" : "/recipes");
+						})
 						.failureUrl("/auth/login?error=true"))
 
 				.logout(logout -> logout

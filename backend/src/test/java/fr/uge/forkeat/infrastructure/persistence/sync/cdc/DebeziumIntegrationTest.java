@@ -393,7 +393,6 @@ class DebeziumIntegrationTest extends AbstractIntegrationTest {
         recipe.setAuthor(author);
         recipe.setStatus(RecipeStatus.PUBLISHED);
         recipe.setStepByStepInstructions(new ArrayList<>());
-        recipe.setDietaryFlag(new HashMap<>());
         return recipe;
     }
 

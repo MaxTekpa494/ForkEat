@@ -339,7 +339,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
     @WithMockUser(username = "chef_integration")
     void createRecipe_shouldCreateRecipeSuccessfully() throws Exception {
         var dto = new RecipeDTO(null, "Nouvelle recette", "Un résumé délicieux", null,
-                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
                 objectMapper.writeValueAsBytes(dto));
@@ -358,7 +358,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         long countBefore = recipeRepository.count();
 
         var dto = new RecipeDTO(null, "Recette persistée", "Résumé", null,
-                null, 45, null, "DRAFT", List.of(), List.of(), List.of(), Map.of(), null, null);
+                null, 45, null, "DRAFT", List.of(), List.of(), List.of(), List.of(), null, null);
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
                 objectMapper.writeValueAsBytes(dto));
@@ -379,7 +379,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         var recipe = createAndSaveRecipe("Titre original", RecipeStatus.PUBLISHED, null);
 
         var dto = new RecipeDTO(null, "Titre modifié", "Nouveau résumé", null,
-                null, 60, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                null, 60, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
                 objectMapper.writeValueAsBytes(dto));
@@ -399,7 +399,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         var recipe = createAndSaveRecipe("Recette de chef_integration", RecipeStatus.PUBLISHED, null);
 
         var dto = new RecipeDTO(null, "Titre modifié", "Résumé", null,
-                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
                 objectMapper.writeValueAsBytes(dto));
@@ -415,7 +415,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         var nonExistentId = UUID.randomUUID();
 
         var dto = new RecipeDTO(null, "Titre", "Résumé", null,
-                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
                 objectMapper.writeValueAsBytes(dto));
@@ -505,7 +505,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         var parent = createAndSaveRecipe("Recette originale", RecipeStatus.PUBLISHED, null);
 
         var dto = new RecipeDTO(null, "Ma variante", "Une variation de la recette", parent.getId(),
-                null, 45, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                null, 45, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
                 objectMapper.writeValueAsBytes(dto));
@@ -527,7 +527,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         recipeRepository.save(parent);
 
         var dto = new RecipeDTO(null, "Variante héritée", "Résumé", parent.getId(),
-                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
                 objectMapper.writeValueAsBytes(dto));
@@ -544,7 +544,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         var nonExistentParentId = UUID.randomUUID();
 
         var dto = new RecipeDTO(null, "Variante orpheline", "Résumé", nonExistentParentId,
-                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), Map.of(), null, null);
+                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
                 objectMapper.writeValueAsBytes(dto));
@@ -565,7 +565,6 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         recipe.setPreparationMinutes(30);
         recipe.setParent(parent);
         recipe.setStepByStepInstructions(List.of());
-        recipe.setDietaryFlag(new java.util.HashMap<>());
         return recipeRepository.save(recipe);
     }
 
@@ -577,7 +576,6 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         recipe.setStatus(RecipeStatus.PUBLISHED);
         recipe.setPreparationMinutes(30);
         recipe.setStepByStepInstructions(List.of());
-        recipe.setDietaryFlag(new java.util.HashMap<>());
         var recipeIngredient = new RecipeIngredientEntity(recipe, ingredient, java.math.BigDecimal.valueOf(500.0), "g");
         recipe.addIngredient(recipeIngredient);
         return recipeRepository.save(recipe);
@@ -591,7 +589,6 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         recipe.setStatus(RecipeStatus.PUBLISHED);
         recipe.setPreparationMinutes(30);
         recipe.setStepByStepInstructions(List.of());
-        recipe.setDietaryFlag(new java.util.HashMap<>());
         var recipeAllergen = new RecipeAllergenEntity(recipe, allergen);
         recipe.addAllergen(recipeAllergen);
         return recipeRepository.save(recipe);

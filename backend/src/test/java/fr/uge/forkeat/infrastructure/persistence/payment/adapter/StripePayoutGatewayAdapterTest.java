@@ -7,15 +7,15 @@ import com.stripe.model.Transfer;
 import fr.uge.forkeat.infrastructure.payment.adapter.StripePayoutGatewayAdapter;
 import fr.uge.forkeat.infrastructure.config.StripeProperties;
 import fr.uge.forkeat.service.exception.PaymentException;
-import fr.uge.forkeat.service.model.Currency;
+import fr.uge.forkeat.service.model.wallet.Currency;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.junit.jupiter.MockitoSettings;
+import org.mockito.quality.Strictness;
 
 import java.util.Map;
 import java.util.UUID;
@@ -25,6 +25,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+@MockitoSettings(strictness = Strictness.LENIENT)
 class StripePayoutGatewayAdapterTest {
 
     private StripePayoutGatewayAdapter adapter;
@@ -70,25 +71,10 @@ class StripePayoutGatewayAdapterTest {
     void initiatePayout_shouldThrowPaymentException_OnStripeError() {
         try (MockedStatic<Transfer> mockedTransfer = Mockito.mockStatic(Transfer.class)) {
             StripeException mockException = mock(StripeException.class);
-            when(mockException.getCode()).thenReturn("generic_error");
             mockedTransfer.when(() -> Transfer.create(any(Map.class))).thenThrow(mockException);
 
             assertThrows(PaymentException.class, () ->
                     adapter.initiatePayout(userId, pendingTxId, amount, existingAccountId, Currency.EUR));
-        }
-    }
-
-    @Test
-    void initiatePayout_shouldReturnPendingId_WhenCapabilityNotActive() {
-        try (MockedStatic<Transfer> mockedTransfer = Mockito.mockStatic(Transfer.class)) {
-            StripeException capabilityException = mock(StripeException.class);
-            when(capabilityException.getCode()).thenReturn("insufficient_capabilities_for_transfer");
-            mockedTransfer.when(() -> Transfer.create(any(Map.class))).thenThrow(capabilityException);
-
-            String result = adapter.initiatePayout(userId, pendingTxId, amount, existingAccountId, Currency.EUR);
-
-            assertNotNull(result);
-            assertTrue(result.startsWith("tr_pending_"));
         }
     }
 

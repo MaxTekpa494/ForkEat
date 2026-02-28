@@ -2,6 +2,9 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.presentation.dto.user.ChangePasswordConfirmCodeDTO;
+import fr.uge.forkeat.presentation.dto.user.ChangePasswordDTO;
 import fr.uge.forkeat.service.ProfileService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -23,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -46,6 +50,8 @@ class ProfileRestControllerTest {
     private AuthenticationPort authenticationPort;
     @MockitoBean
     private JwtUtils jwtUtils; // nécessaire pour SecurityConfig (évite @Value JWT_SECRET manquant)
+    @MockitoBean
+    private AuthenticationManager authenticationManager;
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 

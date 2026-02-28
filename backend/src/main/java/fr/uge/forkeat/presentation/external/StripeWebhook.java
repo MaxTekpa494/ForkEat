@@ -1,4 +1,4 @@
-package fr.uge.forkeat.presentation.rest.controller;
+package fr.uge.forkeat.presentation.external;
 
 import com.stripe.model.Event;
 import com.stripe.model.Payout;
@@ -20,9 +20,9 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/wallet/webhooks/stripe")
-public class StripeWebhookRestController {
+public class StripeWebhook {
 
-	private static final Logger log = LoggerFactory.getLogger(StripeWebhookRestController.class);
+	private static final Logger log = LoggerFactory.getLogger(StripeWebhook.class);
 
 	private final WalletService walletService;
 	private final PaymentGateway paymentGateway;
@@ -34,7 +34,7 @@ public class StripeWebhookRestController {
 	private static final String TRANSFER_CREATED = "transfer.created";
 	private static final String PAYOUT_FAILED = "payout.failed";
 
-	public StripeWebhookRestController(WalletService walletService, PaymentGateway paymentGateway) {
+	public StripeWebhook(WalletService walletService, PaymentGateway paymentGateway) {
 		this.walletService = Objects.requireNonNull(walletService);
 		this.paymentGateway = Objects.requireNonNull(paymentGateway);
 	}

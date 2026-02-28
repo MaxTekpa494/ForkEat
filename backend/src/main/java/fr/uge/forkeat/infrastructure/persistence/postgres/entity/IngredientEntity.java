@@ -19,10 +19,7 @@ IngredientEntity {
     private String category;
     @Column(name = "is_allergen")
     private Boolean isAllergen = false;
-//    @Column(name = "created_at", nullable = false)
-//    private Instant createdAt;
-//    @Column(name = "update_at")
-//    private Instant updateAt;
+
 
     public IngredientEntity(){}
 

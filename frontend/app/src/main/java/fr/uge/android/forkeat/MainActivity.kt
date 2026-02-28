@@ -26,6 +26,11 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import fr.uge.android.forkeat.account.AccountScreen
+import fr.uge.android.forkeat.admin.AdminCreateUserScreen
+import fr.uge.android.forkeat.admin.AdminDashboardScreen
+import fr.uge.android.forkeat.admin.AdminRecipesScreen
+import fr.uge.android.forkeat.admin.AdminUsersScreen
+import fr.uge.android.forkeat.admin.AdminWalletsScreen
 import fr.uge.android.forkeat.designsystem.theme.ForkEatTheme
 import fr.uge.android.forkeat.home.ForgotPasswordCodeScreen
 import fr.uge.android.forkeat.home.ForgotPasswordScreen
@@ -87,12 +92,14 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
-                val hideBarsRoutes = listOf("login", "register", "welcome", "forgot-password", "forgot-password-code", "recipes/{id}")
-                val shouldShowBars = currentRoute !in hideBarsRoutes && currentRoute != null
+                // Suppression de recipes/{id} de la liste hideBarsRoutes
+                val hideBarsRoutes = listOf("login", "register", "welcome", "forgot-password", "forgot-password-code")
+                val shouldShowBars = currentRoute != null
+                    && currentRoute !in hideBarsRoutes
+                    && !currentRoute.startsWith("admin-")
                 var isLoggedIn by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
                 val recipesViewModel: RecipesViewModel = viewModel()
 
-                // État pour afficher la page de bienvenue au démarrage
                 var showWelcomeOnLaunch by remember { mutableStateOf(!isLoggedIn) }
 
                 val logout: () -> Unit = {
@@ -103,8 +110,6 @@ class MainActivity : ComponentActivity() {
                     }
                 }
 
-                // Helper pour rediriger vers welcome en supprimant la page actuelle de l'historique
-                // Cela évite la boucle infinie si on fait "back" depuis welcome
                 val redirectToWelcome: () -> Unit = {
                     val route = currentRoute ?: "home"
                     navController.navigate("welcome") {
@@ -177,7 +182,8 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onLoginSuccess = {
                                         isLoggedIn = true
-                                        navController.navigate("recipes") {
+                                        val dest = if (ForkEatApi.isAdmin()) "admin-dashboard" else "recipes"
+                                        navController.navigate(dest) {
                                             popUpTo("home") { inclusive = true }
                                         }
                                     },
@@ -321,7 +327,7 @@ class MainActivity : ComponentActivity() {
                             }
                             composable("user/{username}") { backStackEntry ->
                                 val username = backStackEntry.arguments?.getString("username") ?: return@composable
-                                AuthenticatedScreen(isLoggedIn, redirectToWelcome) {
+                                AuthenticatedScreen(isLoggedIn, { navController.navigate("welcome") }) {
                                     UserProfileScreen(
                                         username = username,
                                         onNavigateBack = { navController.popBackStack() },
@@ -330,7 +336,7 @@ class MainActivity : ComponentActivity() {
                                 }
                             }
                             composable("my-recipes") {
-                                AuthenticatedScreen(isLoggedIn, redirectToWelcome) {
+                                AuthenticatedScreen(isLoggedIn, { navController.navigate("welcome") }) {
                                     val myRecipesViewModel: MyRecipesViewModel = viewModel()
                                     MyRecipesScreen(
                                         viewModel = myRecipesViewModel,
@@ -343,6 +349,63 @@ class MainActivity : ComponentActivity() {
                                         onBack = { navController.popBackStack() }
                                     )
                                 }
+                            }
+                            composable("admin-dashboard") {
+                                AdminDashboardScreen(
+                                    currentRoute = "admin-dashboard",
+                                    onNavigateToMembers = { navController.navigate("admin-users?tab=0") },
+                                    onNavigateToModerators = { navController.navigate("admin-users?tab=1") },
+                                    onNavigateToAdmins = { navController.navigate("admin-users?tab=2") },
+                                    onNavigateToRecipes = { navController.navigate("admin-recipes") },
+                                    onNavigateToWallets = { navController.navigate("admin-wallets") },
+                                    onNavigateToCreate = { navController.navigate("admin-create") },
+                                    onLogout = logout
+                                )
+                            }
+                            composable(
+                                route = "admin-users?tab={tab}",
+                                arguments = listOf(navArgument("tab") { type = NavType.IntType; defaultValue = 0 })
+                            ) { backStackEntry ->
+                                val tab = backStackEntry.arguments?.getInt("tab") ?: 0
+                                AdminUsersScreen(
+                                    currentRoute = "admin-users",
+                                    initialTab = tab,
+                                    onNavigateToDashboard = { navController.navigate("admin-dashboard") },
+                                    onNavigateToRecipes = { navController.navigate("admin-recipes") },
+                                    onNavigateToWallets = { navController.navigate("admin-wallets") },
+                                    onNavigateToCreate = { navController.navigate("admin-create") },
+                                    onLogout = logout
+                                )
+                            }
+                            composable("admin-recipes") {
+                                AdminRecipesScreen(
+                                    currentRoute = "admin-recipes",
+                                    onNavigateToDashboard = { navController.navigate("admin-dashboard") },
+                                    onNavigateToUsers = { navController.navigate("admin-users") },
+                                    onNavigateToWallets = { navController.navigate("admin-wallets") },
+                                    onNavigateToCreate = { navController.navigate("admin-create") },
+                                    onLogout = logout
+                                )
+                            }
+                            composable("admin-wallets") {
+                                AdminWalletsScreen(
+                                    currentRoute = "admin-wallets",
+                                    onNavigateToDashboard = { navController.navigate("admin-dashboard") },
+                                    onNavigateToUsers = { navController.navigate("admin-users") },
+                                    onNavigateToRecipes = { navController.navigate("admin-recipes") },
+                                    onNavigateToCreate = { navController.navigate("admin-create") },
+                                    onLogout = logout
+                                )
+                            }
+                            composable("admin-create") {
+                                AdminCreateUserScreen(
+                                    currentRoute = "admin-create",
+                                    onNavigateToDashboard = { navController.navigate("admin-dashboard") },
+                                    onNavigateToUsers = { navController.navigate("admin-users") },
+                                    onNavigateToRecipes = { navController.navigate("admin-recipes") },
+                                    onNavigateToWallets = { navController.navigate("admin-wallets") },
+                                    onLogout = logout
+                                )
                             }
                         }
                     }

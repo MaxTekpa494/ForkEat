@@ -61,7 +61,7 @@ public class UserEntity {
 
     public UserEntity(){}
 
-    public UserEntity(String username, String firstName, String lastName, String password, String email, UserRole role, UserStatus status, AuthMode authMode) {
+    public UserEntity(String username, String firstName, String lastName, String password, String email, UserRole role, UserStatus status, AuthMode authMode, boolean emailVerified) {
         this.username = username;
         this.firstName = firstName;
         this.lastName = lastName;
@@ -70,6 +70,7 @@ public class UserEntity {
         this.role = role;
         this.status = status;
         this.authMode = authMode;
+        this.emailVerified = emailVerified;
     }
 
     // Voir comment lui verser tout son argent quand il se déconnecte

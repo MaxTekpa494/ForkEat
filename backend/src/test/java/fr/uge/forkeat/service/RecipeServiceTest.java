@@ -261,7 +261,7 @@ class RecipeServiceTest {
             var expectedRecipe = new Recipe(
                     recipeId, "Quiche Lorraine", "Summary for Quiche Lorraine", null,
                     "chef_test", 30, "https://cloudflare.com/recipes/maxtekpa.jpg",
-                    RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now
+                    RecipeStatus.DRAFT, List.of(), List.of(), List.of(), List.of(), now, now
             );
             when(recipePersistence.save(any(Recipe.class))).thenReturn(expectedRecipe);
 
@@ -298,7 +298,7 @@ class RecipeServiceTest {
             var recipeId = UUID.randomUUID();
             var existingRecipe = new Recipe(
                     recipeId, "Old Title", "Summary", null, "chef_test", 30,
-                    "https://old.image.url", RecipeStatus.DRAFT, List.of(), List.of(), List.of(), Map.of(), now, now
+                    "https://old.image.url", RecipeStatus.DRAFT, List.of(), List.of(), List.of(), List.of(), now, now
             );
             var updatedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PUBLISHED);
             var newImage = new ImageUpload(new byte[]{1, 2, 3}, "image/jpeg", "new.jpg");
@@ -336,7 +336,7 @@ class RecipeServiceTest {
             var recipe = new Recipe(
                     recipeId, "Quiche", "Summary", null, "chef_test", 30,
                     "https://cdn.example.com/recipes/img.jpg", RecipeStatus.PUBLISHED,
-                    List.of(), List.of(), List.of(), Map.of(), now, now
+                    List.of(), List.of(), List.of(), List.of(), now, now
             );
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
 
@@ -384,6 +384,31 @@ class RecipeServiceTest {
 
             assertTrue(result.isEmpty());
             verify(recipePersistence).findAllAllergens();
+        }
+    }
+
+    @Nested
+    class FindAllDietaryNames {
+
+        @Test
+        void shouldDelegateToPersistence() {
+            when(recipePersistence.findAllDietaryNames()).thenReturn(List.of("halal", "vegan", "végétarien"));
+
+            var result = recipeService.findAllDietaryNames();
+
+            assertEquals(3, result.size());
+            assertEquals("halal", result.get(0));
+            verify(recipePersistence).findAllDietaryNames();
+        }
+
+        @Test
+        void shouldReturnEmptyListWhenNone() {
+            when(recipePersistence.findAllDietaryNames()).thenReturn(List.of());
+
+            var result = recipeService.findAllDietaryNames();
+
+            assertTrue(result.isEmpty());
+            verify(recipePersistence).findAllDietaryNames();
         }
     }
 
@@ -453,7 +478,7 @@ class RecipeServiceTest {
                 List.of(),
                 List.of(),
                 List.of(),
-                Map.of(),
+                List.of(),
                 now,
                 now
         );

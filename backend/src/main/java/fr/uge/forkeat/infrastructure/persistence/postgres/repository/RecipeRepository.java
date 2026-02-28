@@ -18,12 +18,6 @@ import java.util.UUID;
 @Repository
 public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
 
-    Optional<RecipeEntity> findBySourceAndExternalId(String source, String externalId);
-
-    boolean existsBySourceAndExternalId(String source, String externalId);
-
-    List<RecipeEntity> findBySource(String source);
-
     List<RecipeEntity> findByStatus(RecipeStatus status);
 
     Page<RecipeEntity> findByStatus(RecipeStatus status, Pageable pageable);
@@ -32,7 +26,6 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
 
     List<RecipeEntity> findByAuthorUsername(String authorUsername);
 
-    long countBySource(String source);
 
     List<RecipeEntity> findByTitleContainingIgnoreCase(String title);
 

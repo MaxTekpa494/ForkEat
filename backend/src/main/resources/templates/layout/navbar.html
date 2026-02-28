@@ -1,150 +1,282 @@
 <!DOCTYPE html>
-<html xmlns:th="http://www.thymeleaf.org"
-      xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<html xmlns:th="http://www.thymeleaf.org">
 <body>
-<nav th:fragment="navbar" class="bg-white/95 backdrop-blur-md shadow-sm sticky top-0 z-[1000] border-b border-gray-100">    <div class="container mx-auto px-4">
-        <div class="flex items-center justify-between h-20">
-            <a th:href="@{/}" class="flex items-center space-x-2 group">
-                <div class="w-10 h-10 bg-secondary-50 rounded-full flex items-center justify-center group-hover:bg-primary-50 transition-colors duration-300">
-                    <i class="fas fa-utensils text-secondary-800 text-lg group-hover:text-primary-500 transition-colors"></i>
-                </div>
-                <span class="font-display font-bold text-2xl text-secondary-900 tracking-tight">
-                    Fork<span class="text-secondary-700">Eat</span>
-                </span>
-            </a>
+<nav th:fragment="navbar" id="main-nav" class="sticky top-0 z-[1000]">
 
-            <div class="hidden md:flex items-center space-x-8">
-                <a th:href="@{/}"
-                   class="text-secondary-700 hover:text-primary-500 font-medium transition py-2 border-b-2 border-transparent hover:border-primary-500">
+    <!-- ===== NAVBAR ADMIN (violette) ===== -->
+    <div th:if="${isAdmin}"
+         class="bg-violet-900 backdrop-blur-md shadow-lg border-b border-violet-700">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-20">
+
+                <a th:href="@{/admin}" class="flex items-center space-x-2 group">
+                    <div class="w-10 h-10 bg-violet-700 rounded-full flex items-center justify-center group-hover:bg-violet-600 transition-colors duration-300">
+                        <i class="fas fa-utensils text-violet-200 text-lg group-hover:text-white transition-colors"></i>
+                    </div>
+                    <span class="font-display font-bold text-2xl tracking-tight">
+                        <span class="text-white">Fork</span><span class="text-violet-300">Eat</span>
+                    </span>
+                </a>
+
+                <!-- Liens admin desktop -->
+                <div class="hidden md:flex items-center space-x-6">
+                    <a th:href="@{/admin}"
+                       class="text-violet-200 hover:text-white font-medium transition py-2 border-b-2 border-transparent hover:border-violet-400">
+                        Tableau de bord
+                    </a>
+                    <a th:href="@{/admin/recipes}"
+                       class="text-violet-200 hover:text-white font-medium transition py-2 border-b-2 border-transparent hover:border-violet-400">
+                        Recettes
+                    </a>
+                    <a th:href="@{/admin/recipes/pending}"
+                       class="text-violet-200 hover:text-white font-medium transition py-2 border-b-2 border-transparent hover:border-violet-400">
+                        Modération
+                    </a>
+                    <a th:href="@{/admin/users}"
+                       class="text-violet-200 hover:text-white font-medium transition py-2 border-b-2 border-transparent hover:border-violet-400">
+                        Utilisateurs
+                    </a>
+                    <a th:href="@{/admin/wallets}"
+                       class="text-violet-200 hover:text-white font-medium transition py-2 border-b-2 border-transparent hover:border-violet-400">
+                        Porte-monnaies
+                    </a>
+                </div>
+
+                <!-- Admin dropdown -->
+                <div class="hidden md:flex items-center">
+                    <div class="relative">
+                        <button id="user-menu-button" class="flex items-center space-x-3 text-violet-200 hover:text-white font-medium transition pl-2">
+                            <span th:text="${currentUsername}" class="hidden lg:block">Admin</span>
+                            <div class="user-avatar w-10 h-10 bg-violet-700 text-white rounded-full flex items-center justify-center font-bold shadow-md ring-2 ring-violet-500">
+                                <span th:text="${!#strings.isEmpty(currentUsername) ? #strings.substring(currentUsername, 0, 1).toUpperCase() : '?'}">A</span>
+                            </div>
+                            <i class="fas fa-chevron-down text-xs text-violet-400 transition-transform duration-200" id="user-menu-chevron"></i>
+                        </button>
+
+                        <div id="user-menu-dropdown" class="absolute right-0 top-full mt-2 w-60 hidden z-[9999] origin-top-right">
+                            <div class="bg-white rounded-xl shadow-2xl py-2 border border-gray-100">
+
+                                <div class="px-4 py-3 border-b border-gray-100 mb-2">
+                                    <p class="text-xs text-violet-500 uppercase font-bold tracking-wider">Administration</p>
+                                    <p class="text-sm font-semibold text-gray-900 mt-0.5" th:text="${currentUsername}">Admin</p>
+                                </div>
+
+                                <a th:href="@{/admin}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition mx-2 rounded-lg">
+                                    <i class="fas fa-tachometer-alt mr-3 text-violet-400"></i> Tableau de bord
+                                </a>
+                                <a th:href="@{/admin/recipes}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition mx-2 rounded-lg">
+                                    <i class="fas fa-book-open mr-3 text-violet-400"></i> Recettes
+                                </a>
+                                <a th:href="@{/admin/recipes/pending}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition mx-2 rounded-lg">
+                                    <i class="fas fa-gavel mr-3 text-violet-400"></i> Modération
+                                </a>
+                                <a th:href="@{/admin/users}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition mx-2 rounded-lg">
+                                    <i class="fas fa-users-cog mr-3 text-violet-400"></i> Utilisateurs
+                                </a>
+                                <a th:href="@{/admin/create-admin}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition mx-2 rounded-lg">
+                                    <i class="fas fa-user-shield mr-3 text-violet-400"></i> Créer un admin
+                                </a>
+                                <a th:href="@{/admin/wallets}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition mx-2 rounded-lg">
+                                    <i class="fas fa-university mr-3 text-violet-400"></i> Porte-monnaies
+                                </a>
+
+                                <div class="border-t my-2 border-gray-100"></div>
+
+                                <form th:action="@{/logout}" method="post" class="px-2">
+                                    <button type="submit"
+                                            class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition font-medium">
+                                        <i class="fas fa-sign-out-alt mr-3"></i> Déconnexion
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="mobile-menu-button" class="md:hidden text-violet-200 hover:text-white transition p-2">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden bg-violet-800 border-t border-violet-700 absolute w-full shadow-lg z-50">
+            <div class="container mx-auto px-4 py-6 space-y-4">
+                <a th:href="@{/admin}" class="flex items-center text-violet-200 hover:text-white font-medium py-2">
+                    <i class="fas fa-tachometer-alt w-8 text-violet-400"></i> Tableau de bord
+                </a>
+                <a th:href="@{/admin/recipes}" class="flex items-center text-violet-200 hover:text-white font-medium py-2">
+                    <i class="fas fa-book-open w-8 text-violet-400"></i> Recettes
+                </a>
+                <a th:href="@{/admin/recipes/pending}" class="flex items-center text-violet-200 hover:text-white font-medium py-2">
+                    <i class="fas fa-gavel w-8 text-violet-400"></i> Modération
+                </a>
+                <a th:href="@{/admin/users}" class="flex items-center text-violet-200 hover:text-white font-medium py-2">
+                    <i class="fas fa-users-cog w-8 text-violet-400"></i> Utilisateurs
+                </a>
+                <a th:href="@{/admin/wallets}" class="flex items-center text-violet-200 hover:text-white font-medium py-2">
+                    <i class="fas fa-university w-8 text-violet-400"></i> Porte-monnaies
+                </a>
+                <div class="pt-4 border-t border-violet-700">
+                    <form th:action="@{/logout}" method="post">
+                        <button type="submit" class="w-full flex items-center text-red-400 hover:text-red-300 py-2 font-medium">
+                            <i class="fas fa-sign-out-alt w-8"></i> Déconnexion
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== NAVBAR USER ===== -->
+    <div th:unless="${isAdmin}"
+         class="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-20">
+
+                <a th:href="@{/}" class="flex items-center space-x-2 group">
+                    <div class="logo-icon-wrap w-10 h-10 bg-secondary-50 rounded-full flex items-center justify-center group-hover:bg-primary-50 transition-colors duration-300">
+                        <i class="logo-icon fas fa-utensils text-secondary-800 text-lg group-hover:text-primary-500 transition-colors"></i>
+                    </div>
+                    <span class="font-display font-bold text-2xl text-secondary-900 tracking-tight">
+                        <span class="logo-fork">Fork</span><span class="logo-eat text-secondary-700">Eat</span>
+                    </span>
+                </a>
+
+                <div class="hidden md:flex items-center space-x-8">
+                    <a th:href="@{/}"
+                       class="nav-link text-secondary-700 hover:text-primary-500 font-medium transition py-2 border-b-2 border-transparent hover:border-primary-500">
+                        Accueil
+                    </a>
+                    <a th:href="@{/recipes}"
+                       class="nav-link text-secondary-700 hover:text-primary-500 font-medium transition py-2 border-b-2 border-transparent hover:border-primary-500">
+                        Recettes
+                    </a>
+                    <a th:if="${isAuthenticated}"
+                       th:href="@{/recipes/create}"
+                       class="nav-link text-secondary-700 hover:text-primary-500 font-medium transition py-2 border-b-2 border-transparent hover:border-primary-500">
+                        Créer
+                    </a>
+                </div>
+
+                <div class="hidden md:flex items-center space-x-3">
+
+                    <div th:unless="${isAuthenticated}" class="flex items-center space-x-3">
+                        <a th:href="@{/auth/login}"
+                           class="nav-link text-secondary-700 hover:text-primary-500 font-semibold transition px-4">
+                            Connexion
+                        </a>
+                        <a th:href="@{/auth/register}"
+                           class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2.5 rounded-full font-semibold transition shadow-lg shadow-primary-500/30 transform hover:-translate-y-0.5">
+                            S'inscrire
+                        </a>
+                    </div>
+
+                    <div th:if="${isAuthenticated}" class="relative">
+                        <button id="user-menu-button" class="flex items-center space-x-3 text-secondary-800 hover:text-primary-500 font-medium transition pl-2">
+                            <span th:text="${currentUsername}" class="hidden lg:block nav-link">Utilisateur</span>
+                            <div class="user-avatar w-10 h-10 bg-secondary-800 text-white rounded-full flex items-center justify-center font-bold shadow-md ring-2 ring-white">
+                                <span th:text="${!#strings.isEmpty(currentUsername) ? #strings.substring(currentUsername, 0, 1).toUpperCase() : '?'}">U</span>
+                            </div>
+                            <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform duration-200" id="user-menu-chevron"></i>
+                        </button>
+
+                        <div id="user-menu-dropdown" class="absolute right-0 top-full mt-2 w-60 hidden z-[9999] origin-top-right">
+                            <div class="bg-white rounded-xl shadow-2xl py-2 border border-gray-100">
+
+                                <div class="px-4 py-3 border-b border-gray-100 mb-2">
+                                    <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Mon Compte</p>
+                                </div>
+
+                                <a th:href="@{/profile}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
+                                    <i class="fas fa-user mr-3 text-secondary-400"></i> Mon profil
+                                </a>
+                                <a th:href="@{/account}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
+                                    <i class="fas fa-cog mr-3 text-secondary-400"></i> Mon Compte
+                                </a>
+                                <a th:href="@{/wallet}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
+                                    <i class="fas fa-wallet mr-3 text-secondary-400"></i> Portefeuille
+                                </a>
+                                <a th:href="@{/recipes/my-recipes}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
+                                    <i class="fas fa-book mr-3 text-secondary-400"></i> Mes recettes
+                                </a>
+
+                                <div class="border-t my-2 border-gray-100"></div>
+
+                                <form th:action="@{/logout}" method="post" class="px-2">
+                                    <button type="submit"
+                                            class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition font-medium">
+                                        <i class="fas fa-sign-out-alt mr-3"></i> Déconnexion
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="mobile-menu-button" class="md:hidden text-secondary-800 hover:text-primary-500 transition p-2">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100 absolute w-full shadow-lg z-50">
+            <div class="container mx-auto px-4 py-6 space-y-4">
+                <a th:href="@{/}" class="block text-secondary-800 font-medium hover:text-primary-500">
                     Accueil
                 </a>
-                <a th:href="@{/recipes}"
-                   class="text-secondary-700 hover:text-primary-500 font-medium transition py-2 border-b-2 border-transparent hover:border-primary-500">
+                <a th:href="@{/recipes}" class="block text-secondary-800 font-medium hover:text-primary-500">
                     Recettes
                 </a>
-                <a th:href="@{/recipes/create}"
-                   sec:authorize="isAuthenticated()"
-                   class="text-secondary-700 hover:text-primary-500 font-medium transition py-2 border-b-2 border-transparent hover:border-primary-500">
-                    Créer
+                <a th:if="${isAuthenticated}"
+                   th:href="@{/recipes/create}"
+                   class="block text-secondary-800 font-medium hover:text-primary-500">
+                    Créer une recette
                 </a>
-            </div>
 
-            <div class="hidden md:flex items-center space-x-4">
-
-                <div sec:authorize="!isAuthenticated()" class="flex items-center space-x-3">
-                    <a th:href="@{/auth/login}"
-                       class="text-secondary-700 hover:text-primary-500 font-semibold transition px-4">
+                <div th:unless="${isAuthenticated}" class="pt-6 border-t border-gray-100 grid grid-cols-2 gap-4">
+                    <a th:href="@{/login}"
+                       class="block text-center text-secondary-700 bg-gray-50 hover:bg-gray-100 rounded-lg font-semibold py-3 transition">
                         Connexion
                     </a>
-                    <a th:href="@{/auth/register}"
-                       class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2.5 rounded-full font-semibold transition shadow-lg shadow-primary-500/30 transform hover:-translate-y-0.5">
+                    <a th:href="@{/register}"
+                       class="block text-center bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold py-3 transition shadow-md">
                         S'inscrire
                     </a>
                 </div>
 
-                <div sec:authorize="isAuthenticated()" class="relative">
-                    <button id="user-menu-button" class="flex items-center space-x-3 text-secondary-800 hover:text-primary-500 font-medium transition pl-2">
-                        <span sec:authentication="name" class="hidden lg:block">Utilisateur</span>
-                        <div class="w-10 h-10 bg-secondary-800 text-white rounded-full flex items-center justify-center font-bold shadow-md ring-2 ring-white">
-                            <span sec:authentication="name" th:text="${#strings.substring(#authentication.name, 0, 1).toUpperCase()}">U</span>
-                        </div>
-                        <i class="fas fa-chevron-down text-xs text-gray-400 transition-transform duration-200" id="user-menu-chevron"></i>
-                    </button>
-
-                    <div id="user-menu-dropdown" class="absolute right-0 top-full mt-2 w-56 hidden z-[9999] origin-top-right">
-                        <div class="bg-white rounded-xl shadow-2xl py-2 border border-gray-100">
-
-                            <div class="px-4 py-3 border-b border-gray-100 mb-2">
-                                <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Mon Compte</p>
-                            </div>
-
-                            <a th:href="@{/profile}"
-                               class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
-                                <i class="fas fa-home mr-3 text-secondary-400"></i> Mon profil
-                            </a>
-
-                            <a th:href="@{/account}"
-                               class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
-                                <i class="fas fa-cog mr-3 text-secondary-400"></i> Mon compte
-                            </a>
-
-                            <a th:href="@{/wallet}"
-                               class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
-                                <i class="fas fa-wallet mr-3 text-secondary-400"></i> Portefeuille
-                            </a>
-
-                            <a th:href="@{/recipes/my-recipes}"
-                               class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
-                                <i class="fas fa-book mr-3 text-secondary-400"></i> Mes recettes
-                            </a>
-
-                            <div class="border-t my-2 border-gray-100"></div>
-
-                            <form th:action="@{/logout}" method="post" class="px-2">
-                                <button type="submit"
-                                        class="w-full text-left px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition font-medium">
-                                    <i class="fas fa-sign-out-alt mr-3"></i> Déconnexion
-                                </button>
-                            </form>
-                        </div>
-                    </div>
+                <div th:if="${isAuthenticated}" class="pt-4 border-t border-gray-100 space-y-3">
+                    <a th:href="@{/profile}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
+                        <i class="fas fa-user w-8"></i> Mon profil
+                    </a>
+                    <a th:href="@{/account}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
+                        <i class="fas fa-cog w-8"></i> Mon Compte
+                    </a>
+                    <a th:href="@{/wallet}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
+                        <i class="fas fa-wallet w-8"></i> Portefeuille
+                    </a>
+                    <a th:href="@{/recipes/my-recipes}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
+                        <i class="fas fa-book w-8"></i> Mes recettes
+                    </a>
+                    <form th:action="@{/logout}" method="post">
+                        <button type="submit" class="w-full flex items-center text-red-600 hover:text-red-700 py-2 font-medium">
+                            <i class="fas fa-sign-out-alt w-8"></i> Déconnexion
+                        </button>
+                    </form>
                 </div>
             </div>
-
-            <button id="mobile-menu-button" class="md:hidden text-secondary-800 hover:text-primary-500 transition p-2">
-                <i class="fas fa-bars text-2xl"></i>
-            </button>
         </div>
     </div>
 
-    <!-- Menu Mobile -->
-    <div id="mobile-menu" class="hidden md:hidden bg-white border-t border-gray-100 absolute w-full shadow-lg z-50">
-        <div class="container mx-auto px-4 py-6 space-y-4">
-            <a th:href="@{/}" class="block text-secondary-800 font-medium hover:text-primary-500">
-                Accueil
-            </a>
-            <a th:href="@{/recipes}" class="block text-secondary-800 font-medium hover:text-primary-500">
-                Recettes
-            </a>
-            <a th:href="@{/recipes/create}"
-               sec:authorize="isAuthenticated()"
-               class="block text-secondary-800 font-medium hover:text-primary-500">
-                Créer une recette
-            </a>
-
-            <div sec:authorize="!isAuthenticated()" class="pt-6 border-t border-gray-100 grid grid-cols-2 gap-4">
-                <a th:href="@{/login}"
-                   class="block text-center text-secondary-700 bg-gray-50 hover:bg-gray-100 rounded-lg font-semibold py-3 transition">
-                    Connexion
-                </a>
-                <a th:href="@{/register}"
-                   class="block text-center bg-primary-500 hover:bg-primary-600 text-white rounded-lg font-semibold py-3 transition shadow-md">
-                    S'inscrire
-                </a>
-            </div>
-
-            <!-- ✅ DASHBOARD AJOUTÉ AU MENU MOBILE -->
-            <div sec:authorize="isAuthenticated()" class="pt-4 border-t border-gray-100 space-y-3">
-                <a th:href="@{/profile}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
-                    <i class="fas fa-home w-8"></i> Mon profil
-                </a>
-                <a th:href="@{/account}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
-                    <i class="fas fa-cog w-8"></i> Mon compte
-                </a>
-                <a th:href="@{/wallet}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
-                    <i class="fas fa-wallet w-8"></i> Portefeuille
-                </a>
-                <a th:href="@{/recipes/my-recipes}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
-                    <i class="fas fa-book w-8"></i> Mes recettes
-                </a>
-                <form th:action="@{/logout}" method="post">
-                    <button type="submit" class="w-full flex items-center text-red-600 hover:text-red-700 py-2 font-medium">
-                        <i class="fas fa-sign-out-alt w-8"></i> Déconnexion
-                    </button>
-                </form>
-            </div>
-        </div>
-    </div>
 </nav>
 </body>
 </html>

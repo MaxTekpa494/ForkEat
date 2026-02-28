@@ -1,7 +1,7 @@
 package fr.uge.forkeat.service.model;
 
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
-import fr.uge.forkeat.service.model.user.Wallet;
+import fr.uge.forkeat.service.model.wallet.Wallet;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 

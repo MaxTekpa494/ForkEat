@@ -5,7 +5,8 @@ import fr.uge.forkeat.service.exception.WithdrawalException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.external.PaymentGateway;
 import fr.uge.forkeat.service.model.*;
-import fr.uge.forkeat.service.model.user.Wallet;
+import fr.uge.forkeat.service.model.wallet.Currency;
+import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.external.PayoutGateway;
 import fr.uge.forkeat.service.user.BankInfoService;
@@ -105,7 +106,30 @@ public class WalletService {
 		});
 
 		// pendingTxId is passed in Stripe metadata so the webhook can find the transaction without race conditions
-		return payoutGateway.initiatePayout(userId, ctx.pendingTxId(), amount, ctx.connectAccountId(), Currency.EUR);
+		try {
+			return payoutGateway.initiatePayout(userId, ctx.pendingTxId(), amount, ctx.connectAccountId(), Currency.EUR);
+		} catch (Exception e) {
+			revertFailedWithdrawal(ctx.pendingTxId());
+			throw new WithdrawalException("Payout initiation failed, withdrawal has been reverted: " + e.getMessage());
+		}
+	}
+
+	@Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 30)
+	void revertFailedWithdrawal(UUID pendingTxId) {
+		var transaction = walletPersistence.findTransactionById(pendingTxId).orElse(null);
+		if (transaction == null || transaction.status() != TransactionStatus.PENDING) {
+			return;
+		}
+		walletPersistence.updateTransaction(new Transaction(
+				transaction.id(), transaction.walletSourceId(), transaction.walletDestinationId(),
+				transaction.amount(), transaction.type(), transaction.createdAt(),
+				transaction.stripeTransactionID(), TransactionStatus.FAILED));
+
+		if (transaction.walletSourceId() != null) {
+			var wallet = walletPersistence.getWalletById(transaction.walletSourceId())
+					.orElseThrow(() -> new WalletNotFoundException(transaction.walletSourceId()));
+			walletPersistence.saveWallet(wallet.credit(transaction.amount()));
+		}
 	}
 
 	/**
@@ -163,12 +187,12 @@ public class WalletService {
 	}
 
 
-	@Transactional(readOnly = true)
+	@Transactional(readOnly = true, timeout = 10)
 	public long getBalance(UUID userId) {
 		return walletPersistence.getBalance(userId);
 	}
 
-	@Transactional(readOnly = true)
+	@Transactional(readOnly = true, timeout = 10)
 	public List<Transaction> getTransactionHistory(UUID userId) {
 		return walletPersistence.getTransactionsByUserId(userId);
 	}

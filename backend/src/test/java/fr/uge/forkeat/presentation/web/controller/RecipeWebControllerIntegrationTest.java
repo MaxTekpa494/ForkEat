@@ -216,9 +216,9 @@ class RecipeWebControllerIntegrationTest extends AbstractIntegrationTest {
         recipe.setPreparationMinutes(30);
         recipe.setParent(parent);
         recipe.setStepByStepInstructions(List.of());
-        recipe.setDietaryFlag(new HashMap<>());
         recipe.setIngredients(List.of());
         recipe.setAllergens(List.of());
+        recipe.setDietaries(List.of());
         return recipeRepository.save(recipe);
     }
 }

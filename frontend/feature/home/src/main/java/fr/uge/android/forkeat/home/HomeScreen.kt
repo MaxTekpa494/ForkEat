@@ -1,6 +1,8 @@
 package fr.uge.android.forkeat.home
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.material3.ScaffoldDefaults
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -633,6 +635,7 @@ fun ForkEatScaffold(
         else -> NavBarTab.HOME
     }
     Scaffold(
+        contentWindowInsets = if (showBars) ScaffoldDefaults.contentWindowInsets else WindowInsets(0),
         topBar = {
           if (showBars) {
             if (isLoggedIn) {

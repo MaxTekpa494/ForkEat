@@ -271,9 +271,8 @@ class AuthControllerTest {
 
 
         @Test
-        void forgotPasswordVerifyCode_ShouldReturnLoginView_WhenCodeIsValid() throws Exception {
+        void forgotPasswordVerifyCode_ShouldRedirectToLoginWithSuccess_WhenCodeIsValid() throws Exception {
             var user = new User(UUID.randomUUID(), "aziani", "Adel", "Ziani", "chef@forkeat.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
-
 
             when(userService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
             when(passwordHasher.hash("NewPassword1")).thenReturn("hashedPassword");
@@ -286,8 +285,10 @@ class AuthControllerTest {
                             .param("verificationCode", "123456")
                             .param("password", "NewPassword1")
                             .param("confirmPassword", "NewPassword1"))
-                    .andExpect(status().isOk())
-                    .andExpect(view().name("layout/login"));
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/auth/login"))
+                    .andExpect(flash().attribute("success",
+                            "Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter."));
         }
 
         @Test
@@ -314,7 +315,23 @@ class AuthControllerTest {
 
         @Test
         void forgotPassword_ShouldReturnVerifyCodeView_WhenPasswordIsUnder8Characters() throws Exception {
+            var user = new User(UUID.randomUUID(), "aziani", "Adel", "Ziani", "chef@forkeat.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
 
+            when(userService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
+
+            mockMvc.perform(post("/auth/forgot-password-verify-code")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("email", "chef@forkeat.com")
+                            .param("verificationCode", "123456")
+                            .param("password", "short")
+                            .param("confirmPassword", "short"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(view().name("layout/forgot-password-code"))
+                    .andExpect(model().attribute("errorMessage",
+                            "Le mot de passe doit contenir au moins 8 caractères"));
+
+            verifyNoInteractions(emailVerificationService);
         }
     }
 }
