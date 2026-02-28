@@ -40,6 +40,7 @@ public class DebeziumCDCListener {
             switch (table) {
                 case "users" -> neo4jSyncService.handleUserChange(operation, payload);
                 case "recipes" -> neo4jSyncService.handleRecipeChange(operation, payload);
+                case "super_likes" -> neo4jSyncService.handleSuperLikeChange(operation, payload);
                 default -> log.debug("Ignoring change for table: {}", table);
             }
         } catch (Exception e) {

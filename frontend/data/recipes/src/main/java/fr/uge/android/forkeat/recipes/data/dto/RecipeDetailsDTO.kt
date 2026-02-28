@@ -19,5 +19,7 @@ data class RecipeDetailsDTO(
     val createdAt: Instant,
     val updatedAt: Instant,
     val nbLike: Long,
-    val hasLiked: Boolean
+    val hasLiked: Boolean,
+    val nbSuperLike: Long,
+    val hasSuperLiked: Boolean
 )

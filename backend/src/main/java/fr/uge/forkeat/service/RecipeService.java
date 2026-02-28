@@ -6,6 +6,7 @@ import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.StoragePort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,12 +22,14 @@ import java.util.UUID;
 public class RecipeService {
   private final StoragePort storageService;
   private final RecipePersistence recipePersistence;
+  private final WalletPersistence walletPersistence;
   private final Logger logger = LoggerFactory.getLogger(RecipeService.class);
   private static final String FOLDER_STORAGE = "recipes";
 
-  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService) {
+  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService, WalletPersistence walletPersistence) {
     this.recipePersistence = recipePersistence;
     this.storageService = storageService;
+    this.walletPersistence = walletPersistence;
   }
 
   @Transactional
@@ -180,4 +183,18 @@ public class RecipeService {
     return recipePersistence.countByStatus(status);
   }
 
+  @Transactional
+    public void superLikeRecipe(UUID userId, UUID recipeId) {
+      if(recipePersistence.hasSuperLikedRecipe(userId,  recipeId)){
+          return;
+      }
+      var amount = 100L;
+      var earningsWallet = walletPersistence.getEarningsWallet();
+      var redistributionWallet = walletPersistence.getRedistributionWallet();
+      var partForEarnings = Math.round(amount * 0.4);
+      var partForRedistribution = amount - partForEarnings;
+      recipePersistence.superLikeRecipe(userId, recipeId, amount);
+      walletPersistence.incrementBalanceById(earningsWallet.id(), partForEarnings);
+      walletPersistence.incrementBalanceById(redistributionWallet.id(), partForRedistribution);
+  }
 }

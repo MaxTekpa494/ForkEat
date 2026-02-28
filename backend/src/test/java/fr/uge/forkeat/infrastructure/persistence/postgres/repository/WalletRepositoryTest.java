@@ -69,7 +69,7 @@ class WalletRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void shouldFindBalanceByUserId() {
-        var balance = walletRepository.findBalanceByUserId(savedUser.getId());
+        var balance = walletRepository.findBalanceByUserIdReadOnly(savedUser.getId());
 
         assertEquals(2500L, balance);
     }

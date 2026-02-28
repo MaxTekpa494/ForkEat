@@ -5,6 +5,10 @@ import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RecipeUserInte
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.*;
 import fr.uge.forkeat.service.model.recipe.RecipeUserInteraction;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -30,6 +34,7 @@ import org.springframework.data.domain.PageRequest;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -68,6 +73,12 @@ class RecipePersistenceAdapterTest {
 
 
     @Mock
+    private WalletRepository walletRepository;
+
+    @Mock
+    private SuperLikeRepository superLikeRepository;
+
+    @Mock
     private EntityManager entityManager;
 
     private RecipePersistenceAdapter adapter;
@@ -82,7 +93,7 @@ class RecipePersistenceAdapterTest {
                 allergenRepository, ingredientRepository,
                 neo4jRecipeRepository,
                 recipeAllergenRepository, recipeIngredientRepository,
-                recipeDietaryRepository, dietaryRepository, entityManager);
+                recipeDietaryRepository, dietaryRepository, entityManager,superLikeRepository, walletRepository);
         now = Instant.now();
 
         author = new UserEntity();

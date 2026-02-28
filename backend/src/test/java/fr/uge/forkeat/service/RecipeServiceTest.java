@@ -6,7 +6,9 @@ import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
+import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.StoragePort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -30,14 +32,18 @@ class RecipeServiceTest {
     @Mock
     private RecipePersistence recipePersistence;
     @Mock
+    private WalletPersistence walletPersistence;
+
+    @Mock
     private StoragePort storageService;
+
 
     private RecipeService recipeService;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeService = new RecipeService(recipePersistence, storageService);
+        recipeService = new RecipeService(recipePersistence, storageService, walletPersistence);
         now = Instant.now();
     }
 
@@ -444,6 +450,38 @@ class RecipeServiceTest {
         }
     }
 
+    @Nested
+    class SuperLikeRecipe{
+        @Test
+        void SuperLikeShouldBeOk(){
+            var userId = UUID.randomUUID();
+            var recipeId = UUID.randomUUID();
+
+            when(walletPersistence.getEarningsWallet()).thenReturn(createWallet());
+            when(walletPersistence.getRedistributionWallet()).thenReturn(createWallet());
+            doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong());
+            doNothing().when(walletPersistence).incrementBalanceById(any(), anyLong());
+
+            recipeService.superLikeRecipe(userId, recipeId);
+        }
+
+        @Test
+        void ShouldNotSuperLikeWhenItAlreadySuperLiked(){
+            var userId = UUID.randomUUID();
+            var recipeId = UUID.randomUUID();
+
+            when(recipePersistence.hasSuperLikedRecipe(any(), any())).thenReturn(true);
+
+            recipeService.superLikeRecipe(userId, recipeId);
+
+            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong());
+            verify(walletPersistence, never()).incrementBalanceById(any(), anyLong());
+            verify(walletPersistence, never()).getRedistributionWallet();
+            verify(walletPersistence, never()).getEarningsWallet();
+            verify(recipePersistence, times(1)).hasSuperLikedRecipe(any(), any());
+        }
+    }
+
     private Recipe createRecipe(UUID id, String title, RecipeStatus status) {
         return new Recipe(
                 id,
@@ -460,6 +498,15 @@ class RecipeServiceTest {
                 List.of(),
                 now,
                 now
+        );
+    }
+
+    private Wallet createWallet() {
+        return new Wallet(
+                UUID.randomUUID(),
+                UUID.randomUUID(),
+                0,
+                Instant.now()
         );
     }
 }

@@ -71,6 +71,12 @@ public class GlobalRestExceptionHandler {
             .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
   }
 
+    @ExceptionHandler(InsufficientFundsException.class)
+    public ResponseEntity<Map<String, Object>> insufficientFundsException(InsufficientFundsException e) {
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+                .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+    }
+
 }
 
 // S'inspirer pour corriger le controllerAdvance

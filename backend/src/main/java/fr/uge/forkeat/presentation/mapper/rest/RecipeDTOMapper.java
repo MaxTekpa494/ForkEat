@@ -175,7 +175,9 @@ public final class RecipeDTOMapper {
                 recipe.createdAt(),
                 recipe.updatedAt(),
                 personalizedRecipe.counts().likeCount(),
-                personalizedRecipe.interaction().likedByCurrentUser()
+                personalizedRecipe.interaction().likedByCurrentUser(),
+                personalizedRecipe.counts().superLikeCount(),
+                personalizedRecipe.interaction().superLikedByCurrentUser()
         );
     }
 }

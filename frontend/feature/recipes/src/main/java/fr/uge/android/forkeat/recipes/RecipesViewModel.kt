@@ -141,6 +141,29 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun superLikeRecipe(recipeId: UUID){
+        viewModelScope.launch {
+            try {
+                val response = api.superLikeRecipe(
+                    token = tokenManager.getToken().toString(),
+                    id = recipeId
+                )
+                if (response.isSuccessful) {
+
+                } else {
+                    val code = response.code()
+                    _errorMessage.value = when {
+                        code >= 500 -> "Le serveur est indisponible, veuillez réessayer plus tard."
+                        code in 400..499 -> "Pas assez d'argent sur le compte."
+                        else -> "Une erreur inconnue est survenue."
+                    }
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Le serveur est indisponible, veuillez réessayer plus tard."
+            }
+        }
+    }
+
     fun loadRecipes(page: Int, size: Int = _pageSize.value, append: Boolean = false) {
         viewModelScope.launch {
             _isLoading.value = true

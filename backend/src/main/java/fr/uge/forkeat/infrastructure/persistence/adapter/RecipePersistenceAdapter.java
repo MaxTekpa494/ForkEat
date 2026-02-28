@@ -5,7 +5,9 @@ import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRep
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.DietaryEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.SuperLikeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
@@ -32,6 +34,8 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     private final RecipeDietaryRepository recipeDietaryRepository;
     private final DietaryRepository dietaryRepository;
     private final EntityManager entityManager;
+    private final SuperLikeRepository superLikeRepository;
+    private final WalletRepository walletRepository;
 
     public RecipePersistenceAdapter(RecipeRepository recipeRepository, UserRepository userRepository,
                                     AllergenRepository allergenRepository, IngredientRepository ingredientRepository,
@@ -39,7 +43,8 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                                     RecipeAllergenRepository recipeAllergenRepository,
                                     RecipeIngredientRepository recipeIngredientRepository,
                                     RecipeDietaryRepository recipeDietaryRepository,
-                                    DietaryRepository dietaryRepository, EntityManager entityManager) {
+                                    DietaryRepository dietaryRepository, EntityManager entityManager,
+                                    SuperLikeRepository superLikeRepository, WalletRepository walletRepository) {
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
         this.allergenRepository = allergenRepository;
@@ -50,6 +55,8 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         this.recipeDietaryRepository = recipeDietaryRepository;
         this.entityManager = entityManager;
         this.dietaryRepository = dietaryRepository;
+        this.superLikeRepository = superLikeRepository;
+        this.walletRepository = walletRepository;
     }
 
     @Override
@@ -317,6 +324,23 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         Objects.requireNonNull(recipeId);
         neo4jRecipeRepository.unlikeRecipe(userId, recipeId);
     }
+
+    @Override
+    public void superLikeRecipe(UUID userId, UUID recipeId, long amount){
+        var superLike = new SuperLikeEntity(userId, recipeId, amount);
+        var balance = walletRepository.findBalanceByUserId(userId);
+        if(balance < amount){
+            throw new InsufficientFundsException(balance, amount);
+        }
+        walletRepository.decrementBalanceByUserId(userId, amount);
+        superLikeRepository.save(superLike);
+    }
+
+    @Override
+    public boolean hasSuperLikedRecipe(UUID userId, UUID recipeId){
+        return this.superLikeRepository.existsByRecipeIdAndUserId(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
+    }
+
     /**
      * Récupère les ingrédients existants et crée/persiste les nouveaux si nécessaire.
      * Pour eviter le fait que ça plante quand on rajoute de nouveaux à la creation/modification d'une
