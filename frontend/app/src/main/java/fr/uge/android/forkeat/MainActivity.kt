@@ -53,6 +53,7 @@ import fr.uge.android.forkeat.admin.AdminUsersScreen
 import fr.uge.android.forkeat.admin.AdminWalletsScreen
 import fr.uge.android.forkeat.profile.ProfileGuestScreen
 import fr.uge.android.forkeat.wallet.WalletScreen
+import fr.uge.android.forkeat.wallet.WalletViewModel
 import kotlin.collections.contains
 import java.util.UUID
 
@@ -91,6 +92,8 @@ class MainActivity : ComponentActivity() {
                 var isAdmin by remember { mutableStateOf(false) }
                 // ViewModel partage pour toute la navigation
                 val recipesViewModel: RecipesViewModel = viewModel()
+
+                val walletViewModel: WalletViewModel = viewModel()
 
                 val logout: () -> Unit = {
                     ForkEatApi.logout()
@@ -276,9 +279,14 @@ class MainActivity : ComponentActivity() {
                             recipesViewModel.loadRecipeWithId(id)
                         }
 
+                        LaunchedEffect(id) {
+                                walletViewModel.loadBalance()
+                        }
+
                         val recipe by recipesViewModel.currentRecipe.collectAsState()
                         val parent by recipesViewModel.currentParent.collectAsState()
                         val diff   by recipesViewModel.currentDiff.collectAsState()
+                        val balance by walletViewModel.balanceUiState.collectAsState()
                         val currentUsername = remember { ForkEatApi.getCurrentUsername() }
 
                         when (val r = recipe) {
@@ -298,7 +306,8 @@ class MainActivity : ComponentActivity() {
                                         navController.popBackStack()
                                     }
                                 },
-                                onCreateVariant = { navController.navigate("recipe-form?parentId=${r.id}") }
+                                onCreateVariant = { navController.navigate("recipe-form?parentId=${r.id}") },
+                                currentBalance = balance.balance
                             )
                         }
                     }
