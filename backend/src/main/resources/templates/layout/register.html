@@ -106,11 +106,24 @@
                                 <input id="password" th:field="*{password}" type="password" required
                                        th:classappend="${#fields.hasErrors('password')} ? 'border-red-400 ring-red-400' : 'border-gray-200'"
                                        class="block w-full px-4 pr-10 py-3 border rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                                       placeholder="Minimum 8 caractères">
+                                       placeholder="Minimum 8 caractères"
+                                       oninput="checkPassword(this.value)">
                                 <button type="button" onclick="togglePassword('password', this)"
                                         class="absolute inset-y-0 right-0 pr-3 flex items-center text-gray-400 hover:text-gray-600 transition">
                                     <i class="fas fa-eye"></i>
                                 </button>
+                            </div>
+                            <!-- Critères du mot de passe -->
+                            <div id="password-rules" class="mt-2 flex flex-col gap-1">
+                                <p id="rule-length" class="text-xs flex items-center gap-1.5 text-gray-400">
+                                    <i class="fas fa-circle text-[6px]"></i> Minimum 8 caractères
+                                </p>
+                                <p id="rule-upper" class="text-xs flex items-center gap-1.5 text-gray-400">
+                                    <i class="fas fa-circle text-[6px]"></i> Au moins 1 lettre majuscule
+                                </p>
+                                <p id="rule-digit" class="text-xs flex items-center gap-1.5 text-gray-400">
+                                    <i class="fas fa-circle text-[6px]"></i> Au moins 1 chiffre
+                                </p>
                             </div>
                             <p th:if="${#fields.hasErrors('password')}" th:errors="*{password}" class="mt-1 text-sm text-red-600"></p>
                         </div>
@@ -176,6 +189,24 @@ function togglePassword(inputId, btn) {
     input.type = 'password';
     icon.classList.replace('fa-eye-slash', 'fa-eye');
   }
+}
+
+function checkPassword(value) {
+  const setRule = (id, ok) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const icon = el.querySelector('i');
+    if (ok) {
+      el.classList.replace('text-gray-400', 'text-green-600');
+      icon.classList.replace('fa-circle', 'fa-check-circle');
+    } else {
+      el.classList.replace('text-green-600', 'text-gray-400');
+      icon.classList.replace('fa-check-circle', 'fa-circle');
+    }
+  };
+  setRule('rule-length', value.length >= 8);
+  setRule('rule-upper',  /[A-Z]/.test(value));
+  setRule('rule-digit',  /[0-9]/.test(value));
 }
 </script>
 

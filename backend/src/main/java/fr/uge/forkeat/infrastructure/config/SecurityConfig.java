@@ -32,15 +32,18 @@ public class SecurityConfig {
 	private final CustomOAuth2UserService customOAuth2UserService;
 	private final PasswordEncoder passwordEncoder;
 	private final RateLimitProperties rateLimitProperties;
+	private final fr.uge.forkeat.infrastructure.security.CustomAccessDeniedHandler customAccessDeniedHandler;
 
 	public SecurityConfig(CustomUserDetailsService customUserDetailsService, JwtUtils jwtUtils,
 			CustomOAuth2UserService customOAuth2UserService, PasswordEncoder passwordEncoder,
-			RateLimitProperties rateLimitProperties) {
+			RateLimitProperties rateLimitProperties,
+			fr.uge.forkeat.infrastructure.security.CustomAccessDeniedHandler customAccessDeniedHandler) {
 		this.customUserDetailsService = customUserDetailsService;
 		this.jwtUtils = jwtUtils;
 		this.customOAuth2UserService = customOAuth2UserService;
 		this.passwordEncoder = passwordEncoder;
 		this.rateLimitProperties = rateLimitProperties;
+		this.customAccessDeniedHandler = customAccessDeniedHandler;
 	}
 
 	@Bean
@@ -86,8 +89,11 @@ public class SecurityConfig {
 				// On garde CSRF désactivé pour le développement il faut pense a le réactiver
 				.csrf(AbstractHttpConfigurer::disable)
 
+				.exceptionHandling(ex -> ex
+						.accessDeniedHandler(customAccessDeniedHandler))
+
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/", "/auth/**", "/login", "/css/**", "/js/**", "/images/**").permitAll()
+						.requestMatchers("/", "/auth/**", "/login", "/error/**", "/css/**", "/js/**", "/images/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
 						.requestMatchers("/recipes/my").authenticated()
 						.requestMatchers("/recipes/create", "/recipes/*/edit").hasAuthority("EMAIL_VERIFIED")
@@ -95,6 +101,7 @@ public class SecurityConfig {
 																				// à corriger quand on les fait
 
 						.requestMatchers("/wallet/webhooks/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/wallet").authenticated()
 						.requestMatchers("/wallet/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/moderator/**").hasRole("MODERATOR")
