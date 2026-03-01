@@ -12,6 +12,8 @@ import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -51,10 +53,17 @@ public class JwtFilter extends OncePerRequestFilter {
 
         // We recup the userDetails
         if(username != null && SecurityContextHolder.getContext().getAuthentication() == null){
+            //We recup the userDetails with the username (for the AuthenticationToken)
             var userDetails = customUserDetailsService.loadUserByUsername(username);
 
+            // We construct the userDetails with the email or the username depending the one given (for the validation of JWT token)
+            var userDetailsForValidationToken = User.withUsername(username)
+                    .password(userDetails.getPassword())
+                    .authorities(userDetails.getAuthorities())
+                    .build();
+
             //We authenticate the user
-            if(jwtUtils.validateToken(tokenBody, userDetails)) {
+            if(jwtUtils.validateToken(tokenBody, userDetailsForValidationToken)) {
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);
