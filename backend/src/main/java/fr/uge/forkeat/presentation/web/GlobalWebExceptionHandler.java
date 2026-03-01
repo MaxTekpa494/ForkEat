@@ -2,11 +2,14 @@ package fr.uge.forkeat.presentation.web;
 
 import fr.uge.forkeat.service.exception.*;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Map;
 
 @ControllerAdvice(basePackages = "fr.uge.forkeat.presentation.web")
 public class GlobalWebExceptionHandler {
@@ -83,5 +86,11 @@ public class GlobalWebExceptionHandler {
 	public String handleImageUploadException(ImageUploadException ex, RedirectAttributes redirectAttributes) {
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
 		return "redirect:/recipes/create";
+	}
+
+	@ExceptionHandler(InsufficientFundsException.class)
+	public ResponseEntity<Map<String, String>> handleInsufficientFunds(InsufficientFundsException ex) {
+		return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+				.body(Map.of("error", "Payment Required", "message", ex.getMessage()));
 	}
 }

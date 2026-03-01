@@ -150,5 +150,15 @@
 
 </div>
 
+<th:block layout:fragment="scripts">
+    <script>
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted) {
+                window.location.reload();
+            }
+        });
+    </script>
+</th:block>
+
 </body>
 </html>

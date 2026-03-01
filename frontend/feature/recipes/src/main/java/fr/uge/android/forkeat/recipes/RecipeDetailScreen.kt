@@ -28,7 +28,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.Restaurant
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -52,6 +54,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
@@ -90,14 +94,19 @@ fun RecipeDetailScreen(
     onEdit: () -> Unit = {},
     onDelete: () -> Unit = {},
     onCreateVariant: () -> Unit = {},
+<<<<<<< HEAD
     onNavigateToUserProfile: (String) -> Unit = {},
     onNavigateToMyProfile: () -> Unit = {},
     onLike: (UUID) -> Unit = {},
     onUnlike: (UUID) -> Unit = {}
+=======
+    currentBalance: Long = 0
+>>>>>>> develop
 ) {
     var diffModeActive by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     val currentUsername = remember { ForkEatApi.getCurrentUsername() }
+
 
     // ── Dialogue de confirmation de suppression ──────────────────────────────
     if (showDeleteDialog) {
@@ -229,6 +238,7 @@ fun RecipeDetailScreen(
             }
 
             // ── Like ─────────────────────────────────────────────────────────
+<<<<<<< HEAD
             LikeButton(
                 initialCount = recipe.nbLike.toInt(),
                 isLike = recipe.hasLiked,
@@ -236,6 +246,10 @@ fun RecipeDetailScreen(
                 onLike = onLike,
                 onUnlike = onUnlike
             )
+=======
+            LikeButton(recipe.nbLike.toInt(), recipe.hasLiked, recipe.id, Modifier)
+            SuperLikeButton(recipe.nbSuperLike.toInt(), recipe.hasSuperLiked, recipe.id, currentBalance, Modifier)
+>>>>>>> develop
             Spacer(Modifier.height(8.dp))
 
             // ── Auteur + temps ───────────────────────────────────────────────
@@ -940,6 +954,109 @@ fun LikeButton(
     }
 }
 
+
+@Composable
+fun SuperLikeButton(
+    initialCount: Int = 0,
+    isLike: Boolean = false,
+    recipeId: UUID,
+    currentBalance: Long,
+    modifier: Modifier = Modifier
+) {
+    val recipesViewModel: RecipesViewModel = viewModel()
+    var isLiked by remember { mutableStateOf(isLike) }
+    var count by remember { mutableIntStateOf(initialCount) }
+    var showConfirmDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isLike) { isLiked = isLike }
+    LaunchedEffect(initialCount) { count = initialCount }
+
+    val gold = Color(0xFFFFB300)
+
+    val toqueColor by animateColorAsState(
+        targetValue = if (isLiked) gold else Color(0xFF9E9E9E),
+        animationSpec = tween(durationMillis = 300),
+        label = "toqueColor"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (isLiked) gold else Color(0xFFE0E0E0),
+        animationSpec = tween(durationMillis = 300),
+        label = "borderColor"
+    )
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isLiked) gold.copy(alpha = 0.1f) else Color.White,
+        animationSpec = tween(durationMillis = 300),
+        label = "backgroundColor"
+    )
+
+    // Pop-up de confirmation (uniquement pour liker)
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Super-Liker cette recette ?") },
+            text = { Text("Veux-tu Super-liker cette recette ? Le prix de cette recette est de 1€ et tu a " + (currentBalance / 100) + "€") },
+            confirmButton = {
+                TextButton(onClick = {
+                    showConfirmDialog = false
+                    isLiked = true
+                    count = count + 1
+                    recipesViewModel.superLikeRecipe(recipeId)
+                },
+                    enabled = currentBalance >= 100L,
+                    colors = ButtonDefaults.textButtonColors(
+                        contentColor = gold,
+                        disabledContentColor = Color.Gray
+                    )
+                ) {
+                    Text("Confirmer")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Annuler")
+                }
+            }
+        )
+    }
+
+    Surface(
+        onClick = { if (!isLiked) showConfirmDialog = true }, // désactivé si déjà liké
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = backgroundColor,
+        border = BorderStroke(1.dp, borderColor),
+        shadowElevation = if (isLiked) 4.dp else 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            val toqueScale by animateFloatAsState(
+                targetValue = 1f,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioMediumBouncy,
+                    stiffness = Spring.StiffnessMedium
+                ),
+                label = "toqueScale"
+            )
+            Icon(
+                imageVector = if(isLiked) Icons.Filled.Restaurant else Icons.Outlined.Restaurant,
+                contentDescription = if (isLiked) "Liké" else "Liker",
+                tint = toqueColor,
+                modifier = Modifier
+                    .size(22.dp)
+                    .scale(toqueScale)
+            )
+            Text(
+                text = formatCount(count),
+                color = if (isLiked) gold else Color(0xFF616161),
+                fontSize = 14.sp,
+                fontWeight = if (isLiked) FontWeight.SemiBold else FontWeight.Normal
+            )
+        }
+    }
+}
 // ══════════════════════════════════════════════════════════════════════════════
 // UTILITAIRES
 // ══════════════════════════════════════════════════════════════════════════════
@@ -985,7 +1102,9 @@ fun PreviewRecipeDetailScreen() {
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
         updatedAt = Instant.parse("2026-02-10T12:00:00Z"),
         nbLike = 10,
-        hasLiked = false
+        hasLiked = false,
+        nbSuperLike = 2,
+        hasSuperLiked = false
     )
     RecipeDetailScreen(recipe = exampleRecipe, onBack = {})
 }
@@ -1047,7 +1166,9 @@ fun PreviewRecipeDetailScreenWithDiff() {
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
         updatedAt = Instant.parse("2026-02-10T12:00:00Z"),
         nbLike = 3,
-        hasLiked = false
+        hasLiked = false,
+        nbSuperLike = 0,
+        hasSuperLiked = false
     )
     RecipeDetailScreen(
         recipe = recipe,

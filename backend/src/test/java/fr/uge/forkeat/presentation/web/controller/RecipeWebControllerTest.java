@@ -3,6 +3,7 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
@@ -305,6 +306,37 @@ class RecipeWebControllerTest {
                     .andExpect(view().name("redirect:/recipes/" + id));
 
 
+        }
+    }
+
+    @Nested
+    class SuperLikeRecipe{
+
+        @Test
+        @WithMockUser(username = "john")
+        void superLikeShouldWork() throws Exception {
+
+            var id = UUID.randomUUID();
+
+            when(userService.getUserByUsername(any())).thenReturn(createUser());
+            when(authenticationPort.extractUsername()).thenReturn(createUser().username());
+            doNothing().when(recipeService).superLikeRecipe(any(), any());
+            mockMvc.perform(post("/recipes/{id}/super-like", id))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(view().name("redirect:/recipes/" + id));
+        }
+
+        @Test
+        @WithMockUser(username = "john")
+        void superLikeShouldReturn402WhenInsufficientFunds() throws Exception {
+
+            var id = UUID.randomUUID();
+
+            when(userService.getUserByUsername(any())).thenReturn(createUser());
+            when(authenticationPort.extractUsername()).thenReturn(createUser().username());
+            doThrow(new InsufficientFundsException(50L, 100L)).when(recipeService).superLikeRecipe(any(), any());
+            mockMvc.perform(post("/recipes/{id}/super-like", id))
+                    .andExpect(status().isPaymentRequired());
         }
     }
 

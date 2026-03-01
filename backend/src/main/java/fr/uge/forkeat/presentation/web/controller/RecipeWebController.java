@@ -265,4 +265,11 @@ public class RecipeWebController {
         recipeService.unlikeRecipe(user.id(), id);
         return "redirect:/recipes/" + id;
     }
+
+    @PostMapping("/{id}/super-like")
+    public String superLikeRecipe(@PathVariable UUID id) {
+        var user = userService.getUserByUsername(authPort.extractUsername());
+        recipeService.superLikeRecipe(user.id(), id);
+        return "redirect:/recipes/" + id;
+    }
 }

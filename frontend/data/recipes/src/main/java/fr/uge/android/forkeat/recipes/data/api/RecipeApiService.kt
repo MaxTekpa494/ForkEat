@@ -75,6 +75,12 @@ interface RecipeApiService {
         @Path("id") id: UUID
     ): Response<Unit>
 
+    @POST("api/recipes/{id}/super-like")
+    suspend fun superLikeRecipe(
+        @Header("Authorization") token: String,
+        @Path("id") id: UUID
+    ): Response<Unit>
+
     @DELETE("api/recipes/{id}/like")
     suspend fun unlikeRecipe(
         @Header("Authorization") token: String,

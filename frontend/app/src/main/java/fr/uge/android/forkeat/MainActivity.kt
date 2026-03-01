@@ -50,6 +50,11 @@ import fr.uge.android.forkeat.recipes.RecipeFormViewModel
 import fr.uge.android.forkeat.recipes.RecipesListScreen
 import fr.uge.android.forkeat.recipes.RecipesViewModel
 import fr.uge.android.forkeat.wallet.WalletScreen
+<<<<<<< HEAD
+=======
+import fr.uge.android.forkeat.wallet.WalletViewModel
+import kotlin.collections.contains
+>>>>>>> develop
 import java.util.UUID
 
 @Composable
@@ -100,7 +105,11 @@ class MainActivity : ComponentActivity() {
                 var isLoggedIn by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
                 val recipesViewModel: RecipesViewModel = viewModel()
 
+<<<<<<< HEAD
                 var showWelcomeOnLaunch by remember { mutableStateOf(!isLoggedIn) }
+=======
+                val walletViewModel: WalletViewModel = viewModel()
+>>>>>>> develop
 
                 val logout: () -> Unit = {
                     ForkEatApi.logout()
@@ -228,10 +237,36 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             }
+<<<<<<< HEAD
                             composable("account") {
                                 AuthenticatedScreen(isLoggedIn, redirectToWelcome) {
                                     AccountScreen(onNavigateBack = { navController.popBackStack() })
                                 }
+=======
+                        )
+                    }
+                    composable("recipes/{id}") { backStackEntry ->
+                        val idStr = backStackEntry.arguments?.getString("id") ?: return@composable
+                        val id = remember(idStr) { UUID.fromString(idStr) }
+
+                        LaunchedEffect(id) {
+                            recipesViewModel.loadRecipeWithId(id)
+                        }
+
+                        LaunchedEffect(id) {
+                                walletViewModel.loadBalance()
+                        }
+
+                        val recipe by recipesViewModel.currentRecipe.collectAsState()
+                        val parent by recipesViewModel.currentParent.collectAsState()
+                        val diff   by recipesViewModel.currentDiff.collectAsState()
+                        val balance by walletViewModel.balanceUiState.collectAsState()
+                        val currentUsername = remember { ForkEatApi.getCurrentUsername() }
+
+                        when (val r = recipe) {
+                            null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                CircularProgressIndicator(color = fr.uge.android.forkeat.designsystem.theme.Primary500)
+>>>>>>> develop
                             }
                             composable("wallet") {
                                 AuthenticatedScreen(isLoggedIn, redirectToWelcome) {
@@ -308,6 +343,7 @@ class MainActivity : ComponentActivity() {
                                     null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                         CircularProgressIndicator(color = fr.uge.android.forkeat.designsystem.theme.Primary500)
                                     }
+<<<<<<< HEAD
                                     else -> RecipeDetailScreen(
                                         recipe = r,
                                         parent = parent,
@@ -407,6 +443,12 @@ class MainActivity : ComponentActivity() {
                                     onLogout = logout
                                 )
                             }
+=======
+                                },
+                                onCreateVariant = { navController.navigate("recipe-form?parentId=${r.id}") },
+                                currentBalance = balance.balance
+                            )
+>>>>>>> develop
                         }
                     }
                 }
