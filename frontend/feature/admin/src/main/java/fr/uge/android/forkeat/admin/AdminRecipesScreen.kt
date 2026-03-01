@@ -55,7 +55,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import fr.uge.android.forkeat.network.dto.admin.AdminRecipeDTO
+import fr.uge.android.forkeat.admin.data.dto.AdminRecipeDTO
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

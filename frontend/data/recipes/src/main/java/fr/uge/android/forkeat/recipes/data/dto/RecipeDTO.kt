@@ -18,6 +18,4 @@ data class RecipeDTO(
   val dietaries: List<String>,
   val createdAt: Instant,
   val updatedAt: Instant,
-  val nbLike: Long,
-  val hasLiked: Boolean
 )

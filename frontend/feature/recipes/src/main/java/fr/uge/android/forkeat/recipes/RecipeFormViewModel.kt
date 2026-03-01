@@ -7,7 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.TokenManager
-import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
+import fr.uge.android.forkeat.recipes.data.api.RecipeApi
 import fr.uge.android.forkeat.recipes.data.dto.AllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.CreateRecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeIngredientDTO
@@ -69,7 +69,7 @@ class RecipeFormViewModel(
     savedStateHandle: SavedStateHandle
 ) : AndroidViewModel(application) {
 
-    private val api: RecipeApiService = ForkEatApi.recipeService
+    private val api = RecipeApi.service
     private val tokenManager = TokenManager(application)
 
     val mode: RecipeFormMode = when {

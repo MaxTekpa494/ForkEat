@@ -31,7 +31,6 @@ kotlin {
 }
 
 dependencies {
-    api(project(":data:recipes"))
     implementation(libs.androidx.core.ktx)
     api(libs.retrofit)
     implementation(libs.retrofit.converter.gson)

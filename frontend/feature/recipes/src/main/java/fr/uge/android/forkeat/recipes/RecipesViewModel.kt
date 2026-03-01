@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.TokenManager
+import fr.uge.android.forkeat.recipes.data.api.RecipeApi
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDiffDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
@@ -17,7 +18,7 @@ import java.util.UUID
 
 class RecipesViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val api: RecipeApiService = ForkEatApi.recipeService
+    private val api: RecipeApiService = RecipeApi.service
 
 
 

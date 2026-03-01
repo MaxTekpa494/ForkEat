@@ -2,8 +2,8 @@ package fr.uge.android.forkeat.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import fr.uge.android.forkeat.network.ForkEatApi
-import fr.uge.android.forkeat.network.dto.admin.AdminRecipeDTO
+import fr.uge.android.forkeat.admin.data.api.AdminApi
+import fr.uge.android.forkeat.admin.data.dto.AdminRecipeDTO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -22,6 +22,8 @@ data class AdminRecipesUiState(
 
 class AdminRecipesViewModel : ViewModel() {
 
+    private val adminService = AdminApi.service
+
     private val _uiState = MutableStateFlow(AdminRecipesUiState())
     val uiState: StateFlow<AdminRecipesUiState> = _uiState.asStateFlow()
 
@@ -34,7 +36,7 @@ class AdminRecipesViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.adminService.getPendingRecipes()
+                val response = adminService.getPendingRecipes()
                 if (response.isSuccessful) {
                     val body = response.body()
                     _uiState.value = _uiState.value.copy(
@@ -60,7 +62,7 @@ class AdminRecipesViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.adminService.getPublishedRecipes(page)
+                val response = adminService.getPublishedRecipes(page)
                 if (response.isSuccessful) {
                     val body = response.body()
                     _uiState.value = _uiState.value.copy(
@@ -88,7 +90,7 @@ class AdminRecipesViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = id, error = null)
             try {
-                val response = ForkEatApi.adminService.validateRecipe(id)
+                val response = adminService.validateRecipe(id)
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         actionInProgress = null,
@@ -114,7 +116,7 @@ class AdminRecipesViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = id, error = null)
             try {
-                val response = ForkEatApi.adminService.rejectRecipe(id)
+                val response = adminService.rejectRecipe(id)
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         actionInProgress = null,
@@ -140,7 +142,7 @@ class AdminRecipesViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = id, error = null)
             try {
-                val response = ForkEatApi.adminService.rejectRecipe(id)
+                val response = adminService.rejectRecipe(id)
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         actionInProgress = null,

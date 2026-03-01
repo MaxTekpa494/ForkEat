@@ -1,5 +1,6 @@
 package fr.uge.android.forkeat.recipes.data.api
 
+import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.recipes.data.dto.CreateRecipeFormDataResponse
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsResponseDTO
@@ -17,6 +18,12 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 import java.util.UUID
+
+object RecipeApi {
+    val service: RecipeApiService by lazy {
+        ForkEatApi.createService(RecipeApiService::class.java)
+    }
+}
 
 interface RecipeApiService {
 

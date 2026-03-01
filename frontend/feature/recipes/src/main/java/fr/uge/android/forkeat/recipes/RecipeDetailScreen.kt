@@ -983,8 +983,6 @@ fun PreviewRecipeDetailScreenWithDiff() {
         dietaries = emptyList(),
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
         updatedAt = Instant.parse("2026-02-10T12:00:00Z"),
-        nbLike = 5,
-        hasLiked = false
     )
     val diff = RecipeDiffDTO(
         titleChanged = true,
