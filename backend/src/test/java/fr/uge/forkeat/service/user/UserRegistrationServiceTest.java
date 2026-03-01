@@ -14,7 +14,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 
 import java.time.Instant;
 import java.util.Optional;
@@ -31,7 +31,7 @@ class UserRegistrationServiceTest {
   private UserPersistence userPersistence;
 
   @Mock
-  private PasswordHasher passwordHasher;
+  private PasswordHasherPort passwordHasherPort;
 
   @Mock
   private WalletService walletService;
@@ -70,7 +70,7 @@ class UserRegistrationServiceTest {
 
       when(userPersistence.existsByEmail("test@example.com")).thenReturn(false);
       when(userPersistence.existsByUsername("testuser")).thenReturn(false);
-      when(passwordHasher.hash("Password123")).thenReturn("hashedPassword123");
+      when(passwordHasherPort.hash("Password123")).thenReturn("hashedPassword123");
       when(userPersistence.saveUser(any(User.class), anyString())).thenReturn(savedUser);
       when(walletService.createWallet(userId)).thenReturn(wallet);
 

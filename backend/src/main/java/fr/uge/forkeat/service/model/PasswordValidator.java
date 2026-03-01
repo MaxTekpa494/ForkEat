@@ -1,4 +1,4 @@
-package fr.uge.forkeat.service;
+package fr.uge.forkeat.service.model;
 
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 

@@ -11,7 +11,7 @@ import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.model.user.projection.UserAccountDetails;
 import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserUpdateService;
@@ -64,7 +64,7 @@ class AccountWebControllerTest {
     private JwtFilter jwtFilter;
 
     @MockitoBean
-    private PasswordHasher passwordHasher;
+    private PasswordHasherPort passwordHasherPort;
 
     private User localUser;
     private User googleUser;

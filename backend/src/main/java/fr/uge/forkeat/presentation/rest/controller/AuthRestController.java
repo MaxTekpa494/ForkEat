@@ -7,7 +7,7 @@ import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.GoogleTokenVerificationService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
@@ -36,7 +36,7 @@ public class AuthRestController {
 	private final UserService userService;
 	private final EmailVerificationService emailVerificationService;
 	private final GoogleTokenVerificationService googleTokenVerificationService;
-	private final PasswordHasher passwordHasher;
+	private final PasswordHasherPort passwordHasherPort;
 
 	public AuthRestController(UserRegistrationService userRegistrationService,
 			AuthenticationManager authenticationManager,
@@ -44,14 +44,14 @@ public class AuthRestController {
 			UserService userService,
 			EmailVerificationService emailVerificationService,
 			GoogleTokenVerificationService googleTokenVerificationService,
-			PasswordHasher passwordHasher) {
+			PasswordHasherPort passwordHasherPort) {
 		this.userRegistrationService = userRegistrationService;
 		this.authenticationManager = authenticationManager;
 		this.authPort = authPort;
 		this.userService = userService;
 		this.emailVerificationService = emailVerificationService;
 		this.googleTokenVerificationService = googleTokenVerificationService;
-		this.passwordHasher = Objects.requireNonNull(passwordHasher);
+		this.passwordHasherPort = Objects.requireNonNull(passwordHasherPort);
 	}
 
 	/**
@@ -141,7 +141,7 @@ public class AuthRestController {
 			throw new RegisterFailureException("The password must have at least 8 characters");
 		}
 		var user = userService.getUserByEmail(changePasswordConfirmCodeDTO.email());
-		emailVerificationService.confirmPasswordChange(user.id(), changePasswordConfirmCodeDTO.code(), passwordHasher.hash(changePasswordConfirmCodeDTO.password()));
+		emailVerificationService.confirmPasswordChange(user.id(), changePasswordConfirmCodeDTO.code(), passwordHasherPort.hash(changePasswordConfirmCodeDTO.password()));
 		return ResponseEntity.ok().build();
 	}
 }

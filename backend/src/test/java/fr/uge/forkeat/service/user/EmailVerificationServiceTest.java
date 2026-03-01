@@ -18,8 +18,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import fr.uge.forkeat.service.port.PasswordHasher;
-import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.Instant;
@@ -38,7 +37,7 @@ class EmailVerificationServiceTest {
     @Mock
     private VerificationTokenPersistence tokenPersistence;
     @Mock
-    private PasswordHasher passwordHasher;
+    private PasswordHasherPort passwordHasherPort;
     @Mock
     private UserPersistence userPersistence;
     @Mock

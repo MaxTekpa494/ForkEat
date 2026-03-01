@@ -9,7 +9,7 @@ import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -28,7 +28,7 @@ class UserServiceTest {
     private UserPersistence userPersistence;
 
     @Mock
-    private PasswordHasher passwordHasher;
+    private PasswordHasherPort passwordHasherPort;
 
     @InjectMocks
     private UserService userService;
@@ -237,7 +237,7 @@ class UserServiceTest {
             var hashedPassword = "hashedPassword123";
 
             when(userPersistence.findPasswordHashByUsername(username)).thenReturn(hashedPassword);
-            when(passwordHasher.matches(rawPassword, hashedPassword)).thenReturn(true);
+            when(passwordHasherPort.matches(rawPassword, hashedPassword)).thenReturn(true);
 
             // When
             boolean result = userService.checkUserPassword(username, rawPassword);
@@ -254,7 +254,7 @@ class UserServiceTest {
             var hashedPassword = "hashedPassword123";
 
             when(userPersistence.findPasswordHashByUsername(username)).thenReturn(hashedPassword);
-            when(passwordHasher.matches(rawPassword, hashedPassword)).thenReturn(false);
+            when(passwordHasherPort.matches(rawPassword, hashedPassword)).thenReturn(false);
 
             // When
             boolean result = userService.checkUserPassword(username, rawPassword);

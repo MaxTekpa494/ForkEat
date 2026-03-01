@@ -1,9 +1,9 @@
 package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.TransactionEntity;
-import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.TransactionType;
-import fr.uge.forkeat.service.model.TransactionStatus; // New import
+import fr.uge.forkeat.service.model.transaction.Transaction;
+import fr.uge.forkeat.service.model.transaction.TransactionType;
+import fr.uge.forkeat.service.model.transaction.TransactionStatus; // New import
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;

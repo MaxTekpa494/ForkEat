@@ -4,7 +4,7 @@ import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.persistence.UserPersistence;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,16 +16,16 @@ import java.util.Objects;
 public class UserUpdateService {
   private final UserPersistence userPersistence;
   private final UserService userService;
-  private final PasswordHasher passwordHasher;
+  private final PasswordHasherPort passwordHasherPort;
   private final EmailVerificationService emailVerificationService;
 
   UserUpdateService(UserPersistence userPersistence,
                     UserService userService,
-                    PasswordHasher passwordHasher,
+                    PasswordHasherPort passwordHasherPort,
                     EmailVerificationService emailVerificationService) {
     this.userPersistence = Objects.requireNonNull(userPersistence);
     this.userService = Objects.requireNonNull(userService);
-    this.passwordHasher = Objects.requireNonNull(passwordHasher);
+    this.passwordHasherPort = Objects.requireNonNull(passwordHasherPort);
     this.emailVerificationService = Objects.requireNonNull(emailVerificationService);
   }
 
@@ -76,7 +76,7 @@ public class UserUpdateService {
 
     if (user.authMode() == AuthMode.LOCAL) {
       var storedHash = userPersistence.findPasswordHashByUsername(username);
-      if (!passwordHasher.matches(currentPassword, storedHash)) {
+      if (!passwordHasherPort.matches(currentPassword, storedHash)) {
         throw new CheckProfileUpdateFailureException("Incorrect password");
       }
     }
@@ -111,11 +111,11 @@ public class UserUpdateService {
     var user = userService.getUserByUsername(username);
     var storedHash = userPersistence.findPasswordHashByUsername(username);
 
-    if (!passwordHasher.matches(currentPassword, storedHash)) {
+    if (!passwordHasherPort.matches(currentPassword, storedHash)) {
       throw new CheckProfileUpdateFailureException("Incorrect current password");
     }
 
-    if (passwordHasher.matches(newPassword, storedHash)) {
+    if (passwordHasherPort.matches(newPassword, storedHash)) {
       throw new CheckProfileUpdateFailureException("Passwords are the same");
     }
 
@@ -153,6 +153,6 @@ public class UserUpdateService {
             Instant.now(),
             user.emailVerified());
 
-    userPersistence.saveUser(updatedUser, passwordHasher.hash(newPassword));
+    userPersistence.saveUser(updatedUser, passwordHasherPort.hash(newPassword));
   }
 }

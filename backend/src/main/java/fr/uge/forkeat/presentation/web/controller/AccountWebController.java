@@ -2,13 +2,13 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.dto.user.PasswordChangeDTO;
 import fr.uge.forkeat.presentation.dto.user.UserUpdateProfileDTO;
-import fr.uge.forkeat.service.PasswordValidator;
+import fr.uge.forkeat.service.model.PasswordValidator;
 import fr.uge.forkeat.service.ProfileService;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserUpdateService;
@@ -30,19 +30,19 @@ public class AccountWebController {
   private final UserUpdateService userUpdateService;
   private final EmailVerificationService emailVerificationService;
   private final ProfileService profileService;
-  private final PasswordHasher passwordHasher;
+  private final PasswordHasherPort passwordHasherPort;
 
   AccountWebController(AuthenticationPort authPort, UserService userService,
                        UserUpdateService userUpdateService,
                        EmailVerificationService emailVerificationService,
                        ProfileService profileService,
-                       PasswordHasher passwordHasher) {
+                       PasswordHasherPort passwordHasherPort) {
     this.authPort = authPort;
     this.userService = userService;
     this.userUpdateService = userUpdateService;
     this.emailVerificationService = emailVerificationService;
     this.profileService = profileService;
-    this.passwordHasher = passwordHasher;
+    this.passwordHasherPort = passwordHasherPort;
   }
 
   @GetMapping()
@@ -85,7 +85,7 @@ public class AccountWebController {
 
     userUpdateService.requestPasswordChange(username, passwordChangeDTO.currentPassword(), passwordChangeDTO.newPassword());
 
-    session.setAttribute("pending-password-hash", passwordHasher.hash(passwordChangeDTO.newPassword()));
+    session.setAttribute("pending-password-hash", passwordHasherPort.hash(passwordChangeDTO.newPassword()));
 
     redirectAttributes.addFlashAttribute("actionType", "PASSWORD_CHANGE");
     redirectAttributes.addFlashAttribute("infoMessage",

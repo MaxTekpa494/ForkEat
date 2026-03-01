@@ -2,7 +2,6 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
@@ -10,7 +9,7 @@ import fr.uge.forkeat.service.model.user.UserRegister;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
@@ -58,7 +57,7 @@ class AuthControllerTest {
     private CustomUserDetailsService customUserDetailsService;
 
     @MockitoBean
-    private PasswordHasher passwordHasher;
+    private PasswordHasherPort passwordHasherPort;
 
     @MockitoBean
     private JavaMailSender javaMailSender;
@@ -276,7 +275,7 @@ class AuthControllerTest {
 
 
             when(userService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
-            when(passwordHasher.hash("NewPassword1")).thenReturn("hashedPassword");
+            when(passwordHasherPort.hash("NewPassword1")).thenReturn("hashedPassword");
             doNothing().when(emailVerificationService).confirmPasswordChange(user.id(), "123456", "hashedPassword");
 
             mockMvc.perform(post("/auth/forgot-password-verify-code")
@@ -296,7 +295,7 @@ class AuthControllerTest {
 
 
             when(userService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
-            when(passwordHasher.hash("NewPassword1")).thenReturn("hashedPassword");
+            when(passwordHasherPort.hash("NewPassword1")).thenReturn("hashedPassword");
             doThrow(new VerificationException("Code incorrect ou expiré"))
                     .when(emailVerificationService).confirmPasswordChange(user.id(), "000000", "hashedPassword");
 

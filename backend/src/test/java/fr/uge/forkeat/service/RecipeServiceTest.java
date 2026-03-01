@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.service.event.RecipePublishedEvent;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
@@ -7,6 +8,7 @@ import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.port.EventPublisherPort;
 import fr.uge.forkeat.service.port.StoragePort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -31,13 +33,15 @@ class RecipeServiceTest {
     private RecipePersistence recipePersistence;
     @Mock
     private StoragePort storageService;
+    @Mock
+    private EventPublisherPort<RecipePublishedEvent> eventPublisherPort;
 
     private RecipeService recipeService;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeService = new RecipeService(recipePersistence, storageService);
+        recipeService = new RecipeService(recipePersistence, storageService, eventPublisherPort);
         now = Instant.now();
     }
 

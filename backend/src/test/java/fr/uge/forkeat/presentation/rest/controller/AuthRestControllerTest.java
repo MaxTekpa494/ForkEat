@@ -15,7 +15,7 @@ import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.GoogleTokenVerificationService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
@@ -64,7 +64,7 @@ class AuthRestControllerTest {
     @MockitoBean
     private AuthenticationPort authPort;
     @MockitoBean
-    private PasswordHasher passwordHasher;
+    private PasswordHasherPort passwordHasherPort;
 
     @Autowired
     AuthRestControllerTest(MockMvc mockMvc) {
@@ -206,7 +206,7 @@ class AuthRestControllerTest {
             var user = createUser();
 
             when(userService.getUserByEmail("test@forkeat.fr")).thenReturn(user);
-            when(passwordHasher.hash("NewPassword1")).thenReturn("hashedPassword");
+            when(passwordHasherPort.hash("NewPassword1")).thenReturn("hashedPassword");
             doNothing().when(emailVerificationService).confirmPasswordChange(any(), any(), any());
 
             mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
@@ -223,7 +223,7 @@ class AuthRestControllerTest {
             var user = createUser();
 
             when(userService.getUserByEmail("test@forkeat.fr")).thenReturn(user);
-            when(passwordHasher.hash(any())).thenReturn("hashedPassword");
+            when(passwordHasherPort.hash(any())).thenReturn("hashedPassword");
             doThrow(new VerificationException("Code incorrect"))
                     .when(emailVerificationService).confirmPasswordChange(any(), any(), any());
 

@@ -8,7 +8,7 @@ import fr.uge.forkeat.presentation.mapper.rest.BankInfoDTOMapper;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.WithdrawalException;
-import fr.uge.forkeat.service.model.Transaction;
+import fr.uge.forkeat.service.model.transaction.Transaction;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.BankInfoService;
 import fr.uge.forkeat.service.user.UserService;

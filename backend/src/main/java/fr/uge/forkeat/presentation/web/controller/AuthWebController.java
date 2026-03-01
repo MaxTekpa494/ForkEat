@@ -2,9 +2,9 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.mapper.web.UserFormDTOMapper;
 import fr.uge.forkeat.presentation.web.form.RegisterFormDTO;
-import fr.uge.forkeat.service.PasswordValidator;
+import fr.uge.forkeat.service.model.PasswordValidator;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
@@ -26,16 +26,16 @@ public class AuthWebController {
     private final UserRegistrationService userRegistrationService;
     private final UserService userService;
     private final EmailVerificationService emailVerificationService;
-    private final PasswordHasher passwordHasher;
+    private final PasswordHasherPort passwordHasherPort;
 
     public AuthWebController(UserRegistrationService userRegistrationService,
                              EmailVerificationService emailVerificationService,
                              UserService userService,
-                             PasswordHasher passwordHasher) {
+                             PasswordHasherPort passwordHasherPort) {
         this.userRegistrationService = userRegistrationService;
         this.emailVerificationService = emailVerificationService;
         this.userService = userService;
-        this.passwordHasher = passwordHasher;
+        this.passwordHasherPort = passwordHasherPort;
     }
 
     @GetMapping("/login")
@@ -87,7 +87,7 @@ public class AuthWebController {
         }
         try {
             var user = userService.getUserByEmail(email);
-            emailVerificationService.confirmPasswordChange(user.id(), verificationCode, passwordHasher.hash(password));
+            emailVerificationService.confirmPasswordChange(user.id(), verificationCode, passwordHasherPort.hash(password));
         } catch (VerificationException e) {
             model.addAttribute("errorMessage", e.getMessage());
             model.addAttribute("email", email);

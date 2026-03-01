@@ -8,7 +8,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.Transaction
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.model.Transaction;
+import fr.uge.forkeat.service.model.transaction.Transaction;
 import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import org.springframework.stereotype.Component;
