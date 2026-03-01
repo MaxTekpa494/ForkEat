@@ -16,6 +16,7 @@ import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.security.SecurityService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
@@ -54,6 +55,9 @@ class RecipeControllerTest {
 
     @Mock
     private AuthenticationPort authPort;
+
+    @Mock
+    private SecurityService securityService;
 
     private RecipeRestController recipeController;
     private Instant now;
@@ -448,30 +452,15 @@ class RecipeControllerTest {
                     null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
 
             when(authPort.extractUsername()).thenReturn("chef_test");
-            when(recipeService.findById(recipeId)).thenReturn(existing);
             when(recipeService.updateRecipe(eq(recipeId), any(), isNull())).thenReturn(updated);
 
             var response = recipeController.updateRecipe(recipeId, dto, null);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertInstanceOf(ItemResponse.class, response.getBody());
-            verify(recipeService).findById(recipeId);
             verify(recipeService).updateRecipe(eq(recipeId), any(), isNull());
         }
 
-        @Test
-        void shouldThrowWhenUserIsNotOwner() {
-            var recipeId = UUID.randomUUID();
-            var existing = createRecipe(recipeId, "Recette de chef_test", null, RecipeStatus.PUBLISHED);
-            var dto = new RecipeDTO(null, "Nouveau titre", "Résumé", null,
-                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
-
-            when(authPort.extractUsername()).thenReturn("intruder");
-            when(recipeService.findById(recipeId)).thenReturn(existing);
-
-            assertThrows(IllegalStateException.class, () -> recipeController.updateRecipe(recipeId, dto, null));
-            verify(recipeService, never()).updateRecipe(any(), any(), any());
-        }
 
         @Test
         void shouldPropagateExceptionWhenRecipeNotFound() {
@@ -480,10 +469,10 @@ class RecipeControllerTest {
                     null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
 
             when(authPort.extractUsername()).thenReturn("chef_test");
-            when(recipeService.findById(recipeId)).thenThrow(new RecipeNotFoundException(recipeId));
+            when(recipeService.updateRecipe(any(), any(), any())).thenThrow(new RecipeNotFoundException(recipeId));
 
             assertThrows(RecipeNotFoundException.class, () -> recipeController.updateRecipe(recipeId, dto, null));
-            verify(recipeService, never()).updateRecipe(any(), any(), any());
+            verify(recipeService, times(1)).updateRecipe(any(), any(), any());
         }
 
         @Test
@@ -499,9 +488,7 @@ class RecipeControllerTest {
             var dto = new RecipeDTO(null, "Recette", "Résumé", null,
                     null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
             var mockImage = mock(MultipartFile.class);
-
             when(authPort.extractUsername()).thenReturn("chef_test");
-            when(recipeService.findById(recipeId)).thenReturn(existing);
             when(recipeService.updateRecipe(eq(recipeId), any(), any())).thenReturn(updated);
 
             var response = recipeController.updateRecipe(recipeId, dto, mockImage);

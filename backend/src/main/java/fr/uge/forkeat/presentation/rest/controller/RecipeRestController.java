@@ -14,6 +14,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -24,7 +25,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("api/recipes")
-public final class RecipeRestController {
+public class RecipeRestController {
 
   private final RecipeService recipeService;
   private final AuthenticationPort authPort;
@@ -102,13 +103,10 @@ public final class RecipeRestController {
   }
 
   @PostMapping(value = "/{id}/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  @PreAuthorize("@securityService.canUpdateRecipe(#id)")
   public ResponseEntity<HttpResponse<RecipeDTO>> updateRecipe(@PathVariable UUID id, @RequestPart("recipe") RecipeDTO recipeDTO, @RequestPart(value = "image", required = false) MultipartFile image) {
     Objects.requireNonNull(recipeDTO);
     var username = authPort.extractUsername();
-    var recipeToUpdate = recipeService.findById(id);
-    if (!recipeToUpdate.usernameAuthor().equals(username)) {
-      throw new IllegalStateException("Vous ne pouvez pas modifier une recette qui ne vous appartient pas");
-    }
     var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
     var updatedRecipe = recipeService.updateRecipe(id, recipe, ImageMapper.toImageUpload(image));
     return ResponseEntity.ok(new ItemResponse<>(RecipeDTOMapper.toDTO(updatedRecipe)));
