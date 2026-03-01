@@ -459,8 +459,9 @@ class RecipeServiceTest {
             var recipeId = UUID.randomUUID();
 
             when(recipePersistence.hasSuperLikedRecipe(userId, recipeId)).thenReturn(false);
-            when(walletPersistence.getBalance(userId)).thenReturn(200L);
+            when(walletPersistence.findByUserId(userId)).thenReturn(Optional.of(createWallet()));
             when(walletPersistence.getEarningsWallet()).thenReturn(createWallet());
+            when(walletPersistence.saveTransaction(any())).thenReturn(null);
             when(walletPersistence.getRedistributionWallet()).thenReturn(createWallet());
             doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong());
             doNothing().when(walletPersistence).incrementBalanceById(any(), anyLong());
@@ -492,7 +493,6 @@ class RecipeServiceTest {
             var recipeId = UUID.randomUUID();
 
             when(recipePersistence.hasSuperLikedRecipe(userId, recipeId)).thenReturn(false);
-            when(walletPersistence.getBalance(userId)).thenReturn(50L);
 
             assertThrows(InsufficientFundsException.class,
                     () -> recipeService.superLikeRecipe(userId, recipeId));
@@ -527,7 +527,7 @@ class RecipeServiceTest {
         return new Wallet(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                0,
+                1000,
                 Instant.now()
         );
     }
