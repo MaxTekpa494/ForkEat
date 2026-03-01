@@ -1,19 +1,12 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
-import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RecipeCountsProjection;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RecipeUserInteractionProjection;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.*;
-import fr.uge.forkeat.service.model.recipe.RecipeUserInteraction;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.*;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.recipe.Allergen;
-import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
-import fr.uge.forkeat.service.model.recipe.Recipe;
-import fr.uge.forkeat.service.model.recipe.RecipeIngredient;
-import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import jakarta.persistence.EntityManager;
@@ -23,7 +16,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
@@ -775,10 +767,10 @@ class RecipePersistenceAdapterTest {
             when(recipeRepository.findById(recipeId)).thenReturn(Optional.of(existingEntity));
             when(recipeRepository.save(any(RecipeEntity.class))).thenReturn(existingEntity);
 
-            var result = adapter.updateByStatus(recipeId, RecipeStatus.PUBLISHED);
+            var result = adapter.updateStatus(recipeId, RecipeStatus.PUBLISHED);
 
             assertNotNull(result);
-            assertEquals(RecipeStatus.PUBLISHED, result);
+            assertEquals(RecipeStatus.PUBLISHED, result.status());
             verify(recipeRepository).save(any(RecipeEntity.class));
         }
 
@@ -788,21 +780,21 @@ class RecipePersistenceAdapterTest {
 
             when(recipeRepository.findById(recipeId)).thenReturn(Optional.empty());
 
-            assertThrows(IllegalStateException.class, () -> adapter.updateByStatus(recipeId, RecipeStatus.PUBLISHED));
+            assertThrows(IllegalStateException.class, () -> adapter.updateStatus(recipeId, RecipeStatus.PUBLISHED));
         }
 
         @Test
         void shouldThrowWhenIdIsNull() {
             var recipe = createRecipe(UUID.randomUUID(), "Test", RecipeStatus.DRAFT);
 
-            assertThrows(NullPointerException.class, () -> adapter.updateByStatus(null, RecipeStatus.PUBLISHED));
+            assertThrows(NullPointerException.class, () -> adapter.updateStatus(null, RecipeStatus.PUBLISHED));
         }
 
         @Test
         void shouldThrowWhenStatusIsNull() {
             var recipeId = UUID.randomUUID();
 
-            assertThrows(NullPointerException.class, () -> adapter.updateByStatus(recipeId, null));
+            assertThrows(NullPointerException.class, () -> adapter.updateStatus(recipeId, null));
         }
     }
 

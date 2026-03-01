@@ -34,8 +34,6 @@ public interface RecipePersistence {
 
   Recipe update(UUID id, Recipe recipe);
 
-  RecipeStatus updateByStatus(UUID id, RecipeStatus status);
-
   void deleteById(UUID id);
 
   Recipe updateStatus(UUID id, RecipeStatus status);

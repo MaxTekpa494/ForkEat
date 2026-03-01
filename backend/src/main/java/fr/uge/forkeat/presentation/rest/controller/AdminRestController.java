@@ -95,31 +95,12 @@ public class AdminRestController {
 
     private static final int RECIPES_PAGE_SIZE = 20;
 
-    @GetMapping("/recipes/pending")
-    public ResponseEntity<HttpResponse<RecipeDTO>> getPendingRecipes() {
-        var recipes = recipeService.findByStatus(RecipeStatus.PENDING_REVIEW);
-        var dtos = recipes.stream().map(RecipeDTOMapper::toDTO).toList();
-        return ResponseEntity.ok(new ListResponse<>(dtos, dtos.size()));
-    }
-
     @GetMapping("/recipes/published")
     public ResponseEntity<HttpResponse<RecipeDTO>> getPublishedRecipes(
             @RequestParam(defaultValue = "0") int page) {
         var result = recipeService.findByStatus(RecipeStatus.PUBLISHED, RECIPES_PAGE_SIZE, page);
         var dtos = result.items().stream().map(RecipeDTOMapper::toDTO).toList();
         return ResponseEntity.ok(new ListResponse<>(dtos, result.total()));
-    }
-
-    @PostMapping("/recipes/{id}/validate")
-    public ResponseEntity<Void> validateRecipe(@PathVariable UUID id) {
-        recipeService.updateStatus(id, RecipeStatus.PUBLISHED);
-        return ResponseEntity.noContent().build();
-    }
-
-    @PostMapping("/recipes/{id}/reject")
-    public ResponseEntity<Void> rejectRecipe(@PathVariable UUID id) {
-        recipeService.updateStatus(id, RecipeStatus.REJECTED);
-        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/wallets/benefits")

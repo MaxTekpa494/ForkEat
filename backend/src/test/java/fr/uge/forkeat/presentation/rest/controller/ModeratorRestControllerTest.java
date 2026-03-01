@@ -16,7 +16,6 @@ import org.springframework.http.HttpStatus;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -42,8 +41,8 @@ public class ModeratorRestControllerTest {
 
     @Test
     void shouldFilterByPendingStatus() {
-      var pendingRecipe = createRecipe(UUID.randomUUID(), "En attente", null, RecipeStatus.PENDING_REVIEW);
-      var draftRecipe = createRecipe(UUID.randomUUID(), "Brouillon", null, RecipeStatus.DRAFT);
+      var pendingRecipe = createRecipe(UUID.randomUUID(), "En attente", RecipeStatus.PENDING_REVIEW);
+      var draftRecipe = createRecipe(UUID.randomUUID(), "Brouillon", RecipeStatus.DRAFT);
       var pageResult = new PageResult<>(List.of(pendingRecipe), 1);
 
       when(recipeService.findByStatus(RecipeStatus.PENDING_REVIEW, 12, 0)).thenReturn(pageResult);
@@ -64,16 +63,17 @@ public class ModeratorRestControllerTest {
     @Test
     void ShouldReturnOkWhenRecipeisFound() {
       var recipeId = UUID.randomUUID();
-      when(recipeService.updateRecipeByStatus(recipeId, RecipeStatus.PUBLISHED)).thenReturn(RecipeStatus.PUBLISHED);
+      var recipe = createRecipe(recipeId, "test", RecipeStatus.PUBLISHED);
+      when(recipeService.updateStatus(recipeId, RecipeStatus.PUBLISHED)).thenReturn(recipe);
 
       var response = moderatorController.validateRecipe(recipeId);
-      assertEquals(HttpStatus.OK, response.getStatusCode());
+      assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
     }
 
     @Test
     void ShouldReturnErrorWhenRecipeNotFound() {
       var recipeId = UUID.randomUUID();
-      when(recipeService.updateRecipeByStatus(recipeId, RecipeStatus.PUBLISHED)).thenThrow(new ResourceNotFoundException("Recipe not found"));
+      when(recipeService.updateStatus(recipeId, RecipeStatus.PUBLISHED)).thenThrow(new ResourceNotFoundException("Recipe not found"));
 
       assertThrows(ResourceNotFoundException.class, ()-> moderatorController.validateRecipe(recipeId));
     }
@@ -86,28 +86,29 @@ public class ModeratorRestControllerTest {
     @Test
     void ShouldReturnOkWhenRecipeisFound() {
       var recipeId = UUID.randomUUID();
-      when(recipeService.updateRecipeByStatus(recipeId, RecipeStatus.REJECTED)).thenReturn(RecipeStatus.REJECTED);
+      var recipe = createRecipe(recipeId, "test", RecipeStatus.REJECTED);
+      when(recipeService.updateStatus(recipeId, RecipeStatus.REJECTED)).thenReturn(recipe);
 
       var response = moderatorController.rejectRecipe(recipeId);
-      assertEquals(HttpStatus.OK, response.getStatusCode());
+      assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
     }
 
     @Test
     void ShouldReturnErrorWhenRecipeNotFound() {
       var recipeId = UUID.randomUUID();
-      when(recipeService.updateRecipeByStatus(recipeId, RecipeStatus.REJECTED)).thenThrow(new ResourceNotFoundException("Recipe not found"));
+      when(recipeService.updateStatus(recipeId, RecipeStatus.REJECTED)).thenThrow(new ResourceNotFoundException("Recipe not found"));
 
       assertThrows(ResourceNotFoundException.class, ()-> moderatorController.rejectRecipe(recipeId));
     }
 
   }
 
-  private Recipe createRecipe(UUID id, String title, UUID parentId, RecipeStatus status) {
+  private Recipe createRecipe(UUID id, String title, RecipeStatus status) {
     return new Recipe(
             id,
             title,
             "Summary for " + title,
-            parentId,
+            null,
             "chef_test",
             30,
             null,
@@ -115,7 +116,7 @@ public class ModeratorRestControllerTest {
             List.of(),
             List.of(),
             List.of(),
-            Map.of(),
+            List.of(),
             now,
             now
     );

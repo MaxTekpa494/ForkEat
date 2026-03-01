@@ -92,12 +92,6 @@ public class RecipeService {
   }
 
   @Transactional
-  public RecipeStatus updateRecipeByStatus(UUID id, RecipeStatus status) {
-    logger.info("Recipe {} status updated to {}", id, status);
-    return recipePersistence.updateByStatus(id, status);
-  }
-
-  @Transactional
   public void deleteById(UUID id) {
     var recipe = findById(id);
     if(recipe.imageUrl() != null){

@@ -36,17 +36,15 @@ public class ModeratorRestController {
   }
 
   @PostMapping("/recipes/{id}/validate")
-  public ResponseEntity<?> validateRecipe(@PathVariable UUID id) {
-    Objects.requireNonNull(id);
-    recipeService.updateRecipeByStatus(id, RecipeStatus.PUBLISHED);
-    return ResponseEntity.ok().build();
+  public ResponseEntity<Void> validateRecipe(@PathVariable UUID id) {
+    recipeService.updateStatus(id, RecipeStatus.PUBLISHED);
+    return ResponseEntity.noContent().build();
   }
 
   @PostMapping("/recipes/{id}/reject")
-  public ResponseEntity<?> rejectRecipe(@PathVariable UUID id) {
-    Objects.requireNonNull(id);
-    recipeService.updateRecipeByStatus(id, RecipeStatus.REJECTED);
-    return ResponseEntity.ok().build();
+  public ResponseEntity<Void> rejectRecipe(@PathVariable UUID id) {
+    recipeService.updateStatus(id, RecipeStatus.REJECTED);
+    return ResponseEntity.noContent().build();
   }
 
 }

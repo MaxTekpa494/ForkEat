@@ -301,17 +301,18 @@ class RecipeServiceTest {
         @Test
         void shouldUpdateRecipeStatus() {
             var recipeId = UUID.randomUUID();
-            when(recipePersistence.updateByStatus(recipeId, RecipeStatus.PUBLISHED)).thenReturn(RecipeStatus.PUBLISHED);
+            var recipe = createRecipe(recipeId, "test", RecipeStatus.PUBLISHED);
+            when(recipePersistence.updateStatus(recipeId, RecipeStatus.PUBLISHED)).thenReturn(recipe);
 
-            assertEquals(RecipeStatus.PUBLISHED, recipeService.updateRecipeByStatus(recipeId, RecipeStatus.PUBLISHED));
+            assertEquals(RecipeStatus.PUBLISHED, recipeService.updateStatus(recipeId, RecipeStatus.PUBLISHED).status());
         }
 
         @Test
         void shouldThrowWhenRecipeNotFound() {
             var recipeId = UUID.randomUUID();
-            when(recipePersistence.updateByStatus(recipeId, RecipeStatus.PUBLISHED)).thenThrow(RecipeNotFoundException.class);
+            when(recipePersistence.updateStatus(recipeId, RecipeStatus.PUBLISHED)).thenThrow(RecipeNotFoundException.class);
 
-            assertThrows(RecipeNotFoundException.class, () -> recipeService.updateRecipeByStatus(recipeId, RecipeStatus.PUBLISHED));
+            assertThrows(RecipeNotFoundException.class, () -> recipeService.updateStatus(recipeId, RecipeStatus.PUBLISHED));
         }
     }
 
