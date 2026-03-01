@@ -3,9 +3,10 @@ package fr.uge.android.forkeat.account
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
-import fr.uge.android.forkeat.network.dto.ConfirmPasswordChangeRequest
 import fr.uge.android.forkeat.network.dto.PasswordChangeRequest
+import fr.uge.android.forkeat.network.dto.RequestEmailChangeRequest
 import fr.uge.android.forkeat.network.dto.SetPasswordRequest
+import fr.uge.android.forkeat.network.dto.UpdateProfileRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +22,7 @@ data class AccountUiState(
     val emailVerified: Boolean = false,
     val isEditingInfo: Boolean = false,
     val showEmailModal: Boolean = false,
+    val showConfirmEmailModal: Boolean = false,
     val showPasswordModal: Boolean = false,
     val showSetPasswordModal: Boolean = false,
     val showConfirmPasswordModal: Boolean = false,
@@ -49,9 +51,10 @@ class AccountViewModel : ViewModel() {
     private val _confirmNewPassword = MutableStateFlow("")
     val confirmNewPassword: StateFlow<String> = _confirmNewPassword.asStateFlow()
 
-    // Conserve le nouveau mot de passe entre request et confirm
-    private var _pendingNewPassword = ""
-    private var _pendingConfirmPassword = ""
+    // Conserve les valeurs originales pour annuler l'édition du profil
+    private var _originalFirstName = ""
+    private var _originalLastName = ""
+    private var _originalUsername = ""
 
     init {
         loadAccount()
@@ -104,26 +107,69 @@ class AccountViewModel : ViewModel() {
     }
 
     fun toggleEditInfo() {
-        _uiState.value = _uiState.value.copy(isEditingInfo = !_uiState.value.isEditingInfo)
+        if (!_uiState.value.isEditingInfo) {
+            _originalFirstName = _uiState.value.firstName
+            _originalLastName = _uiState.value.lastName
+            _originalUsername = _uiState.value.username
+            _uiState.value = _uiState.value.copy(isEditingInfo = true, error = null)
+        } else {
+            _uiState.value = _uiState.value.copy(
+                isEditingInfo = false,
+                firstName = _originalFirstName,
+                lastName = _originalLastName,
+                username = _originalUsername,
+                error = null
+            )
+        }
     }
 
     fun saveProfileInfo() {
-        // TODO: Implement logic to save profile info to backend
-        _uiState.value = _uiState.value.copy(
-            isLoading = false,
-            isEditingInfo = false,
-            error = null
-        )
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val response = ForkEatApi.accountService.updateProfile(
+                    UpdateProfileRequest(
+                        firstName = _uiState.value.firstName,
+                        lastName = _uiState.value.lastName,
+                        username = _uiState.value.username
+                    )
+                )
+                if (response.isSuccessful) {
+                    val user = response.body()?.resource
+                    if (user != null) {
+                        _uiState.value = _uiState.value.copy(
+                            firstName = user.firstName,
+                            lastName = user.lastName,
+                            username = user.username,
+                            isLoading = false,
+                            isEditingInfo = false,
+                            error = null
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(isLoading = false, isEditingInfo = false)
+                    }
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Ce nom d'utilisateur est déjà pris."
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = "Erreur: ${e.message}")
+            }
+        }
     }
 
     fun openEmailModal() {
-        _uiState.value = _uiState.value.copy(showEmailModal = true)
+        _uiState.value = _uiState.value.copy(showEmailModal = true, error = null)
     }
 
     fun closeEmailModal() {
-        _uiState.value = _uiState.value.copy(showEmailModal = false)
+        _uiState.value = _uiState.value.copy(showEmailModal = false, error = null)
         _newEmail.value = ""
         _currentPasswordEmailConfirm.value = ""
+        _newPassword.value = ""
+        _confirmNewPassword.value = ""
     }
 
     fun onNewEmailChange(newValue: String) {
@@ -135,25 +181,91 @@ class AccountViewModel : ViewModel() {
     }
 
     fun updateEmail() {
-        // TODO: Implement logic to update email to backend
-        _uiState.value = _uiState.value.copy(
-            isLoading = false,
-            showEmailModal = false,
-            error = null
-        )
-        if (_uiState.value.error == null) {
-            _uiState.value = _uiState.value.copy(email = _newEmail.value)
+        val isGoogleUser = _uiState.value.authMode == "GOOGLE"
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val response = ForkEatApi.accountService.requestEmailChange(
+                    if (isGoogleUser) {
+                        RequestEmailChangeRequest(
+                            newEmail = _newEmail.value,
+                            currentPassword = "",
+                            newPassword = _newPassword.value,
+                            confirmPassword = _confirmNewPassword.value
+                        )
+                    } else {
+                        RequestEmailChangeRequest(
+                            newEmail = _newEmail.value,
+                            currentPassword = _currentPasswordEmailConfirm.value,
+                            newPassword = "",
+                            confirmPassword = ""
+                        )
+                    }
+                )
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        showEmailModal = false,
+                        showConfirmEmailModal = true,
+                        error = null
+                    )
+                    _currentPasswordEmailConfirm.value = ""
+                    _newPassword.value = ""
+                    _confirmNewPassword.value = ""
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = if (isGoogleUser) "Mot de passe invalide ou email déjà utilisé." else "Mot de passe incorrect ou email déjà utilisé."
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = "Erreur: ${e.message}")
+            }
         }
+    }
+
+    fun confirmEmailChange(code: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val response = ForkEatApi.accountService.confirmEmailChange(code)
+                if (response.isSuccessful) {
+                    val user = response.body()?.resource
+                    if (user != null) {
+                        _uiState.value = _uiState.value.copy(
+                            email = user.email,
+                            emailVerified = user.emailVerified,
+                            isLoading = false,
+                            showConfirmEmailModal = false,
+                            error = null
+                        )
+                    } else {
+                        _uiState.value = _uiState.value.copy(isLoading = false, showConfirmEmailModal = false)
+                    }
+                    _newEmail.value = ""
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Code invalide ou expiré."
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = "Erreur: ${e.message}")
+            }
+        }
+    }
+
+    fun closeConfirmEmailModal() {
         _newEmail.value = ""
-        _currentPasswordEmailConfirm.value = ""
+        _uiState.value = _uiState.value.copy(showConfirmEmailModal = false, error = null)
     }
 
     fun openPasswordModal() {
-        _uiState.value = _uiState.value.copy(showPasswordModal = true)
+        _uiState.value = _uiState.value.copy(showPasswordModal = true, error = null)
     }
 
     fun closePasswordModal() {
-        _uiState.value = _uiState.value.copy(showPasswordModal = false)
+        _uiState.value = _uiState.value.copy(showPasswordModal = false, error = null)
         _currentPassword.value = ""
         _newPassword.value = ""
         _confirmNewPassword.value = ""
@@ -187,8 +299,6 @@ class AccountViewModel : ViewModel() {
                     )
                 )
                 if (response.isSuccessful) {
-                    _pendingNewPassword = _newPassword.value
-                    _pendingConfirmPassword = _confirmNewPassword.value
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         showPasswordModal = false,
@@ -214,16 +324,8 @@ class AccountViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.accountService.confirmPasswordChange(
-                    ConfirmPasswordChangeRequest(
-                        code = code,
-                        newPassword = _pendingNewPassword,
-                        confirmPassword = _pendingConfirmPassword
-                    )
-                )
+                val response = ForkEatApi.accountService.confirmPasswordChange(code)
                 if (response.isSuccessful) {
-                    _pendingNewPassword = ""
-                    _pendingConfirmPassword = ""
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
                         showConfirmPasswordModal = false,
@@ -243,8 +345,6 @@ class AccountViewModel : ViewModel() {
     }
 
     fun closeConfirmPasswordModal() {
-        _pendingNewPassword = ""
-        _pendingConfirmPassword = ""
         _uiState.value = _uiState.value.copy(showConfirmPasswordModal = false, error = null)
     }
 

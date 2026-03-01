@@ -128,13 +128,21 @@ private fun GoogleConnectionItem(onSetPassword: () -> Unit) {
 
 @Composable
 private fun EmailModificationModal(
+    authMode: String,
     newEmail: String,
     onNewEmailChange: (String) -> Unit,
     currentPassword: String,
     onCurrentPasswordChange: (String) -> Unit,
+    newPassword: String,
+    onNewPasswordChange: (String) -> Unit,
+    confirmNewPassword: String,
+    onConfirmNewPasswordChange: (String) -> Unit,
     onUpdateEmail: () -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    errorMessage: String?
 ) {
+    val isGoogleUser = authMode == "GOOGLE"
+
     Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
         Card(
             modifier = Modifier
@@ -172,18 +180,60 @@ private fun EmailModificationModal(
                     )
                 )
                 Spacer(Modifier.height(12.dp))
-                OutlinedTextField(
-                    value = currentPassword,
-                    onValueChange = onCurrentPasswordChange,
-                    label = { Text("Mot de passe actuel") },
-                    modifier = Modifier.fillMaxWidth(),
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = OutlinedTextFieldDefaults.colors(
-                        focusedBorderColor = Primary500,
-                        focusedLabelColor = Primary500
+                if (isGoogleUser) {
+                    Text(
+                        "Votre compte est connecté via Google. Définissez un mot de passe pour accéder également par email.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Gray500,
+                        modifier = Modifier.padding(bottom = 8.dp)
                     )
-                )
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = onNewPasswordChange,
+                        label = { Text("Nouveau mot de passe") },
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary500,
+                            focusedLabelColor = Primary500
+                        )
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = confirmNewPassword,
+                        onValueChange = onConfirmNewPasswordChange,
+                        label = { Text("Confirmer le mot de passe") },
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary500,
+                            focusedLabelColor = Primary500
+                        )
+                    )
+                } else {
+                    OutlinedTextField(
+                        value = currentPassword,
+                        onValueChange = onCurrentPasswordChange,
+                        label = { Text("Mot de passe actuel") },
+                        modifier = Modifier.fillMaxWidth(),
+                        visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary500,
+                            focusedLabelColor = Primary500
+                        )
+                    )
+                }
+                errorMessage?.let {
+                    Text(
+                        it,
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        modifier = Modifier.padding(top = 8.dp)
+                    )
+                }
                 Spacer(Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -209,6 +259,8 @@ private fun EmailModificationModal(
 
 @Composable
 private fun ConfirmPasswordChangeModal(
+    title: String = "Confirmer le changement",
+    description: String = "Un email vous a été envoyé. Entrez le code à 6 chiffres pour confirmer le changement de mot de passe.",
     onConfirm: (String) -> Unit,
     onDismiss: () -> Unit,
     isLoading: Boolean,
@@ -232,7 +284,7 @@ private fun ConfirmPasswordChangeModal(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Text(
-                        "Confirmer le changement",
+                        title,
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                         color = Secondary900
                     )
@@ -242,7 +294,7 @@ private fun ConfirmPasswordChangeModal(
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
-                    "Un email vous a été envoyé. Entrez le code à 6 chiffres pour confirmer le changement de mot de passe.",
+                    description,
                     style = MaterialTheme.typography.bodySmall,
                     color = Gray500
                 )
@@ -595,12 +647,18 @@ fun AccountScreen(
 
     if (uiState.showEmailModal) {
         EmailModificationModal(
+            authMode = uiState.authMode,
             newEmail = newEmail,
             onNewEmailChange = accountViewModel::onNewEmailChange,
             currentPassword = currentPasswordEmailConfirm,
             onCurrentPasswordChange = accountViewModel::onCurrentPasswordEmailConfirmChange,
+            newPassword = newPassword,
+            onNewPasswordChange = accountViewModel::onNewPasswordChange,
+            confirmNewPassword = confirmNewPassword,
+            onConfirmNewPasswordChange = accountViewModel::onConfirmNewPasswordChange,
             onUpdateEmail = accountViewModel::updateEmail,
-            onDismiss = accountViewModel::closeEmailModal
+            onDismiss = accountViewModel::closeEmailModal,
+            errorMessage = uiState.error
         )
     }
 
@@ -626,6 +684,17 @@ fun AccountScreen(
             onConfirmNewPasswordChange = accountViewModel::onConfirmNewPasswordChange,
             onSetPassword = accountViewModel::setPassword,
             onDismiss = accountViewModel::closeSetPasswordModal,
+            errorMessage = uiState.error
+        )
+    }
+
+    if (uiState.showConfirmEmailModal) {
+        ConfirmPasswordChangeModal(
+            title = "Confirmer le nouvel email",
+            description = "Un email vous a été envoyé. Entrez le code à 6 chiffres pour confirmer votre nouvel email.",
+            onConfirm = { code -> accountViewModel.confirmEmailChange(code) },
+            onDismiss = { accountViewModel.closeConfirmEmailModal() },
+            isLoading = uiState.isLoading,
             errorMessage = uiState.error
         )
     }

@@ -2,13 +2,14 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.port.PasswordHasher;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserUpdateService;
@@ -43,8 +44,6 @@ class AccountRestControllerTest {
     private UserUpdateService userUpdateService;
     @MockitoBean
     private EmailVerificationService emailVerificationService;
-    @MockitoBean
-    private PasswordHasher passwordHasher;
     @MockitoBean
     private JwtUtils jwtUtils;
     @MockitoBean
@@ -111,50 +110,91 @@ class AccountRestControllerTest {
 
         @Test
         void shouldReturn400WhenFieldIsBlank() throws Exception {
+            when(userUpdateService.updateProfile(eq("viewer"), eq("viewer"), eq(""), eq("Dupont")))
+                    .thenThrow(new CheckProfileUpdateFailureException("Veuillez remplir tous les champs"));
+
             mockMvc.perform(put("/api/account")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"firstName":"","lastName":"Dupont","username":"viewer"}
                                     """))
                     .andExpect(status().isBadRequest());
+        }
 
-            verify(userUpdateService, never()).updateProfile(any(), any(), any(), any());
+        @Test
+        void shouldReturn400WhenUsernameAlreadyTaken() throws Exception {
+            when(userUpdateService.updateProfile(eq("viewer"), eq("taken"), any(), any()))
+                    .thenThrow(new CheckProfileUpdateFailureException("Ce nom d'utilisateur est déjà pris"));
+
+            mockMvc.perform(put("/api/account")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"firstName":"Jean","lastName":"Dupont","username":"taken"}
+                                    """))
+                    .andExpect(status().isBadRequest());
         }
     }
 
-    // ========== POST /api/account/request-password-change ==========
+    // ========== POST /api/account/password-change-requests ==========
 
     @Nested
     class RequestPasswordChange {
 
         @Test
         void shouldRequestChangeSuccessfully() throws Exception {
-            doNothing().when(userUpdateService).requestPasswordChange(any(), any(), any());
+            doNothing().when(userUpdateService).requestPasswordChange(any(), any(), any(), any());
 
-            mockMvc.perform(post("/api/account/request-password-change")
+            mockMvc.perform(post("/api/account/password-change-requests")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"currentPassword":"old","newPassword":"newPass1!","confirmPassword":"newPass1!"}
                                     """))
                     .andExpect(status().isOk());
 
-            verify(userUpdateService).requestPasswordChange("viewer", "old", "newPass1!");
+            verify(userUpdateService).requestPasswordChange("viewer", "old", "newPass1!", "newPass1!");
         }
 
         @Test
         void shouldReturn400WhenPasswordsDoNotMatch() throws Exception {
-            mockMvc.perform(post("/api/account/request-password-change")
+            doThrow(new CheckProfileUpdateFailureException("Les mots de passe ne correspondent pas"))
+                    .when(userUpdateService).requestPasswordChange("viewer", "old", "newPass1!", "different");
+
+            mockMvc.perform(post("/api/account/password-change-requests")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"currentPassword":"old","newPassword":"newPass1!","confirmPassword":"different"}
                                     """))
                     .andExpect(status().isBadRequest());
+        }
 
-            verify(userUpdateService, never()).requestPasswordChange(any(), any(), any());
+        @Test
+        void shouldReturn400WhenCurrentPasswordIncorrect() throws Exception {
+            doThrow(new CheckProfileUpdateFailureException("Incorrect current password"))
+                    .when(userUpdateService).requestPasswordChange("viewer", "wrong", "newPass1!", "newPass1!");
+
+            mockMvc.perform(post("/api/account/password-change-requests")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"currentPassword":"wrong","newPassword":"newPass1!","confirmPassword":"newPass1!"}
+                                    """))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void shouldReturn400WhenNewPasswordTooShort() throws Exception {
+            doThrow(new CheckProfileUpdateFailureException("New password must be at least 8 characters"))
+                    .when(userUpdateService).requestPasswordChange("viewer", "old", "short", "short");
+
+            mockMvc.perform(post("/api/account/password-change-requests")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"currentPassword":"old","newPassword":"short","confirmPassword":"short"}
+                                    """))
+                    .andExpect(status().isBadRequest());
         }
     }
 
-    // ========== POST /api/account/confirm-password-change ==========
+    // ========== PUT /api/account/password-change-requests ==========
 
     @Nested
     class ConfirmPasswordChange {
@@ -163,55 +203,115 @@ class AccountRestControllerTest {
         void shouldConfirmChangeSuccessfully() throws Exception {
             var user = buildUser("viewer");
             when(userService.getUserByUsername("viewer")).thenReturn(user);
-            when(passwordHasher.hash("newPass1!")).thenReturn("hashed");
-            doNothing().when(emailVerificationService).confirmPasswordChange(any(), any(), any());
+            doNothing().when(emailVerificationService).confirmPasswordChange(user.id(), "123456");
 
-            mockMvc.perform(post("/api/account/confirm-password-change")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                                    {"code":"123456","newPassword":"newPass1!","confirmPassword":"newPass1!"}
-                                    """))
+            mockMvc.perform(put("/api/account/password-change-requests")
+                            .param("code", "123456"))
                     .andExpect(status().isOk());
 
-            verify(emailVerificationService).confirmPasswordChange(user.id(), "123456", "hashed");
+            verify(emailVerificationService).confirmPasswordChange(user.id(), "123456");
         }
 
         @Test
-        void shouldReturn400WhenPasswordsDoNotMatch() throws Exception {
-            mockMvc.perform(post("/api/account/confirm-password-change")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                                    {"code":"123456","newPassword":"newPass1!","confirmPassword":"different"}
-                                    """))
-                    .andExpect(status().isBadRequest());
+        void shouldReturn400WhenCodeIsInvalid() throws Exception {
+            var user = buildUser("viewer");
+            when(userService.getUserByUsername("viewer")).thenReturn(user);
+            doThrow(new VerificationException("Invalid or expired code"))
+                    .when(emailVerificationService).confirmPasswordChange(user.id(), "000000");
 
-            verify(emailVerificationService, never()).confirmPasswordChange(any(), any(), any());
+            mockMvc.perform(put("/api/account/password-change-requests")
+                            .param("code", "000000"))
+                    .andExpect(status().isBadRequest());
         }
     }
 
-    // ========== POST /api/account/request-email-change ==========
+    // ========== POST /api/account/email-change-requests ==========
 
     @Nested
     class RequestEmailChange {
 
         @Test
         void shouldRequestEmailChangeForLocalUser() throws Exception {
-            var user = buildUser("viewer");
-            when(userService.getUserByUsername("viewer")).thenReturn(user);
-            doNothing().when(userUpdateService).requestEmailChange(any(), any(), any(), any());
+            doNothing().when(userUpdateService).requestEmailChange(any(), any(), any(), any(), any());
 
-            mockMvc.perform(post("/api/account/request-email-change")
+            mockMvc.perform(post("/api/account/email-change-requests")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"newEmail":"new@example.com","currentPassword":"pass","newPassword":"","confirmPassword":""}
                                     """))
                     .andExpect(status().isOk());
 
-            verify(userUpdateService).requestEmailChange("viewer", "new@example.com", "pass", "");
+            verify(userUpdateService).requestEmailChange("viewer", "new@example.com", "pass", "", "");
+        }
+
+        @Test
+        void shouldRequestEmailChangeForGoogleUser() throws Exception {
+            doNothing().when(userUpdateService).requestEmailChange(any(), any(), any(), any(), any());
+
+            mockMvc.perform(post("/api/account/email-change-requests")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"newEmail":"new@example.com","currentPassword":"","newPassword":"NewPass1!","confirmPassword":"NewPass1!"}
+                                    """))
+                    .andExpect(status().isOk());
+
+            verify(userUpdateService).requestEmailChange("viewer", "new@example.com", "", "NewPass1!", "NewPass1!");
+        }
+
+        @Test
+        void shouldReturn400WhenCurrentPasswordIncorrect() throws Exception {
+            doThrow(new CheckProfileUpdateFailureException("Incorrect password"))
+                    .when(userUpdateService).requestEmailChange("viewer", "new@example.com", "wrong", "", "");
+
+            mockMvc.perform(post("/api/account/email-change-requests")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"newEmail":"new@example.com","currentPassword":"wrong","newPassword":"","confirmPassword":""}
+                                    """))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void shouldReturn400WhenEmailAlreadyTaken() throws Exception {
+            doThrow(new CheckProfileUpdateFailureException("Cet email est déjà utilisé"))
+                    .when(userUpdateService).requestEmailChange("viewer", "taken@example.com", "pass", "", "");
+
+            mockMvc.perform(post("/api/account/email-change-requests")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"newEmail":"taken@example.com","currentPassword":"pass","newPassword":"","confirmPassword":""}
+                                    """))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void shouldReturn400WhenGoogleUserPasswordTooShort() throws Exception {
+            doThrow(new CheckProfileUpdateFailureException("New password must be at least 8 characters"))
+                    .when(userUpdateService).requestEmailChange("viewer", "new@example.com", "", "short", "short");
+
+            mockMvc.perform(post("/api/account/email-change-requests")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"newEmail":"new@example.com","currentPassword":"","newPassword":"short","confirmPassword":"short"}
+                                    """))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void shouldReturn400WhenGoogleUserPasswordsDontMatch() throws Exception {
+            doThrow(new CheckProfileUpdateFailureException("Les mots de passe ne correspondent pas"))
+                    .when(userUpdateService).requestEmailChange("viewer", "new@example.com", "", "newPass1!", "different");
+
+            mockMvc.perform(post("/api/account/email-change-requests")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"newEmail":"new@example.com","currentPassword":"","newPassword":"newPass1!","confirmPassword":"different"}
+                                    """))
+                    .andExpect(status().isBadRequest());
         }
     }
 
-    // ========== POST /api/account/confirm-email-change ==========
+    // ========== PUT /api/account/email-change-requests ==========
 
     @Nested
     class ConfirmEmailChange {
@@ -223,17 +323,26 @@ class AccountRestControllerTest {
             when(userService.getUserByUsername("viewer")).thenReturn(user);
             when(emailVerificationService.confirmEmailChange(user.id(), "654321")).thenReturn(updated);
 
-            mockMvc.perform(post("/api/account/confirm-email-change")
-                            .contentType(MediaType.APPLICATION_JSON)
-                            .content("""
-                                    {"code":"654321"}
-                                    """))
+            mockMvc.perform(put("/api/account/email-change-requests")
+                            .param("code", "654321"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.resource.username").value("viewer"));
         }
+
+        @Test
+        void shouldReturn400WhenCodeIsInvalid() throws Exception {
+            var user = buildUser("viewer");
+            when(userService.getUserByUsername("viewer")).thenReturn(user);
+            when(emailVerificationService.confirmEmailChange(user.id(), "000000"))
+                    .thenThrow(new VerificationException("Invalid or expired code"));
+
+            mockMvc.perform(put("/api/account/email-change-requests")
+                            .param("code", "000000"))
+                    .andExpect(status().isBadRequest());
+        }
     }
 
-    // ========== POST /api/account/resend-confirmation ==========
+    // ========== POST /api/account/email-confirmations ==========
 
     @Nested
     class ResendConfirmation {
@@ -245,7 +354,7 @@ class AccountRestControllerTest {
             when(userService.getUserByUsername("viewer")).thenReturn(user);
             doNothing().when(emailVerificationService).sendEmailConfirmation(any(), any());
 
-            mockMvc.perform(post("/api/account/resend-confirmation"))
+            mockMvc.perform(post("/api/account/email-confirmations"))
                     .andExpect(status().isOk());
 
             verify(emailVerificationService).sendEmailConfirmation(user.id(), "jean@example.com");
@@ -256,42 +365,69 @@ class AccountRestControllerTest {
             var user = buildUser("viewer"); // emailVerified = true
             when(userService.getUserByUsername("viewer")).thenReturn(user);
 
-            mockMvc.perform(post("/api/account/resend-confirmation"))
+            mockMvc.perform(post("/api/account/email-confirmations"))
                     .andExpect(status().isOk());
 
             verify(emailVerificationService, never()).sendEmailConfirmation(any(), any());
         }
     }
 
-    // ========== POST /api/account/set-password ==========
+    // ========== PUT /api/account/password ==========
 
     @Nested
     class SetPassword {
 
         @Test
         void shouldSetPasswordSuccessfully() throws Exception {
-            doNothing().when(userUpdateService).setPasswordForOAuthUser(any(), any());
+            doNothing().when(userUpdateService).setPasswordForOAuthUser(any(), any(), any());
 
-            mockMvc.perform(post("/api/account/set-password")
+            mockMvc.perform(put("/api/account/password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"newPassword":"NewPass1!","confirmPassword":"NewPass1!"}
                                     """))
                     .andExpect(status().isOk());
 
-            verify(userUpdateService).setPasswordForOAuthUser("viewer", "NewPass1!");
+            verify(userUpdateService).setPasswordForOAuthUser("viewer", "NewPass1!", "NewPass1!");
         }
 
         @Test
         void shouldReturn400WhenPasswordsDoNotMatch() throws Exception {
-            mockMvc.perform(post("/api/account/set-password")
+            doThrow(new CheckProfileUpdateFailureException("Les mots de passe ne correspondent pas"))
+                    .when(userUpdateService).setPasswordForOAuthUser("viewer", "NewPass1!", "different");
+
+            mockMvc.perform(put("/api/account/password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content("""
                                     {"newPassword":"NewPass1!","confirmPassword":"different"}
                                     """))
                     .andExpect(status().isBadRequest());
+        }
 
-            verify(userUpdateService, never()).setPasswordForOAuthUser(any(), any());
+        @Test
+        void shouldReturn400WhenPasswordDoesNotMeetComplexityRequirements() throws Exception {
+            doThrow(new CheckProfileUpdateFailureException("New password must be at least 8 characters"))
+                    .when(userUpdateService).setPasswordForOAuthUser("viewer", "short", "short");
+
+            mockMvc.perform(put("/api/account/password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"newPassword":"short","confirmPassword":"short"}
+                                    """))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void shouldReturn400WhenUserAlreadyHasLocalPassword() throws Exception {
+            doThrow(new CheckProfileUpdateFailureException("This user already has a local password"))
+                    .when(userUpdateService).setPasswordForOAuthUser("viewer", "NewPass1!", "NewPass1!");
+
+            mockMvc.perform(put("/api/account/password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content("""
+                                    {"newPassword":"NewPass1!","confirmPassword":"NewPass1!"}
+                                    """))
+                    .andExpect(status().isBadRequest());
         }
     }
 }

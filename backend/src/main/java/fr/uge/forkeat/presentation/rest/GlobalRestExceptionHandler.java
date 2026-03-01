@@ -77,6 +77,12 @@ public class GlobalRestExceptionHandler {
                 .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
     }
 
+  @ExceptionHandler(CheckProfileUpdateFailureException.class)
+  public ResponseEntity<Map<String, String>> handleCheckProfileUpdateFailure(CheckProfileUpdateFailureException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+  }
+
 }
 
 // S'inspirer pour corriger le controllerAdvance

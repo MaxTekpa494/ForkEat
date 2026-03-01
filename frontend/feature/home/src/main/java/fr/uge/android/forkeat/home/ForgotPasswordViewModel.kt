@@ -5,11 +5,8 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
-import fr.uge.android.forkeat.network.TokenManager
 import fr.uge.android.forkeat.network.dto.ForgottenPasswordCodeRequest
 import fr.uge.android.forkeat.network.dto.ForgottenPasswordRequest
-import fr.uge.android.forkeat.network.dto.LoginRequest
-import fr.uge.android.forkeat.network.dto.NewPasswordRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
@@ -26,20 +23,13 @@ class ForgotPasswordViewModel(application: Application) : AndroidViewModel(appli
     val uiState: StateFlow<ForgotPasswordUiState> = _uiState
 
 
-    fun askForgotPassword(email: String, password: String, confirmPassword: String) {
+    fun askForgotPassword(email: String) {
         _uiState.value = ForgotPasswordUiState(isLoading = true)
-
-        if(password != confirmPassword){
-            _uiState.value = ForgotPasswordUiState(errorMessage = "Les mots de passe sont différents")
-            return;
-        }
 
         viewModelScope.launch {
             try {
                 MailForPasswordForgot.email = email
-                MailForPasswordForgot.password = password
-                MailForPasswordForgot.confirmPassword = confirmPassword
-                val response = ForkEatApi.authService.askForgottenPassword(ForgottenPasswordRequest(email, password))
+                val response = ForkEatApi.authService.askForgottenPassword(ForgottenPasswordRequest(email))
                 if (response.isSuccessful) {
                     _uiState.value = ForgotPasswordUiState(isSuccess = true)
                 } else {
@@ -56,9 +46,9 @@ class ForgotPasswordViewModel(application: Application) : AndroidViewModel(appli
     }
 
 
-    fun sendCodeForgotPassword(code: String) {
+    fun sendCodeForgotPassword(code: String, password: String, confirmPassword: String) {
         _uiState.value = ForgotPasswordUiState(isLoading = true)
-        if(MailForPasswordForgot.email == null || MailForPasswordForgot.password == null){
+        if (MailForPasswordForgot.email == null) {
             _uiState.value = ForgotPasswordUiState(
                 errorMessage = "Erreur Veuillez Réessayer"
             )
@@ -70,8 +60,8 @@ class ForgotPasswordViewModel(application: Application) : AndroidViewModel(appli
                     ForgottenPasswordCodeRequest(
                         MailForPasswordForgot.email.toString(),
                         code,
-                        MailForPasswordForgot.password.toString(),
-                        MailForPasswordForgot.confirmPassword.toString()
+                        password,
+                        confirmPassword
                     )
                 )
                 if (response.isSuccessful) {
