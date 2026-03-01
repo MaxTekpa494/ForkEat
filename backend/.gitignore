@@ -13,3 +13,4 @@ data/
 
 # Debezium offsets
 *.dat
+ollama/*
