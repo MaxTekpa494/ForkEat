@@ -72,6 +72,8 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
 						.requestMatchers("/api/recipes/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/wallet/**").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers("/api/account/**").authenticated()
+						.requestMatchers("/api/profile/**").authenticated()
 						.requestMatchers("/api/admin/**").hasRole("ADMIN")
 						.requestMatchers("/api/moderator/**").hasRole("MODERATOR")
 						.requestMatchers("/api/user/**").authenticated()

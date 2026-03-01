@@ -5,7 +5,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 public record VerificationToken(UUID id, UUID userId, String token, VerificationTokenType type,
-                                String newEmail, Instant expiresAt, Instant createdAt) {
+                                String newEmail, String pendingPasswordHash, Instant expiresAt, Instant createdAt) {
 
     public VerificationToken {
         Objects.requireNonNull(id);

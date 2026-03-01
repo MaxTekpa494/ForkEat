@@ -14,6 +14,7 @@ import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import jakarta.persistence.EntityManager;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -66,6 +67,12 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
+    public boolean existRecipe(UUID id) {
+        Objects.requireNonNull(id);
+        return recipeRepository.existsById(id);
+    }
+
+    @Override
     public List<Recipe> findByStatus(RecipeStatus status) {
         return recipeRepository.findByStatus(status)
                 .stream()
@@ -85,7 +92,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public PageResult<Recipe> searchRecipes(RecipeSearchCriteria criteria) {
+    public PageResult<RecipeSummary> searchRecipes(RecipeSearchCriteria criteria) {
         Objects.requireNonNull(criteria);
         var pageable = PageRequest.of(criteria.page(), criteria.size());
         var pageResult = recipeRepository.searchRecipes(criteria.status(), criteria.search(), criteria.allergens(), pageable);
@@ -241,7 +248,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public PageResult<RecipeSummary> findRecipeSummaries(String username, RecipeStatus status, int size, int page) {
+    public PageResult<RecipeSummary> findUserRecipeSummaries(String username, RecipeStatus status, int size, int page) {
         Objects.requireNonNull(username);
         Objects.requireNonNull(status);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -255,7 +262,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         var summaries = views.stream()
                 .map(s -> new RecipeSummary(
                         s.getId(), s.getTitle(), s.getSummary(), s.getImageUrl(),
-                        s.getPreparationMinutes(), s.getCreatedAt()
+                        s.getPreparationMinutes(), s.getCreatedAt(), username
                 ))
                 .toList();
 
@@ -334,7 +341,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
 
     @Override
     public boolean hasSuperLikedRecipe(UUID userId, UUID recipeId){
-        return this.superLikeRepository.existsByRecipeIdAndUserId(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
+        return superLikeRepository.existsByRecipeIdAndUserId(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
     }
 
     /**

@@ -10,7 +10,8 @@ public record RecipeSummary(
         String summary,
         String imageUrl,
         int preparationMinutes,
-        Instant createdAt
+        Instant createdAt,
+        String authorUsername
 ) {
 
     public RecipeSummary {

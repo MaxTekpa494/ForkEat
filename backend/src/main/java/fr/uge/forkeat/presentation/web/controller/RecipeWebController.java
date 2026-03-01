@@ -95,7 +95,7 @@ public class RecipeWebController {
                 RecipeStatus.valueOf(form.getStatus()), form.getSearch(), form.getAllergens(), form.getSize(), form.getPage());
         var pageResult = recipeService.searchRecipes(criteria);
         var recipes = pageResult.items().stream()
-                .map(RecipeDTOMapper::toDTO)
+                .map(RecipeDTOMapper::toSummaryDTO)
                 .toList();
         var allAllergens = recipeService.findAllAllergens().stream()
                 .map(RecipeDTOMapper::toDTO)
@@ -133,11 +133,10 @@ public class RecipeWebController {
             model.addAttribute("diff", RecipeDiff.compute(parentDTO, recipeDTO.toRecipeDTO()));
         }
 
-        var isOwner = currentUser != null && currentUser.equals(recipe.usernameAuthor());
+        var isOwner = authPort.isAuthenticated() && currentUser != null && currentUser.equals(recipe.usernameAuthor());
         var hasActiveDietaryFlags = recipeDTO.dietaries() != null && !recipeDTO.dietaries().isEmpty();
         model.addAttribute("recipe", recipeDTO);
         model.addAttribute("isOwner", isOwner);
-        model.addAttribute("isAuthenticated", currentUser != null);
         model.addAttribute("hasActiveDietaryFlags", hasActiveDietaryFlags);
         logger.info("Recipe {} viewed by {}", recipe, currentUser);
         return "recipes/detail";

@@ -2,13 +2,12 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.mapper.web.UserFormDTOMapper;
 import fr.uge.forkeat.presentation.web.form.RegisterFormDTO;
-import fr.uge.forkeat.service.PasswordValidator;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
-import fr.uge.forkeat.service.port.PasswordHasher;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
+import fr.uge.forkeat.service.user.UserUpdateService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -26,16 +25,16 @@ public class AuthWebController {
     private final UserRegistrationService userRegistrationService;
     private final UserService userService;
     private final EmailVerificationService emailVerificationService;
-    private final PasswordHasher passwordHasher;
+    private final UserUpdateService userUpdateService;
 
     public AuthWebController(UserRegistrationService userRegistrationService,
                              EmailVerificationService emailVerificationService,
                              UserService userService,
-                             PasswordHasher passwordHasher) {
+                             UserUpdateService userUpdateService) {
         this.userRegistrationService = userRegistrationService;
         this.emailVerificationService = emailVerificationService;
         this.userService = userService;
-        this.passwordHasher = passwordHasher;
+        this.userUpdateService = userUpdateService;
     }
 
     @GetMapping("/login")
@@ -69,32 +68,8 @@ public class AuthWebController {
             @RequestParam("verificationCode") String verificationCode,
             @RequestParam("password") String password,
             @RequestParam("confirmPassword") String confirmPassword,
-            Model model,
-            RedirectAttributes redirectAttributes,
-            HttpServletResponse response) {
-        if (!password.equals(confirmPassword)) {
-            model.addAttribute("errorMessage", "Les mots de passe ne correspondent pas");
-            model.addAttribute("email", email);
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return "layout/forgot-password-code";
-        }
-        try {
-            PasswordValidator.validate(password);
-        } catch (RegisterFailureException e) {
-            model.addAttribute("errorMessage", e.getMessage());
-            model.addAttribute("email", email);
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return "layout/forgot-password-code";
-        }
-        try {
-            var user = userService.getUserByEmail(email);
-            emailVerificationService.confirmPasswordChange(user.id(), verificationCode, passwordHasher.hash(password));
-        } catch (VerificationException e) {
-            model.addAttribute("errorMessage", e.getMessage());
-            model.addAttribute("email", email);
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return "layout/forgot-password-code";
-        }
+            RedirectAttributes redirectAttributes) {
+        userUpdateService.confirmForgotPasswordChange(email, verificationCode, password, confirmPassword);
         redirectAttributes.addFlashAttribute("success",
                 "Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter.");
         return "redirect:/auth/login";

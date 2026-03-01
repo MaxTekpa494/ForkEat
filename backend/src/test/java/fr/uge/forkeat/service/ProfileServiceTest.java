@@ -10,8 +10,6 @@ import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.model.user.User;
-import fr.uge.forkeat.service.model.user.projection.PersonalizedUserProfile;
-import fr.uge.forkeat.service.model.user.projection.UserProfile;
 import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
 import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
@@ -62,7 +60,7 @@ class ProfileServiceTest {
     }
 
     private RecipeSummary createRecipeSummary(UUID id) {
-        return new RecipeSummary(id, "Tarte", "Délicieuse tarte", null, 30, Instant.now());
+        return new RecipeSummary(id, "Tarte", "Délicieuse tarte", null, 30, Instant.now(), "chef_test");
     }
 
     private User createUser(String username) {
@@ -82,7 +80,7 @@ class ProfileServiceTest {
 
             when(userPersistence.findPublicProfile(username)).thenReturn(publicProfile);
             when(userPersistence.findUserSocialStats(username)).thenReturn(socialStats);
-            when(recipePersistence.findRecipeSummaries(eq(username), eq(RecipeStatus.PUBLISHED), anyInt(), anyInt()))
+            when(recipePersistence.findUserRecipeSummaries(eq(username), eq(RecipeStatus.PUBLISHED), anyInt(), anyInt()))
                     .thenReturn(new PageResult<>(List.of(), 0L));
             when(userPersistence.isFollowing(currentUsername, username)).thenReturn(false);
 
@@ -108,7 +106,7 @@ class ProfileServiceTest {
 
             when(userPersistence.findPublicProfile(username)).thenReturn(publicProfile);
             when(userPersistence.findUserSocialStats(username)).thenReturn(socialStats);
-            when(recipePersistence.findRecipeSummaries(eq(username), eq(RecipeStatus.PUBLISHED), eq(10), eq(0)))
+            when(recipePersistence.findUserRecipeSummaries(eq(username), eq(RecipeStatus.PUBLISHED), eq(10), eq(0)))
                     .thenReturn(new PageResult<>(List.of(summary), 1L));
             when(recipePersistence.findRecipeCounts(List.of(recipeId))).thenReturn(Map.of(recipeId, counts));
             when(recipePersistence.findUserRecipeInteractions(List.of(recipeId), currentUsername))
@@ -133,7 +131,7 @@ class ProfileServiceTest {
 
             when(userPersistence.findPublicProfile(username)).thenReturn(createPublicProfile(username));
             when(userPersistence.findUserSocialStats(username)).thenReturn(createSocialStats());
-            when(recipePersistence.findRecipeSummaries(any(), any(), anyInt(), anyInt()))
+            when(recipePersistence.findUserRecipeSummaries(any(), any(), anyInt(), anyInt()))
                     .thenReturn(new PageResult<>(List.of(summary), 1L));
             when(recipePersistence.findRecipeCounts(anyList())).thenReturn(Map.of());
             when(recipePersistence.findUserRecipeInteractions(anyList(), any())).thenReturn(Map.of());
@@ -152,7 +150,7 @@ class ProfileServiceTest {
             var currentUsername = "viewer";
             when(userPersistence.findPublicProfile(username)).thenReturn(createPublicProfile(username));
             when(userPersistence.findUserSocialStats(username)).thenReturn(createSocialStats());
-            when(recipePersistence.findRecipeSummaries(any(), any(), anyInt(), anyInt()))
+            when(recipePersistence.findUserRecipeSummaries(any(), any(), anyInt(), anyInt()))
                     .thenReturn(new PageResult<>(List.of(), 0L));
             when(userPersistence.isFollowing(currentUsername, username)).thenReturn(true);
 

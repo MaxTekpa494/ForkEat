@@ -5,9 +5,10 @@ import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
-import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
+import fr.uge.forkeat.service.model.recipe.projection.*;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.StoragePort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,6 +16,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -24,13 +26,15 @@ public class RecipeService {
   private final StoragePort storageService;
   private final RecipePersistence recipePersistence;
   private final WalletPersistence walletPersistence;
+  private final AuthenticationPort authPort;
   private final Logger logger = LoggerFactory.getLogger(RecipeService.class);
   private static final String FOLDER_STORAGE = "recipes";
 
-  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService, WalletPersistence walletPersistence) {
+  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService, WalletPersistence walletPersistence, AuthenticationPort authPort) {
     this.recipePersistence = recipePersistence;
     this.storageService = storageService;
     this.walletPersistence = walletPersistence;
+    this.authPort = authPort;
   }
 
   @Transactional
@@ -133,9 +137,31 @@ public class RecipeService {
     return recipePersistence.findByStatus(status, size, page);
   }
 
-  public PageResult<Recipe> searchRecipes(RecipeSearchCriteria criteria) {
+  public PageResult<PersonalizedRecipeSummary> searchRecipes(RecipeSearchCriteria criteria) {
     Objects.requireNonNull(criteria);
-    return recipePersistence.searchRecipes(criteria);
+    var currentUsername = authPort.extractUsername();
+
+    var page = recipePersistence.searchRecipes(criteria);
+    var summaries = page.items();
+    if (summaries.isEmpty()) {
+      return new PageResult<>(List.of(), page.total());
+    }
+
+    var ids = summaries.stream().map(RecipeSummary::id).toList();
+    var countsMap = recipePersistence.findRecipeCounts(ids);
+    var interactionsMap = currentUsername != null
+            ? recipePersistence.findUserRecipeInteractions(ids, currentUsername)
+            : Map.<UUID, RecipeUserInteraction>of();
+
+    var personalized = summaries.stream()
+            .map(s -> new PersonalizedRecipeSummary(
+                    s,
+                    countsMap.getOrDefault(s.id(), RecipeCounts.ZERO),
+                    interactionsMap.getOrDefault(s.id(), RecipeUserInteraction.NONE)
+            ))
+            .toList();
+
+    return new PageResult<>(personalized, page.total());
   }
 
   public List<Allergen> findAllAllergens() {
@@ -161,14 +187,18 @@ public class RecipeService {
   @Transactional
   public void likeRecipe(UUID userId, UUID recipeId) {
     Objects.requireNonNull(userId);
-    findById(recipeId); // vérifie que la recette existe
+    if(!recipePersistence.existRecipe(recipeId)) {
+      throw new RecipeNotFoundException(recipeId);
+    }
     recipePersistence.likeRecipe(userId, recipeId);
   }
 
   @Transactional
   public void unlikeRecipe(UUID userId, UUID recipeId) {
     Objects.requireNonNull(userId);
-    findById(recipeId); // vérifie que la recette existe
+    if(!recipePersistence.existRecipe(recipeId)) {
+      throw new RecipeNotFoundException(recipeId);
+    }
     recipePersistence.unlikeRecipe(userId, recipeId);
   }
 
