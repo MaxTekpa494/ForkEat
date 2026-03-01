@@ -1,6 +1,7 @@
 package fr.uge.forkeat.presentation.web;
 
 import fr.uge.forkeat.service.exception.*;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -84,4 +85,14 @@ public class GlobalWebExceptionHandler {
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
 		return "redirect:/recipes/create";
 	}
+
+	@ExceptionHandler(ModerationRagException.class)
+	public String handleModeration(ModerationRagException e,
+								   RedirectAttributes redirectAttributes,
+								   HttpServletRequest request) {
+		redirectAttributes.addFlashAttribute("moderationError", e.getMessage());
+		redirectAttributes.addFlashAttribute("query", request.getParameter("query"));
+		return "redirect:/recipes/smart-search";
+	}
+
 }

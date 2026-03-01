@@ -4,13 +4,14 @@ import fr.uge.forkeat.service.exception.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
+import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
 import java.util.Map;
 
 // À CHANGER POUR UTILISER DES HTTPRESPONSES PLUTOT QUE DES MAPS
-@RestControllerAdvice(basePackages = "fr.uge.forkeat.presentation")
+@RestControllerAdvice(annotations = RestController.class)
 public class GlobalRestExceptionHandler {
 
   @ExceptionHandler(RecipeNotFoundException.class)
@@ -71,41 +72,16 @@ public class GlobalRestExceptionHandler {
             .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
   }
 
+  @ExceptionHandler(ModerationRagException.class)
+  public ResponseEntity<Map<String, Object>> handleModeration(ModerationRagException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of(
+                    "error", "Bad Request",
+                    "message", e.getMessage(),
+                    "timestamp", Instant.now().toString()
+            ));
+  }
+
+
 }
 
-// S'inspirer pour corriger le controllerAdvance
-/*
-@RestControllerAdvice
-public class GlobalExceptionHandler {
-
-    // 404 - Ressource non trouvée
-    @ExceptionHandler({RecipeNotFoundException.class, UserNotFoundException.class})
-    @ResponseStatus(HttpStatus.NOT_FOUND)
-    public ProblemDetail handleNotFound(RuntimeException ex) { }
-
-    // 400 - Validation échouée
-    @ExceptionHandler(MethodArgumentNotValidException.class)
-    @ResponseStatus(HttpStatus.BAD_REQUEST)
-    public Map<String, String> handleValidation(MethodArgumentNotValidException ex) { }
-
-    // 409 - Conflit (contrainte unique)
-    @ExceptionHandler(DataIntegrityViolationException.class)
-    @ResponseStatus(HttpStatus.CONFLICT)
-    public ProblemDetail handleConflict(DataIntegrityViolationException ex) { }
-
-    // 401 - Non authentifié
-    @ExceptionHandler(UnauthorizedException.class)
-    @ResponseStatus(HttpStatus.UNAUTHORIZED)
-    public ProblemDetail handleUnauthorized(UnauthorizedException ex) { }
-
-    // 403 - Interdit (pas les droits)
-    @ExceptionHandler(AccessDeniedException.class)
-    @ResponseStatus(HttpStatus.FORBIDDEN)
-    public ProblemDetail handleForbidden(AccessDeniedException ex) { }
-
-    // 500 - Erreur serveur générique
-    @ExceptionHandler(Exception.class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    public ProblemDetail handleGeneric(Exception ex) { }
-}
- */
