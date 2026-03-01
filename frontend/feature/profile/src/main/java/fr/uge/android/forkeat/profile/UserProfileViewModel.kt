@@ -25,7 +25,9 @@ data class UserProfileUiState(
     val totalPages: Int = 0,
     val followedByCurrentUser: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val insufficientFunds: Boolean = false,
+    val emailNotVerified: Boolean = false
 )
 
 class UserProfileViewModel(application: Application) : AndroidViewModel(application) {
@@ -36,6 +38,14 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
     private val tokenManager = TokenManager(application)
     private var targetUsername: String = ""
 
+    fun dismissInsufficientFunds() {
+        _uiState.value = _uiState.value.copy(insufficientFunds = false)
+    }
+
+    fun dismissEmailNotVerified() {
+        _uiState.value = _uiState.value.copy(emailNotVerified = false)
+    }
+
     fun loadProfile(username: String, page: Int = 0) {
         targetUsername = username
         viewModelScope.launch {
@@ -45,7 +55,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
                 if (response.isSuccessful) {
                     val r = response.body()?.resource ?: return@launch
                     val newRecipes = if (page == 0) r.recipes else _uiState.value.recipes + r.recipes
-                    _uiState.value = UserProfileUiState(
+                    _uiState.value = _uiState.value.copy(
                         username = r.profile.publicProfile.username,
                         firstName = r.profile.publicProfile.firstName,
                         lastName = r.profile.publicProfile.lastName,
@@ -83,6 +93,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
                 val response = ForkEatApi.recipeService.likeRecipe(token = token, id = recipeId)
                 if (!response.isSuccessful) {
                     updateRecipeInList(recipeId, liked = false)
+                    handleError(response.code())
                 }
             } catch (e: Exception) {
                 updateRecipeInList(recipeId, liked = false)
@@ -98,9 +109,35 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
                 val response = ForkEatApi.recipeService.unlikeRecipe(token = token, id = recipeId)
                 if (!response.isSuccessful) {
                     updateRecipeInList(recipeId, liked = true)
+                    handleError(response.code())
                 }
             } catch (e: Exception) {
                 updateRecipeInList(recipeId, liked = true)
+            }
+        }
+    }
+
+    fun superLikeRecipe(recipeId: UUID) {
+        viewModelScope.launch {
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = ForkEatApi.recipeService.superLikeRecipe(token = token, id = recipeId)
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(
+                        recipes = _uiState.value.recipes.map { recipe ->
+                            if (recipe.id == recipeId && !recipe.superLikedByCurrentUser) {
+                                recipe.copy(
+                                    superLikedByCurrentUser = true,
+                                    superLikeCount = recipe.superLikeCount + 1
+                                )
+                            } else recipe
+                        }
+                    )
+                } else {
+                    handleError(response.code())
+                }
+            } catch (e: Exception) {
+                // Silently fail or log it
             }
         }
     }
@@ -118,5 +155,13 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
                 } else recipe
             }
         )
+    }
+
+    private fun handleError(code: Int) {
+        if (code == 403) {
+            _uiState.value = _uiState.value.copy(emailNotVerified = true)
+        } else if (code == 402) {
+            _uiState.value = _uiState.value.copy(insufficientFunds = true)
+        }
     }
 }

@@ -2,6 +2,7 @@ package fr.uge.android.forkeat.account
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -35,12 +36,13 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.viewmodel.compose.viewModel
+import fr.uge.android.forkeat.designsystem.theme.*
 
 @Composable
 private fun AccountInfoRow(label: String, value: String) {
     Column {
-        Text(label, style = MaterialTheme.typography.labelSmall, color = Color(0xFF6B7280))
-        Text(value, style = MaterialTheme.typography.bodyLarge, color = Color(0xFF1E293B), fontWeight = FontWeight.Medium)
+        Text(label, style = MaterialTheme.typography.labelSmall, color = Gray500)
+        Text(value, style = MaterialTheme.typography.bodyLarge, color = Secondary900, fontWeight = FontWeight.Medium)
     }
 }
 
@@ -54,17 +56,23 @@ private fun SecurityItem(
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF8F8F8), RoundedCornerShape(8.dp))
+            .clip(RoundedCornerShape(12.dp))
+            .background(Gray100)
             .clickable(onClick = onClick)
-            .padding(12.dp),
+            .padding(16.dp),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Column {
-            Text(label, style = MaterialTheme.typography.titleMedium, color = Color(0xFF1E293B))
-            Text(value, style = MaterialTheme.typography.bodySmall, color = Color(0xFF6B7280))
+            Text(label, style = MaterialTheme.typography.titleMedium, color = Secondary900, fontWeight = FontWeight.Bold)
+            Text(value, style = MaterialTheme.typography.bodySmall, color = Gray500)
         }
-        Text(actionText, style = MaterialTheme.typography.bodyMedium, color = Color(0xFFF97316), fontWeight = FontWeight.Medium)
+        Text(
+            text = actionText,
+            style = MaterialTheme.typography.bodyMedium,
+            color = Primary500,
+            fontWeight = FontWeight.Bold
+        )
     }
 }
 
@@ -73,31 +81,34 @@ private fun GoogleConnectionItem(onSetPassword: () -> Unit) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color(0xFFF0F9FF), RoundedCornerShape(8.dp))
-            .padding(12.dp),
+            .clip(RoundedCornerShape(12.dp))
+            .background(Secondary50)
+            .padding(16.dp),
         verticalAlignment = Alignment.Top
     ) {
         Box(
             modifier = Modifier
                 .size(40.dp)
                 .clip(RoundedCornerShape(8.dp))
-                .background(Color(0xFFDBEAFE)),
+                .background(Secondary100),
             contentAlignment = Alignment.Center
         ) {
-            Icon(Icons.Default.AccountCircle, contentDescription = null, tint = Color(0xFF2563EB), modifier = Modifier.size(22.dp))
+            Icon(Icons.Default.AccountCircle, contentDescription = null, tint = Secondary700, modifier = Modifier.size(22.dp))
         }
         Spacer(Modifier.width(12.dp))
         Column(Modifier.weight(1f)) {
             Text(
                 text = "Connexion Google",
                 style = MaterialTheme.typography.titleMedium,
-                color = Color(0xFF1E293B)
+                color = Secondary900,
+                fontWeight = FontWeight.Bold
             )
             Spacer(Modifier.height(4.dp))
             Text(
                 text = "Votre compte est connecté via Google. Définissez un mot de passe pour pouvoir également vous connecter avec votre email.",
                 style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF6B7280)
+                color = Gray500,
+                lineHeight = 18.sp
             )
             Spacer(Modifier.height(8.dp))
             TextButton(
@@ -106,9 +117,9 @@ private fun GoogleConnectionItem(onSetPassword: () -> Unit) {
             ) {
                 Text(
                     text = "Définir un mot de passe",
-                    color = Color(0xFFF97316),
+                    color = Primary500,
                     style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.SemiBold
+                    fontWeight = FontWeight.Bold
                 )
             }
         }
@@ -129,10 +140,11 @@ private fun EmailModificationModal(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(24.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -141,10 +153,10 @@ private fun EmailModificationModal(
                     Text(
                         "Modifier l'email",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF1E293B)
+                        color = Secondary900
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Fermer")
+                        Icon(Icons.Default.Close, contentDescription = "Fermer", tint = Secondary700)
                     }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -152,23 +164,43 @@ private fun EmailModificationModal(
                     value = newEmail,
                     onValueChange = onNewEmailChange,
                     label = { Text("Nouvel email") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary500,
+                        focusedLabelColor = Primary500
+                    )
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = currentPassword,
                     onValueChange = onCurrentPasswordChange,
-                    label = { Text("Mot de passe actuel (pour confirmation)") },
-                    modifier = Modifier.fillMaxWidth()
+                    label = { Text("Mot de passe actuel") },
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary500,
+                        focusedLabelColor = Primary500
+                    )
                 )
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Annuler") }
+                    TextButton(onClick = onDismiss) {
+                        Text("Annuler", color = Gray500)
+                    }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = onUpdateEmail) { Text("Modifier l'email") }
+                    Button(
+                        onClick = onUpdateEmail,
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary500)
+                    ) {
+                        Text("Modifier l'email", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -189,10 +221,11 @@ private fun ConfirmPasswordChangeModal(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(24.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -201,17 +234,17 @@ private fun ConfirmPasswordChangeModal(
                     Text(
                         "Confirmer le changement",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF1E293B)
+                        color = Secondary900
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Fermer")
+                        Icon(Icons.Default.Close, contentDescription = "Fermer", tint = Secondary700)
                     }
                 }
                 Spacer(Modifier.height(8.dp))
                 Text(
                     "Un email vous a été envoyé. Entrez le code à 6 chiffres pour confirmer le changement de mot de passe.",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF6B7280)
+                    color = Gray500
                 )
                 Spacer(Modifier.height(24.dp))
                 PasswordConfirmCodeField(
@@ -226,16 +259,21 @@ private fun ConfirmPasswordChangeModal(
                         style = MaterialTheme.typography.bodySmall
                     )
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Annuler") }
+                    TextButton(onClick = onDismiss) {
+                        Text("Annuler", color = Gray500)
+                    }
                     Spacer(Modifier.width(8.dp))
                     Button(
                         onClick = { onConfirm(code) },
-                        enabled = code.length == 6 && !isLoading
+                        enabled = code.length == 6 && !isLoading,
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary500)
                     ) {
                         if (isLoading) {
                             CircularProgressIndicator(
@@ -245,7 +283,7 @@ private fun ConfirmPasswordChangeModal(
                             )
                             Spacer(Modifier.width(8.dp))
                         }
-                        Text("Valider")
+                        Text("Valider", fontWeight = FontWeight.Bold)
                     }
                 }
             }
@@ -262,8 +300,9 @@ private fun PasswordConfirmCodeField(
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .height(56.dp)
-            .background(Color(0xFFF8F8F8), RoundedCornerShape(8.dp))
+            .height(64.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(Gray100)
             .padding(horizontal = 8.dp),
         contentAlignment = Alignment.Center
     ) {
@@ -275,7 +314,7 @@ private fun PasswordConfirmCodeField(
             },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
             singleLine = true,
-            cursorBrush = SolidColor(Color.Black),
+            cursorBrush = SolidColor(Secondary900),
             modifier = Modifier
                 .fillMaxWidth()
                 .alpha(0f)
@@ -286,14 +325,26 @@ private fun PasswordConfirmCodeField(
         ) {
             repeat(codeLength) { index ->
                 val char = code.getOrNull(index)
-                Text(
-                    text = char?.toString() ?: "·",
-                    fontSize = 24.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = if (char != null) Color(0xFF1E293B) else Color(0xFFCBD5E1),
-                    textAlign = TextAlign.Center,
-                    modifier = Modifier.weight(1f)
-                )
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = char?.toString() ?: "",
+                        fontSize = 24.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Secondary900,
+                        textAlign = TextAlign.Center
+                    )
+                    if (char == null) {
+                        Box(
+                            modifier = Modifier
+                                .width(12.dp)
+                                .height(2.dp)
+                                .background(Secondary300)
+                        )
+                    }
+                }
             }
         }
     }
@@ -314,10 +365,11 @@ private fun SetPasswordModal(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(24.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -326,10 +378,10 @@ private fun SetPasswordModal(
                     Text(
                         "Définir un mot de passe",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF1E293B)
+                        color = Secondary900
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Fermer")
+                        Icon(Icons.Default.Close, contentDescription = "Fermer", tint = Secondary700)
                     }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -337,20 +389,32 @@ private fun SetPasswordModal(
                     value = newPassword,
                     onValueChange = onNewPasswordChange,
                     label = { Text("Nouveau mot de passe") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary500,
+                        focusedLabelColor = Primary500
+                    )
                 )
                 Text(
                     "Minimum 8 caractères",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF6B7280),
-                    modifier = Modifier.padding(start = 16.dp)
+                    color = Gray500,
+                    modifier = Modifier.padding(start = 12.dp, top = 4.dp)
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = confirmNewPassword,
                     onValueChange = onConfirmNewPasswordChange,
                     label = { Text("Confirmer le mot de passe") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary500,
+                        focusedLabelColor = Primary500
+                    )
                 )
                 errorMessage?.let {
                     Text(
@@ -360,14 +424,23 @@ private fun SetPasswordModal(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Annuler") }
+                    TextButton(onClick = onDismiss) {
+                        Text("Annuler", color = Gray500)
+                    }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = onSetPassword) { Text("Définir le mot de passe") }
+                    Button(
+                        onClick = onSetPassword,
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary500)
+                    ) {
+                        Text("Définir le mot de passe", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -391,10 +464,11 @@ private fun PasswordModificationModal(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(16.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = CardDefaults.cardColors(containerColor = Color.White)
+            shape = RoundedCornerShape(24.dp),
+            colors = CardDefaults.cardColors(containerColor = Color.White),
+            elevation = CardDefaults.cardElevation(defaultElevation = 8.dp)
         ) {
-            Column(modifier = Modifier.padding(16.dp)) {
+            Column(modifier = Modifier.padding(24.dp)) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -403,10 +477,10 @@ private fun PasswordModificationModal(
                     Text(
                         "Modifier le mot de passe",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF1E293B)
+                        color = Secondary900
                     )
                     IconButton(onClick = onDismiss) {
-                        Icon(Icons.Default.Close, contentDescription = "Fermer")
+                        Icon(Icons.Default.Close, contentDescription = "Fermer", tint = Secondary700)
                     }
                 }
                 Spacer(Modifier.height(16.dp))
@@ -414,27 +488,45 @@ private fun PasswordModificationModal(
                     value = currentPassword,
                     onValueChange = onCurrentPasswordChange,
                     label = { Text("Mot de passe actuel") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary500,
+                        focusedLabelColor = Primary500
+                    )
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = newPassword,
                     onValueChange = onNewPasswordChange,
                     label = { Text("Nouveau mot de passe") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary500,
+                        focusedLabelColor = Primary500
+                    )
                 )
                 Text(
                     "Minimum 8 caractères",
                     style = MaterialTheme.typography.bodySmall,
-                    color = Color(0xFF6B7280),
-                    modifier = Modifier.padding(start = 16.dp)
+                    color = Gray500,
+                    modifier = Modifier.padding(start = 12.dp, top = 4.dp)
                 )
-                Spacer(Modifier.height(8.dp))
+                Spacer(Modifier.height(12.dp))
                 OutlinedTextField(
                     value = confirmNewPassword,
                     onValueChange = onConfirmNewPasswordChange,
                     label = { Text("Confirmer le nouveau mot de passe") },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        focusedBorderColor = Primary500,
+                        focusedLabelColor = Primary500
+                    )
                 )
                 errorMessage?.let {
                     Text(
@@ -444,14 +536,23 @@ private fun PasswordModificationModal(
                         modifier = Modifier.padding(top = 8.dp)
                     )
                 }
-                Spacer(Modifier.height(16.dp))
+                Spacer(Modifier.height(24.dp))
                 Row(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    TextButton(onClick = onDismiss) { Text("Annuler") }
+                    TextButton(onClick = onDismiss) {
+                        Text("Annuler", color = Gray500)
+                    }
                     Spacer(Modifier.width(8.dp))
-                    Button(onClick = onUpdatePassword) { Text("Modifier le mot de passe") }
+                    Button(
+                        onClick = onUpdatePassword,
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary500)
+                    ) {
+                        Text("Modifier le mot de passe", fontWeight = FontWeight.Bold)
+                    }
                 }
             }
         }
@@ -474,7 +575,7 @@ fun AccountScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF5F5F5))
+            .background(SurfaceCream)
             .verticalScroll(rememberScrollState())
     ) {
         AccountHeader(uiState = uiState, onNavigateBack = onNavigateBack)
@@ -482,12 +583,13 @@ fun AccountScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .padding(20.dp),
+            verticalArrangement = Arrangement.spacedBy(20.dp)
         ) {
             AccountInformationCard(uiState, accountViewModel)
             AccountSecurityCard(uiState, accountViewModel)
             AccountDangerZoneCard(accountViewModel)
+            Spacer(Modifier.height(24.dp))
         }
     }
 
@@ -536,60 +638,93 @@ fun AccountScreen(
             errorMessage = uiState.error
         )
     }
+
+    if (uiState.resendMessage?.contains("envoyé") == true) {
+        AlertDialog(
+            onDismissRequest = accountViewModel::dismissResendMessage,
+            title = { Text("Email envoyé !", fontWeight = FontWeight.Bold, color = Secondary900) },
+            text = { Text("Un lien de confirmation vous a été envoyé. Vérifiez votre boîte mail pour activer votre adresse email.", color = Gray500) },
+            confirmButton = {
+                Button(
+                    onClick = accountViewModel::dismissResendMessage,
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary500),
+                    shape = RoundedCornerShape(50)
+                ) {
+                    Text("OK", fontWeight = FontWeight.Bold)
+                }
+            },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Color.White
+        )
+    }
 }
 
 @Composable
 private fun AccountHeader(uiState: AccountUiState, onNavigateBack: () -> Unit) {
+    val headerGradient = Brush.verticalGradient(
+        colors = listOf(Secondary800, Secondary900)
+    )
+
     Box(
         modifier = Modifier
             .fillMaxWidth()
-            .background(
-                Brush.linearGradient(
-                    colors = listOf(Color(0xFF1E293B), Color(0xFF0F172A))
-                )
-            )
-            .padding(16.dp)
+            .background(headerGradient)
+            .padding(top = 16.dp, bottom = 40.dp, start = 8.dp, end = 24.dp)
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
             IconButton(onClick = onNavigateBack) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Retour", tint = Color.White)
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                    contentDescription = "Retour",
+                    tint = Color.White
+                )
             }
+            
             Spacer(Modifier.width(8.dp))
+            
             Box(
                 modifier = Modifier
-                    .size(64.dp)
+                    .size(80.dp)
                     .clip(CircleShape)
-                    .background(Color(0xFFF97316)),
+                    .background(Primary500)
+                    .border(4.dp, Color.White.copy(alpha = 0.2f), CircleShape),
                 contentAlignment = Alignment.Center
             ) {
                 Text(
                     text = "${uiState.firstName.firstOrNull()?.uppercase() ?: ""}${uiState.lastName.firstOrNull()?.uppercase() ?: ""}",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                     color = Color.White
                 )
             }
-            Spacer(Modifier.width(16.dp))
-            Column {
+            
+            Spacer(Modifier.width(20.dp))
+            
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = "Mon compte",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Color.White
+                    text = "${uiState.firstName} ${uiState.lastName}",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = Color.White,
+                    lineHeight = 28.sp
                 )
                 Text(
                     text = "@${uiState.username}",
                     style = MaterialTheme.typography.bodyLarge,
-                    color = Color(0xFFCBD5E1)
+                    color = Secondary100
                 )
-                Row(modifier = Modifier.padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = uiState.role,
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier
-                            .background(Color(0xFFF97316).copy(alpha = 0.2f), RoundedCornerShape(percent = 50))
-                            .padding(horizontal = 8.dp, vertical = 4.dp),
-                        color = Color(0xFFF97316)
-                    )
-                }
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = uiState.role,
+                    style = MaterialTheme.typography.labelSmall,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier
+                        .background(Secondary700.copy(alpha = 0.5f), RoundedCornerShape(50))
+                        .border(1.dp, Secondary600, RoundedCornerShape(50))
+                        .padding(horizontal = 12.dp, vertical = 4.dp),
+                    color = Primary300
+                )
             }
         }
     }
@@ -599,58 +734,139 @@ private fun AccountHeader(uiState: AccountUiState, onNavigateBack: () -> Unit) {
 private fun AccountInformationCard(uiState: AccountUiState, viewModel: AccountViewModel) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, Gray100)
     ) {
         Column {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(16.dp),
+                    .padding(24.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Informations personnelles",
+                    text = "Informations",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = Color(0xFF1E293B)
+                    color = Secondary900
                 )
-                TextButton(onClick = viewModel::toggleEditInfo) {
-                    Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = Color(0xFFF97316))
-                    Spacer(Modifier.width(4.dp))
-                    Text("Modifier", color = Color(0xFFF97316))
+                if (!uiState.isEditingInfo) {
+                    IconButton(
+                        onClick = viewModel::toggleEditInfo,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(CircleShape)
+                            .background(Primary50)
+                    ) {
+                        Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = Primary500, modifier = Modifier.size(18.dp))
+                    }
                 }
             }
-            HorizontalDivider(color = Color(0xFFE5E7EB), thickness = 1.dp)
+            HorizontalDivider(color = Gray100, thickness = 1.dp, modifier = Modifier.padding(horizontal = 24.dp))
 
             if (!uiState.isEditingInfo) {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     AccountInfoRow(label = "Prénom", value = uiState.firstName)
                     AccountInfoRow(label = "Nom", value = uiState.lastName)
                     AccountInfoRow(label = "Nom d'utilisateur", value = "@${uiState.username}")
-                    AccountInfoRow(label = "Email", value = uiState.email)
+                    
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            Text("Email", style = MaterialTheme.typography.labelSmall, color = Gray500)
+                            if (uiState.emailVerified) {
+                                Box(
+                                    modifier = Modifier
+                                        .background(Color(0xFFDCFCE7), RoundedCornerShape(50))
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        "Vérifié",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Color(0xFF15803D),
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .background(Orange50, RoundedCornerShape(50))
+                                        .padding(horizontal = 8.dp, vertical = 2.dp)
+                                ) {
+                                    Text(
+                                        "Non vérifié",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = Orange500,
+                                        fontWeight = FontWeight.Bold
+                                    )
+                                }
+                            }
+                        }
+                        Text(uiState.email, style = MaterialTheme.typography.bodyLarge, color = Secondary900, fontWeight = FontWeight.Medium)
+                        if (!uiState.emailVerified) {
+                            TextButton(
+                                onClick = viewModel::resendConfirmation,
+                                contentPadding = PaddingValues(0.dp)
+                            ) {
+                                Icon(Icons.Default.Send, contentDescription = null, tint = Primary500, modifier = Modifier.size(14.dp))
+                                Spacer(Modifier.width(4.dp))
+                                Text(
+                                    "Renvoyer le lien de confirmation",
+                                    color = Primary500,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    fontWeight = FontWeight.Bold
+                                )
+                            }
+                            uiState.resendMessage?.let { message ->
+                                if (!message.contains("envoyé")) {
+                                    Text(
+                                        message,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.error
+                                    )
+                                }
+                            }
+                        }
+                    }
                 }
             } else {
-                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
                     OutlinedTextField(
                         value = uiState.firstName,
                         onValueChange = viewModel::onFirstNameChange,
                         label = { Text("Prénom") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary500,
+                            focusedLabelColor = Primary500
+                        )
                     )
                     OutlinedTextField(
                         value = uiState.lastName,
                         onValueChange = viewModel::onLastNameChange,
                         label = { Text("Nom") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary500,
+                            focusedLabelColor = Primary500
+                        )
                     )
                     OutlinedTextField(
                         value = uiState.username,
                         onValueChange = viewModel::onUsernameChange,
                         label = { Text("Nom d'utilisateur") },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = OutlinedTextFieldDefaults.colors(
+                            focusedBorderColor = Primary500,
+                            focusedLabelColor = Primary500
+                        )
                     )
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -658,11 +874,15 @@ private fun AccountInformationCard(uiState: AccountUiState, viewModel: AccountVi
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         TextButton(onClick = viewModel::toggleEditInfo) {
-                            Text("Annuler")
+                            Text("Annuler", color = Gray500)
                         }
                         Spacer(Modifier.width(8.dp))
-                        Button(onClick = viewModel::saveProfileInfo) {
-                            Text("Enregistrer")
+                        Button(
+                            onClick = viewModel::saveProfileInfo,
+                            shape = RoundedCornerShape(50),
+                            colors = ButtonDefaults.buttonColors(containerColor = Primary500)
+                        ) {
+                            Text("Enregistrer", fontWeight = FontWeight.Bold)
                         }
                     }
                 }
@@ -675,28 +895,36 @@ private fun AccountInformationCard(uiState: AccountUiState, viewModel: AccountVi
 private fun AccountSecurityCard(uiState: AccountUiState, viewModel: AccountViewModel) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFE5E7EB))
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, Gray100)
     ) {
         Column {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color.White)
-                    .padding(16.dp),
+                    .padding(24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF334155))
-                Spacer(Modifier.width(8.dp))
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(RoundedCornerShape(8.dp))
+                        .background(Secondary50),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = Secondary700, modifier = Modifier.size(18.dp))
+                }
+                Spacer(Modifier.width(12.dp))
                 Text(
                     text = "Sécurité",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = Color(0xFF1E293B)
+                    color = Secondary900
                 )
             }
-            HorizontalDivider(color = Color(0xFFE5E7EB), thickness = 1.dp)
-            Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            HorizontalDivider(color = Gray100, thickness = 1.dp, modifier = Modifier.padding(horizontal = 24.dp))
+            Column(modifier = Modifier.padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 SecurityItem(
                     label = "Adresse email",
                     value = uiState.email,
@@ -720,47 +948,52 @@ private fun AccountSecurityCard(uiState: AccountUiState, viewModel: AccountViewM
 private fun AccountDangerZoneCard(viewModel: AccountViewModel) {
     Card(
         modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        border = BorderStroke(1.dp, Color(0xFFFEE2E2))
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, Primary100)
     ) {
         Column {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFFFEF2F2))
-                    .padding(16.dp),
+                    .background(Primary50)
+                    .padding(24.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Default.Warning, contentDescription = null, tint = Color(0xFFEF4444))
-                Spacer(Modifier.width(8.dp))
+                Icon(Icons.Default.Warning, contentDescription = null, tint = Primary600)
+                Spacer(Modifier.width(12.dp))
                 Text(
                     text = "Zone de danger",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = Color(0xFFEF4444)
+                    color = Primary700
                 )
             }
-            HorizontalDivider(color = Color(0xFFFEE2E2), thickness = 1.dp)
-            Row(
-                modifier = Modifier.padding(16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Column(Modifier.weight(1f)) {
-                    Text("Supprimer mon compte", style = MaterialTheme.typography.titleMedium, color = Color(0xFF1E293B))
-                    Text(
-                        "Cette action est irréversible. Toutes vos données seront définitivement supprimées.",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = Color(0xFF6B7280)
-                    )
-                }
-                Spacer(Modifier.width(16.dp))
+            HorizontalDivider(color = Primary100, thickness = 1.dp)
+            Column(Modifier.padding(24.dp)) {
+                Text(
+                    "Supprimer mon compte",
+                    style = MaterialTheme.typography.titleMedium,
+                    color = Secondary900,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Cette action est irréversible. Toutes vos données seront définitivement supprimées de nos serveurs.",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Gray500,
+                    lineHeight = 18.sp
+                )
+                Spacer(Modifier.height(20.dp))
                 Button(
                     onClick = viewModel::deleteAccount,
-                    colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary600),
                     shape = RoundedCornerShape(50)
                 ) {
-                    Text("Supprimer", color = Color.White)
+                    Icon(Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text("Supprimer mon compte", fontWeight = FontWeight.Bold)
                 }
             }
         }

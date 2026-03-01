@@ -43,7 +43,14 @@ fun RecipesListScreen(
     onNavigateToMyProfile: () -> Unit = {},
     onLikeRecipe: (UUID) -> Unit = {},
     onUnlikeRecipe: (UUID) -> Unit = {},
+    onSuperLikeRecipe: (UUID) -> Unit = {},
+    insufficientFunds: Boolean = false,
+    onDismissInsufficientFunds: () -> Unit = {},
+    emailNotVerified: Boolean = false,
+    onDismissEmailNotVerified: () -> Unit = {},
     onNavigateToLogin: () -> Unit = {},
+    onNavigateToWallet: () -> Unit = {},
+    onNavigateToAccount: () -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     val currentUsername = remember(isLoggedIn) { if (isLoggedIn) ForkEatApi.getCurrentUsername() else null }
@@ -58,6 +65,22 @@ fun RecipesListScreen(
         if (shouldLoadMore && recipes.size < totalCount) {
             onLoadMore()
         }
+    }
+
+    // ── Dialogue fonds insuffisants ──────────────────────────────────────────
+    if (insufficientFunds) {
+        InsufficientFundsDialog(
+            onDismiss = onDismissInsufficientFunds,
+            onNavigateToWallet = onNavigateToWallet
+        )
+    }
+
+    // ── Dialogue email non vérifié ──────────────────────────────────────────
+    if (emailNotVerified) {
+        EmailNotVerifiedDialog(
+            onDismiss = onDismissEmailNotVerified,
+            onNavigateToAccount = onNavigateToAccount,
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
@@ -137,14 +160,11 @@ fun RecipesListScreen(
                                 onNavigateToUserProfile(username)
                             }
                         },
-                        onLikeClick = {
-                            if (isLoggedIn) {
-                                if (recipe.likedByCurrentUser) onUnlikeRecipe(recipe.id)
-                                else onLikeRecipe(recipe.id)
-                            } else {
-                                onNavigateToLogin()
-                            }
-                        }
+                        isLoggedIn = isLoggedIn,
+                        onNavigateToLogin = onNavigateToLogin,
+                        onLike = onLikeRecipe,
+                        onUnlike = onUnlikeRecipe,
+                        onSuperLike = onSuperLikeRecipe,
                     )
                 }
                 if (isLoading) {

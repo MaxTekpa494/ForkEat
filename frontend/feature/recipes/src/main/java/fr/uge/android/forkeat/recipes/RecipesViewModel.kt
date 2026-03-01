@@ -39,6 +39,16 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     private val _totalCount = MutableStateFlow(0)
     val totalCount: StateFlow<Int> = _totalCount.asStateFlow()
 
+    private val _emailNotVerified = MutableStateFlow(false)
+    val emailNotVerified: StateFlow<Boolean> = _emailNotVerified.asStateFlow()
+
+    fun dismissEmailNotVerified() { _emailNotVerified.value = false }
+
+    private val _insufficientFunds = MutableStateFlow(false)
+    val insufficientFunds: StateFlow<Boolean> = _insufficientFunds.asStateFlow()
+
+    fun dismissInsufficientFunds() { _insufficientFunds.value = false }
+
     private val _currentPage = MutableStateFlow(0)
 
     private val _errorMessage = MutableStateFlow<String?>(null)
@@ -154,14 +164,24 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
                     id = recipeId
                 )
                 if (response.isSuccessful) {
-
-                } else {
-                    val code = response.code()
-                    _errorMessage.value = when {
-                        code >= 500 -> "Le serveur est indisponible, veuillez réessayer plus tard."
-                        code in 400..499 -> "Pas assez d'argent sur le compte."
-                        else -> "Une erreur inconnue est survenue."
+                    _currentRecipe.value?.let { current ->
+                        if (current.id == recipeId && !current.hasSuperLiked) {
+                            _currentRecipe.value = current.copy(
+                                hasSuperLiked = true,
+                                nbSuperLike = current.nbSuperLike + 1
+                            )
+                        }
                     }
+                    _recipes.value = _recipes.value.map { recipe ->
+                        if (recipe.id == recipeId && !recipe.superLikedByCurrentUser) {
+                            recipe.copy(
+                                superLikedByCurrentUser = true,
+                                superLikeCount = recipe.superLikeCount + 1
+                            )
+                        } else recipe
+                    }
+                } else {
+                    handleError(response.code())
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Le serveur est indisponible, veuillez réessayer plus tard."
@@ -275,6 +295,14 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun handleError(code: Int) {
+        if (code == 403) {
+            _emailNotVerified.value = true
+            return
+        }
+        if (code == 402) {
+            _insufficientFunds.value = true
+            return
+        }
         _errorMessage.value = when {
             code >= 500 -> "Le serveur est indisponible, veuillez réessayer plus tard."
             code in 400..499 -> "Une erreur est survenue, veuillez vérifier votre connexion."

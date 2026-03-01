@@ -18,13 +18,15 @@ data class AccountUiState(
     val email: String = "",
     val role: String = "MEMBER",
     val authMode: String = "",
+    val emailVerified: Boolean = false,
     val isEditingInfo: Boolean = false,
     val showEmailModal: Boolean = false,
     val showPasswordModal: Boolean = false,
     val showSetPasswordModal: Boolean = false,
     val showConfirmPasswordModal: Boolean = false,
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val resendMessage: String? = null
 )
 
 class AccountViewModel : ViewModel() {
@@ -70,6 +72,7 @@ class AccountViewModel : ViewModel() {
                             email = user.email,
                             role = user.role,
                             authMode = user.authMode,
+                            emailVerified = user.emailVerified,
                             isLoading = false
                         )
                     }
@@ -289,6 +292,25 @@ class AccountViewModel : ViewModel() {
                 _confirmNewPassword.value = ""
             }
         }
+    }
+
+    fun resendConfirmation() {
+        viewModelScope.launch {
+            try {
+                val response = ForkEatApi.accountService.resendConfirmation()
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(resendMessage = "Email de confirmation envoyé !")
+                } else {
+                    _uiState.value = _uiState.value.copy(resendMessage = "Impossible d'envoyer l'email. Veuillez réessayer.")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(resendMessage = "Erreur: ${e.message}")
+            }
+        }
+    }
+
+    fun dismissResendMessage() {
+        _uiState.value = _uiState.value.copy(resendMessage = null)
     }
 
     fun deleteAccount() {

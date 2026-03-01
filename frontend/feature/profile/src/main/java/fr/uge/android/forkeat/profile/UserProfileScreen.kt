@@ -23,6 +23,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.uge.android.forkeat.designsystem.theme.*
 import fr.uge.android.forkeat.network.ForkEatApi
+import fr.uge.android.forkeat.recipes.EmailNotVerifiedDialog
+import fr.uge.android.forkeat.recipes.InsufficientFundsDialog
 import fr.uge.android.forkeat.recipes.RecipeCard
 
 @Composable
@@ -30,7 +32,10 @@ fun UserProfileScreen(
     username: String,
     viewModel: UserProfileViewModel = viewModel(),
     onNavigateBack: () -> Unit = {},
-    onNavigateToRecipe: (String) -> Unit = {}
+    onNavigateToRecipe: (String) -> Unit = {},
+    onNavigateToLogin: () -> Unit = {},
+    onNavigateToWallet: () -> Unit = {},
+    onNavigateToAccount: () -> Unit = {},
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val listState = rememberLazyListState()
@@ -48,6 +53,22 @@ fun UserProfileScreen(
     }
     LaunchedEffect(shouldLoadMore) {
         if (shouldLoadMore) viewModel.loadNextPage()
+    }
+
+    // ── Dialogue fonds insuffisants ──────────────────────────────────────────
+    if (uiState.insufficientFunds) {
+        InsufficientFundsDialog(
+            onDismiss = { viewModel.dismissInsufficientFunds() },
+            onNavigateToWallet = onNavigateToWallet
+        )
+    }
+
+    // ── Dialogue email non vérifié ──────────────────────────────────────────
+    if (uiState.emailNotVerified) {
+        EmailNotVerifiedDialog(
+            onDismiss = { viewModel.dismissEmailNotVerified() },
+            onNavigateToAccount = onNavigateToAccount,
+        )
     }
 
     LazyColumn(
@@ -98,12 +119,11 @@ fun UserProfileScreen(
                     recipe = recipe,
                     onRecipeClick = { onNavigateToRecipe(recipe.id.toString()) },
                     onUsernameClick = { /* Déjà sur le profil */ },
-                    onLikeClick = {
-                        if (isLoggedIn) {
-                            if (recipe.likedByCurrentUser) viewModel.unlikeRecipe(recipe.id)
-                            else viewModel.likeRecipe(recipe.id)
-                        }
-                    }
+                    isLoggedIn = isLoggedIn,
+                    onNavigateToLogin = onNavigateToLogin,
+                    onLike = { viewModel.likeRecipe(it) },
+                    onUnlike = { viewModel.unlikeRecipe(it) },
+                    onSuperLike = { viewModel.superLikeRecipe(it) }
                 )
             }
             if (uiState.isLoading) {

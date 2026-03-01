@@ -21,4 +21,7 @@ interface AccountApiService {
 
     @POST("api/account/confirm-password-change")
     suspend fun confirmPasswordChange(@Body request: ConfirmPasswordChangeRequest): Response<Unit>
+
+    @POST("api/account/resend-confirmation")
+    suspend fun resendConfirmation(): Response<Unit>
 }

@@ -50,11 +50,7 @@ import fr.uge.android.forkeat.recipes.RecipeFormViewModel
 import fr.uge.android.forkeat.recipes.RecipesListScreen
 import fr.uge.android.forkeat.recipes.RecipesViewModel
 import fr.uge.android.forkeat.wallet.WalletScreen
-<<<<<<< HEAD
-=======
 import fr.uge.android.forkeat.wallet.WalletViewModel
-import kotlin.collections.contains
->>>>>>> develop
 import java.util.UUID
 
 @Composable
@@ -97,23 +93,20 @@ class MainActivity : ComponentActivity() {
                 val navController = rememberNavController()
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
-                // Suppression de recipes/{id} de la liste hideBarsRoutes
                 val hideBarsRoutes = listOf("login", "register", "welcome", "forgot-password", "forgot-password-code")
                 val shouldShowBars = currentRoute != null
                     && currentRoute !in hideBarsRoutes
                     && !currentRoute.startsWith("admin-")
                 var isLoggedIn by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
                 val recipesViewModel: RecipesViewModel = viewModel()
-
-<<<<<<< HEAD
-                var showWelcomeOnLaunch by remember { mutableStateOf(!isLoggedIn) }
-=======
                 val walletViewModel: WalletViewModel = viewModel()
->>>>>>> develop
+
+                var showWelcomeOnLaunch by remember { mutableStateOf(!isLoggedIn) }
 
                 val logout: () -> Unit = {
                     ForkEatApi.logout()
                     isLoggedIn = false
+                    recipesViewModel.loadRecipes(0)
                     navController.navigate("home") {
                         popUpTo(0) { inclusive = true }
                     }
@@ -145,13 +138,13 @@ class MainActivity : ComponentActivity() {
 
                 if (showWelcomeOnLaunch && currentRoute == "home") {
                     WelcomeScreen(
-                        onNavigateToLogin = { 
+                        onNavigateToLogin = {
                             showWelcomeOnLaunch = false
-                            navController.navigate("login") 
+                            navController.navigate("login")
                         },
-                        onNavigateToRegister = { 
+                        onNavigateToRegister = {
                             showWelcomeOnLaunch = false
-                            navController.navigate("register") 
+                            navController.navigate("register")
                         },
                         onDismiss = { showWelcomeOnLaunch = false }
                     )
@@ -174,7 +167,7 @@ class MainActivity : ComponentActivity() {
                                 WelcomeScreen(
                                     onNavigateToLogin = { navController.navigate("login") },
                                     onNavigateToRegister = { navController.navigate("register") },
-                                    onDismiss = { 
+                                    onDismiss = {
                                         if (!navController.popBackStack()) {
                                             navController.navigate("home")
                                         }
@@ -191,6 +184,7 @@ class MainActivity : ComponentActivity() {
                                     },
                                     onLoginSuccess = {
                                         isLoggedIn = true
+                                        recipesViewModel.loadRecipes(0)
                                         val dest = if (ForkEatApi.isAdmin()) "admin-dashboard" else "recipes"
                                         navController.navigate(dest) {
                                             popUpTo("home") { inclusive = true }
@@ -220,9 +214,8 @@ class MainActivity : ComponentActivity() {
                                         }
                                     },
                                     onRegisterSuccess = {
-                                        isLoggedIn = true
-                                        navController.navigate("recipes") {
-                                            popUpTo("home") { inclusive = true }
+                                        navController.navigate("login") {
+                                            popUpTo("welcome") { inclusive = false }
                                         }
                                     },
                                 )
@@ -237,36 +230,10 @@ class MainActivity : ComponentActivity() {
                                     )
                                 }
                             }
-<<<<<<< HEAD
                             composable("account") {
                                 AuthenticatedScreen(isLoggedIn, redirectToWelcome) {
                                     AccountScreen(onNavigateBack = { navController.popBackStack() })
                                 }
-=======
-                        )
-                    }
-                    composable("recipes/{id}") { backStackEntry ->
-                        val idStr = backStackEntry.arguments?.getString("id") ?: return@composable
-                        val id = remember(idStr) { UUID.fromString(idStr) }
-
-                        LaunchedEffect(id) {
-                            recipesViewModel.loadRecipeWithId(id)
-                        }
-
-                        LaunchedEffect(id) {
-                                walletViewModel.loadBalance()
-                        }
-
-                        val recipe by recipesViewModel.currentRecipe.collectAsState()
-                        val parent by recipesViewModel.currentParent.collectAsState()
-                        val diff   by recipesViewModel.currentDiff.collectAsState()
-                        val balance by walletViewModel.balanceUiState.collectAsState()
-                        val currentUsername = remember { ForkEatApi.getCurrentUsername() }
-
-                        when (val r = recipe) {
-                            null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                CircularProgressIndicator(color = fr.uge.android.forkeat.designsystem.theme.Primary500)
->>>>>>> develop
                             }
                             composable("wallet") {
                                 AuthenticatedScreen(isLoggedIn, redirectToWelcome) {
@@ -281,6 +248,8 @@ class MainActivity : ComponentActivity() {
                                 val selectedAllergens by recipesViewModel.selectedAllergens.collectAsState()
                                 val availableAllergensDto by recipesViewModel.availableAllergens.collectAsState()
                                 val isLoading by recipesViewModel.isLoading.collectAsState()
+                                val insufficientFunds by recipesViewModel.insufficientFunds.collectAsState()
+                                val emailNotVerified by recipesViewModel.emailNotVerified.collectAsState()
 
                                 RecipesListScreen(
                                     recipes = recipes,
@@ -302,7 +271,14 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToMyProfile = { runAuth { navController.navigate("profile") } },
                                     onLikeRecipe = { id -> runAuth { recipesViewModel.likeRecipe(id) } },
                                     onUnlikeRecipe = { id -> runAuth { recipesViewModel.unlikeRecipe(id) } },
-                                    onNavigateToLogin = { navController.navigate("welcome") }
+                                    onNavigateToLogin = { navController.navigate("welcome") },
+                                    onSuperLikeRecipe = { id -> runAuth { recipesViewModel.superLikeRecipe(id) } },
+                                    insufficientFunds = insufficientFunds,
+                                    onDismissInsufficientFunds = { recipesViewModel.dismissInsufficientFunds() },
+                                    emailNotVerified = emailNotVerified,
+                                    onDismissEmailNotVerified = { recipesViewModel.dismissEmailNotVerified() },
+                                    onNavigateToWallet = { navController.navigate("wallet") },
+                                    onNavigateToAccount = { navController.navigate("account") }
                                 )
                             }
                             composable(
@@ -337,13 +313,14 @@ class MainActivity : ComponentActivity() {
                                 val recipe by recipesViewModel.currentRecipe.collectAsState()
                                 val parent by recipesViewModel.currentParent.collectAsState()
                                 val diff by recipesViewModel.currentDiff.collectAsState()
+                                val insufficientFunds by recipesViewModel.insufficientFunds.collectAsState()
+                                val emailNotVerified by recipesViewModel.emailNotVerified.collectAsState()
                                 val currentUsername = remember { ForkEatApi.getCurrentUsername() }
 
                                 when (val r = recipe) {
                                     null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                         CircularProgressIndicator(color = fr.uge.android.forkeat.designsystem.theme.Primary500)
                                     }
-<<<<<<< HEAD
                                     else -> RecipeDetailScreen(
                                         recipe = r,
                                         parent = parent,
@@ -357,7 +334,15 @@ class MainActivity : ComponentActivity() {
                                         onNavigateToUserProfile = { runAuth { navController.navigate("user/$it") } },
                                         onNavigateToMyProfile = { runAuth { navController.navigate("profile") } },
                                         onLike = { id -> runAuth { recipesViewModel.likeRecipe(id) } },
-                                        onUnlike = { id -> runAuth { recipesViewModel.unlikeRecipe(id) } }
+                                        onUnlike = { id -> runAuth { recipesViewModel.unlikeRecipe(id) } },
+                                        onSuperLike = { id -> runAuth { recipesViewModel.superLikeRecipe(id) } },
+                                        insufficientFunds = insufficientFunds,
+                                        onDismissInsufficientFunds = { recipesViewModel.dismissInsufficientFunds() },
+                                        emailNotVerified = emailNotVerified,
+                                        onDismissEmailNotVerified = { recipesViewModel.dismissEmailNotVerified() },
+                                        onNavigateToAccount = { navController.navigate("account") },
+                                        onNavigateToWallet = { navController.navigate("wallet") },
+                                        onNavigateToLogin = { navController.navigate("welcome") }
                                     )
                                 }
                             }
@@ -367,7 +352,10 @@ class MainActivity : ComponentActivity() {
                                     UserProfileScreen(
                                         username = username,
                                         onNavigateBack = { navController.popBackStack() },
-                                        onNavigateToRecipe = { id -> navController.navigate("recipes/$id") }
+                                        onNavigateToRecipe = { id -> navController.navigate("recipes/$id") },
+                                        onNavigateToLogin = { navController.navigate("welcome") },
+                                        onNavigateToWallet = { navController.navigate("wallet") },
+                                        onNavigateToAccount = { navController.navigate("account") }
                                     )
                                 }
                             }
@@ -443,12 +431,6 @@ class MainActivity : ComponentActivity() {
                                     onLogout = logout
                                 )
                             }
-=======
-                                },
-                                onCreateVariant = { navController.navigate("recipe-form?parentId=${r.id}") },
-                                currentBalance = balance.balance
-                            )
->>>>>>> develop
                         }
                     }
                 }
