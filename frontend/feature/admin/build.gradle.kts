@@ -41,6 +41,7 @@ kotlin {
 dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:network"))
+    implementation(project(":data:admin"))
     implementation(libs.coil.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)

@@ -1,4 +1,4 @@
-package fr.uge.android.forkeat.network.dto.admin
+package fr.uge.android.forkeat.admin.data.dto
 
 import com.google.gson.annotations.SerializedName
 import fr.uge.android.forkeat.network.dto.UserResource

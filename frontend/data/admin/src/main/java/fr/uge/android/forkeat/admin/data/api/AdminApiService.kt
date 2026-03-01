@@ -1,18 +1,25 @@
-package fr.uge.android.forkeat.network.api
+package fr.uge.android.forkeat.admin.data.api
 
+import fr.uge.android.forkeat.admin.data.dto.AdminCreateUserRequest
+import fr.uge.android.forkeat.admin.data.dto.AdminRecipeStatsDTO
+import fr.uge.android.forkeat.admin.data.dto.AdminRecipesListResponse
+import fr.uge.android.forkeat.admin.data.dto.AdminUserStatsDTO
+import fr.uge.android.forkeat.admin.data.dto.AdminUsersListResponse
+import fr.uge.android.forkeat.admin.data.dto.PlatformWalletDTO
 import fr.uge.android.forkeat.network.dto.UserDTO
-import fr.uge.android.forkeat.network.dto.admin.AdminCreateUserRequest
-import fr.uge.android.forkeat.network.dto.admin.AdminRecipeStatsDTO
-import fr.uge.android.forkeat.network.dto.admin.AdminRecipesListResponse
-import fr.uge.android.forkeat.network.dto.admin.AdminUserStatsDTO
-import fr.uge.android.forkeat.network.dto.admin.AdminUsersListResponse
-import fr.uge.android.forkeat.network.dto.admin.PlatformWalletDTO
+import fr.uge.android.forkeat.network.ForkEatApi
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
 import retrofit2.http.Query
+
+object AdminApi {
+    val service: AdminApiService by lazy {
+        ForkEatApi.createService(AdminApiService::class.java)
+    }
+}
 
 interface AdminApiService {
 

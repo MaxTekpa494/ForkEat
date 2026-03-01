@@ -1,4 +1,4 @@
-package fr.uge.android.forkeat.network.dto.admin
+package fr.uge.android.forkeat.admin.data.dto
 
 data class AdminRecipeDTO(
     val id: String,
