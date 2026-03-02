@@ -1,6 +1,6 @@
 package fr.uge.forkeat.presentation.dto.user;
 
-import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
+import fr.uge.forkeat.presentation.dto.recipe.PersonalizedRecipeSummaryDTO;
 import fr.uge.forkeat.service.model.user.projection.UserProfile;
 
 import java.util.ArrayList;
@@ -8,7 +8,7 @@ import java.util.List;
 
 public record UserProfileDTO(
         UserProfile profile,
-        List<PersonalizedRecipeSummary> recipes,
+        List<PersonalizedRecipeSummaryDTO> recipes,
         long totalRecipes,
         int currentPage,
         int totalPages,

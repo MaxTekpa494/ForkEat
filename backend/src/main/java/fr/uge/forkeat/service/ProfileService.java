@@ -42,7 +42,7 @@ public class ProfileService {
         var publicProfile = userPersistence.findPublicProfile(username);
         var socialStats = userPersistence.findUserSocialStats(username);
         var profile = new UserProfile(publicProfile, socialStats);
-        var summaries = recipePersistence.findRecipeSummaries(username, RecipeStatus.PUBLISHED, size, page);
+        var summaries = recipePersistence.findUserRecipeSummaries(username, RecipeStatus.PUBLISHED, size, page);
         var ids = summaries.items().stream().map(RecipeSummary::id).toList();
         var countsMap = recipePersistence.findRecipeCounts(ids);
         var interactions = recipePersistence.findUserRecipeInteractions(ids, currentUsername);

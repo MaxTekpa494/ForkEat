@@ -14,7 +14,7 @@ class VerificationTokenTest {
     private VerificationToken createToken(Instant expiresAt) {
         return new VerificationToken(
                 UUID.randomUUID(), UUID.randomUUID(), "token-value",
-                VerificationTokenType.EMAIL_CONFIRMATION, null,
+                VerificationTokenType.EMAIL_CONFIRMATION, null, null,
                 expiresAt, Instant.now()
         );
     }
@@ -40,7 +40,7 @@ class VerificationTokenTest {
         void shouldCreateWithNewEmail() {
             var token = new VerificationToken(
                     UUID.randomUUID(), UUID.randomUUID(), "code",
-                    VerificationTokenType.EMAIL_CHANGE, "new@test.com",
+                    VerificationTokenType.EMAIL_CHANGE, "new@test.com", null,
                     Instant.now().plus(10, ChronoUnit.MINUTES), Instant.now()
             );
             assertEquals("new@test.com", token.newEmail());
@@ -50,7 +50,7 @@ class VerificationTokenTest {
         void shouldThrowOnNullId() {
             assertThrows(NullPointerException.class, () -> new VerificationToken(
                     null, UUID.randomUUID(), "token",
-                    VerificationTokenType.EMAIL_CONFIRMATION, null,
+                    VerificationTokenType.EMAIL_CONFIRMATION, null, null,
                     Instant.now(), Instant.now()
             ));
         }
@@ -59,7 +59,7 @@ class VerificationTokenTest {
         void shouldThrowOnNullUserId() {
             assertThrows(NullPointerException.class, () -> new VerificationToken(
                     UUID.randomUUID(), null, "token",
-                    VerificationTokenType.EMAIL_CONFIRMATION, null,
+                    VerificationTokenType.EMAIL_CONFIRMATION, null, null,
                     Instant.now(), Instant.now()
             ));
         }
@@ -68,7 +68,7 @@ class VerificationTokenTest {
         void shouldThrowOnNullToken() {
             assertThrows(NullPointerException.class, () -> new VerificationToken(
                     UUID.randomUUID(), UUID.randomUUID(), null,
-                    VerificationTokenType.EMAIL_CONFIRMATION, null,
+                    VerificationTokenType.EMAIL_CONFIRMATION, null, null,
                     Instant.now(), Instant.now()
             ));
         }
@@ -77,7 +77,7 @@ class VerificationTokenTest {
         void shouldThrowOnNullType() {
             assertThrows(NullPointerException.class, () -> new VerificationToken(
                     UUID.randomUUID(), UUID.randomUUID(), "token",
-                    null, null,
+                    null, null, null,
                     Instant.now(), Instant.now()
             ));
         }
@@ -86,7 +86,7 @@ class VerificationTokenTest {
         void shouldThrowOnNullExpiresAt() {
             assertThrows(NullPointerException.class, () -> new VerificationToken(
                     UUID.randomUUID(), UUID.randomUUID(), "token",
-                    VerificationTokenType.EMAIL_CONFIRMATION, null,
+                    VerificationTokenType.EMAIL_CONFIRMATION, null, null,
                     null, Instant.now()
             ));
         }

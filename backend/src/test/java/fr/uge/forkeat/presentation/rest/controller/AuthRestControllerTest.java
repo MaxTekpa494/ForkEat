@@ -15,11 +15,11 @@ import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.port.PasswordHasher;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.GoogleTokenVerificationService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import fr.uge.forkeat.service.user.UserService;
+import fr.uge.forkeat.service.user.UserUpdateService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -64,7 +64,7 @@ class AuthRestControllerTest {
     @MockitoBean
     private AuthenticationPort authPort;
     @MockitoBean
-    private PasswordHasher passwordHasher;
+    private UserUpdateService userUpdateService;
 
     @Autowired
     AuthRestControllerTest(MockMvc mockMvc) {
@@ -102,13 +102,16 @@ class AuthRestControllerTest {
         void shouldReturnBadRequest_WhenPasswordTooShort() throws Exception {
             var dto = new UserRegisterDTO("testuser", "Test", "User", "short", "test@forkeat.fr");
 
+            when(userRegistrationService.registerUser(any()))
+                    .thenThrow(new RegisterFailureException("Le mot de passe doit contenir au moins 8 caractères"));
+
             mockMvc.perform(post("/api/auth/register")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error").value("Bad Request"));
 
-            verifyNoInteractions(userRegistrationService);
+            verify(userRegistrationService).registerUser(any());
         }
 
         @Test
@@ -203,29 +206,21 @@ class AuthRestControllerTest {
         @Test
         void shouldConfirmCode_WhenValidRequest() throws Exception {
             var dto = new ChangePasswordConfirmCodeDTO("test@forkeat.fr", "123456", "NewPassword1", "NewPassword1");
-            var user = createUser();
-
-            when(userService.getUserByEmail("test@forkeat.fr")).thenReturn(user);
-            when(passwordHasher.hash("NewPassword1")).thenReturn("hashedPassword");
-            doNothing().when(emailVerificationService).confirmPasswordChange(any(), any(), any());
+            doNothing().when(userUpdateService).confirmForgotPasswordChange(any(), any(), any(), any());
 
             mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk());
 
-            verify(emailVerificationService).confirmPasswordChange(any(), any(), any());
+            verify(userUpdateService).confirmForgotPasswordChange("test@forkeat.fr", "123456", "NewPassword1", "NewPassword1");
         }
 
         @Test
         void shouldReturnBadRequest_WhenCodeIsInvalid() throws Exception {
             var dto = new ChangePasswordConfirmCodeDTO("test@forkeat.fr", "000000", "NewPassword1", "NewPassword1");
-            var user = createUser();
-
-            when(userService.getUserByEmail("test@forkeat.fr")).thenReturn(user);
-            when(passwordHasher.hash(any())).thenReturn("hashedPassword");
             doThrow(new VerificationException("Code incorrect"))
-                    .when(emailVerificationService).confirmPasswordChange(any(), any(), any());
+                    .when(userUpdateService).confirmForgotPasswordChange(any(), any(), any(), any());
 
             mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
                             .contentType(MediaType.APPLICATION_JSON)
@@ -238,9 +233,8 @@ class AuthRestControllerTest {
         @Test
         void shouldReturnNotFound_WhenEmailDoesNotExist() throws Exception {
             var dto = new ChangePasswordConfirmCodeDTO("unknown@forkeat.fr", "123456", "NewPassword1", "NewPassword1");
-
-            when(userService.getUserByEmail("unknown@forkeat.fr"))
-                    .thenThrow(new ResourceNotFoundException("User not found"));
+            doThrow(new ResourceNotFoundException("User not found"))
+                    .when(userUpdateService).confirmForgotPasswordChange(any(), any(), any(), any());
 
             mockMvc.perform(post("/api/auth/forgot-password/confirm-code")
                             .contentType(MediaType.APPLICATION_JSON)

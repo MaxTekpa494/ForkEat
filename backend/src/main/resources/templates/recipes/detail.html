@@ -262,33 +262,18 @@
 
                         <form id="super-like-form" th:action="@{/recipes/{id}/super-like(id=${recipe.id})}" method="post">
                             <button type="button"
-                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-300 text-sm font-semibold cursor-pointer transition-all duration-200 hover:border-yellow-500 hover:text-yellow-500 hover:bg-yellow-50"
+                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-400 text-sm font-semibold cursor-pointer transition-all duration-200 hover:border-yellow-500 hover:text-yellow-500 hover:bg-yellow-50"
                                     th:classappend="${recipe.hasSuperLiked} ? ' border-yellow-500 text-yellow-500 bg-yellow-50' : ''"
                                     th:data-recipe-id="${recipe.id}"
                                     th:data-liked="${recipe.hasSuperLiked}"
                                     onclick="handleSuperLike(this)"
-                                    aria-label="J'aime cette recette">
+                                    aria-label="Super like cette recette">
                                 <svg width="18px" height="18px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <defs>
-                                        <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                            <stop offset="0%" style="stop-color:#FFED8B;stop-opacity:1" />
-                                            <stop offset="50%" style="stop-color:#FFC837;stop-opacity:1" />
-                                            <stop offset="100%" style="stop-color:#DAA520;stop-opacity:1" />
-                                        </linearGradient>
-
-                                        <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                                            <feDropShadow dx="0" dy="2" stdDeviation="1" flood-color="#B8860B" flood-opacity="0.3"/>
-                                        </filter>
-                                    </defs>
-
-                                    <g filter="url(#shadow)">
-                                        <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z"
-                                              fill="url(#goldGradient)"/>
-                                        <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z"
-                                              fill="url(#goldGradient)"/>
-                                    </g>
-
-                                    <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#FFED8B"/>
+                                    <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z"
+                                          fill="currentColor"/>
+                                    <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z"
+                                          fill="currentColor"/>
+                                    <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="currentColor"/>
                                 </svg>
                                 <span th:text="${recipe.nbSuperLike}">0</span>
                             </button>
@@ -633,6 +618,9 @@
 
         // ── Like / Unlike sans navigation ────────────────────────────────────
         async function handleLike(button) {
+            if (button.disabled) return;
+            button.disabled = true;
+
             const recipeId = button.dataset.recipeId;
             const isLiked = button.dataset.liked === 'true';
             const action = isLiked ? 'unlike' : 'like';
@@ -640,28 +628,32 @@
             const form = document.getElementById('like-form');
             form.action = '/recipes/' + recipeId + '/' + action;
 
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: new FormData(form)
-            });
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form)
+                });
 
-            if (response.url.includes('/login')) {
-                window.location.href = response.url;
-                return;
-            }
-
-            if (response.ok) {
-                const span = button.querySelector('span');
-                const count = parseInt(span.textContent);
-                if (isLiked) {
-                    span.textContent = count - 1;
-                    button.classList.remove('border-red-500', 'text-red-500', 'bg-red-50');
-                    button.dataset.liked = 'false';
-                } else {
-                    span.textContent = count + 1;
-                    button.classList.add('border-red-500', 'text-red-500', 'bg-red-50');
-                    button.dataset.liked = 'true';
+                if (response.url.includes('/login')) {
+                    window.location.href = response.url;
+                    return;
                 }
+
+                if (response.ok) {
+                    const span = button.querySelector('span');
+                    const count = parseInt(span.textContent);
+                    if (isLiked) {
+                        span.textContent = count - 1;
+                        button.classList.remove('border-red-500', 'text-red-500', 'bg-red-50');
+                        button.dataset.liked = 'false';
+                    } else {
+                        span.textContent = count + 1;
+                        button.classList.add('border-red-500', 'text-red-500', 'bg-red-50');
+                        button.dataset.liked = 'true';
+                    }
+                }
+            } finally {
+                button.disabled = false;
             }
         }
         let _superLikeBtn = null;
