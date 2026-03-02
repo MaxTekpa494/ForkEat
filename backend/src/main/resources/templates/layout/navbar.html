@@ -195,11 +195,11 @@
 
                                 <a th:href="@{/profile}"
                                    class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
-                                    <i class="fas fa-home mr-3 text-secondary-400"></i> Dashboard
+                                    <i class="fas fa-user mr-3 text-secondary-400"></i> Mon profil
                                 </a>
                                 <a th:href="@{/account}"
                                    class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
-                                    <i class="fas fa-user mr-3 text-secondary-400"></i> Mon profil
+                                    <i class="fas fa-cog mr-3 text-secondary-400"></i> Mon Compte
                                 </a>
                                 <a th:href="@{/wallet}"
                                    class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
@@ -255,11 +255,11 @@
                 </div>
 
                 <div th:if="${isAuthenticated}" class="pt-4 border-t border-gray-100 space-y-3">
-                    <a th:href="@{/dashboard}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
-                        <i class="fas fa-home w-8"></i> Dashboard
-                    </a>
                     <a th:href="@{/profile}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
                         <i class="fas fa-user w-8"></i> Mon profil
+                    </a>
+                    <a th:href="@{/account}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
+                        <i class="fas fa-cog w-8"></i> Mon Compte
                     </a>
                     <a th:href="@{/wallet}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
                         <i class="fas fa-wallet w-8"></i> Portefeuille

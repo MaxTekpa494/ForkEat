@@ -44,8 +44,6 @@ public class RecipeRestController {
   public record RecipeData(RecipeDetailsDTO recipe, RecipeDTO parent, RecipeDiff diff) {
   }
 
-  // Pourquoi pas faire un findwithparent avec {recipe:..., parent:...}
-  // Un endpoint recipe avec juste {recipe:...}
   @GetMapping("/{id}")
   public ResponseEntity<HttpResponse<RecipeData>> getRecipe(@PathVariable UUID id) {
     Objects.requireNonNull(id);
@@ -73,13 +71,21 @@ public class RecipeRestController {
   }
 
   @GetMapping
-  public ResponseEntity<HttpResponse<RecipeDTO>> getRecipes(RecipeSearchDTO form) {
+  public ResponseEntity<HttpResponse<PersonalizedRecipeSummaryDTO>> getRecipes(RecipeSearchDTO form) {
     var criteria = new RecipeSearchCriteria(
             RecipeStatus.valueOf(form.getStatus()), form.getSearch(), form.getAllergens(), form.getSize(), form.getPage());
     var pageResult = recipeService.searchRecipes(criteria);
-    logger.debug("Liste ingredients : {}", form.getAllergens());
-    var dtos = pageResult.items().stream().map(RecipeDTOMapper::toDTO).toList();
+    var dtos = pageResult.items().stream().map(RecipeDTOMapper::toSummaryDTO).toList();
     return ResponseEntity.ok(new ListResponse<>(dtos, pageResult.total()));
+  }
+
+  @GetMapping("/allergens")
+  public ResponseEntity<ListResponse<AllergenDTO>> getAllergens() {
+    var allAllergens = recipeService.findAllAllergens().stream()
+            .map(RecipeDTOMapper::toDTO)
+            .toList();
+    logger.debug("Liste ingredients : {}", allAllergens);
+    return ResponseEntity.ok(new ListResponse<>(allAllergens, allAllergens.size()));
   }
 
   @GetMapping("/create")

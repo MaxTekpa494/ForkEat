@@ -1,47 +1,121 @@
 package fr.uge.android.forkeat.recipes
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.automirrored.filled.AltRoute
-import androidx.compose.material.icons.filled.AltRoute
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
+import androidx.compose.material.icons.filled.AltRoute
+import androidx.compose.material3.*
+import androidx.compose.material3.CardDefaults.cardColors
+import androidx.compose.material3.CardDefaults.cardElevation
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import fr.uge.android.forkeat.designsystem.theme.Primary500
-import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
+import coil.compose.rememberAsyncImagePainter
+import fr.uge.android.forkeat.designsystem.theme.*
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
+
+// Fonction utilitaire pour convertir un timestamp en une chaîne de temps relatif
+fun Long.toRelativeTime(): String {
+    val now = System.currentTimeMillis()
+    val diff = now - this
+
+    return when {
+        diff < 1 * 60 * 1000 -> "À l'instant"
+        diff < 60 * 60 * 1000 -> "Il y a ${diff / 60000} minute(s)"
+        diff < 24 * 60 * 60 * 1000 -> "Il y a ${diff / 3600000} heure(s)"
+        diff < 30L * 24 * 60 * 60 * 1000 -> "Il y a ${diff / 86400000} jour(s)"
+        diff < 12L * 30 * 24 * 60 * 60 * 1000 -> "Il y a ${diff / 2592000000L} mois"
+        else -> "Il y a ${diff / 31536000000L} an(s)"
+    }
+}
+
+@Composable
+fun RecipeCard(recipe: RecipeDTO, onClick: () -> Unit = {}) {
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 4.dp)
+            .clickable {
+                onClick()
+            },
+        shape = RoundedCornerShape(24.dp),
+        colors = cardColors(containerColor = Color.White),
+        elevation = cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, Gray100)
+    ) {
+        val timeLabel = remember(recipe.createdAt) {
+            recipe.createdAt.toEpochMilliseconds().toRelativeTime()
+        }
+
+        Row(modifier = Modifier.padding(8.dp)) {
+            // Image
+            Image(
+                painter = rememberAsyncImagePainter(recipe.imageUrl),
+                contentDescription = null,
+                contentScale = ContentScale.Crop,
+                modifier = Modifier
+                    .size(80.dp)
+                    .aspectRatio(1f)
+            )
+            Spacer(Modifier.width(12.dp))
+            Column(modifier = Modifier.weight(1f)) {
+                // Titre
+                Text(
+                    recipe.title,
+                    style = MaterialTheme.typography.titleLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    color = Secondary700
+                )
+                // Description
+                Text(
+                    recipe.summary,
+                    style = MaterialTheme.typography.bodyMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    color = Gray500
+                )
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    "Créée $timeLabel",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Gray500
+                )
+                // Auteur
+                Text(
+                    "Par ${recipe.username}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Secondary700
+                )
+                // Temps de préparation en bas à droite
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    Text(
+                        "${recipe.preparationMinutes} min",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Primary500
+                    )
+                }
+            }
+        }
+    }
+}
 
 @Composable
 fun MyRecipesScreen(
@@ -183,7 +257,7 @@ private fun MyRecipeCard(
                 .fillMaxWidth()
                 .padding(horizontal = 8.dp),
             horizontalArrangement = Arrangement.End,
-            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+            verticalAlignment = Alignment.CenterVertically
         ) {
             IconButton(onClick = onCreateVariant) {
                 Icon(

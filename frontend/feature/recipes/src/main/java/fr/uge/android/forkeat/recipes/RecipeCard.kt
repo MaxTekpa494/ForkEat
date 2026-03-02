@@ -3,125 +3,199 @@ package fr.uge.android.forkeat.recipes
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Arrangement.SpaceBetween
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.aspectRatio
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults.cardColors
-import androidx.compose.material3.CardDefaults.cardElevation
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.outlined.FavoriteBorder
+import androidx.compose.material.icons.outlined.StarBorder
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil.compose.rememberAsyncImagePainter
-import fr.uge.android.forkeat.designsystem.theme.Gray100
-import fr.uge.android.forkeat.designsystem.theme.Gray500
-import fr.uge.android.forkeat.designsystem.theme.Primary500
-import fr.uge.android.forkeat.designsystem.theme.Secondary700
-import fr.uge.android.forkeat.designsystem.theme.Typography
-import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
-
-// Fonction utilitaire pour convertir un timestamp en une chaîne de temps relatif
-fun Long.toRelativeTime(): String {
-  val now = System.currentTimeMillis()
-  val diff = now - this
-
-  return when {
-    diff < 1 * 60 * 1000 -> "À l'instant"
-  diff < 60 * 60 * 1000 -> "Il y a ${diff / 60000} minute(s)"
-    diff < 24 * 60 * 60 * 1000 -> "Il y a ${diff / 3600000} heure(s)"
-    diff < 30L * 24 * 60 * 60 * 1000 -> "Il y a ${diff / 86400000} jour(s)"
-    diff < 12L * 30 * 24 * 60 * 60 * 1000 -> "Il y a ${diff / 2592000000L} mois"
-    else -> "Il y a ${diff / 31536000000L} an(s)"
-  }
-}
+import fr.uge.android.forkeat.designsystem.theme.*
+import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
+import java.util.UUID
 
 @Composable
-fun RecipeCard(recipe: RecipeDTO, onClick: () -> Unit = {}) {
-  Card(
-    modifier = Modifier
-      .fillMaxWidth()
-      .padding(vertical = 4.dp)
-      .clickable {
-        onClick()
-      },
-    shape = RoundedCornerShape(24.dp),
-    colors = cardColors(containerColor = Color.White),
-    elevation = cardElevation(defaultElevation = 1.dp),
-    border = BorderStroke(1.dp, Gray100)
-  ) {
-    val timeLabel = remember(recipe.createdAt) {
-      recipe.createdAt.toEpochMilliseconds().toRelativeTime()
+fun RecipeCard(
+    recipe: PersonalizedRecipeSummaryDTO,
+    onRecipeClick: (String) -> Unit,
+    onUsernameClick: (String) -> Unit,
+    isLoggedIn: Boolean = false,
+    onNavigateToLogin: () -> Unit = {},
+    onLike: (UUID) -> Unit = {},
+    onUnlike: (UUID) -> Unit = {},
+    onSuperLike: (UUID) -> Unit = {},
+) {
+    val liked = recipe.likedByCurrentUser
+    val likeCount = recipe.likeCount
+    val superLiked = recipe.superLikedByCurrentUser
+    val superLikeCount = recipe.superLikeCount
+
+    var showSuperLikeConfirm by remember { mutableStateOf(false) }
+
+    if (showSuperLikeConfirm) {
+        SuperLikeConfirmDialog(
+            onDismiss = { showSuperLikeConfirm = false },
+            onConfirm = {
+                showSuperLikeConfirm = false
+                onSuperLike(recipe.id)
+            }
+        )
     }
 
-    Row(modifier = Modifier.padding(8.dp)) {
-      // Image
-      Image(
-        painter = rememberAsyncImagePainter(recipe.imageUrl),
-        contentDescription = null,
+    Card(
         modifier = Modifier
-          .size(80.dp)
-          .aspectRatio(1f)
-      )
-      Spacer(Modifier.width(12.dp))
-      Column(modifier = Modifier.weight(1f)) {
-        // Titre + infos
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = SpaceBetween
-        ) {
-          Text(
-            recipe.title,
-            style = Typography.titleLarge,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            color = Secondary700
-          )
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+            .clickable { onRecipeClick(recipe.id.toString()) },
+        shape = RoundedCornerShape(24.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        border = BorderStroke(1.dp, Gray100)
+    ) {
+        Column {
+            // Image et badge durée
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .aspectRatio(16f / 9f)
+            ) {
+                Image(
+                    painter = rememberAsyncImagePainter(recipe.imageUrl),
+                    contentDescription = recipe.title,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier.fillMaxSize()
+                )
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(12.dp),
+                    shape = RoundedCornerShape(20.dp),
+                    color = Color.White.copy(alpha = 0.95f)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Timer,
+                            contentDescription = null,
+                            tint = Primary500,
+                            modifier = Modifier.size(18.dp)
+                        )
+                        Text(
+                            text = "${recipe.preparationMinutes} min",
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = Secondary900
+                        )
+                    }
+                }
+            }
+
+            // Contenu texte
+            Column(
+                modifier = Modifier
+                    .padding(20.dp)
+                    .fillMaxWidth()
+            ) {
+                Text(
+                    text = recipe.title,
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = Secondary900,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                Spacer(modifier = Modifier.height(16.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    // ── Like ────────────────────────────────────────────────
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .clickable {
+                                if (!isLoggedIn) {
+                                    onNavigateToLogin()
+                                } else {
+                                    if (liked) onUnlike(recipe.id) else onLike(recipe.id)
+                                }
+                            }
+                            .padding(horizontal = 4.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isLoggedIn && liked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
+                            contentDescription = if (isLoggedIn && liked) "Unlike" else "Like",
+                            tint = if (isLoggedIn && liked) Primary500 else Gray500,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = likeCount.toString(),
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            color = Secondary800
+                        )
+                    }
+
+                    Spacer(Modifier.width(16.dp))
+
+                    // ── Super Like ──────────────────────────────────────────
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .clickable(enabled = !isLoggedIn || !superLiked) {
+                                if (!isLoggedIn) {
+                                    onNavigateToLogin()
+                                } else {
+                                    showSuperLikeConfirm = true
+                                }
+                            }
+                            .padding(horizontal = 4.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isLoggedIn && superLiked) Icons.Filled.Star else Icons.Outlined.StarBorder,
+                            contentDescription = null,
+                            tint = if (isLoggedIn && superLiked) Orange500 else Gray500,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = superLikeCount.toString(),
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            color = Secondary800
+                        )
+                    }
+
+                    Spacer(Modifier.weight(1f))
+
+                    // ── Auteur ──────────────────────────────────────────────
+                    Text(
+                        text = "@${recipe.authorUsername}",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Secondary500,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(4.dp))
+                            .clickable { onUsernameClick(recipe.authorUsername) }
+                            .padding(horizontal = 4.dp, vertical = 2.dp)
+                    )
+                }
+            }
         }
-        // Description
-        Text(
-          recipe.summary,
-          style = Typography.bodyMedium,
-          maxLines = 2,
-          overflow = TextOverflow.Ellipsis,
-          color = Gray500
-        )
-        Spacer(Modifier.height(4.dp))
-        Text(
-          "Créée $timeLabel",
-          style = Typography.labelSmall,
-          color = Gray500
-        )
-        // Auteur
-        Text(
-          "Par ${recipe.username}",
-          style = Typography.labelSmall,
-          color = Secondary700
-        )
-        // Temps de préparation en bas à droite
-        Row(
-          modifier = Modifier.fillMaxWidth(),
-          horizontalArrangement = Arrangement.End
-        ) {
-          Text(
-            "${recipe.preparationMinutes} min",
-            style = Typography.labelMedium,
-            color = Primary500
-          )
-        }
-      }
     }
-  }
 }

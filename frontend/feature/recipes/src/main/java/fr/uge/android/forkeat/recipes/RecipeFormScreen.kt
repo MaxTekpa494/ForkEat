@@ -174,7 +174,7 @@ fun RecipeFormScreen(
             // Statut
             FormSectionTitle("Statut")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("PUBLISHED" to "Publié", "DRAFT" to "Brouillon").forEach { (value, label) ->
+                listOf("PENDING_REVIEW" to "Soumettre à validation", "DRAFT" to "Brouillon").forEach { (value, label) ->
                     val isSelected = uiState.status == value
                     FilterChip(
                         selected = isSelected,

@@ -10,7 +10,7 @@ import java.time.Instant;
 import java.util.Map;
 
 // À CHANGER POUR UTILISER DES HTTPRESPONSES PLUTOT QUE DES MAPS
-@RestControllerAdvice(basePackages = "fr.uge.forkeat.presentation")
+@RestControllerAdvice(basePackages = {"fr.uge.forkeat.presentation.rest", "fr.uge.forkeat.presentation.external"})
 public class GlobalRestExceptionHandler {
 
   @ExceptionHandler(RecipeNotFoundException.class)
@@ -76,6 +76,12 @@ public class GlobalRestExceptionHandler {
         return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
                 .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
     }
+
+  @ExceptionHandler(CheckProfileUpdateFailureException.class)
+  public ResponseEntity<Map<String, String>> handleCheckProfileUpdateFailure(CheckProfileUpdateFailureException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+  }
 
 
     @ExceptionHandler(AuthenticationTokenException.class)

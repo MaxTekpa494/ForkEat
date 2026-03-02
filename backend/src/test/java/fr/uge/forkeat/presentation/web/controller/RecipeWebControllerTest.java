@@ -3,12 +3,15 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
+import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
@@ -62,7 +65,7 @@ class RecipeWebControllerTest {
         @Test
         @WithMockUser
         void shouldReturnIndexViewWithDefaultParams() throws Exception {
-            var recipe = createRecipe("Tarte aux pommes", RecipeStatus.PUBLISHED);
+            var recipe = createPersonalizedSummary("Tarte aux pommes");
             var pageResult = new PageResult<>(List.of(recipe), 1L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 12, 0);
 
@@ -78,7 +81,7 @@ class RecipeWebControllerTest {
         @Test
         @WithMockUser
         void shouldPassCustomStatusAndPagination() throws Exception {
-            var recipe = createRecipe("Brouillon", RecipeStatus.DRAFT);
+            var recipe = createPersonalizedSummary("Brouillon");
             var pageResult = new PageResult<>(List.of(recipe), 1L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.DRAFT, null, List.of(), 5, 2);
 
@@ -97,8 +100,8 @@ class RecipeWebControllerTest {
         @WithMockUser
         void shouldCalculateTotalPagesCorrectly() throws Exception {
             var recipes = List.of(
-                    createRecipe("Recipe 1", RecipeStatus.PUBLISHED),
-                    createRecipe("Recipe 2", RecipeStatus.PUBLISHED)
+                    createPersonalizedSummary("Recipe 1"),
+                    createPersonalizedSummary("Recipe 2")
             );
             var pageResult = new PageResult<>(recipes, 5L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 2, 0);
@@ -114,7 +117,7 @@ class RecipeWebControllerTest {
         @Test
         @WithMockUser
         void shouldReturnEmptyListWhenNoRecipes() throws Exception {
-            var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
+            var pageResult = new PageResult<>(List.<PersonalizedRecipeSummary>of(), 0L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 12, 0);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -132,7 +135,7 @@ class RecipeWebControllerTest {
         @Test
         @WithMockUser
         void shouldPassSearchParam() throws Exception {
-            var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
+            var pageResult = new PageResult<>(List.<PersonalizedRecipeSummary>of(), 0L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "tarte", List.of(), 12, 0);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -153,7 +156,7 @@ class RecipeWebControllerTest {
         @Test
         @WithMockUser
         void shouldUseSearchAndAllergens_whenBothProvided() throws Exception {
-            var recipe = createRecipe("Salade verte", RecipeStatus.PUBLISHED);
+            var recipe = createPersonalizedSummary("Salade verte");
             var pageResult = new PageResult<>(List.of(recipe), 1L);
             var allergens = List.of("Gluten", "Lactose");
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "salade", allergens, 12, 0);
@@ -173,7 +176,7 @@ class RecipeWebControllerTest {
         @Test
         @WithMockUser
         void shouldUseAllergens_whenOnlyAllergensProvided() throws Exception {
-            var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
+            var pageResult = new PageResult<>(List.<PersonalizedRecipeSummary>of(), 0L);
             var allergens = List.of("Gluten");
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, allergens, 12, 0);
 
@@ -191,7 +194,7 @@ class RecipeWebControllerTest {
         @Test
         @WithMockUser
         void shouldPassAllAllergensToModel() throws Exception {
-            var pageResult = new PageResult<>(List.<Recipe>of(), 0L);
+            var pageResult = new PageResult<>(List.<PersonalizedRecipeSummary>of(), 0L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 12, 0);
 
             when(recipeService.searchRecipes(criteria)).thenReturn(pageResult);
@@ -311,10 +314,9 @@ class RecipeWebControllerTest {
 
         @Test
         @WithMockUser(username = "john")
-        void likeShouldWork() throws Exception {
+        void superLikeShouldWork() throws Exception {
 
             var id = UUID.randomUUID();
-
 
             when(userService.getUserByUsername(any())).thenReturn(createUser());
             when(authenticationPort.extractUsername()).thenReturn(createUser().username());
@@ -322,25 +324,19 @@ class RecipeWebControllerTest {
             mockMvc.perform(post("/recipes/{id}/super-like", id))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(view().name("redirect:/recipes/" + id));
-
-
         }
 
         @Test
         @WithMockUser(username = "john")
-        void unlikeShouldWork() throws Exception {
+        void superLikeShouldReturn402WhenInsufficientFunds() throws Exception {
 
             var id = UUID.randomUUID();
 
-
             when(userService.getUserByUsername(any())).thenReturn(createUser());
             when(authenticationPort.extractUsername()).thenReturn(createUser().username());
-            doNothing().when(recipeService).unlikeRecipe(any(), any());
-            mockMvc.perform(post("/recipes/{id}/unlike", id))
-                    .andExpect(status().is3xxRedirection())
-                    .andExpect(view().name("redirect:/recipes/" + id));
-
-
+            doThrow(new InsufficientFundsException(50L, 100L)).when(recipeService).superLikeRecipe(any(), any());
+            mockMvc.perform(post("/recipes/{id}/super-like", id))
+                    .andExpect(status().isPaymentRequired());
         }
     }
 
@@ -377,5 +373,10 @@ class RecipeWebControllerTest {
                 RecipeCounts.ZERO,
                 RecipeUserInteraction.NONE
         );
+    }
+
+    private PersonalizedRecipeSummary createPersonalizedSummary(String title) {
+        var s = new RecipeSummary(UUID.randomUUID(), title, "Summary for " + title, null, 30, Instant.now(), "chef_test");
+        return new PersonalizedRecipeSummary(s, RecipeCounts.ZERO, RecipeUserInteraction.NONE);
     }
 }

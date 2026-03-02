@@ -1,6 +1,6 @@
 package fr.uge.android.forkeat.recipes.data.dto
 
-data class RecipesListResponse(
-    val resources: List<RecipeDTO>,
+data class RecipesListResponse<T>(
+    val resources: List<T>,
     val total: Int
 )

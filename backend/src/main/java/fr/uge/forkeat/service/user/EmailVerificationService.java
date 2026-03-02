@@ -53,7 +53,7 @@ public class EmailVerificationService {
         var tokenValue = UUID.randomUUID().toString();
         var token = new VerificationToken(
                 UUID.randomUUID(), userId, tokenValue,
-                VerificationTokenType.EMAIL_CONFIRMATION, null,
+                VerificationTokenType.EMAIL_CONFIRMATION, null, null,
                 Instant.now().plus(EMAIL_CONFIRMATION_EXPIRY_HOURS, ChronoUnit.HOURS),
                 Instant.now()
         );
@@ -86,18 +86,19 @@ public class EmailVerificationService {
         tokenPersistence.deleteByUserIdAndType(token.userId(), VerificationTokenType.EMAIL_CONFIRMATION);
     }
 
-    /**
-     * Send a code to reset the password by mail.
-     * The password is NOT stored in the token — it will be provided at confirmation time.
-     */
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
     public void sendPasswordChangeCode(UUID userId, String email) {
+        sendPasswordChangeCode(userId, email, null);
+    }
+
+    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
+    public void sendPasswordChangeCode(UUID userId, String email, String pendingPasswordHash) {
         tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
 
         var code = generateSixDigitCode();
         var token = new VerificationToken(
                 UUID.randomUUID(), userId, code,
-                VerificationTokenType.PASSWORD_CHANGE, null,
+                VerificationTokenType.PASSWORD_CHANGE, null, pendingPasswordHash,
                 Instant.now().plus(CODE_EXPIRY_MINUTES, ChronoUnit.MINUTES),
                 Instant.now()
         );
@@ -107,36 +108,45 @@ public class EmailVerificationService {
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
-    public void confirmPasswordChange(UUID userId, String code, String hashedNewPassword) {
-        Objects.requireNonNull(code);
-        Objects.requireNonNull(hashedNewPassword);
+    public void confirmPasswordChange(UUID userId, String code) {
+        var token = validatePasswordChangeCode(userId, code);
+        var user = userPersistence.findById(userId)
+                .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
+        userPersistence.saveUser(user, token.pendingPasswordHash());
+        tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
+    }
 
+    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
+    public void confirmPasswordReset(UUID userId, String code, String newPasswordHash) {
+        Objects.requireNonNull(newPasswordHash);
+        validatePasswordChangeCode(userId, code);
+        var user = userPersistence.findById(userId)
+                .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
+        userPersistence.saveUser(user, newPasswordHash);
+        tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
+    }
+
+    private VerificationToken validatePasswordChangeCode(UUID userId, String code) {
+        Objects.requireNonNull(code);
         var token = tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE)
                 .orElseThrow(() -> new VerificationException("Aucun changement de mot de passe en attente"));
-
         if (token.isExpired()) {
             tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
             throw new VerificationException("Le code a expiré. Veuillez recommencer.");
         }
-
         if (!token.token().equals(code)) {
             throw new VerificationException("Code incorrect");
         }
-
-        var user = userPersistence.findById(userId)
-                .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
-        userPersistence.saveUser(user, hashedNewPassword);
-
-        tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
+        return token;
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
     public void sendEmailChangeCode(UUID userId, String currentEmail, String newEmail) {
-        sendEmailChangeCode(userId, currentEmail, newEmail, false);
+        sendEmailChangeCode(userId, currentEmail, newEmail, null);
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
-    public void sendEmailChangeCode(UUID userId, String currentEmail, String newEmail, boolean switchingToLocal) {
+    public void sendEmailChangeCode(UUID userId, String currentEmail, String newEmail, String pendingPasswordHash) {
         if (userPersistence.existsByEmail(newEmail)) {
             throw new VerificationException("Cet email est déjà utilisé");
         }
@@ -146,7 +156,7 @@ public class EmailVerificationService {
         var code = generateSixDigitCode();
         var token = new VerificationToken(
                 UUID.randomUUID(), userId, code,
-                VerificationTokenType.EMAIL_CHANGE, newEmail,
+                VerificationTokenType.EMAIL_CHANGE, newEmail, pendingPasswordHash,
                 Instant.now().plus(CODE_EXPIRY_MINUTES, ChronoUnit.MINUTES),
                 Instant.now()
         );
@@ -160,21 +170,16 @@ public class EmailVerificationService {
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
     public User confirmEmailChange(UUID userId, String code) {
-        return confirmEmailChange(userId, code, null);
-    }
-
-    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
-    public User confirmEmailChange(UUID userId, String code, String hashedPassword) {
         var validated = validateEmailChangeCode(userId, code);
         var user = validated.user();
         var token = validated.token();
 
         User result;
-        if (hashedPassword != null) {
+        if (token.pendingPasswordHash() != null) {
             var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
                     token.newEmail(), user.role(), user.status(), AuthMode.LOCAL,
                     user.createdAt(), Instant.now(), user.emailVerified());
-            result = userPersistence.saveUser(updatedUser, hashedPassword);
+            result = userPersistence.saveUser(updatedUser, token.pendingPasswordHash());
         } else {
             var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
                     token.newEmail(), user.role(), user.status(), user.authMode(),

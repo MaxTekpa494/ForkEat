@@ -101,7 +101,7 @@
                                     </span>
                                 </div>
                                 <div class="text-secondary-900 font-medium mt-1" th:text="${vm.user().email()}">jean@exemple.com</div>
-                                <form th:unless="${vm.user().emailVerified()}" th:action="@{/account/resend-confirmation}" method="post" class="mt-2">
+                                <form th:unless="${vm.user().emailVerified()}" th:action="@{/account/email-confirmations}" method="post" class="mt-2">
                                     <button type="submit"
                                             class="text-sm text-primary-500 hover:text-primary-600 font-medium transition">
                                         <i class="fas fa-paper-plane mr-1"></i>Renvoyer le lien de confirmation
@@ -110,7 +110,7 @@
                             </div>
                         </div>
 
-                        <form id="info-edit" class="p-6 space-y-4 hidden" th:action="@{/account/update}" method="post">
+                        <form id="info-edit" class="p-6 space-y-4 hidden" th:action="@{/account}" method="post">
                             <div class="grid md:grid-cols-2 gap-4">
                                 <div>
                                     <label for="firstName" class="block text-sm font-medium text-secondary-900 mb-2">Prénom</label>
@@ -306,7 +306,7 @@
                         <div class="space-y-2">
                             <a th:href="@{/profile}"
                                class="flex items-center space-x-3 p-3 hover:bg-surface rounded-lg transition">
-                                <i class="fas fa-home text-secondary-600 w-5"></i>
+                                <i class="fas fa-user text-secondary-600 w-5"></i>
                                 <span class="text-secondary-900">Mon profil</span>
                             </a>
                             <a th:href="@{/wallet}"
@@ -346,7 +346,7 @@
                 </div>
             </div>
 
-            <form th:action="@{/account/set-password}" method="post" class="space-y-4">
+            <form th:action="@{/account/password}" method="post" class="space-y-4">
                 <div>
                     <label for="setNewPassword" class="block text-sm font-medium text-secondary-900 mb-2">
                         Nouveau mot de passe
@@ -387,7 +387,7 @@
                 </button>
             </div>
 
-            <form th:action="@{/account/request-email-change}" method="post" class="space-y-4">
+            <form th:action="@{/account/email-change-requests}" method="post" class="space-y-4">
                 <div>
                     <label for="newEmail" class="block text-sm font-medium text-secondary-900 mb-2">
                         Nouvel email
@@ -428,7 +428,7 @@
                         <label for="confirmNewPasswordEmail" class="block text-sm font-medium text-secondary-900 mb-2">
                             Confirmer le mot de passe
                         </label>
-                        <input type="password" id="confirmNewPasswordEmail" name="confirmNewPassword" required minlength="8"
+                        <input type="password" id="confirmNewPasswordEmail" name="confirmPassword" required minlength="8"
                                class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500">
                     </div>
                 </div>
@@ -466,7 +466,7 @@
                 </button>
             </div>
 
-            <form th:action="@{/account/request-password-change}" method="post" class="space-y-4">
+            <form th:action="@{/account/password-change-requests}" method="post" class="space-y-4">
                 <div>
                     <label for="currentPasswordPwd" class="block text-sm font-medium text-secondary-900 mb-2">
                         Mot de passe actuel

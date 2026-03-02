@@ -11,8 +11,8 @@ data class UserResource(
     val email: String,
     val role: String,
     val status: String,
-    val authMode: String,
+    val authMode: String = "",
     val emailVerified: Boolean,
-    val createdAt: String?,
-    val updatedAt: String?
+    val createdAt: String? = null,
+    val updatedAt: String? = null
 )

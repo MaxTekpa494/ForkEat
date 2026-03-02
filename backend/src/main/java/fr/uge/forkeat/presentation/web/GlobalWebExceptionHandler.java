@@ -1,12 +1,16 @@
 package fr.uge.forkeat.presentation.web;
 
 import fr.uge.forkeat.service.exception.*;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
+
+import java.util.Map;
 
 @ControllerAdvice(basePackages = "fr.uge.forkeat.presentation.web")
 public class GlobalWebExceptionHandler {
@@ -68,20 +72,30 @@ public class GlobalWebExceptionHandler {
 	}
 
 	@ExceptionHandler(CheckProfileUpdateFailureException.class)
-	public String HandleUpdatePasswordFailure(CheckProfileUpdateFailureException ex, RedirectAttributes redirectAttributes) {
+	public String handleUpdateFailure(CheckProfileUpdateFailureException ex, RedirectAttributes redirectAttributes, HttpServletRequest request) {
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
-		return "redirect:/account";
+		return redirectTarget(request);
 	}
 
 	@ExceptionHandler(VerificationException.class)
-	public String handleVerificationException(VerificationException ex, RedirectAttributes redirectAttributes) {
+	public String handleVerificationException(VerificationException ex, RedirectAttributes redirectAttributes, HttpServletRequest request) {
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
-		return "redirect:/account";
+		return redirectTarget(request);
+	}
+
+	private String redirectTarget(HttpServletRequest request) {
+		return request.getRequestURI().startsWith("/auth/") ? "redirect:/auth/forgot-password" : "redirect:/account";
 	}
 
 	@ExceptionHandler(ImageUploadException.class)
 	public String handleImageUploadException(ImageUploadException ex, RedirectAttributes redirectAttributes) {
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());
 		return "redirect:/recipes/create";
+	}
+
+	@ExceptionHandler(InsufficientFundsException.class)
+	public ResponseEntity<Map<String, String>> handleInsufficientFunds(InsufficientFundsException ex) {
+		return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+				.body(Map.of("error", "Payment Required", "message", ex.getMessage()));
 	}
 }

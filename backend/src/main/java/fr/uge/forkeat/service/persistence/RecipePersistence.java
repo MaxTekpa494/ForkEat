@@ -14,11 +14,13 @@ public interface RecipePersistence {
 
   Optional<Recipe> findById(UUID id);
 
+  boolean existRecipe(UUID id);
+
   List<Recipe> findByStatus(RecipeStatus status);
 
   PageResult<Recipe> findByStatus(RecipeStatus status, int size, int page);
 
-  PageResult<Recipe> searchRecipes(RecipeSearchCriteria criteria);
+  PageResult<RecipeSummary> searchRecipes(RecipeSearchCriteria criteria);
 
   List<Recipe> findByAuthorId(UUID authorId);
 
@@ -42,7 +44,7 @@ public interface RecipePersistence {
 
   long countByStatus(RecipeStatus status);
 
-  PageResult<RecipeSummary> findRecipeSummaries(String username, RecipeStatus status, int size, int page);
+  PageResult<RecipeSummary> findUserRecipeSummaries(String username, RecipeStatus status, int size, int page);
 
   RecipeCounts findRecipeCounts(UUID recipeId);
 
@@ -60,5 +62,5 @@ public interface RecipePersistence {
 
   void superLikeRecipe(UUID userId, UUID recipeId, long amount);
 
-    boolean hasSuperLikedRecipe(UUID userId, UUID recipeId);
+  boolean hasSuperLikedRecipe(UUID userId, UUID recipeId);
 }
