@@ -20,7 +20,7 @@
                     Recherche <span class="text-primary-500">Intelligente</span>
                 </h1>
                 <p class="text-secondary-200 text-lg max-w-2xl mx-auto">
-                    Décrivez en langage naturel ce que vous souhaitez cuisiner. Notre IA trouve les recettes les plus pertinentes pour vous.
+                    Décrivez en quelques mots ce que vous souhaitez cuisiner. Notre IA trouve les recettes les plus pertinentes pour vous.
                 </p>
             </div>
 
@@ -171,55 +171,12 @@
                 <div th:unless="${#lists.isEmpty(recipes)}"
                      class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
 
-                    <div th:each="recipe, iterStat : ${recipes}" class="recipe-card">
-                        <div class="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 group h-full flex flex-col cursor-pointer"
-                             th:onclick="|window.location.href='@{/recipes/{id}(id=${recipe.id})}'|">
-
-                            <!-- Image -->
-                            <div class="aspect-[4/3] bg-secondary-100 overflow-hidden relative">
-                                <img th:if="${recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}"
-                                     th:src="${recipe.imageUrl}"
-                                     th:alt="${recipe.title}"
-                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                                <div th:unless="${recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}"
-                                     class="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary-50 to-secondary-100">
-                                    <i class="fas fa-utensils text-4xl text-secondary-300"></i>
-                                </div>
-
-                                <!-- Badge temps -->
-                                <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-secondary-800 shadow-sm">
-                                    <i class="fas fa-clock mr-1 text-primary-500"></i>
-                                    <span th:text="${recipe.preparationMinutes + ' min'}">30 min</span>
-                                </div>
-
-                                <!-- Badge IA avec rang -->
-                                <div class="absolute top-3 left-3 bg-primary-500/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-semibold text-white shadow-sm flex items-center space-x-1">
-                                    <i class="fas fa-robot text-[10px]"></i>
-                                    <span th:text="'#' + ${iterStat.count}">#1</span>
-                                </div>
-                            </div>
-
-                            <div class="p-5 flex-1 flex flex-col">
-                                <h3 class="font-bold text-lg text-secondary-900 mb-2 line-clamp-1 group-hover:text-primary-500 transition"
-                                    th:text="${recipe.title}">Titre de la recette</h3>
-
-                                <p th:if="${recipe.summary != null and !recipe.summary.isEmpty()}"
-                                   class="text-secondary-500 text-sm mb-4 line-clamp-2 flex-1"
-                                   th:text="${recipe.summary}">
-                                    Description de la recette...
-                                </p>
-
-                                <div class="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
-                                    <a th:href="@{/profile/{u}(u=${recipe.username})}"
-                                       onclick="event.stopPropagation()"
-                                       class="flex items-center space-x-2 hover:opacity-75 transition">
-                                        <div class="w-8 h-8 bg-secondary-800 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                                            <span th:text="${#strings.toUpperCase(#strings.substring(recipe.username, 0, 1))}">U</span>
-                                        </div>
-                                        <span class="text-sm text-secondary-600 font-medium" th:text="${recipe.username}">Utilisateur</span>
-                                    </a>
-                                </div>
-                            </div>
+                    <div th:each="recipe, iterStat : ${recipes}" class="relative">
+                        <div th:replace="~{fragments/recipe-card :: recipeCard(recipe=${recipe})}"></div>
+                        <!-- Badge IA avec rang -->
+                        <div class="pointer-events-none absolute top-3 left-3 z-20 bg-primary-500/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-semibold text-white shadow-sm flex items-center space-x-1">
+                            <i class="fas fa-robot text-[10px]"></i>
+                            <span th:text="'#' + ${iterStat.count}">#1</span>
                         </div>
                     </div>
 
