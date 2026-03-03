@@ -16,10 +16,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Mail
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -45,8 +42,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.input.PasswordVisualTransformation
-import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -64,10 +59,6 @@ fun ForgotPasswordScreen(
     viewModel: ForgotPasswordViewModel = viewModel(),
 ) {
 
-    var password by remember { mutableStateOf("") }
-    var confirmPassword by remember { mutableStateOf("") }
-    var passwordVisible by remember { mutableStateOf(false) }
-    var confirmPasswordVisible by remember { mutableStateOf(false) }
     var email by remember { mutableStateOf("") }
 
     val uiState by viewModel.uiState.collectAsState()
@@ -108,13 +99,12 @@ fun ForgotPasswordScreen(
             Spacer(Modifier.height(16.dp))
 
             // Header
-
-                Text(
-                    text = "Mot de passe oublié",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Secondary900,
-                )
+            Text(
+                text = "Mot de passe oublié",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Secondary900,
+            )
 
             Spacer(Modifier.height(8.dp))
             Text(
@@ -146,7 +136,7 @@ fun ForgotPasswordScreen(
             }
             Spacer(Modifier.height(24.dp))
 
-            // Username field
+            // Email field
             Text(
                 text = "Email",
                 fontSize = 14.sp,
@@ -178,105 +168,15 @@ fun ForgotPasswordScreen(
                 enabled = !uiState.isLoading,
                 keyboardOptions = KeyboardOptions(
                     keyboardType = KeyboardType.Email,
-                    imeAction = ImeAction.Next,
-                ),
-            )
-
-
-            Text(
-                text = "Mot de passe",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = Secondary900,
-            )
-            Spacer(Modifier.height(6.dp))
-            OutlinedTextField(
-                value = password,
-                onValueChange = {
-                    password = it
-                    viewModel.clearError()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = {
-                    Text("\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022", color = Color(0xFF9CA3AF))
-                },
-                leadingIcon = {
-                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF9CA3AF))
-                },
-                trailingIcon = {
-                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
-                        Icon(
-                            if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (passwordVisible) "Masquer" else "Afficher",
-                            tint = Color(0xFF9CA3AF),
-                        )
-                    }
-                },
-                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color(0xFFE5E7EB),
-                    focusedBorderColor = Primary500,
-                    unfocusedContainerColor = Color.White,
-                    focusedContainerColor = Color.White,
-                ),
-                singleLine = true,
-                enabled = !uiState.isLoading,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
                     imeAction = ImeAction.Done,
                 ),
             )
 
-            // Password field
-            Text(
-                text = "Confirmer le Mot de passe",
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = Secondary900,
-            )
-            Spacer(Modifier.height(6.dp))
-            OutlinedTextField(
-                value = confirmPassword,
-                onValueChange = {
-                    confirmPassword = it
-                    viewModel.clearError()
-                },
-                modifier = Modifier.fillMaxWidth(),
-                placeholder = {
-                    Text("\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022", color = Color(0xFF9CA3AF))
-                },
-                leadingIcon = {
-                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF9CA3AF))
-                },
-                trailingIcon = {
-                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
-                        Icon(
-                            if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
-                            contentDescription = if (confirmPasswordVisible) "Masquer" else "Afficher",
-                            tint = Color(0xFF9CA3AF),
-                        )
-                    }
-                },
-                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
-                shape = RoundedCornerShape(12.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    unfocusedBorderColor = Color(0xFFE5E7EB),
-                    focusedBorderColor = Primary500,
-                    unfocusedContainerColor = Color.White,
-                    focusedContainerColor = Color.White,
-                ),
-                singleLine = true,
-                enabled = !uiState.isLoading,
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Password,
-                    imeAction = ImeAction.Done,
-                ),
-            )
+            Spacer(Modifier.height(24.dp))
 
-            // Login button
+            // Submit button
             Button(
-                onClick = { viewModel.askForgotPassword(email, password, confirmPassword) },
+                onClick = { viewModel.askForgotPassword(email) },
                 modifier = Modifier.fillMaxWidth().padding(15.dp),
                 shape = RoundedCornerShape(50),
                 enabled = !uiState.isLoading,
@@ -287,7 +187,7 @@ fun ForgotPasswordScreen(
                 elevation = ButtonDefaults.buttonElevation(defaultElevation = 6.dp),
             ) {
                 if (uiState.isLoading) {
-                     CircularProgressIndicator(
+                    CircularProgressIndicator(
                         modifier = Modifier.size(20.dp),
                         color = Color.White,
                         strokeWidth = 2.dp,

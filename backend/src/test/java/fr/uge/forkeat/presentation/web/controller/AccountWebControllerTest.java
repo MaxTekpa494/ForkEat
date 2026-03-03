@@ -11,7 +11,6 @@ import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.model.user.projection.UserAccountDetails;
 import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.port.PasswordHasherPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserUpdateService;
@@ -29,6 +28,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.UUID;
+
+import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -63,8 +64,6 @@ class AccountWebControllerTest {
     @MockitoBean
     private JwtFilter jwtFilter;
 
-    @MockitoBean
-    private PasswordHasherPort passwordHasherPort;
 
     private User localUser;
     private User googleUser;
@@ -137,7 +136,7 @@ class AccountWebControllerTest {
             when(userUpdateService.updateProfile("testuser", "newusername", "Nouveau", "Nom"))
                     .thenReturn(updatedUser);
 
-            mockMvc.perform(post("/account/update").with(csrf())
+            mockMvc.perform(post("/account").with(csrf())
                             .param("firstName", "Nouveau")
                             .param("lastName", "Nom")
                             .param("username", "newusername"))
@@ -152,29 +151,31 @@ class AccountWebControllerTest {
         @Test
         @WithMockUser(username = "testuser")
         void shouldRedirectWithError_WhenUsernameIsEmpty() throws Exception {
-            mockMvc.perform(post("/account/update").with(csrf())
+            when(userUpdateService.updateProfile("testuser", "", "Jean", "Dupont"))
+                    .thenThrow(new CheckProfileUpdateFailureException("Veuillez remplir tous les champs"));
+
+            mockMvc.perform(post("/account").with(csrf())
                             .param("firstName", "Jean")
                             .param("lastName", "Dupont")
                             .param("username", ""))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/account"))
                     .andExpect(flash().attributeExists("error"));
-
-            verifyNoInteractions(userUpdateService);
         }
 
         @Test
         @WithMockUser(username = "testuser")
         void shouldRedirectWithError_WhenFirstNameIsEmpty() throws Exception {
-            mockMvc.perform(post("/account/update").with(csrf())
+            when(userUpdateService.updateProfile("testuser", "testuser", "", "Dupont"))
+                    .thenThrow(new CheckProfileUpdateFailureException("Veuillez remplir tous les champs"));
+
+            mockMvc.perform(post("/account").with(csrf())
                             .param("firstName", "")
                             .param("lastName", "Dupont")
                             .param("username", "testuser"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/account"))
                     .andExpect(flash().attributeExists("error"));
-
-            verifyNoInteractions(userUpdateService);
         }
     }
 
@@ -184,7 +185,7 @@ class AccountWebControllerTest {
         @Test
         @WithMockUser(username = "testuser")
         void shouldRedirectToConfirmAction_WhenPasswordsMatch() throws Exception {
-            mockMvc.perform(post("/account/request-password-change").with(csrf())
+            mockMvc.perform(post("/account/password-change-requests").with(csrf())
                             .param("currentPassword", "oldPass123")
                             .param("newPassword", "newPass123")
                             .param("confirmPassword", "newPass123"))
@@ -193,21 +194,22 @@ class AccountWebControllerTest {
                     .andExpect(flash().attributeExists("actionType"))
                     .andExpect(flash().attributeExists("infoMessage"));
 
-            verify(userUpdateService).requestPasswordChange("testuser", "oldPass123", "newPass123");
+            verify(userUpdateService).requestPasswordChange("testuser", "oldPass123", "newPass123", "newPass123");
         }
 
         @Test
         @WithMockUser(username = "testuser")
         void shouldRedirectWithError_WhenPasswordsDontMatch() throws Exception {
-            mockMvc.perform(post("/account/request-password-change").with(csrf())
+            doThrow(new CheckProfileUpdateFailureException("Les mots de passe ne correspondent pas"))
+                    .when(userUpdateService).requestPasswordChange("testuser", "oldPass123", "newPass123", "different");
+
+            mockMvc.perform(post("/account/password-change-requests").with(csrf())
                             .param("currentPassword", "oldPass123")
                             .param("newPassword", "newPass123")
                             .param("confirmPassword", "different"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/account"))
                     .andExpect(flash().attributeExists("error"));
-
-            verifyNoInteractions(userUpdateService);
         }
     }
 
@@ -240,14 +242,13 @@ class AccountWebControllerTest {
         void shouldRedirectWithSuccess_WhenCodeIsValid() throws Exception {
             when(userService.getUserByUsername("testuser")).thenReturn(localUser);
 
-            mockMvc.perform(post("/account/confirm-password-change").with(csrf())
-                            .param("code", "123456")
-                            .sessionAttr("pending-password-hash", "hashedPassword"))
+            mockMvc.perform(post("/account/password-change-requests/confirm").with(csrf())
+                            .param("code", "123456"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/account"))
                     .andExpect(flash().attributeExists("success"));
 
-            verify(emailVerificationService).confirmPasswordChange(localUser.id(), "123456", "hashedPassword");
+            verify(emailVerificationService).confirmPasswordChange(localUser.id(), "123456");
         }
     }
 
@@ -257,54 +258,56 @@ class AccountWebControllerTest {
         @Test
         @WithMockUser(username = "testuser")
         void shouldRedirectToConfirmAction_ForLocalUser() throws Exception {
-            when(userService.getUserByUsername("testuser")).thenReturn(localUser);
-
-            mockMvc.perform(post("/account/request-email-change").with(csrf())
+            mockMvc.perform(post("/account/email-change-requests").with(csrf())
                             .param("newEmail", "new@email.fr")
-                            .param("currentPassword", "pass123")
-                            .param("newPassword", "")
-                            .param("confirmPassword", ""))
+                            .param("currentPassword", "pass123"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/account/confirm-action"))
                     .andExpect(flash().attributeExists("actionType"));
 
-            verify(userUpdateService).requestEmailChange("testuser", "new@email.fr", "pass123", "");
+            verify(userUpdateService).requestEmailChange("testuser", "new@email.fr", "pass123", null, null);
         }
 
         @Test
         @WithMockUser(username = "testuser")
-        void shouldRedirectWithError_WhenGoogleUserPasswordTooShort() throws Exception {
-            when(authPort.extractUsername()).thenReturn("googleuser");
-            when(userService.getUserByUsername("googleuser")).thenReturn(googleUser);
-
-            mockMvc.perform(post("/account/request-email-change").with(csrf())
+        void shouldRedirectToConfirmAction_ForGoogleUser() throws Exception {
+            mockMvc.perform(post("/account/email-change-requests").with(csrf())
                             .param("newEmail", "new@email.fr")
-                            .param("currentPassword", "")
-                            .param("newPassword", "short")
-                            .param("confirmPassword", "short"))
+                            .param("newPassword", "NewPass1!")
+                            .param("confirmPassword", "NewPass1!"))
                     .andExpect(status().is3xxRedirection())
-                    .andExpect(redirectedUrl("/account"))
-                    .andExpect(flash().attributeExists("error"));
+                    .andExpect(redirectedUrl("/account/confirm-action"))
+                    .andExpect(flash().attributeExists("actionType"));
 
-            verifyNoInteractions(userUpdateService);
+            verify(userUpdateService).requestEmailChange("testuser", "new@email.fr", null, "NewPass1!", "NewPass1!");
         }
 
         @Test
         @WithMockUser(username = "testuser")
-        void shouldRedirectWithError_WhenGoogleUserPasswordsDontMatch() throws Exception {
-            when(authPort.extractUsername()).thenReturn("googleuser");
-            when(userService.getUserByUsername("googleuser")).thenReturn(googleUser);
+        void shouldRedirectWithError_WhenCurrentPasswordIncorrect() throws Exception {
+            doThrow(new CheckProfileUpdateFailureException("Incorrect password"))
+                    .when(userUpdateService).requestEmailChange("testuser", "new@email.fr", "wrong", null, null);
 
-            mockMvc.perform(post("/account/request-email-change").with(csrf())
+            mockMvc.perform(post("/account/email-change-requests").with(csrf())
                             .param("newEmail", "new@email.fr")
-                            .param("currentPassword", "")
-                            .param("newPassword", "validPass123")
-                            .param("confirmPassword", "different123"))
+                            .param("currentPassword", "wrong"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/account"))
                     .andExpect(flash().attributeExists("error"));
+        }
 
-            verifyNoInteractions(userUpdateService);
+        @Test
+        @WithMockUser(username = "testuser")
+        void shouldRedirectWithError_WhenEmailAlreadyTaken() throws Exception {
+            doThrow(new CheckProfileUpdateFailureException("Cet email est déjà utilisé"))
+                    .when(userUpdateService).requestEmailChange("testuser", "taken@email.fr", "pass123", null, null);
+
+            mockMvc.perform(post("/account/email-change-requests").with(csrf())
+                            .param("newEmail", "taken@email.fr")
+                            .param("currentPassword", "pass123"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/account"))
+                    .andExpect(flash().attributeExists("error"));
         }
     }
 
@@ -321,7 +324,7 @@ class AccountWebControllerTest {
             when(emailVerificationService.confirmEmailChange(localUser.id(), "654321"))
                     .thenReturn(updatedUser);
 
-            mockMvc.perform(post("/account/confirm-email-change").with(csrf())
+            mockMvc.perform(post("/account/email-change-requests/confirm").with(csrf())
                             .param("code", "654321"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/account"))
@@ -340,7 +343,7 @@ class AccountWebControllerTest {
         void shouldSendConfirmation_WhenEmailNotVerified() throws Exception {
             when(userService.getUserByUsername("testuser")).thenReturn(localUser);
 
-            mockMvc.perform(post("/account/resend-confirmation").with(csrf()))
+            mockMvc.perform(post("/account/email-confirmations").with(csrf()))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/account"))
                     .andExpect(flash().attributeExists("success"));
@@ -356,7 +359,7 @@ class AccountWebControllerTest {
                     localUser.authMode(), localUser.createdAt(), localUser.updatedAt(), true);
             when(userService.getUserByUsername("testuser")).thenReturn(verifiedUser);
 
-            mockMvc.perform(post("/account/resend-confirmation").with(csrf()))
+            mockMvc.perform(post("/account/email-confirmations").with(csrf()))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/account"))
                     .andExpect(flash().attributeExists("success"));

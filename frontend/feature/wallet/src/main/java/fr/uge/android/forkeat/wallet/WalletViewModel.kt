@@ -28,10 +28,19 @@ data class WalletUiState(
     val successMessage: String? = null
 )
 
+data class BalanceUIState(
+    val balance: Long = 0,
+    val isLoading: Boolean = false,
+    val error: String? = null
+    )
+
 class WalletViewModel : ViewModel() {
 
     private val _uiState = MutableStateFlow(WalletUiState())
     val uiState: StateFlow<WalletUiState> = _uiState.asStateFlow()
+
+    private val _balanceUiState = MutableStateFlow(BalanceUIState())
+    val balanceUiState: StateFlow<BalanceUIState> = _balanceUiState.asStateFlow()
 
     private val walletApi = ForkEatApi.walletService
 
@@ -57,6 +66,26 @@ class WalletViewModel : ViewModel() {
                 }
             } catch (e: Exception) {
                 _uiState.update { it.copy(isLoading = false, error = "Erreur de chargement: ${e.message}") }
+            }
+        }
+    }
+
+    fun loadBalance(){
+        viewModelScope.launch {
+            _balanceUiState.update { it.copy(isLoading = true, error = null) }
+            try {
+                val balanceDeferred = async { walletApi.getBalance() }
+
+                val balanceResponse = balanceDeferred.await()
+
+                _balanceUiState.update { state ->
+                    state.copy(
+                        balance = if (balanceResponse.isSuccessful) balanceResponse.body()?.balance ?: 0 else 0,
+                        isLoading = false
+                    )
+                }
+            } catch (e: Exception) {
+                _balanceUiState.update { it.copy(isLoading = false, error = "Erreur de chargement: ${e.message}") }
             }
         }
     }

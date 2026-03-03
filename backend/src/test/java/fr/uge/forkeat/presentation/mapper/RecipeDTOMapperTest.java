@@ -6,6 +6,9 @@ import fr.uge.forkeat.presentation.dto.recipe.RecipeIngredientDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeStepDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import org.junit.jupiter.api.Test;
 
 import java.time.Instant;
@@ -261,6 +264,35 @@ class RecipeDTOMapperTest {
 		assertEquals(originalRecipe.stepByStepInstructions().size(), reconvertedRecipe.stepByStepInstructions().size());
 		assertEquals(originalRecipe.ingredients().size(), reconvertedRecipe.ingredients().size());
 		assertEquals(originalRecipe.allergens().size(), reconvertedRecipe.allergens().size());
+	}
+
+	@Test
+	void toSummaryDTO_shouldMapAllFields() {
+		var id = UUID.randomUUID();
+		var now = Instant.now();
+		var summary = new RecipeSummary(id, "Tarte aux pommes", "Une délicieuse tarte", "https://img.com/tarte.jpg", 45, now, "chef_test");
+		var counts = new RecipeCounts(10L, 3L);
+		var interaction = new RecipeUserInteraction(true, false);
+		var personalized = new PersonalizedRecipeSummary(summary, counts, interaction);
+
+		var dto = RecipeDTOMapper.toSummaryDTO(personalized);
+
+		assertNotNull(dto);
+		assertEquals(id, dto.id());
+		assertEquals("Tarte aux pommes", dto.title());
+		assertEquals("Une délicieuse tarte", dto.summary());
+		assertEquals("https://img.com/tarte.jpg", dto.imageUrl());
+		assertEquals(45, dto.preparationMinutes());
+		assertEquals("chef_test", dto.authorUsername());
+		assertEquals(10L, dto.likeCount());
+		assertEquals(3L, dto.superLikeCount());
+		assertTrue(dto.likedByCurrentUser());
+		assertFalse(dto.superLikedByCurrentUser());
+	}
+
+	@Test
+	void toSummaryDTO_shouldThrowWhenNull() {
+		assertThrows(NullPointerException.class, () -> RecipeDTOMapper.toSummaryDTO(null));
 	}
 
 	private Recipe createMinimalRecipe(List<RecipeStep> steps, List<RecipeIngredient> ingredients,

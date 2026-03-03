@@ -3,6 +3,7 @@ package fr.uge.forkeat.presentation.mapper.rest;
 import fr.uge.forkeat.presentation.dto.recipe.*;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
+import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -156,6 +157,22 @@ public final class RecipeDTOMapper {
     }
 
 
+    public static PersonalizedRecipeSummaryDTO toSummaryDTO(PersonalizedRecipeSummary p) {
+        Objects.requireNonNull(p);
+        return new PersonalizedRecipeSummaryDTO(
+                p.summary().id(),
+                p.summary().title(),
+                p.summary().summary(),
+                p.summary().imageUrl(),
+                p.summary().preparationMinutes(),
+                p.summary().authorUsername(),
+                p.counts().likeCount(),
+                p.counts().superLikeCount(),
+                p.interaction().likedByCurrentUser(),
+                p.interaction().superLikedByCurrentUser()
+        );
+    }
+
     public static RecipeDetailsDTO toPersonalizedRecipeDTO(PersonalizedRecipe personalizedRecipe) {
         Objects.requireNonNull(personalizedRecipe);
         var recipe = personalizedRecipe.recipe();
@@ -175,7 +192,9 @@ public final class RecipeDTOMapper {
                 recipe.createdAt(),
                 recipe.updatedAt(),
                 personalizedRecipe.counts().likeCount(),
-                personalizedRecipe.interaction().likedByCurrentUser()
+                personalizedRecipe.interaction().likedByCurrentUser(),
+                personalizedRecipe.counts().superLikeCount(),
+                personalizedRecipe.interaction().superLikedByCurrentUser()
         );
     }
 }

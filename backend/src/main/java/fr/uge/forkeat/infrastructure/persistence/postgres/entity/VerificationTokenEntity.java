@@ -27,6 +27,9 @@ public class VerificationTokenEntity {
     @Column(name = "new_email")
     private String newEmail;
 
+    @Column(name = "pending_password_hash")
+    private String pendingPasswordHash;
+
     @Column(name = "expires_at", nullable = false)
     private Instant expiresAt;
 
@@ -57,6 +60,9 @@ public class VerificationTokenEntity {
 
     public String getNewEmail() { return newEmail; }
     public void setNewEmail(String newEmail) { this.newEmail = newEmail; }
+
+    public String getPendingPasswordHash() { return pendingPasswordHash; }
+    public void setPendingPasswordHash(String pendingPasswordHash) { this.pendingPasswordHash = pendingPasswordHash; }
 
     public Instant getExpiresAt() { return expiresAt; }
     public void setExpiresAt(Instant expiresAt) { this.expiresAt = expiresAt; }

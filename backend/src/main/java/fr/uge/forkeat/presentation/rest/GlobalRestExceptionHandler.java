@@ -4,14 +4,13 @@ import fr.uge.forkeat.service.exception.*;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.ExceptionHandler;
-import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
 import java.time.Instant;
 import java.util.Map;
 
 // À CHANGER POUR UTILISER DES HTTPRESPONSES PLUTOT QUE DES MAPS
-@RestControllerAdvice(annotations = RestController.class)
+@RestControllerAdvice(basePackages = {"fr.uge.forkeat.presentation.rest", "fr.uge.forkeat.presentation.external"})
 public class GlobalRestExceptionHandler {
 
   @ExceptionHandler(RecipeNotFoundException.class)
@@ -72,6 +71,18 @@ public class GlobalRestExceptionHandler {
             .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
   }
 
+    @ExceptionHandler(InsufficientFundsException.class)
+    public ResponseEntity<Map<String, Object>> insufficientFundsException(InsufficientFundsException e) {
+        return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
+                .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+    }
+
+  @ExceptionHandler(CheckProfileUpdateFailureException.class)
+  public ResponseEntity<Map<String, String>> handleCheckProfileUpdateFailure(CheckProfileUpdateFailureException e) {
+    return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+            .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+  }
+
   @ExceptionHandler(ModerationRagException.class)
   public ResponseEntity<Map<String, Object>> handleModeration(ModerationRagException e) {
     return ResponseEntity.status(HttpStatus.BAD_REQUEST)
@@ -82,6 +93,4 @@ public class GlobalRestExceptionHandler {
             ));
   }
 
-
 }
-

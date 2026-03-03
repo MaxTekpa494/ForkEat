@@ -222,31 +222,46 @@ class WalletServiceTest {
         }
 
         @Test
-        void shouldThrowPaymentException_WhenStripeCallFails() {
+        void shouldThrowWithdrawalException_WhenStripeCallFails_AndRevertDebit() {
             // Given
             UUID userId = UUID.randomUUID();
+            UUID walletId = UUID.randomUUID();
             Long amount = 500L;
-            Wallet wallet = new Wallet(UUID.randomUUID(), userId, 1000L, Instant.now());
+            Wallet wallet = new Wallet(walletId, userId, 1000L, Instant.now());
             BankInfo bankInfo = new BankInfo(userId, "Bank", "acct_123");
 
             when(bankInfoService.getBankInfoByUserId(userId)).thenReturn(Optional.of(bankInfo));
             when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.of(wallet));
             when(walletPersistence.saveWallet(any(Wallet.class))).thenAnswer(i -> i.getArguments()[0]);
 
+            // saveTransaction retourne la tx pour que revertFailedWithdrawal puisse la retrouver
+            when(walletPersistence.saveTransaction(any())).thenAnswer(i -> i.getArguments()[0]);
+            when(walletPersistence.findTransactionById(any())).thenAnswer(i -> {
+                UUID txId = i.getArgument(0);
+                return Optional.of(new Transaction(txId, walletId, null, amount,
+                        TransactionType.WITHDRAWAL, Instant.now(), null, TransactionStatus.PENDING));
+            });
+            when(walletPersistence.getWalletById(walletId)).thenReturn(
+                    Optional.of(new Wallet(walletId, userId, 500L, Instant.now())));
+            when(walletPersistence.updateTransaction(any())).thenAnswer(i -> i.getArguments()[0]);
+
             // Le gateway échoue
             doThrow(new PaymentException("Stripe error")).when(payoutGateway).initiatePayout(any(), any(), any(), any(), any());
 
-            // When/Then : PaymentException se propage directement
+            // When/Then : WithdrawalException avec message de compensation synchrone
             assertThatThrownBy(() -> walletService.requestWithdrawal(userId, amount))
-                    .isInstanceOf(PaymentException.class);
+                    .isInstanceOf(WithdrawalException.class)
+                    .hasMessageContaining("Payout initiation failed, withdrawal has been reverted");
 
-            // Seul le débit a eu lieu (la compensation est gérée par webhook)
+            // Débit (1000 → 500) puis reversal (500 → 1000)
             ArgumentCaptor<Wallet> walletCaptor = ArgumentCaptor.forClass(Wallet.class);
-            verify(walletPersistence, times(1)).saveWallet(walletCaptor.capture());
-            assertThat(walletCaptor.getValue().balance()).isEqualTo(500L);
+            verify(walletPersistence, times(2)).saveWallet(walletCaptor.capture());
+            assertThat(walletCaptor.getAllValues().get(0).balance()).isEqualTo(500L);  // débit
+            assertThat(walletCaptor.getAllValues().get(1).balance()).isEqualTo(1000L); // reversal
 
-            // Pas de updateTransaction synchrone
-            verify(walletPersistence, never()).updateTransaction(any());
+            // La compensation est synchrone : transaction marquée FAILED
+            verify(walletPersistence).updateTransaction(argThat(tx ->
+                    tx.status() == TransactionStatus.FAILED));
         }
     }
 

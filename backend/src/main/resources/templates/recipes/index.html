@@ -109,51 +109,9 @@
 
                 <!-- Grille de recettes -->
                 <div th:unless="${#lists.isEmpty(vm.recipes)}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    <div th:each="recipe : ${vm.recipes}" class="recipe-card">
-                        <div class="bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 group h-full flex flex-col cursor-pointer"
-                             th:onclick="|window.location.href='@{/recipes/{id}(id=${recipe.id})}'|">
-
-                            <!-- Image -->
-                            <div class="aspect-[4/3] bg-secondary-100 overflow-hidden relative">
-                                <img th:if="${recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}"
-                                     th:src="${recipe.imageUrl}"
-                                     th:alt="${recipe.title}"
-                                     class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                                <div th:unless="${recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}"
-                                     class="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary-50 to-secondary-100">
-                                    <i class="fas fa-utensils text-4xl text-secondary-300"></i>
-                                </div>
-
-                                <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-secondary-800 shadow-sm">
-                                    <i class="fas fa-clock mr-1 text-primary-500"></i>
-                                    <span th:text="${recipe.preparationMinutes + ' min'}">30 min</span>
-                                </div>
-                            </div>
-
-                            <div class="p-5 flex-1 flex flex-col">
-                                <h3 class="font-bold text-lg text-secondary-900 mb-2 line-clamp-1 group-hover:text-primary-500 transition">
-                                    <span th:text="${recipe.title}">Titre de la recette</span>
-                                </h3>
-
-                                <p th:if="${recipe.summary != null and !recipe.summary.isEmpty()}"
-                                   class="text-secondary-500 text-sm mb-4 line-clamp-2 flex-1"
-                                   th:text="${recipe.summary}">
-                                    Description de la recette...
-                                </p>
-
-                                <div class="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
-                                    <a th:href="@{/profile/{u}(u=${recipe.username})}"
-                                       onclick="event.stopPropagation()"
-                                       class="flex items-center space-x-2 hover:opacity-75 transition">
-                                        <div class="w-8 h-8 bg-secondary-800 text-white rounded-full flex items-center justify-center text-xs font-bold">
-                                            <span th:text="${#strings.toUpperCase(#strings.substring(recipe.username, 0, 1))}">U</span>
-                                        </div>
-                                        <span class="text-sm text-secondary-600 font-medium" th:text="${recipe.username}">Utilisateur</span>
-                                    </a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+                    <th:block th:each="recipe : ${vm.recipes}">
+                        <div th:replace="~{fragments/recipe-card :: recipeCard(${recipe})}"></div>
+                    </th:block>
                 </div>
 
             </div>
@@ -191,6 +149,16 @@
     </section>
 
 </div>
+
+<th:block layout:fragment="scripts">
+    <script>
+        window.addEventListener('pageshow', function(e) {
+            if (e.persisted) {
+                window.location.reload();
+            }
+        });
+    </script>
+</th:block>
 
 </body>
 </html>

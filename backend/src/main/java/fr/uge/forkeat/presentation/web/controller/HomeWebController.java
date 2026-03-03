@@ -7,6 +7,11 @@ import org.springframework.web.bind.annotation.GetMapping;
 @Controller
 public class HomeWebController {
 
+    @GetMapping("/error/403")
+    public String forbidden() {
+        return "error/403";
+    }
+
     @GetMapping("/")
     public String home(Model model) {
         model.addAttribute("pageTitle", "Accueil - ForkEat");

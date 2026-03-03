@@ -2,13 +2,12 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.mapper.web.UserFormDTOMapper;
 import fr.uge.forkeat.presentation.web.form.RegisterFormDTO;
-import fr.uge.forkeat.service.model.PasswordValidator;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
-import fr.uge.forkeat.service.port.PasswordHasherPort;
 import fr.uge.forkeat.service.exception.VerificationException;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
+import fr.uge.forkeat.service.user.UserUpdateService;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.security.authentication.AnonymousAuthenticationToken;
@@ -26,16 +25,16 @@ public class AuthWebController {
     private final UserRegistrationService userRegistrationService;
     private final UserService userService;
     private final EmailVerificationService emailVerificationService;
-    private final PasswordHasherPort passwordHasherPort;
+    private final UserUpdateService userUpdateService;
 
     public AuthWebController(UserRegistrationService userRegistrationService,
                              EmailVerificationService emailVerificationService,
                              UserService userService,
-                             PasswordHasherPort passwordHasherPort) {
+                             UserUpdateService userUpdateService) {
         this.userRegistrationService = userRegistrationService;
         this.emailVerificationService = emailVerificationService;
         this.userService = userService;
-        this.passwordHasherPort = passwordHasherPort;
+        this.userUpdateService = userUpdateService;
     }
 
     @GetMapping("/login")
@@ -69,32 +68,11 @@ public class AuthWebController {
             @RequestParam("verificationCode") String verificationCode,
             @RequestParam("password") String password,
             @RequestParam("confirmPassword") String confirmPassword,
-            Model model,
-            HttpServletResponse response) {
-        if (!password.equals(confirmPassword)) {
-            model.addAttribute("errorMessage", "Les mots de passe ne correspondent pas");
-            model.addAttribute("email", email);
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return "layout/forgot-password-code";
-        }
-        try {
-            PasswordValidator.validate(password);
-        } catch (RegisterFailureException e) {
-            model.addAttribute("errorMessage", e.getMessage());
-            model.addAttribute("email", email);
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return "layout/forgot-password-code";
-        }
-        try {
-            var user = userService.getUserByEmail(email);
-            emailVerificationService.confirmPasswordChange(user.id(), verificationCode, passwordHasherPort.hash(password));
-        } catch (VerificationException e) {
-            model.addAttribute("errorMessage", e.getMessage());
-            model.addAttribute("email", email);
-            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
-            return "layout/forgot-password-code";
-        }
-        return "layout/login";
+            RedirectAttributes redirectAttributes) {
+        userUpdateService.confirmForgotPasswordChange(email, verificationCode, password, confirmPassword);
+        redirectAttributes.addFlashAttribute("success",
+                "Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter.");
+        return "redirect:/auth/login";
     }
 
     @GetMapping("/register")
@@ -131,6 +109,34 @@ public class AuthWebController {
     @GetMapping("/email-sent")
     public String emailSentPage() {
         return "layout/email-sent";
+    }
+
+    @GetMapping("/email-verification-required")
+    public String emailVerificationRequired() {
+        return "layout/email-verification-required";
+    }
+
+    @PostMapping("/resend-verification")
+    public String resendVerification(RedirectAttributes redirectAttributes) {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || auth instanceof AnonymousAuthenticationToken) {
+            return "redirect:/auth/login";
+        }
+        try {
+            var principal = auth.getName();
+            var userOpt = userService.findByEmail(principal);
+            if (userOpt.isEmpty()) {
+                userOpt = java.util.Optional.of(userService.getUserByUsername(principal));
+            }
+            userOpt.ifPresent(user ->
+                    emailVerificationService.sendEmailConfirmation(user.id(), user.email()));
+            redirectAttributes.addFlashAttribute("success",
+                    "Email de confirmation renvoyé ! Vérifiez votre boîte de réception.");
+        } catch (Exception e) {
+            redirectAttributes.addFlashAttribute("errorMessage",
+                    "Impossible de renvoyer l'email. Réessayez dans quelques instants.");
+        }
+        return "redirect:/auth/email-verification-required";
     }
 
     @GetMapping("/confirm-email")

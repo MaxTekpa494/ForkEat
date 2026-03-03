@@ -20,4 +20,7 @@ public interface WalletPersistence {
     Optional<Transaction> findTransactionByStripeTransactionID(String stripeTransactionID);
     Optional<Transaction> findTransactionById(UUID id);
     Transaction updateTransaction(Transaction transaction);
+    Wallet getEarningsWallet();
+    Wallet getRedistributionWallet();
+    void incrementBalanceById(UUID id, long amount);
 }

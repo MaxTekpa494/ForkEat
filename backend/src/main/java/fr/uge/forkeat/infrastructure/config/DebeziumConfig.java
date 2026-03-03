@@ -18,6 +18,7 @@ import org.springframework.stereotype.Component;
 import java.io.IOException;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Configuration du moteur Debezium Embedded pour la capture des changements de données (CDC).
@@ -84,7 +85,7 @@ public class DebeziumConfig {
                 .with("database.server.name", "forkeat")
                 .with("topic.prefix", "forkeat")
                 // Liste des tables à surveiller pour les changements
-                .with("table.include.list", "public.users,public.recipes")
+                .with("table.include.list", "public.users,public.recipes,public.super_likes")
                 // Plugin de décodage PostgreSQL (pgoutput est le standard)
                 .with("plugin.name", "pgoutput")
                 // Création automatique de la publication PostgreSQL
@@ -111,11 +112,15 @@ public class DebeziumConfig {
      * Arrête proprement le moteur Debezium à l'arrêt de l'application.
      */
     @PreDestroy
-    public void stop() throws IOException {
+    public void stop() throws IOException, InterruptedException {
         if (engine != null) {
             log.info("Arrêt de Debezium Embedded Engine...");
             engine.close();
         }
         executor.shutdown();
+        if (!executor.awaitTermination(30, TimeUnit.SECONDS)) {
+            log.warn("Debezium ne s'est pas arrêté proprement dans le délai imparti");
+            executor.shutdownNow();
+        }
     }
 }
