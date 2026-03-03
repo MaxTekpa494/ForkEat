@@ -2,8 +2,7 @@ package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
-import fr.uge.forkeat.service.model.ImageUpload;
-import fr.uge.forkeat.service.model.PageResult;
+import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.*;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
@@ -15,6 +14,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -219,8 +219,10 @@ public class RecipeService {
       if(recipePersistence.hasSuperLikedRecipe(userId,  recipeId)){
           return;
       }
-      var userBalance = walletPersistence.getBalance(userId);
       var amount = 100L;
+
+      var wallet = walletPersistence.findByUserId(userId).orElseThrow(() -> new InsufficientFundsException(0L, amount));
+      var userBalance = wallet.balance();
       if (userBalance < amount) {
         logger.debug("User {} has not enough balance for this recipe", userId);
         throw new InsufficientFundsException(userBalance, amount);
@@ -230,6 +232,7 @@ public class RecipeService {
       var partForEarnings = Math.round(amount * 0.4);
       var partForRedistribution = amount - partForEarnings;
       recipePersistence.superLikeRecipe(userId, recipeId, amount);
+      walletPersistence.saveTransaction(new Transaction(UUID.randomUUID(), wallet.id(), null, amount, TransactionType.SUPER_LIKE, Instant.now(), null, TransactionStatus.SUCCEEDED));
       walletPersistence.incrementBalanceById(earningsWallet.id(), partForEarnings);
       walletPersistence.incrementBalanceById(redistributionWallet.id(), partForRedistribution);
   }
