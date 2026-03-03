@@ -7,6 +7,7 @@ import fr.uge.forkeat.presentation.dto.user.ChangePasswordConfirmCodeDTO;
 import fr.uge.forkeat.presentation.dto.user.ChangePasswordDTO;
 import fr.uge.forkeat.service.ProfileService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
@@ -35,7 +36,9 @@ import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ProfileRestController.class)
@@ -54,6 +57,8 @@ class ProfileRestControllerTest {
     private AuthenticationManager authenticationManager;
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
+    @MockitoBean
+    private UserService userService;
 
     @Autowired
     ProfileRestControllerTest(MockMvc mockMvc) {
@@ -184,6 +189,58 @@ class ProfileRestControllerTest {
             mockMvc.perform(get("/api/profile"))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value("User not found: viewer"));
+        }
+    }
+
+    @Nested
+    class FollowTests {
+
+        @Test
+        void follow_ShouldReturn200_WhenSuccessful() throws Exception {
+            doNothing().when(userService).follow("viewer", "chef");
+
+            mockMvc.perform(put("/api/profile/chef/follow"))
+                    .andExpect(status().isOk());
+
+            verify(userService).follow("viewer", "chef");
+        }
+
+        @Test
+        void follow_ShouldReturn404_WhenUserNotFound() throws Exception {
+            doThrow(new ResourceNotFoundException("User not found: unknown"))
+                    .when(userService).follow("viewer", "unknown");
+
+            mockMvc.perform(put("/api/profile/unknown/follow"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void follow_ShouldExtractCurrentUsernameFromAuth() throws Exception {
+            doNothing().when(userService).follow(any(), any());
+
+            mockMvc.perform(put("/api/profile/chef/follow"))
+                    .andExpect(status().isOk());
+
+            verify(authenticationPort).extractUsername();
+        }
+
+        @Test
+        void unfollow_ShouldReturn200_WhenSuccessful() throws Exception {
+            doNothing().when(userService).unfollow("viewer", "chef");
+
+            mockMvc.perform(delete("/api/profile/chef/follow"))
+                    .andExpect(status().isOk());
+
+            verify(userService).unfollow("viewer", "chef");
+        }
+
+        @Test
+        void unfollow_ShouldReturn404_WhenUserNotFound() throws Exception {
+            doThrow(new ResourceNotFoundException("User not found: unknown"))
+                    .when(userService).unfollow("viewer", "unknown");
+
+            mockMvc.perform(delete("/api/profile/unknown/follow"))
+                    .andExpect(status().isNotFound());
         }
     }
 

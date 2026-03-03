@@ -19,6 +19,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -273,6 +276,108 @@ class UserServiceTest {
 
             // When/Then
             assertThrows(ResourceNotFoundException.class, () -> userService.checkUserPassword(username, rawPassword));
+        }
+    }
+
+    @Nested
+    class FollowTests {
+
+        @Test
+        void follow_ShouldCallPersistence_WhenBothUsersExist() {
+            // Given
+            var followerId = UUID.randomUUID();
+            var followedId = UUID.randomUUID();
+            when(userPersistence.findIdByUsername("alice")).thenReturn(Optional.of(followerId));
+            when(userPersistence.findIdByUsername("bob")).thenReturn(Optional.of(followedId));
+
+            // When
+            userService.follow("alice", "bob");
+
+            // Then
+            verify(userPersistence).follow(followerId, followedId);
+        }
+
+        @Test
+        void follow_ShouldThrow_WhenFollowerNotFound() {
+            // Given
+            when(userPersistence.findIdByUsername("unknown")).thenReturn(Optional.empty());
+
+            // When/Then
+            assertThrows(ResourceNotFoundException.class, () -> userService.follow("unknown", "bob"));
+            verify(userPersistence, never()).follow(any(), any());
+        }
+
+        @Test
+        void follow_ShouldThrow_WhenFollowedNotFound() {
+            // Given
+            var followerId = UUID.randomUUID();
+            when(userPersistence.findIdByUsername("alice")).thenReturn(Optional.of(followerId));
+            when(userPersistence.findIdByUsername("unknown")).thenReturn(Optional.empty());
+
+            // When/Then
+            assertThrows(ResourceNotFoundException.class, () -> userService.follow("alice", "unknown"));
+            verify(userPersistence, never()).follow(any(), any());
+        }
+
+        @Test
+        void follow_ShouldThrow_WhenFollowerUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> userService.follow(null, "bob"));
+        }
+
+        @Test
+        void follow_ShouldThrow_WhenFollowedUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> userService.follow("alice", null));
+        }
+    }
+
+    @Nested
+    class UnfollowTests {
+
+        @Test
+        void unfollow_ShouldCallPersistence_WhenBothUsersExist() {
+            // Given
+            var followerId = UUID.randomUUID();
+            var followedId = UUID.randomUUID();
+            when(userPersistence.findIdByUsername("alice")).thenReturn(Optional.of(followerId));
+            when(userPersistence.findIdByUsername("bob")).thenReturn(Optional.of(followedId));
+
+            // When
+            userService.unfollow("alice", "bob");
+
+            // Then
+            verify(userPersistence).unfollow(followerId, followedId);
+        }
+
+        @Test
+        void unfollow_ShouldThrow_WhenFollowerNotFound() {
+            // Given
+            when(userPersistence.findIdByUsername("unknown")).thenReturn(Optional.empty());
+
+            // When/Then
+            assertThrows(ResourceNotFoundException.class, () -> userService.unfollow("unknown", "bob"));
+            verify(userPersistence, never()).unfollow(any(), any());
+        }
+
+        @Test
+        void unfollow_ShouldThrow_WhenFollowedNotFound() {
+            // Given
+            var followerId = UUID.randomUUID();
+            when(userPersistence.findIdByUsername("alice")).thenReturn(Optional.of(followerId));
+            when(userPersistence.findIdByUsername("unknown")).thenReturn(Optional.empty());
+
+            // When/Then
+            assertThrows(ResourceNotFoundException.class, () -> userService.unfollow("alice", "unknown"));
+            verify(userPersistence, never()).unfollow(any(), any());
+        }
+
+        @Test
+        void unfollow_ShouldThrow_WhenFollowerUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> userService.unfollow(null, "bob"));
+        }
+
+        @Test
+        void unfollow_ShouldThrow_WhenFollowedUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> userService.unfollow("alice", null));
         }
     }
 }

@@ -41,7 +41,13 @@ public interface UserPersistence {
 
 	UserSocialStats findUserSocialStats(String username);
 
+	Optional<UUID> findIdByUsername(String username);
+
 	boolean isFollowing(String followerUsername, String followedUsername);
+
+	void follow(UUID followerId, UUID followedId);
+
+	void unfollow(UUID followerId, UUID followedId);
 
 	PageResult<User> findAllByRole(UserRole role);
 

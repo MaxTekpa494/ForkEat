@@ -61,4 +61,26 @@ public class UserService {
         return passwordHasher.matches(rawPassword, hashedPassword);
     }
 
+    @Transactional
+    public void follow(String followerUsername, String followedUsername) {
+        Objects.requireNonNull(followerUsername);
+        Objects.requireNonNull(followedUsername);
+        var followerId = userPersistence.findIdByUsername(followerUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + followerUsername));
+        var followedId = userPersistence.findIdByUsername(followedUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + followedUsername));
+        userPersistence.follow(followerId, followedId);
+    }
+
+    @Transactional
+    public void unfollow(String followerUsername, String followedUsername) {
+        Objects.requireNonNull(followerUsername);
+        Objects.requireNonNull(followedUsername);
+        var followerId = userPersistence.findIdByUsername(followerUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + followerUsername));
+        var followedId = userPersistence.findIdByUsername(followedUsername)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + followedUsername));
+        userPersistence.unfollow(followerId, followedId);
+    }
+
 }

@@ -4,6 +4,7 @@ import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.presentation.dto.user.UserProfileDTO;
 import fr.uge.forkeat.service.ProfileService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
@@ -34,6 +35,8 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.csrf;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
 @WebMvcTest(ProfileWebController.class)
@@ -50,8 +53,8 @@ class ProfileControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
-
-
+    @MockitoBean
+    private UserService userService;
 
     private User testUser;
 
@@ -175,6 +178,54 @@ class ProfileControllerTest {
                         var vm = (UserProfileDTO) result.getModelAndView().getModel().get("vm");
                         assertTrue(vm.followedByCurrentUser());
                     });
+        }
+    }
+
+    @Nested
+    class FollowTests {
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void follow_ShouldRedirectToProfile_WhenSuccessful() throws Exception {
+            doNothing().when(userService).follow("testuser", "otheruser");
+
+            mockMvc.perform(post("/profile/otheruser/follow").with(csrf()))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/profile/otheruser"));
+
+            verify(userService).follow("testuser", "otheruser");
+        }
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void follow_ShouldReturn4xx_WhenUserNotFound() throws Exception {
+            doThrow(new ResourceNotFoundException("User not found: unknown"))
+                    .when(userService).follow("testuser", "unknown");
+
+            mockMvc.perform(post("/profile/unknown/follow").with(csrf()))
+                    .andExpect(status().is4xxClientError());
+        }
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void unfollow_ShouldRedirectToProfile_WhenSuccessful() throws Exception {
+            doNothing().when(userService).unfollow("testuser", "otheruser");
+
+            mockMvc.perform(post("/profile/otheruser/unfollow").with(csrf()))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/profile/otheruser"));
+
+            verify(userService).unfollow("testuser", "otheruser");
+        }
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void unfollow_ShouldReturn4xx_WhenUserNotFound() throws Exception {
+            doThrow(new ResourceNotFoundException("User not found: unknown"))
+                    .when(userService).unfollow("testuser", "unknown");
+
+            mockMvc.perform(post("/profile/unknown/unfollow").with(csrf()))
+                    .andExpect(status().is4xxClientError());
         }
     }
 }

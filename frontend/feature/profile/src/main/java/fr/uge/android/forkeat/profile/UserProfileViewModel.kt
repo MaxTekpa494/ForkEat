@@ -157,6 +157,54 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
         )
     }
 
+    fun follow() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                followedByCurrentUser = true,
+                followerCount = _uiState.value.followerCount + 1
+            )
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = ForkEatApi.profileService.followUser(token, targetUsername)
+                if (!response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(
+                        followedByCurrentUser = false,
+                        followerCount = _uiState.value.followerCount - 1
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    followedByCurrentUser = false,
+                    followerCount = _uiState.value.followerCount - 1
+                )
+            }
+        }
+    }
+
+    fun unfollow() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                followedByCurrentUser = false,
+                followerCount = _uiState.value.followerCount - 1
+            )
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = ForkEatApi.profileService.unfollowUser(token, targetUsername)
+                if (!response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(
+                        followedByCurrentUser = true,
+                        followerCount = _uiState.value.followerCount + 1
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    followedByCurrentUser = true,
+                    followerCount = _uiState.value.followerCount + 1
+                )
+            }
+        }
+    }
+
     private fun handleError(code: Int) {
         if (code == 403) {
             _uiState.value = _uiState.value.copy(emailNotVerified = true)
