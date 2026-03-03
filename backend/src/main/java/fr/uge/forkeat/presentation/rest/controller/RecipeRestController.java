@@ -10,6 +10,7 @@ import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserService;
 import org.slf4j.Logger;
@@ -187,7 +188,7 @@ public final class RecipeRestController {
 
 
   @PostMapping("/smart-search")
-  public ResponseEntity<HttpResponse<RecipeDTO>> smartSearch(
+  public ResponseEntity<HttpResponse<PersonalizedRecipeSummaryDTO>> smartSearch(
           @RequestBody SmartSearchRequestDTO request) {
 
     var user = userService.getUserByUsername(authPort.extractUsername());
@@ -195,7 +196,7 @@ public final class RecipeRestController {
     var recipes = smartSearchService.search(request.query());
 
     var dtos = recipes.stream()
-            .map(RecipeDTOMapper::toDTO)
+            .map(RecipeDTOMapper::toSummaryDTO)
             .toList();
 
     return ResponseEntity.ok(new ListResponse<>(dtos, dtos.size()));

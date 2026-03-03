@@ -408,7 +408,7 @@ class UserUpdateServiceTest {
             var user = createTestUser(userId, "testuser", "test@example.com");
 
             when(userService.getUserByEmail("test@example.com")).thenReturn(user);
-            when(passwordHasher.hash("NewPass1")).thenReturn("hashedNew");
+            when(passwordHasherPort.hash("NewPass1")).thenReturn("hashedNew");
 
             userUpdateService.confirmForgotPasswordChange("test@example.com", "123456", "NewPass1", "NewPass1");
 

@@ -1,10 +1,10 @@
 package fr.uge.forkeat.service.user;
 
-import fr.uge.forkeat.service.PasswordValidator;
 import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.PasswordValidator;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import fr.uge.forkeat.service.port.PasswordHasherPort;
 import org.springframework.stereotype.Service;
@@ -93,7 +93,7 @@ public class UserUpdateService {
       } catch (RegisterFailureException e) {
         throw new CheckProfileUpdateFailureException(e.getMessage());
       }
-      pendingPasswordHash = passwordHasher.hash(newPassword);
+      pendingPasswordHash = passwordHasherPort.hash(newPassword);
     }
 
     if (pendingPasswordHash != null) {
@@ -134,7 +134,7 @@ public class UserUpdateService {
       throw new CheckProfileUpdateFailureException("Passwords are the same");
     }
 
-    var pendingPasswordHash = passwordHasher.hash(newPassword);
+    var pendingPasswordHash = passwordHasherPort.hash(newPassword);
     emailVerificationService.sendPasswordChangeCode(user.id(), user.email(), pendingPasswordHash);
   }
 
@@ -152,7 +152,7 @@ public class UserUpdateService {
       throw new CheckProfileUpdateFailureException(e.getMessage());
     }
     var user = userService.getUserByEmail(email);
-    emailVerificationService.confirmPasswordReset(user.id(), code, passwordHasher.hash(newPassword));
+    emailVerificationService.confirmPasswordReset(user.id(), code, passwordHasherPort.hash(newPassword));
   }
 
   @Transactional(

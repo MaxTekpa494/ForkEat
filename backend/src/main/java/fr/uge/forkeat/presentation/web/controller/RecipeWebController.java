@@ -18,6 +18,7 @@ import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -263,36 +264,34 @@ public class RecipeWebController {
     }
 
     @GetMapping("/smart-search")
-    public String pageSmartSearch(Model model) {
+    public String pageSmartSearch(Model model, HttpSession session) {
         var username = authPort.extractUsername();
-        var balance  = walletService.getBalance(
-                userService.getUserByUsername(username).id()
-        );
+        var balance  = walletService.getBalance(userService.getUserByUsername(username).id());
         model.addAttribute("balance", balance);
+
         if (!model.containsAttribute("query")) {
-            model.addAttribute("query", "");
+            var cached = session.getAttribute("smartSearchQuery");
+            model.addAttribute("query", cached != null ? cached : "");
         }
         if (!model.containsAttribute("recipes")) {
-            model.addAttribute("recipes", List.of());
+            var cached = session.getAttribute("smartSearchResults");
+            model.addAttribute("recipes", cached != null ? cached : List.of());
         }
+
         return "recipes/smart-search";
     }
 
     @PostMapping("/smart-search")
-    public String smartSearch(@RequestParam("query") String query, Model model) {
+    public String smartSearch(@RequestParam("query") String query, HttpSession session) {
         var username = authPort.extractUsername();
-        var user     = userService.getUserByUsername(username);
 
-
-        var recipes = smartSearchService.search(query);
-        var dtos    = recipes.stream()
-                .map(RecipeDTOMapper::toDTO)
+        var dtos = smartSearchService.search(query).stream()
+                .map(RecipeDTOMapper::toSummaryDTO)
                 .toList();
 
-        model.addAttribute("balance", walletService.getBalance(user.id()));
-        model.addAttribute("query",   query);
-        model.addAttribute("recipes", dtos);
-        return "recipes/smart-search";
+        session.setAttribute("smartSearchQuery",   query);
+        session.setAttribute("smartSearchResults", dtos);
+        return "redirect:/recipes/smart-search";
     }
 
 

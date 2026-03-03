@@ -44,6 +44,10 @@ public interface RecipePersistence {
 
   long countByStatus(RecipeStatus status);
 
+  // Alors ici on ne fait pas Page<RecipeSummary> parce qu'on
+  // n'est pas sensé renvoyer plein de recette quand c'est du RAG...
+  List<RecipeSummary> findSummariesByIds(List<UUID> ids);
+
   PageResult<RecipeSummary> findUserRecipeSummaries(String username, RecipeStatus status, int size, int page);
 
   RecipeCounts findRecipeCounts(UUID recipeId);
