@@ -9,7 +9,6 @@ import fr.uge.forkeat.service.port.PasswordHasher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
 import java.util.UUID;
@@ -65,10 +64,8 @@ public class UserService {
     public void follow(String followerUsername, String followedUsername) {
         Objects.requireNonNull(followerUsername);
         Objects.requireNonNull(followedUsername);
-        var followerId = userPersistence.findIdByUsername(followerUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + followerUsername));
-        var followedId = userPersistence.findIdByUsername(followedUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + followedUsername));
+        var followerId = userPersistence.findIdByUsernameOrThrow(followerUsername);
+        var followedId = userPersistence.findIdByUsernameOrThrow(followedUsername);
         userPersistence.follow(followerId, followedId);
     }
 
@@ -76,10 +73,8 @@ public class UserService {
     public void unfollow(String followerUsername, String followedUsername) {
         Objects.requireNonNull(followerUsername);
         Objects.requireNonNull(followedUsername);
-        var followerId = userPersistence.findIdByUsername(followerUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + followerUsername));
-        var followedId = userPersistence.findIdByUsername(followedUsername)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + followedUsername));
+        var followerId = userPersistence.findIdByUsernameOrThrow(followerUsername);
+        var followedId = userPersistence.findIdByUsernameOrThrow(followedUsername);
         userPersistence.unfollow(followerId, followedId);
     }
 

@@ -4,6 +4,34 @@
 
 <div th:fragment="recipeCard(recipe)" class="recipe-card relative group">
 
+    <!-- Formulaires CSRF cachés (like et super-like toujours présents, follow seulement si connecté) -->
+    <form th:id="'card-like-form-' + ${recipe.id}"
+          th:action="@{/recipes/{id}/like(id=${recipe.id})}"
+          method="post" class="hidden"></form>
+    <form th:id="'card-sl-form-' + ${recipe.id}"
+          th:action="@{/recipes/{id}/super-like(id=${recipe.id})}"
+          method="post" class="hidden"></form>
+    <form th:if="${isAuthenticated}"
+          th:id="'card-follow-form-' + ${recipe.id}"
+          th:action="@{/recipes/{id}/follow(id=${recipe.id})}"
+          method="post" class="hidden"></form>
+
+    <!-- Modale confirmation Super Like -->
+    <div th:replace="~{fragments/modals :: superLikeModal(
+        |card-sl-modal-${recipe.id}|,
+        |card-sl-modal-content-${recipe.id}|,
+        |confirmCardSl('${recipe.id}')|,
+        |closeCardSlModal('${recipe.id}')|,
+        |cardSlModalBackdropClick(event, '${recipe.id}')|
+    )}"></div>
+
+    <!-- Modale fonds insuffisants -->
+    <div th:replace="~{fragments/modals :: insufficientFundsModal(
+        |card-funds-modal-${recipe.id}|,
+        |card-funds-modal-content-${recipe.id}|,
+        |closeCardFundsModal('${recipe.id}')|
+    )}"></div>
+
     <div class="bg-white rounded-2xl shadow-sm group-hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 h-full flex flex-col">
 
         <!-- Image -->
@@ -35,26 +63,51 @@
             </p>
 
             <div class="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
-                <div class="flex items-center space-x-4">
+                <div class="flex items-center space-x-2">
+
                     <!-- Like -->
-                    <span class="flex items-center space-x-1 text-sm text-secondary-500">
-                        <i th:class="${recipe.likedByCurrentUser} ? 'fas fa-heart text-red-500' : 'far fa-heart text-gray-300'"></i>
+                    <button type="button"
+                            class="relative z-10 flex items-center gap-1 px-2.5 py-1 rounded-full border border-gray-200 text-gray-500 text-sm cursor-pointer transition-all duration-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50"
+                            th:classappend="${recipe.likedByCurrentUser} ? ' border-red-500 text-red-500 bg-red-50' : ''"
+                            th:data-recipe-id="${recipe.id}"
+                            th:data-liked="${recipe.likedByCurrentUser}"
+                            th:data-auth="${isAuthenticated}"
+                            th:attr="onclick='handleCardLike(event, this)'"
+                            aria-label="J'aime cette recette">
+                        <i th:class="${recipe.likedByCurrentUser} ? 'fas fa-heart' : 'far fa-heart'"></i>
                         <span th:text="${recipe.likeCount}">0</span>
-                    </span>
-                    <!-- Super-like -->
-                    <span class="flex items-center space-x-1 text-sm text-secondary-500">
-                        <svg th:if="${recipe.superLikedByCurrentUser}" class="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                            <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z" fill="#FFC837"/>
-                            <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z" fill="#FFC837"/>
-                            <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#FFED8B"/>
-                        </svg>
-                        <svg th:unless="${recipe.superLikedByCurrentUser}" class="w-4 h-4" viewBox="0 0 24 24" fill="none">
-                            <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z" fill="#D1D5DB"/>
-                            <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z" fill="#D1D5DB"/>
-                            <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#D1D5DB"/>
+                    </button>
+
+                    <!-- Super-like (fill="currentColor" → couleur pilotée par les classes du bouton) -->
+                    <button type="button"
+                            class="relative z-10 flex items-center gap-1 px-2.5 py-1 rounded-full border border-gray-200 text-gray-400 text-sm cursor-pointer transition-all duration-200 hover:border-yellow-500 hover:text-yellow-500 hover:bg-yellow-50"
+                            th:classappend="${recipe.superLikedByCurrentUser} ? ' border-yellow-500 text-yellow-500 bg-yellow-50' : ''"
+                            th:data-recipe-id="${recipe.id}"
+                            th:data-liked="${recipe.superLikedByCurrentUser}"
+                            th:data-auth="${isAuthenticated}"
+                            th:attr="onclick='handleCardSuperLike(event, this)'"
+                            aria-label="Super like cette recette">
+                        <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z"/>
+                            <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z"/>
+                            <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z"/>
                         </svg>
                         <span th:text="${recipe.superLikeCount}">0</span>
-                    </span>
+                    </button>
+
+                    <!-- Follow (toujours un bouton, même non connecté) -->
+                    <button type="button"
+                            class="relative z-10 flex items-center gap-1 px-2.5 py-1 rounded-full border border-gray-200 text-sm cursor-pointer transition-all duration-200 hover:border-primary-400 hover:text-primary-500 hover:bg-primary-50"
+                            th:classappend="${recipe.followedByCurrentUser} ? ' border-primary-500 text-primary-500 bg-primary-50' : ' text-gray-400'"
+                            th:data-recipe-id="${recipe.id}"
+                            th:data-followed="${recipe.followedByCurrentUser}"
+                            th:data-auth="${isAuthenticated}"
+                            th:attr="onclick='handleCardFollow(event, this)'"
+                            aria-label="Suivre cette recette">
+                        <i th:class="${recipe.followedByCurrentUser} ? 'fas fa-bookmark' : 'far fa-bookmark'"></i>
+                        <span th:text="${recipe.followCount}">0</span>
+                    </button>
+
                 </div>
 
                 <!-- Auteur cliquable, en bas à droite -->
@@ -68,10 +121,171 @@
         </div>
     </div>
 
-    <!-- Lien etiré couvrant toute la carte (z-0, sous le lien auteur) -->
+    <!-- Lien étiré couvrant toute la carte (z-0, sous les boutons) -->
     <a th:href="@{/recipes/{id}(id=${recipe.id})}"
        class="absolute inset-0 z-0 rounded-2xl"
        aria-label="Voir la recette"></a>
+
+    <!--
+        Script à l'intérieur du fragment.
+        Les fonctions sont assignées sur window pour éviter le block-scoping ES6.
+        Le guard sur window._cardActionsRegistered empêche la redéfinition quand
+        plusieurs cartes sont présentes sur la même page.
+    -->
+    <script th:inline="none">
+        if (!window._cardActionsRegistered) {
+            window._cardActionsRegistered = true;
+            window._cardSlBtn = null;
+
+            window.handleCardLike = async function(event, button) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (button.dataset.auth !== 'true') { window.location.href = '/auth/login'; return; }
+                if (button.disabled) return;
+                button.disabled = true;
+                const recipeId = button.dataset.recipeId;
+                const isLiked = button.dataset.liked === 'true';
+                const form = document.getElementById('card-like-form-' + recipeId);
+                form.action = '/recipes/' + recipeId + '/' + (isLiked ? 'unlike' : 'like');
+                try {
+                    const response = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+                    if (response.url && response.url.includes('/login')) { window.location.href = response.url; return; }
+                    if (response.ok) {
+                        const icon = button.querySelector('i');
+                        const span = button.querySelector('span');
+                        const count = parseInt(span.textContent);
+                        if (isLiked) {
+                            span.textContent = count - 1;
+                            icon.className = 'far fa-heart';
+                            button.classList.remove('border-red-500', 'text-red-500', 'bg-red-50');
+                            button.dataset.liked = 'false';
+                        } else {
+                            span.textContent = count + 1;
+                            icon.className = 'fas fa-heart';
+                            button.classList.add('border-red-500', 'text-red-500', 'bg-red-50');
+                            button.dataset.liked = 'true';
+                        }
+                    }
+                } catch(e) {
+                    console.error('Like error:', e);
+                } finally {
+                    button.disabled = false;
+                }
+            };
+
+            window.handleCardSuperLike = function(event, button) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (button.dataset.auth !== 'true') { window.location.href = '/auth/login'; return; }
+                if (button.dataset.liked === 'true') return;
+                window._cardSlBtn = button;
+                const recipeId = button.dataset.recipeId;
+                const modal = document.getElementById('card-sl-modal-' + recipeId);
+                const content = document.getElementById('card-sl-modal-content-' + recipeId);
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                requestAnimationFrame(function() {
+                    content.classList.remove('scale-95', 'opacity-0');
+                    content.classList.add('scale-100', 'opacity-100');
+                });
+            };
+
+            window.closeCardSlModal = function(recipeId) {
+                const modal = document.getElementById('card-sl-modal-' + recipeId);
+                const content = document.getElementById('card-sl-modal-content-' + recipeId);
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+                setTimeout(function() { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
+            };
+
+            window.cardSlModalBackdropClick = function(event, recipeId) {
+                if (event.target === document.getElementById('card-sl-modal-' + recipeId)) {
+                    window.closeCardSlModal(recipeId);
+                }
+            };
+
+            window.confirmCardSl = function(recipeId) {
+                const form = document.getElementById('card-sl-form-' + recipeId);
+                const modal = document.getElementById('card-sl-modal-' + recipeId);
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+                fetch(form.action, { method: 'POST', body: new FormData(form) })
+                    .then(function(response) {
+                        if (!response.ok) {
+                            if (response.status === 402) window.openCardFundsModal(recipeId);
+                            return;
+                        }
+                        if (window._cardSlBtn) {
+                            const span = window._cardSlBtn.querySelector('span');
+                            span.textContent = parseInt(span.textContent) + 1;
+                            window._cardSlBtn.classList.add('border-yellow-500', 'text-yellow-500', 'bg-yellow-50');
+                            window._cardSlBtn.classList.remove('text-gray-400');
+                            window._cardSlBtn.dataset.liked = 'true';
+                            window._cardSlBtn = null;
+                        }
+                    })
+                    .catch(function(e) { console.error('Super-like error:', e); });
+            };
+
+            window.openCardFundsModal = function(recipeId) {
+                const modal = document.getElementById('card-funds-modal-' + recipeId);
+                const content = document.getElementById('card-funds-modal-content-' + recipeId);
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+                requestAnimationFrame(function() {
+                    content.classList.remove('scale-95', 'opacity-0');
+                    content.classList.add('scale-100', 'opacity-100');
+                });
+            };
+
+            window.closeCardFundsModal = function(recipeId) {
+                const modal = document.getElementById('card-funds-modal-' + recipeId);
+                const content = document.getElementById('card-funds-modal-content-' + recipeId);
+                content.classList.remove('scale-100', 'opacity-100');
+                content.classList.add('scale-95', 'opacity-0');
+                setTimeout(function() { modal.classList.add('hidden'); modal.classList.remove('flex'); }, 200);
+            };
+
+            window.handleCardFollow = async function(event, button) {
+                event.preventDefault();
+                event.stopPropagation();
+                if (button.dataset.auth !== 'true') { window.location.href = '/auth/login'; return; }
+                if (button.disabled) return;
+                button.disabled = true;
+                const recipeId = button.dataset.recipeId;
+                const isFollowed = button.dataset.followed === 'true';
+                const form = document.getElementById('card-follow-form-' + recipeId);
+                form.action = '/recipes/' + recipeId + '/' + (isFollowed ? 'unfollow' : 'follow');
+                try {
+                    const response = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+                    if (response.url && response.url.includes('/login')) { window.location.href = response.url; return; }
+                    if (response.ok) {
+                        const icon = button.querySelector('i');
+                        const span = button.querySelector('span');
+                        const count = parseInt(span.textContent);
+                        if (isFollowed) {
+                            span.textContent = count - 1;
+                            icon.className = 'far fa-bookmark';
+                            button.classList.remove('border-primary-500', 'text-primary-500', 'bg-primary-50');
+                            button.classList.add('text-gray-400');
+                            button.dataset.followed = 'false';
+                        } else {
+                            span.textContent = count + 1;
+                            icon.className = 'fas fa-bookmark';
+                            button.classList.remove('text-gray-400');
+                            button.classList.add('border-primary-500', 'text-primary-500', 'bg-primary-50');
+                            button.dataset.followed = 'true';
+                        }
+                    }
+                } catch(e) {
+                    console.error('Follow error:', e);
+                } finally {
+                    button.disabled = false;
+                }
+            };
+        }
+    </script>
+
 </div>
 
 </body>

@@ -11,6 +11,7 @@ import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.StoragePort;
+import fr.uge.forkeat.service.port.UserIdentityPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -37,14 +38,15 @@ class RecipeServiceTest {
     private StoragePort storageService;
     @Mock
     private AuthenticationPort authPort;
-
+    @Mock
+    private UserIdentityPort userIdentityPort;
 
     private RecipeService recipeService;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeService = new RecipeService(recipePersistence, storageService, walletPersistence, authPort);
+        recipeService = new RecipeService(recipePersistence, storageService, walletPersistence, authPort, userIdentityPort);
         now = Instant.now();
     }
 
@@ -85,8 +87,8 @@ class RecipeServiceTest {
         void shouldReturnPersonalizedRecipeWhenFound() {
             var recipeId = UUID.randomUUID();
             var recipe = createRecipe(recipeId, "Tarte aux pommes", RecipeStatus.PUBLISHED);
-            var counts = new RecipeCounts(10L, 5L);
-            var interaction = new RecipeUserInteraction(true, false);
+            var counts = new RecipeCounts(10L, 5L, 2L);
+            var interaction = new RecipeUserInteraction(true, false, false);
             var username = "user1";
 
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
@@ -108,7 +110,7 @@ class RecipeServiceTest {
         void shouldReturnPersonalizedRecipeWithNoneInteractionWhenUsernameIsNull() {
             var recipeId = UUID.randomUUID();
             var recipe = createRecipe(recipeId, "Tarte aux pommes", RecipeStatus.PUBLISHED);
-            var counts = new RecipeCounts(10L, 5L);
+            var counts = new RecipeCounts(10L, 5L, 2L);
 
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
             when(recipePersistence.findRecipeCounts(recipeId)).thenReturn(counts);
@@ -179,8 +181,8 @@ class RecipeServiceTest {
         void shouldReturnPersonalizedSummariesWhenAuthenticated() {
             var recipeId = UUID.randomUUID();
             var summary = createRecipeSummary(recipeId, "Tarte");
-            var counts = new RecipeCounts(5L, 2L);
-            var interaction = new RecipeUserInteraction(true, false);
+            var counts = new RecipeCounts(5L, 2L, 1L);
+            var interaction = new RecipeUserInteraction(true, false, false);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "tarte", List.of(), 12, 0);
 
             when(authPort.extractUsername()).thenReturn("user1");
@@ -205,7 +207,7 @@ class RecipeServiceTest {
         void shouldReturnNoneInteractionWhenNotAuthenticated() {
             var recipeId = UUID.randomUUID();
             var summary = createRecipeSummary(recipeId, "Salade");
-            var counts = new RecipeCounts(3L, 0L);
+            var counts = new RecipeCounts(3L, 0L, 0L);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "salade", List.of(), 12, 0);
 
             when(authPort.extractUsername()).thenReturn(null);

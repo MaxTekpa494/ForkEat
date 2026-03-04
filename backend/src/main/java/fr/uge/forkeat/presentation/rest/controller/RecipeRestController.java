@@ -174,4 +174,16 @@ public final class RecipeRestController {
         recipeService.unlikeRecipe(user.id(), id);
         return ResponseEntity.ok().build();
     }
+
+    @PutMapping("/{id}/follow")
+    public ResponseEntity<HttpResponse<Void>> followRecipe(@PathVariable UUID id) {
+        recipeService.followRecipe(authPort.extractUsername(), id);
+        return ResponseEntity.ok(new SuccessResponse());
+    }
+
+    @DeleteMapping("/{id}/follow")
+    public ResponseEntity<HttpResponse<Void>> unfollowRecipe(@PathVariable UUID id) {
+        recipeService.unfollowRecipe(authPort.extractUsername(), id);
+        return ResponseEntity.ok(new SuccessResponse());
+    }
 }

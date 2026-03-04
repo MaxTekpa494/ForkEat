@@ -287,8 +287,8 @@ class UserServiceTest {
             // Given
             var followerId = UUID.randomUUID();
             var followedId = UUID.randomUUID();
-            when(userPersistence.findIdByUsername("alice")).thenReturn(Optional.of(followerId));
-            when(userPersistence.findIdByUsername("bob")).thenReturn(Optional.of(followedId));
+            when(userPersistence.findIdByUsernameOrThrow("alice")).thenReturn(followerId);
+            when(userPersistence.findIdByUsernameOrThrow("bob")).thenReturn(followedId);
 
             // When
             userService.follow("alice", "bob");
@@ -300,7 +300,8 @@ class UserServiceTest {
         @Test
         void follow_ShouldThrow_WhenFollowerNotFound() {
             // Given
-            when(userPersistence.findIdByUsername("unknown")).thenReturn(Optional.empty());
+            when(userPersistence.findIdByUsernameOrThrow("unknown"))
+                    .thenThrow(new ResourceNotFoundException("User not found: unknown"));
 
             // When/Then
             assertThrows(ResourceNotFoundException.class, () -> userService.follow("unknown", "bob"));
@@ -310,9 +311,9 @@ class UserServiceTest {
         @Test
         void follow_ShouldThrow_WhenFollowedNotFound() {
             // Given
-            var followerId = UUID.randomUUID();
-            when(userPersistence.findIdByUsername("alice")).thenReturn(Optional.of(followerId));
-            when(userPersistence.findIdByUsername("unknown")).thenReturn(Optional.empty());
+            when(userPersistence.findIdByUsernameOrThrow("alice")).thenReturn(UUID.randomUUID());
+            when(userPersistence.findIdByUsernameOrThrow("unknown"))
+                    .thenThrow(new ResourceNotFoundException("User not found: unknown"));
 
             // When/Then
             assertThrows(ResourceNotFoundException.class, () -> userService.follow("alice", "unknown"));
@@ -338,8 +339,8 @@ class UserServiceTest {
             // Given
             var followerId = UUID.randomUUID();
             var followedId = UUID.randomUUID();
-            when(userPersistence.findIdByUsername("alice")).thenReturn(Optional.of(followerId));
-            when(userPersistence.findIdByUsername("bob")).thenReturn(Optional.of(followedId));
+            when(userPersistence.findIdByUsernameOrThrow("alice")).thenReturn(followerId);
+            when(userPersistence.findIdByUsernameOrThrow("bob")).thenReturn(followedId);
 
             // When
             userService.unfollow("alice", "bob");
@@ -351,7 +352,8 @@ class UserServiceTest {
         @Test
         void unfollow_ShouldThrow_WhenFollowerNotFound() {
             // Given
-            when(userPersistence.findIdByUsername("unknown")).thenReturn(Optional.empty());
+            when(userPersistence.findIdByUsernameOrThrow("unknown"))
+                    .thenThrow(new ResourceNotFoundException("User not found: unknown"));
 
             // When/Then
             assertThrows(ResourceNotFoundException.class, () -> userService.unfollow("unknown", "bob"));
@@ -361,9 +363,9 @@ class UserServiceTest {
         @Test
         void unfollow_ShouldThrow_WhenFollowedNotFound() {
             // Given
-            var followerId = UUID.randomUUID();
-            when(userPersistence.findIdByUsername("alice")).thenReturn(Optional.of(followerId));
-            when(userPersistence.findIdByUsername("unknown")).thenReturn(Optional.empty());
+            when(userPersistence.findIdByUsernameOrThrow("alice")).thenReturn(UUID.randomUUID());
+            when(userPersistence.findIdByUsernameOrThrow("unknown"))
+                    .thenThrow(new ResourceNotFoundException("User not found: unknown"));
 
             // When/Then
             assertThrows(ResourceNotFoundException.class, () -> userService.unfollow("alice", "unknown"));

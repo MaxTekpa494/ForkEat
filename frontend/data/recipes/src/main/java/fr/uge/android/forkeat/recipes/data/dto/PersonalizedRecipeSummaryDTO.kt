@@ -11,6 +11,8 @@ data class PersonalizedRecipeSummaryDTO(
     val authorUsername: String,
     val likeCount: Long,
     val superLikeCount: Long,
+    val followCount: Long,
     val likedByCurrentUser: Boolean,
-    val superLikedByCurrentUser: Boolean
+    val superLikedByCurrentUser: Boolean,
+    val followedByCurrentUser: Boolean
 )

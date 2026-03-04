@@ -1,8 +1,8 @@
 package fr.uge.forkeat.service.model.recipe.projection;
 
-public record RecipeCounts(long likeCount, long superLikeCount) {
+public record RecipeCounts(long likeCount, long superLikeCount, long followCount) {
 
-    public static final RecipeCounts ZERO = new RecipeCounts(0, 0);
+    public static final RecipeCounts ZERO = new RecipeCounts(0, 0, 0);
 
     public RecipeCounts {
         if (likeCount < 0) {
@@ -10,6 +10,9 @@ public record RecipeCounts(long likeCount, long superLikeCount) {
         }
         if (superLikeCount < 0) {
             throw new IllegalArgumentException("superLikeCount cannot be negative");
+        }
+        if (followCount < 0) {
+            throw new IllegalArgumentException("followCount cannot be negative");
         }
     }
 }

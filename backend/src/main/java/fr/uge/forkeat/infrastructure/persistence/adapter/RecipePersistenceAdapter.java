@@ -19,6 +19,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -285,7 +286,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         return neo4jRecipeRepository.findCountsByRecipeIds(recipeIdStrings).stream()
                 .collect(Collectors.toMap(
                         r -> UUID.fromString(r.recipeId()),
-                        r -> new RecipeCounts(r.likeCount(), r.superLikeCount())
+                        r -> new RecipeCounts(r.likeCount(), r.superLikeCount(), r.followCount())
                 ));
     }
 
@@ -308,7 +309,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         return neo4jRecipeRepository.findUserInteractionsByRecipeIds(recipeIdStrings, currentUsername).stream()
                 .collect(Collectors.toMap(
                         r -> UUID.fromString(r.recipeId()),
-                        r -> new RecipeUserInteraction(r.likedByCurrentUser(), r.superLikedByCurrentUser())
+                        r -> new RecipeUserInteraction(r.likedByCurrentUser(), r.superLikedByCurrentUser(), r.followedByCurrentUser())
                 ));
     }
 
@@ -330,6 +331,20 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         Objects.requireNonNull(userId);
         Objects.requireNonNull(recipeId);
         neo4jRecipeRepository.unlikeRecipe(userId, recipeId);
+    }
+
+    @Override
+    public void followRecipe(UUID userId, UUID recipeId) {
+        Objects.requireNonNull(userId);
+        Objects.requireNonNull(recipeId);
+        neo4jRecipeRepository.followRecipe(userId, recipeId, Instant.now());
+    }
+
+    @Override
+    public void unfollowRecipe(UUID userId, UUID recipeId) {
+        Objects.requireNonNull(userId);
+        Objects.requireNonNull(recipeId);
+        neo4jRecipeRepository.unfollowRecipe(userId, recipeId);
     }
 
     @Override

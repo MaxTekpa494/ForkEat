@@ -26,8 +26,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AlertDialog
@@ -88,6 +90,8 @@ fun RecipeDetailScreen(
     onLike: (UUID) -> Unit = {},
     onUnlike: (UUID) -> Unit = {},
     onSuperLike: (UUID) -> Unit = {},
+    onFollow: (UUID) -> Unit = {},
+    onUnfollow: (UUID) -> Unit = {},
     insufficientFunds: Boolean = false,
     onDismissInsufficientFunds: () -> Unit = {},
     emailNotVerified: Boolean = false,
@@ -271,13 +275,22 @@ fun RecipeDetailScreen(
                 SuperLikeButton(
                     initialCount = recipe.nbSuperLike.toInt(),
                     isSuperLiked = recipe.hasSuperLiked,
-                    onSuperLikeClick = { 
+                    onSuperLikeClick = {
                         if (isAuthenticated) {
-                            showSuperLikeConfirm = true 
+                            showSuperLikeConfirm = true
                         } else {
                             onNavigateToLogin()
                         }
                     }
+                )
+                FollowButton(
+                    initialCount = recipe.nbFollow.toInt(),
+                    isFollowed = recipe.hasFollowed,
+                    recipeId = recipe.id,
+                    isAuthenticated = isAuthenticated,
+                    onFollow = onFollow,
+                    onUnfollow = onUnfollow,
+                    onNavigateToLogin = onNavigateToLogin
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -1002,6 +1015,78 @@ fun SuperLikeButton(
                 color = if (isSuperLiked) Orange500 else Color(0xFF616161),
                 fontSize = 14.sp,
                 fontWeight = if (isSuperLiked) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+    }
+}
+
+@Composable
+fun FollowButton(
+    initialCount: Int = 0,
+    isFollowed: Boolean = false,
+    recipeId: UUID,
+    modifier: Modifier = Modifier,
+    isAuthenticated: Boolean = false,
+    onFollow: (UUID) -> Unit = {},
+    onUnfollow: (UUID) -> Unit = {},
+    onNavigateToLogin: () -> Unit = {}
+) {
+    var isFollowing by remember { mutableStateOf(isFollowed) }
+    var count by remember { mutableIntStateOf(initialCount) }
+
+    LaunchedEffect(isFollowed) { isFollowing = isFollowed }
+    LaunchedEffect(initialCount) { count = initialCount }
+
+    val bookmarkColor by animateColorAsState(
+        targetValue = if (isFollowing) Primary500 else Color(0xFF9E9E9E),
+        animationSpec = tween(durationMillis = 300),
+        label = "bookmarkColor"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (isFollowing) Primary500 else Color(0xFFE0E0E0),
+        animationSpec = tween(durationMillis = 300),
+        label = "borderColor"
+    )
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isFollowing) Primary500.copy(alpha = 0.1f) else Color.White,
+        animationSpec = tween(durationMillis = 300),
+        label = "backgroundColor"
+    )
+
+    Surface(
+        onClick = {
+            if (!isAuthenticated) {
+                onNavigateToLogin()
+                return@Surface
+            }
+            val targetFollowed = !isFollowing
+            isFollowing = targetFollowed
+            count = if (targetFollowed) count + 1 else count - 1
+            if (targetFollowed) onFollow(recipeId)
+            else onUnfollow(recipeId)
+        },
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = backgroundColor,
+        border = BorderStroke(1.dp, borderColor),
+        shadowElevation = if (isFollowing) 1.dp else 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = if (isFollowing) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                contentDescription = if (isFollowing) "Ne plus suivre" else "Suivre",
+                tint = bookmarkColor,
+                modifier = Modifier.size(22.dp)
+            )
+            Text(
+                text = formatCount(count),
+                color = if (isFollowing) Primary500 else Color(0xFF616161),
+                fontSize = 14.sp,
+                fontWeight = if (isFollowing) FontWeight.Bold else FontWeight.Normal
             )
         }
     }

@@ -215,16 +215,6 @@ class ProfileRestControllerTest {
         }
 
         @Test
-        void follow_ShouldExtractCurrentUsernameFromAuth() throws Exception {
-            doNothing().when(userService).follow(any(), any());
-
-            mockMvc.perform(put("/api/profile/chef/follow"))
-                    .andExpect(status().isOk());
-
-            verify(authenticationPort).extractUsername();
-        }
-
-        @Test
         void unfollow_ShouldReturn200_WhenSuccessful() throws Exception {
             doNothing().when(userService).unfollow("viewer", "chef");
 

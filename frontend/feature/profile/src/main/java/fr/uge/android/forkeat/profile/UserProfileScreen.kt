@@ -128,7 +128,9 @@ fun UserProfileScreen(
                     onNavigateToLogin = onNavigateToLogin,
                     onLike = { viewModel.likeRecipe(it) },
                     onUnlike = { viewModel.unlikeRecipe(it) },
-                    onSuperLike = { viewModel.superLikeRecipe(it) }
+                    onSuperLike = { viewModel.superLikeRecipe(it) },
+                    onFollow = { viewModel.followRecipe(it) },
+                    onUnfollow = { viewModel.unfollowRecipe(it) }
                 )
             }
             if (uiState.isLoading) {

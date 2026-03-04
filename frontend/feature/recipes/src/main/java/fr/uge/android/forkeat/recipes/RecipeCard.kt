@@ -6,9 +6,11 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.*
@@ -36,11 +38,15 @@ fun RecipeCard(
     onLike: (UUID) -> Unit = {},
     onUnlike: (UUID) -> Unit = {},
     onSuperLike: (UUID) -> Unit = {},
+    onFollow: (UUID) -> Unit = {},
+    onUnfollow: (UUID) -> Unit = {},
 ) {
     val liked = recipe.likedByCurrentUser
     val likeCount = recipe.likeCount
     val superLiked = recipe.superLikedByCurrentUser
     val superLikeCount = recipe.superLikeCount
+    val followed = recipe.followedByCurrentUser
+    val followCount = recipe.followCount
 
     var showSuperLikeConfirm by remember { mutableStateOf(false) }
 
@@ -177,6 +183,36 @@ fun RecipeCard(
                         )
                         Text(
                             text = superLikeCount.toString(),
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                            color = Secondary800
+                        )
+                    }
+
+                    Spacer(Modifier.width(16.dp))
+
+                    // ── Follow ──────────────────────────────────────────────
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(50))
+                            .clickable {
+                                if (!isLoggedIn) {
+                                    onNavigateToLogin()
+                                } else {
+                                    if (followed) onUnfollow(recipe.id) else onFollow(recipe.id)
+                                }
+                            }
+                            .padding(horizontal = 4.dp, vertical = 4.dp)
+                    ) {
+                        Icon(
+                            imageVector = if (isLoggedIn && followed) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                            contentDescription = if (isLoggedIn && followed) "Ne plus suivre" else "Suivre",
+                            tint = if (isLoggedIn && followed) Primary500 else Gray500,
+                            modifier = Modifier.size(24.dp)
+                        )
+                        Text(
+                            text = followCount.toString(),
                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
                             color = Secondary800
                         )

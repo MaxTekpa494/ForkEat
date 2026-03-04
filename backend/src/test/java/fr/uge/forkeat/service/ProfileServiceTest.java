@@ -101,8 +101,8 @@ class ProfileServiceTest {
             var publicProfile = createPublicProfile(username);
             var socialStats = createSocialStats();
             var summary = createRecipeSummary(recipeId);
-            var interaction = new RecipeUserInteraction(true, false);
-            var counts = new RecipeCounts(5L, 1L);
+            var interaction = new RecipeUserInteraction(true, false, false);
+            var counts = new RecipeCounts(5L, 1L, 0L);
 
             when(userPersistence.findPublicProfile(username)).thenReturn(publicProfile);
             when(userPersistence.findUserSocialStats(username)).thenReturn(socialStats);

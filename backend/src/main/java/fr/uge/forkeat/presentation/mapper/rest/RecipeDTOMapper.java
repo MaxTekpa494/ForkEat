@@ -168,8 +168,10 @@ public final class RecipeDTOMapper {
                 p.summary().authorUsername(),
                 p.counts().likeCount(),
                 p.counts().superLikeCount(),
+                p.counts().followCount(),
                 p.interaction().likedByCurrentUser(),
-                p.interaction().superLikedByCurrentUser()
+                p.interaction().superLikedByCurrentUser(),
+                p.interaction().followedByCurrentUser()
         );
     }
 
@@ -194,7 +196,9 @@ public final class RecipeDTOMapper {
                 personalizedRecipe.counts().likeCount(),
                 personalizedRecipe.interaction().likedByCurrentUser(),
                 personalizedRecipe.counts().superLikeCount(),
-                personalizedRecipe.interaction().superLikedByCurrentUser()
+                personalizedRecipe.interaction().superLikedByCurrentUser(),
+                personalizedRecipe.counts().followCount(),
+                personalizedRecipe.interaction().followedByCurrentUser()
         );
     }
 }

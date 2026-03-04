@@ -60,16 +60,14 @@ public class ProfileWebController {
 
     @PostMapping("/{username}/follow")
     public String follow(@PathVariable String username, RedirectAttributes redirectAttributes) {
-        var currentUsername = authPort.extractUsername();
-        userService.follow(currentUsername, username);
+        userService.follow(authPort.extractUsername(), username);
         redirectAttributes.addFlashAttribute("success", "Vous suivez maintenant " + username);
         return "redirect:/profile/" + username;
     }
 
     @PostMapping("/{username}/unfollow")
     public String unfollow(@PathVariable String username, RedirectAttributes redirectAttributes) {
-        var currentUsername = authPort.extractUsername();
-        userService.unfollow(currentUsername, username);
+        userService.unfollow(authPort.extractUsername(), username);
         redirectAttributes.addFlashAttribute("success", "Vous ne suivez plus " + username);
         return "redirect:/profile/" + username;
     }

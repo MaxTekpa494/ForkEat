@@ -58,15 +58,13 @@ public class ProfileRestController {
 
     @PutMapping("/{username}/follow")
     public ResponseEntity<HttpResponse<Void>> follow(@PathVariable String username) {
-        var currentUsername = authenticationPort.extractUsername();
-        userService.follow(currentUsername, username);
+        userService.follow(authenticationPort.extractUsername(), username);
         return ResponseEntity.ok(new SuccessResponse());
     }
 
     @DeleteMapping("/{username}/follow")
     public ResponseEntity<HttpResponse<Void>> unfollow(@PathVariable String username) {
-        var currentUsername = authenticationPort.extractUsername();
-        userService.unfollow(currentUsername, username);
+        userService.unfollow(authenticationPort.extractUsername(), username);
         return ResponseEntity.ok(new SuccessResponse());
     }
 }
