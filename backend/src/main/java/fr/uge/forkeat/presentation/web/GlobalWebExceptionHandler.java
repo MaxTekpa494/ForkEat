@@ -98,4 +98,14 @@ public class GlobalWebExceptionHandler {
 		return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
 				.body(Map.of("error", "Payment Required", "message", ex.getMessage()));
 	}
+
+	@ExceptionHandler(ModerationRagException.class)
+	public String handleModeration(ModerationRagException e,
+								   RedirectAttributes redirectAttributes,
+								   HttpServletRequest request) {
+		redirectAttributes.addFlashAttribute("moderationError", e.getMessage());
+		redirectAttributes.addFlashAttribute("query", request.getParameter("query"));
+		return "redirect:/recipes/smart-search";
+	}
+
 }

@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.service.event.RecipePublishedEvent;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
@@ -8,6 +9,7 @@ import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.*;
 import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.port.EventPublisherPort;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.StoragePort;
@@ -36,6 +38,8 @@ class RecipeServiceTest {
     @Mock
     private StoragePort storageService;
     @Mock
+    private EventPublisherPort<RecipePublishedEvent> eventPublisherPort;
+    @Mock
     private AuthenticationPort authPort;
 
 
@@ -44,7 +48,7 @@ class RecipeServiceTest {
 
     @BeforeEach
     void setUp() {
-        recipeService = new RecipeService(recipePersistence, storageService, walletPersistence, authPort);
+        recipeService = new RecipeService(recipePersistence, storageService, walletPersistence, authPort, eventPublisherPort);
         now = Instant.now();
     }
 

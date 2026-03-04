@@ -1,11 +1,16 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
+import fr.uge.forkeat.service.event.RecipePublishedEvent;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.*;
+import fr.uge.forkeat.service.model.transaction.Transaction;
+import fr.uge.forkeat.service.model.transaction.TransactionStatus;
+import fr.uge.forkeat.service.model.transaction.TransactionType;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.port.EventPublisherPort;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.StoragePort;
@@ -25,14 +30,16 @@ import java.util.UUID;
 public class RecipeService {
   private final StoragePort storageService;
   private final RecipePersistence recipePersistence;
+  private final EventPublisherPort<RecipePublishedEvent> eventPublisher;
   private final WalletPersistence walletPersistence;
   private final AuthenticationPort authPort;
   private final Logger logger = LoggerFactory.getLogger(RecipeService.class);
   private static final String FOLDER_STORAGE = "recipes";
 
-  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService, WalletPersistence walletPersistence, AuthenticationPort authPort) {
+  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService, WalletPersistence walletPersistence, AuthenticationPort authPort, EventPublisherPort<RecipePublishedEvent> eventPublisher) {
     this.recipePersistence = recipePersistence;
     this.storageService = storageService;
+    this.eventPublisher = eventPublisher;
     this.walletPersistence = walletPersistence;
     this.authPort = authPort;
   }
@@ -206,7 +213,13 @@ public class RecipeService {
   public Recipe updateStatus(UUID id, RecipeStatus status) {
     Objects.requireNonNull(id);
     Objects.requireNonNull(status);
-    return recipePersistence.updateStatus(id, status);
+    var updated = recipePersistence.updateStatus(id, status);
+    if (status == RecipeStatus.PUBLISHED) {
+      logger.info("Recipe {} published, listener will be running and indexing", id);
+      eventPublisher.publish(new RecipePublishedEvent(id));
+      logger.info("Recipe {} published, listener finished and indexing", id);
+    }
+    return updated;
   }
 
   public long countByStatus(RecipeStatus status) {

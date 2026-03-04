@@ -6,6 +6,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.DietaryEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.SuperLikeEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.model.PageResult;
@@ -245,6 +246,23 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     public long countByStatus(RecipeStatus status) {
     Objects.requireNonNull(status);
     return recipeRepository.countByStatus(status);
+    }
+
+    @Override
+    public List<RecipeSummary> findSummariesByIds(List<UUID> ids) {
+        Objects.requireNonNull(ids);
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        var viewMap = recipeRepository.findSummariesByIds(ids).stream()
+                .collect(Collectors.toMap(
+                        RecipeSummaryView::getId,
+                        v -> new RecipeSummary(v.getId(), v.getTitle(), v.getSummary(), v.getImageUrl(), v.getPreparationMinutes(), v.getCreatedAt(), v.getAuthorUsername())
+                ));
+        return ids.stream()
+                .map(viewMap::get)
+                .filter(Objects::nonNull) // Normalement c'est pas sensé être null car les deux tables sont synchros
+                .toList();
     }
 
     @Override

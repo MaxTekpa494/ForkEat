@@ -9,6 +9,8 @@ import fr.uge.forkeat.presentation.response.NotContentResponse;
 import fr.uge.forkeat.presentation.rest.controller.RecipeRestController;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
+import fr.uge.forkeat.service.RecipeSmartSearchService;
+import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.recipe.*;
@@ -58,12 +60,18 @@ class RecipeControllerTest {
     @Mock
     private AuthenticationPort authPort;
 
+    @Mock
+    private RecipeSmartSearchService recipeSmartSearchService;
+    @Mock
+    private WalletService walletService;
+
     private RecipeRestController recipeController;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeController = new RecipeRestController(recipeService, authPort, userService);
+        recipeController = new RecipeRestController(recipeService, authPort, userService,
+                recipeSmartSearchService, walletService);
         now = Instant.now();
     }
 

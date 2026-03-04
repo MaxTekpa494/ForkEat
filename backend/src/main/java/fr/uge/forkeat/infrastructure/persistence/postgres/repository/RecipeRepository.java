@@ -83,4 +83,18 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
     );
 
     Page<RecipeBaseSummaryView> findByAuthorUsernameAndStatus(String username, RecipeStatus status, Pageable pageable);
+
+    @Query("""
+            SELECT r.id AS id,
+                   r.title AS title,
+                   r.summary AS summary,
+                   r.imageUrl AS imageUrl,
+                   r.preparationMinutes AS preparationMinutes,
+                   r.createdAt AS createdAt,
+                   u.username AS authorUsername
+            FROM RecipeEntity r
+            JOIN r.author u
+            WHERE r.id IN :ids
+            """)
+    List<RecipeSummaryView> findSummariesByIds(@Param("ids") List<UUID> ids);
 }

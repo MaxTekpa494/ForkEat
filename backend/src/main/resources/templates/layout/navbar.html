@@ -162,6 +162,12 @@
                        class="nav-link text-secondary-700 hover:text-primary-500 font-medium transition py-2 border-b-2 border-transparent hover:border-primary-500">
                         Créer
                     </a>
+                    <a th:if="${isAuthenticated}"
+                       th:href="@{/recipes/smart-search}"
+                       class="nav-link text-secondary-700 hover:text-primary-500 font-medium transition py-2 border-b-2 border-transparent hover:border-primary-500 flex items-center space-x-1">
+                        <i class="fas fa-robot text-sm"></i>
+                        <span>Recherche IA</span>
+                    </a>
                 </div>
 
                 <div class="hidden md:flex items-center space-x-3">
@@ -241,6 +247,12 @@
                    th:href="@{/recipes/create}"
                    class="block text-secondary-800 font-medium hover:text-primary-500">
                     Créer une recette
+                </a>
+                <a th:if="${isAuthenticated}"
+                   th:href="@{/recipes/smart-search}"
+                   class="flex items-center space-x-2 text-secondary-800 font-medium hover:text-primary-500">
+                    <i class="fas fa-robot"></i>
+                    <span>Recherche IA</span>
                 </a>
 
                 <div th:unless="${isAuthenticated}" class="pt-6 border-t border-gray-100 grid grid-cols-2 gap-4">

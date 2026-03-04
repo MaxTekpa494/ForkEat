@@ -3,6 +3,8 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.RecipeSmartSearchService;
+import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -58,6 +60,12 @@ class RecipeWebControllerTest {
 
     @MockitoBean
     private AuthenticationPort authenticationPort;
+
+    @MockitoBean
+    private RecipeSmartSearchService recipeSmartSearchService;
+
+    @MockitoBean
+    private WalletService walletService;
 
     @Nested
     class ListRecipes {
