@@ -1,6 +1,6 @@
 services:
   postgres:
-    image: postgres:15
+    image: pgvector/pgvector:pg15
     container_name: forkeat-postgres
     environment:
       POSTGRES_DB: ${POSTGRES_DB}
@@ -44,10 +44,44 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+  ollama:
+    image: ollama/ollama:latest
+    container_name: forkeat-ollama
+    ports:
+      - "11435:11434"
+    volumes:
+      - ./ollama:/root/.ollama
+    networks:
+      - forkeat-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:11434/api/tags"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  ollama-init:
+    image: ollama/ollama:latest
+    container_name: forkeat-ollama-init
+    depends_on:
+      ollama:
+        condition: service_healthy
+    environment:
+      - OLLAMA_HOST=http://ollama:11434
+    entrypoint: ["/bin/sh", "-c"]
+    command: >
+      "ollama pull bge-m3 &&
+       ollama pull mistral &&
+       ollama pull llama-guard3:1b &&
+       echo 'Tous les modèles Ollama sont prêts.'"
+    networks:
+      - forkeat-network
+    restart: "no"
 
 volumes:
   postgres_data:
   neo4j_data:
+  ollama_data:
 
 networks:
   forkeat-network:

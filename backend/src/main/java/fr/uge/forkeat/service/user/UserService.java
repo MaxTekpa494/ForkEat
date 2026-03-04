@@ -5,7 +5,7 @@ import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.persistence.UserPersistence;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -17,11 +17,11 @@ import java.util.UUID;
 @Transactional(readOnly = true)
 public class UserService {
     private final UserPersistence userPersistence;
-    private final PasswordHasher passwordHasher;
+    private final PasswordHasherPort passwordHasherPort;
 
-    public UserService(UserPersistence userPersistence, PasswordHasher passwordHasher) {
+    public UserService(UserPersistence userPersistence, PasswordHasherPort passwordHasherPort) {
         this.userPersistence = Objects.requireNonNull(userPersistence);
-        this.passwordHasher = Objects.requireNonNull(passwordHasher);
+        this.passwordHasherPort = Objects.requireNonNull(passwordHasherPort);
     }
 
     public User getUserByEmail(String email) {
@@ -57,7 +57,7 @@ public class UserService {
 
     public boolean checkUserPassword(String username, String rawPassword) {
         var hashedPassword = userPersistence.findPasswordHashByUsername(username);
-        return passwordHasher.matches(rawPassword, hashedPassword);
+        return passwordHasherPort.matches(rawPassword, hashedPassword);
     }
 
     @Transactional

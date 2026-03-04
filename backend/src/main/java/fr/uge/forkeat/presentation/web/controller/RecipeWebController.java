@@ -8,6 +8,9 @@ import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.RecipeSmartSearchService;
+import fr.uge.forkeat.service.WalletService;
+import fr.uge.forkeat.service.exception.ModerationRagException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
@@ -15,11 +18,13 @@ import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
@@ -30,13 +35,19 @@ public class RecipeWebController {
     private final RecipeService recipeService;
     private final AuthenticationPort authPort;
     private final UserService userService;
+    private final RecipeSmartSearchService smartSearchService;
+    private final WalletService walletService;
 
     private final Logger logger = LoggerFactory.getLogger(RecipeWebController.class);
 
-    public RecipeWebController(RecipeService recipeService, UserService userService, AuthenticationPort authPort) {
+    public RecipeWebController(RecipeService recipeService, UserService userService,
+                               AuthenticationPort authPort, RecipeSmartSearchService smartSearchService,
+                               WalletService walletService) {
         this.recipeService = recipeService;
         this.userService = userService;
         this.authPort = authPort;
+        this.smartSearchService = smartSearchService;
+        this.walletService = walletService;
     }
 
     @GetMapping("/create")
@@ -251,6 +262,38 @@ public class RecipeWebController {
         var savedRecipe = recipeService.createRecipe(RecipeDTOMapper.toDomain(dto), hasNewImage ? ImageMapper.toImageUpload(image) : null);
         return "redirect:/recipes/" + savedRecipe.id();
     }
+
+    @GetMapping("/smart-search")
+    public String pageSmartSearch(Model model, HttpSession session) {
+        var username = authPort.extractUsername();
+        var balance  = walletService.getBalance(userService.getUserByUsername(username).id());
+        model.addAttribute("balance", balance);
+
+        if (!model.containsAttribute("query")) {
+            var cached = session.getAttribute("smartSearchQuery");
+            model.addAttribute("query", cached != null ? cached : "");
+        }
+        if (!model.containsAttribute("recipes")) {
+            var cached = session.getAttribute("smartSearchResults");
+            model.addAttribute("recipes", cached != null ? cached : List.of());
+        }
+
+        return "recipes/smart-search";
+    }
+
+    @PostMapping("/smart-search")
+    public String smartSearch(@RequestParam("query") String query, HttpSession session) {
+        var username = authPort.extractUsername();
+
+        var dtos = smartSearchService.search(query).stream()
+                .map(RecipeDTOMapper::toSummaryDTO)
+                .toList();
+
+        session.setAttribute("smartSearchQuery",   query);
+        session.setAttribute("smartSearchResults", dtos);
+        return "redirect:/recipes/smart-search";
+    }
+
 
     @PostMapping("/{id}/like")
     public String likeRecipe(@PathVariable UUID id) {

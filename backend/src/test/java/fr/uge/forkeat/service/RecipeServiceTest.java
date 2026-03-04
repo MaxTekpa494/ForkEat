@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.service.event.RecipePublishedEvent;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
@@ -8,6 +9,7 @@ import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.*;
 import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.port.EventPublisherPort;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.StoragePort;
@@ -37,6 +39,8 @@ class RecipeServiceTest {
     @Mock
     private StoragePort storageService;
     @Mock
+    private EventPublisherPort<RecipePublishedEvent> eventPublisherPort;
+    @Mock
     private AuthenticationPort authPort;
     @Mock
     private UserIdentityPort userIdentityPort;
@@ -46,7 +50,7 @@ class RecipeServiceTest {
 
     @BeforeEach
     void setUp() {
-        recipeService = new RecipeService(recipePersistence, storageService, walletPersistence, authPort, userIdentityPort);
+        recipeService = new RecipeService(recipePersistence, storageService, walletPersistence, authPort, eventPublisherPort, userIdentityPort);
         now = Instant.now();
     }
 
@@ -482,8 +486,9 @@ class RecipeServiceTest {
             var recipeId = UUID.randomUUID();
 
             when(recipePersistence.hasSuperLikedRecipe(userId, recipeId)).thenReturn(false);
-            when(walletPersistence.getBalance(userId)).thenReturn(200L);
+            when(walletPersistence.findByUserId(userId)).thenReturn(Optional.of(createWallet()));
             when(walletPersistence.getEarningsWallet()).thenReturn(createWallet());
+            when(walletPersistence.saveTransaction(any())).thenReturn(null);
             when(walletPersistence.getRedistributionWallet()).thenReturn(createWallet());
             doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong());
             doNothing().when(walletPersistence).incrementBalanceById(any(), anyLong());
@@ -515,7 +520,6 @@ class RecipeServiceTest {
             var recipeId = UUID.randomUUID();
 
             when(recipePersistence.hasSuperLikedRecipe(userId, recipeId)).thenReturn(false);
-            when(walletPersistence.getBalance(userId)).thenReturn(50L);
 
             assertThrows(InsufficientFundsException.class,
                     () -> recipeService.superLikeRecipe(userId, recipeId));
@@ -550,7 +554,7 @@ class RecipeServiceTest {
         return new Wallet(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                0,
+                1000,
                 Instant.now()
         );
     }

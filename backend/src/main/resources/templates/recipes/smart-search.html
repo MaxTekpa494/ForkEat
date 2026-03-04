@@ -1,0 +1,227 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title>Recherche Intelligente - ForkEat</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <!-- Hero Header -->
+    <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
+        <div class="container mx-auto px-4">
+            <div class="text-center mb-10">
+                <div class="inline-flex items-center space-x-2 bg-primary-500/20 text-primary-300 px-4 py-2 rounded-full text-sm font-semibold mb-5">
+                    <i class="fas fa-robot"></i>
+                    <span>Propulsé par l'IA</span>
+                </div>
+                <h1 class="font-display font-bold text-4xl md:text-5xl mb-4">
+                    Recherche <span class="text-primary-500">Intelligente</span>
+                </h1>
+                <p class="text-secondary-200 text-lg max-w-2xl mx-auto">
+                    Décrivez en quelques mots ce que vous souhaitez cuisiner. Notre IA trouve les recettes les plus pertinentes pour vous.
+                </p>
+            </div>
+
+            <!-- Formulaire de recherche -->
+            <div class="max-w-2xl mx-auto">
+                <form id="smartSearchForm" th:action="@{/recipes/smart-search}" method="post">
+                    <div class="bg-white/10 backdrop-blur-sm border border-white/20 rounded-2xl p-5">
+                        <textarea id="searchQuery" name="query"
+                                  th:text="${query}"
+                                  rows="3"
+                                  placeholder="Ex : un plat végétarien rapide avec des pâtes, sans gluten pour le dîner..."
+                                  class="w-full bg-transparent text-white placeholder-white/50 focus:outline-none resize-none text-base leading-relaxed"></textarea>
+
+                        <div class="flex items-center justify-between mt-4 pt-4 border-t border-white/20 flex-wrap gap-3">
+                            <!-- Infos solde & coût -->
+                            <div class="flex items-center space-x-5 text-sm">
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-wallet text-secondary-300"></i>
+                                    <span class="text-secondary-200">Solde :</span>
+                                    <span class="font-bold text-white"
+                                          th:text="${#numbers.formatDecimal(balance / 100.0, 1, 2) + ' €'}">0.00 €</span>
+                                </div>
+                                <div class="flex items-center space-x-2">
+                                    <i class="fas fa-tag text-secondary-300"></i>
+                                    <span class="text-secondary-300">Coût : <span class="text-white font-semibold">0,10 €</span></span>
+                                </div>
+                            </div>
+
+                            <!-- Bouton submit -->
+                            <button id="searchBtn" type="submit"
+                                    class="bg-primary-500 hover:bg-primary-600 text-white px-6 py-2.5 rounded-full font-semibold transition flex items-center space-x-2 shadow-lg shadow-primary-500/30 transform hover:-translate-y-0.5">
+                                <i id="searchBtnIcon" class="fas fa-search"></i>
+                                <span id="searchBtnText">Rechercher</span>
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contenu principal -->
+    <section class="py-12 bg-surface">
+        <div class="container mx-auto px-4">
+
+            <!-- État initial : aucune recherche lancée -->
+            <div th:if="${query == null or #strings.isEmpty(query)}" class="text-center py-16">
+                <div class="max-w-lg mx-auto">
+                    <div class="w-24 h-24 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-brain text-4xl text-secondary-400"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-2xl text-secondary-900 mb-3">Comment ça fonctionne ?</h3>
+                    <p class="text-secondary-500 mb-8 max-w-md mx-auto">
+                        Décrivez votre envie culinaire en langage naturel. Notre IA analyse votre requête et trouve les recettes les plus similaires sémantiquement.
+                    </p>
+
+                    <div class="grid grid-cols-1 gap-3 text-left max-w-md mx-auto">
+                        <div class="flex items-start space-x-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                            <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i class="fas fa-comment-dots text-primary-500 text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-secondary-900">Langage naturel</p>
+                                <p class="text-xs text-secondary-500 mt-0.5">"quelque chose de léger et rapide pour ce soir"</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                            <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i class="fas fa-leaf text-primary-500 text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-secondary-900">Ingrédients ou régimes</p>
+                                <p class="text-xs text-secondary-500 mt-0.5">"recette végane avec du tofu et du gingembre"</p>
+                            </div>
+                        </div>
+                        <div class="flex items-start space-x-3 bg-white p-4 rounded-xl border border-gray-100 shadow-sm">
+                            <div class="w-8 h-8 bg-primary-100 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5">
+                                <i class="fas fa-users text-primary-500 text-xs"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-secondary-900">Contexte ou occasion</p>
+                                <p class="text-xs text-secondary-500 mt-0.5">"repas festif pour 6 personnes sans lactose"</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-xs text-secondary-400 mt-8 flex items-center justify-center space-x-2">
+                        <i class="fas fa-info-circle"></i>
+                        <span>Chaque recherche intelligente coûte <strong class="text-secondary-600">0,10 €</strong> et est débitée de votre portefeuille ForkEat.</span>
+                    </p>
+                </div>
+            </div>
+
+            <!-- Zone de résultats : après une recherche -->
+            <div th:unless="${query == null or #strings.isEmpty(query)}">
+
+                <!-- Requête bloquée par la modération -->
+                <div th:if="${moderationError}"
+                     class="text-center py-16 bg-white rounded-2xl border border-red-100 shadow-sm">
+                    <div class="w-24 h-24 bg-red-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-shield-alt text-4xl text-red-400"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-2xl text-secondary-900 mb-2">Requête non autorisée</h3>
+                    <p class="text-secondary-500 mb-2 max-w-sm mx-auto" th:text="${moderationError}"></p>
+                    <p class="text-xs text-secondary-400 mb-6 max-w-sm mx-auto">
+                        Notre système a détecté un contenu inapproprié. Reformulez votre recherche culinaire.
+                    </p>
+                    <a th:href="@{/recipes/smart-search}"
+                       class="inline-block bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-full font-semibold transition">
+                        <i class="fas fa-redo mr-2"></i>Nouvelle recherche
+                    </a>
+                </div>
+
+                <!-- Résultats normaux -->
+                <th:block th:unless="${moderationError}">
+
+                <!-- Barre d'info résultats -->
+                <div class="flex items-center justify-between mb-8 flex-wrap gap-3">
+                    <p class="text-secondary-600">
+                        <span class="font-bold text-secondary-900" th:text="${#lists.size(recipes)}">0</span>
+                        recette(s) trouvée(s) pour
+                        «&nbsp;<span class="font-medium text-primary-500 italic" th:text="${query}">ma recherche</span>&nbsp;»
+                    </p>
+                    <a th:href="@{/recipes/smart-search}"
+                       class="text-sm text-secondary-500 hover:text-primary-500 transition flex items-center space-x-1">
+                        <i class="fas fa-redo text-xs"></i>
+                        <span>Nouvelle recherche</span>
+                    </a>
+                </div>
+
+                <!-- Aucune recette trouvée -->
+                <div th:if="${#lists.isEmpty(recipes)}"
+                     class="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                    <div class="w-24 h-24 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                        <i class="fas fa-search text-4xl text-secondary-400"></i>
+                    </div>
+                    <h3 class="font-display font-bold text-2xl text-secondary-900 mb-2">Aucune recette trouvée</h3>
+                    <p class="text-secondary-500 mb-6 max-w-sm mx-auto">
+                        Essayez de reformuler votre requête avec des termes différents ou explorez notre catalogue.
+                    </p>
+                    <a th:href="@{/recipes}"
+                       class="inline-block bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-full font-semibold transition">
+                        <i class="fas fa-book-open mr-2"></i>Parcourir toutes les recettes
+                    </a>
+                </div>
+
+                <!-- Grille de recettes -->
+                <div th:unless="${#lists.isEmpty(recipes)}"
+                     class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+
+                    <div th:each="recipe, iterStat : ${recipes}" class="relative">
+                        <div th:replace="~{fragments/recipe-card :: recipeCard(recipe=${recipe})}"></div>
+                        <!-- Badge IA avec rang -->
+                        <div class="pointer-events-none absolute top-3 left-3 z-20 bg-primary-500/90 backdrop-blur-sm px-2.5 py-1 rounded-full text-xs font-semibold text-white shadow-sm flex items-center space-x-1">
+                            <i class="fas fa-robot text-[10px]"></i>
+                            <span th:text="'#' + ${iterStat.count}">#1</span>
+                        </div>
+                    </div>
+
+                </div>
+
+                </th:block>
+            </div>
+
+        </div>
+    </section>
+
+    <!-- Overlay de chargement (caché par défaut) -->
+    <div id="loadingOverlay" class="hidden fixed inset-0 z-50 bg-secondary-900/60 backdrop-blur-sm flex items-center justify-center">
+        <div class="bg-white rounded-2xl shadow-2xl px-10 py-8 flex flex-col items-center gap-4 max-w-xs w-full mx-4">
+            <div class="w-14 h-14 rounded-full border-4 border-primary-100 border-t-primary-500 animate-spin"></div>
+            <p class="font-semibold text-secondary-900 text-center">Analyse en cours…</p>
+            <p class="text-sm text-secondary-400 text-center">Notre IA recherche les recettes les plus pertinentes pour vous.</p>
+        </div>
+    </div>
+
+    <script>
+        document.getElementById('smartSearchForm').addEventListener('submit', function () {
+            var btn  = document.getElementById('searchBtn');
+            var icon = document.getElementById('searchBtnIcon');
+            var text = document.getElementById('searchBtnText');
+            var textarea = document.getElementById('searchQuery');
+
+            // Désactiver le bouton (disabled OK : sa valeur n'est pas soumise)
+            btn.disabled = true;
+            btn.classList.remove('hover:bg-primary-600', 'transform', 'hover:-translate-y-0.5');
+            btn.classList.add('opacity-75', 'cursor-not-allowed');
+            // readonly au lieu de disabled : le champ reste soumis avec le formulaire
+            textarea.readOnly = true;
+            textarea.classList.add('opacity-60', 'cursor-not-allowed');
+
+            // Changer le contenu du bouton
+            icon.className = 'fas fa-circle-notch fa-spin';
+            text.textContent = 'Analyse…';
+
+            // Afficher l'overlay
+            document.getElementById('loadingOverlay').classList.remove('hidden');
+            document.getElementById('loadingOverlay').classList.add('flex');
+        });
+    </script>
+
+</div>
+</body>
+</html>

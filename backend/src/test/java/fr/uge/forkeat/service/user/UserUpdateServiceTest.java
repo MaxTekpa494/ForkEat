@@ -13,7 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -32,7 +32,7 @@ class UserUpdateServiceTest {
     private UserService userService;
 
     @Mock
-    private PasswordHasher passwordHasher;
+    private PasswordHasherPort passwordHasherPort;
 
     @Mock
     private EmailVerificationService emailVerificationService;
@@ -175,7 +175,7 @@ class UserUpdateServiceTest {
 
             when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-            when(passwordHasher.matches("correctPassword", "storedHash")).thenReturn(true);
+            when(passwordHasherPort.matches("correctPassword", "storedHash")).thenReturn(true);
 
             when(userPersistence.existsByEmail("new@example.com")).thenReturn(false);
 
@@ -196,7 +196,7 @@ class UserUpdateServiceTest {
 
             when(userService.getUserByUsername("googleuser")).thenReturn(googleUser);
             when(userPersistence.existsByEmail("new@example.com")).thenReturn(false);
-            when(passwordHasher.hash("NewPass1!")).thenReturn("hashedNewPass");
+            when(passwordHasherPort.hash("NewPass1!")).thenReturn("hashedNewPass");
 
             // When
             userUpdateService.requestEmailChange("googleuser", "new@example.com", null, "NewPass1!", "NewPass1!");
@@ -214,7 +214,7 @@ class UserUpdateServiceTest {
 
             when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-            when(passwordHasher.matches("wrongPassword", "storedHash")).thenReturn(false);
+            when(passwordHasherPort.matches("wrongPassword", "storedHash")).thenReturn(false);
 
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
@@ -234,7 +234,7 @@ class UserUpdateServiceTest {
 
             when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-            when(passwordHasher.matches("correctPassword", "storedHash")).thenReturn(true);
+            when(passwordHasherPort.matches("correctPassword", "storedHash")).thenReturn(true);
             when(userPersistence.existsByEmail("taken@example.com")).thenReturn(true);
 
             // When/Then
@@ -260,9 +260,9 @@ class UserUpdateServiceTest {
             when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
 
-            when(passwordHasher.matches("currentPassword", "storedHash")).thenReturn(true);
-            when(passwordHasher.matches("newPassword123", "storedHash")).thenReturn(false);
-            when(passwordHasher.hash("newPassword123")).thenReturn("hashedNewPass");
+            when(passwordHasherPort.matches("currentPassword", "storedHash")).thenReturn(true);
+            when(passwordHasherPort.matches("newPassword123", "storedHash")).thenReturn(false);
+            when(passwordHasherPort.hash("newPassword123")).thenReturn("hashedNewPass");
 
             // When
             userUpdateService.requestPasswordChange("testuser", "currentPassword", "newPassword123", "newPassword123");
@@ -281,7 +281,7 @@ class UserUpdateServiceTest {
             when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
 
-            when(passwordHasher.matches("wrongPassword", "storedHash")).thenReturn(false);
+            when(passwordHasherPort.matches("wrongPassword", "storedHash")).thenReturn(false);
 
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
@@ -316,8 +316,8 @@ class UserUpdateServiceTest {
 
             when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-            when(passwordHasher.matches("currentPassword", "storedHash")).thenReturn(true);
-            when(passwordHasher.matches("SamePass1", "storedHash")).thenReturn(true);
+            when(passwordHasherPort.matches("currentPassword", "storedHash")).thenReturn(true);
+            when(passwordHasherPort.matches("SamePass1", "storedHash")).thenReturn(true);
 
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
@@ -340,7 +340,7 @@ class UserUpdateServiceTest {
             var googleUser = createGoogleTestUser(userId, "googleuser", "google@example.com");
 
             when(userService.getUserByUsername("googleuser")).thenReturn(googleUser);
-            when(passwordHasher.hash("newPassword123")).thenReturn("encodedPassword");
+            when(passwordHasherPort.hash("newPassword123")).thenReturn("encodedPassword");
 
             // When
             userUpdateService.setPasswordForOAuthUser("googleuser", "newPassword123", "newPassword123");
@@ -408,7 +408,7 @@ class UserUpdateServiceTest {
             var user = createTestUser(userId, "testuser", "test@example.com");
 
             when(userService.getUserByEmail("test@example.com")).thenReturn(user);
-            when(passwordHasher.hash("NewPass1")).thenReturn("hashedNew");
+            when(passwordHasherPort.hash("NewPass1")).thenReturn("hashedNew");
 
             userUpdateService.confirmForgotPasswordChange("test@example.com", "123456", "NewPass1", "NewPass1");
 

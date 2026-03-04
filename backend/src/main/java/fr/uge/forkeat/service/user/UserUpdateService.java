@@ -1,12 +1,12 @@
 package fr.uge.forkeat.service.user;
 
-import fr.uge.forkeat.service.PasswordValidator;
 import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.PasswordValidator;
 import fr.uge.forkeat.service.persistence.UserPersistence;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -18,16 +18,16 @@ import java.util.Objects;
 public class UserUpdateService {
   private final UserPersistence userPersistence;
   private final UserService userService;
-  private final PasswordHasher passwordHasher;
+  private final PasswordHasherPort passwordHasherPort;
   private final EmailVerificationService emailVerificationService;
 
   UserUpdateService(UserPersistence userPersistence,
                     UserService userService,
-                    PasswordHasher passwordHasher,
+                    PasswordHasherPort passwordHasherPort,
                     EmailVerificationService emailVerificationService) {
     this.userPersistence = Objects.requireNonNull(userPersistence);
     this.userService = Objects.requireNonNull(userService);
-    this.passwordHasher = Objects.requireNonNull(passwordHasher);
+    this.passwordHasherPort = Objects.requireNonNull(passwordHasherPort);
     this.emailVerificationService = Objects.requireNonNull(emailVerificationService);
   }
 
@@ -74,7 +74,7 @@ public class UserUpdateService {
 
     if (user.authMode() == AuthMode.LOCAL) {
       var storedHash = userPersistence.findPasswordHashByUsername(username);
-      if (!passwordHasher.matches(currentPassword, storedHash)) {
+      if (!passwordHasherPort.matches(currentPassword, storedHash)) {
         throw new CheckProfileUpdateFailureException("Incorrect password");
       }
     }
@@ -93,7 +93,7 @@ public class UserUpdateService {
       } catch (RegisterFailureException e) {
         throw new CheckProfileUpdateFailureException(e.getMessage());
       }
-      pendingPasswordHash = passwordHasher.hash(newPassword);
+      pendingPasswordHash = passwordHasherPort.hash(newPassword);
     }
 
     if (pendingPasswordHash != null) {
@@ -126,15 +126,15 @@ public class UserUpdateService {
     var user = userService.getUserByUsername(username);
     var storedHash = userPersistence.findPasswordHashByUsername(username);
 
-    if (!passwordHasher.matches(currentPassword, storedHash)) {
+    if (!passwordHasherPort.matches(currentPassword, storedHash)) {
       throw new CheckProfileUpdateFailureException("Incorrect current password");
     }
 
-    if (passwordHasher.matches(newPassword, storedHash)) {
+    if (passwordHasherPort.matches(newPassword, storedHash)) {
       throw new CheckProfileUpdateFailureException("Passwords are the same");
     }
 
-    var pendingPasswordHash = passwordHasher.hash(newPassword);
+    var pendingPasswordHash = passwordHasherPort.hash(newPassword);
     emailVerificationService.sendPasswordChangeCode(user.id(), user.email(), pendingPasswordHash);
   }
 
@@ -152,7 +152,7 @@ public class UserUpdateService {
       throw new CheckProfileUpdateFailureException(e.getMessage());
     }
     var user = userService.getUserByEmail(email);
-    emailVerificationService.confirmPasswordReset(user.id(), code, passwordHasher.hash(newPassword));
+    emailVerificationService.confirmPasswordReset(user.id(), code, passwordHasherPort.hash(newPassword));
   }
 
   @Transactional(
@@ -193,6 +193,6 @@ public class UserUpdateService {
             Instant.now(),
             user.emailVerified());
 
-    userPersistence.saveUser(updatedUser, passwordHasher.hash(newPassword));
+    userPersistence.saveUser(updatedUser, passwordHasherPort.hash(newPassword));
   }
 }

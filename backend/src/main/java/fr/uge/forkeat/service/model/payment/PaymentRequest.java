@@ -1,4 +1,4 @@
-package fr.uge.forkeat.service.model;
+package fr.uge.forkeat.service.model.payment;
 
 import java.util.UUID;
 

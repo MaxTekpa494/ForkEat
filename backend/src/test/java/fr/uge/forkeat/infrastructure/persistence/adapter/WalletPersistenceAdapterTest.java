@@ -9,12 +9,12 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserReposit
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
 
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.TransactionType;
+import fr.uge.forkeat.service.model.transaction.Transaction;
+import fr.uge.forkeat.service.model.transaction.TransactionType;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.model.wallet.Wallet;
-import fr.uge.forkeat.service.model.TransactionStatus; // New import
+import fr.uge.forkeat.service.model.transaction.TransactionStatus; // New import
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
