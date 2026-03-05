@@ -26,6 +26,8 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.RequestBuilder;
+import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 
 import java.util.List;
 import java.util.UUID;
@@ -98,138 +100,41 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         @Test
         void testRecipeDeleteAuthorization() throws Exception {
 
-            mockMvc.perform(post("/api/recipes/{id}/delete", RECIPE_ID).with(jwt()
+            testRights(post("/api/recipes/{id}/delete", RECIPE_ID), AuthorizationTest.EMAIL_VERIFIED);
+          /*  mockMvc.perform(post("/api/recipes/{id}/delete", RECIPE_ID).with(jwt()
                     .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isOk());*/
         }
 
-        private void testRightsPost(String url, AuthorizationTest authorization) throws Exception {
+        private void testRights(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
             var expected = status().isForbidden();
 
             var expectedForUnauthenticated = authorization.equals(AuthorizationTest.UNAUTHENTICATED) ? status().isOk() : status().isUnauthorized();
-            mockMvc.perform(post(url)).andExpect(expectedForUnauthenticated);
+            mockMvc.perform(requestBuilders).andExpect(expectedForUnauthenticated);
 
             if(authorization.equals(AuthorizationTest.MEMBER) || authorization.equals(AuthorizationTest.UNAUTHENTICATED)) {
                 expected = status().isOk();
             }
-            mockMvc.perform(post(url).with(jwt()
+            mockMvc.perform(requestBuilders.with(jwt()
                     .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))).andExpect(expected);
 
             if(authorization.equals(AuthorizationTest.EMAIL_VERIFIED)) {
                 expected = status().isOk();
             }
-            mockMvc.perform(post(url).with(jwt()
+            mockMvc.perform(requestBuilders.with(jwt()
                     .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
 
 
             if(authorization.equals(AuthorizationTest.MODERATOR)) {
                 expected = status().isOk();
             }
-            mockMvc.perform(post(url).with(jwt()
+            mockMvc.perform(requestBuilders.with(jwt()
                     .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
 
             if(authorization.equals(AuthorizationTest.ADMIN)) {
                 expected = status().isOk();
             }
-            mockMvc.perform(post(url).with(jwt()
-                    .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
-        }
-
-        private void testRightsPut(String url, AuthorizationTest authorization) throws Exception {
-            var expected = status().isForbidden();
-
-            var expectedForUnauthenticated = authorization.equals(AuthorizationTest.UNAUTHENTICATED) ? status().isOk() : status().isUnauthorized();
-            mockMvc.perform(put(url)).andExpect(expectedForUnauthenticated);
-
-            if(authorization.equals(AuthorizationTest.MEMBER) || authorization.equals(AuthorizationTest.UNAUTHENTICATED)) {
-                expected = status().isOk();
-            }
-            mockMvc.perform(put(url).with(jwt()
-                    .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))).andExpect(expected);
-
-            if(authorization.equals(AuthorizationTest.EMAIL_VERIFIED)) {
-                expected = status().isOk();
-            }
-            mockMvc.perform(put(url).with(jwt()
-                    .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
-
-
-            if(authorization.equals(AuthorizationTest.MODERATOR)) {
-                expected = status().isOk();
-            }
-            mockMvc.perform(put(url).with(jwt()
-                    .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
-
-            if(authorization.equals(AuthorizationTest.ADMIN)) {
-                expected = status().isOk();
-            }
-            mockMvc.perform(put(url).with(jwt()
-                    .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
-        }
-
-
-        private void testRightsDelete(String url, AuthorizationTest authorization) throws Exception {
-            var expected = status().isForbidden();
-
-            var expectedForUnauthenticated = authorization.equals(AuthorizationTest.UNAUTHENTICATED) ? status().isOk() : status().isUnauthorized();
-            mockMvc.perform(delete(url)).andExpect(expectedForUnauthenticated);
-
-            if(authorization.equals(AuthorizationTest.MEMBER) || authorization.equals(AuthorizationTest.UNAUTHENTICATED)) {
-                expected = status().isOk();
-            }
-            mockMvc.perform(delete(url).with(jwt()
-                    .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))).andExpect(expected);
-
-            if(authorization.equals(AuthorizationTest.EMAIL_VERIFIED)) {
-                expected = status().isOk();
-            }
-            mockMvc.perform(delete(url).with(jwt()
-                    .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
-
-
-            if(authorization.equals(AuthorizationTest.MODERATOR)) {
-                expected = status().isOk();
-            }
-            mockMvc.perform(delete(url).with(jwt()
-                    .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
-
-            if(authorization.equals(AuthorizationTest.ADMIN)) {
-                expected = status().isOk();
-            }
-            mockMvc.perform(delete(url).with(jwt()
-                    .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
-        }
-
-
-        private void testRightsGet(String url, AuthorizationTest authorization) throws Exception {
-            var expected = status().isForbidden();
-
-            var expectedForUnauthenticated = authorization.equals(AuthorizationTest.UNAUTHENTICATED) ? status().isOk() : status().isUnauthorized();
-            mockMvc.perform(get(url)).andExpect(expectedForUnauthenticated);
-
-            if(authorization.equals(AuthorizationTest.MEMBER) || authorization.equals(AuthorizationTest.UNAUTHENTICATED)) {
-                expected = status().isOk();
-            }
-            mockMvc.perform(get(url).with(jwt()
-                    .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))).andExpect(expected);
-
-            if(authorization.equals(AuthorizationTest.EMAIL_VERIFIED)) {
-                expected = status().isOk();
-            }
-            mockMvc.perform(get(url).with(jwt()
-                    .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
-
-
-            if(authorization.equals(AuthorizationTest.MODERATOR)) {
-                expected = status().isOk();
-            }
-            mockMvc.perform(get(url).with(jwt()
-                    .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
-
-            if(authorization.equals(AuthorizationTest.ADMIN)) {
-                expected = status().isOk();
-            }
-            mockMvc.perform(get(url).with(jwt()
+            mockMvc.perform(requestBuilders.with(jwt()
                     .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
         }
     }
