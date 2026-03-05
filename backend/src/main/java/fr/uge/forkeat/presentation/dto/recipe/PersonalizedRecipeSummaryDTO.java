@@ -11,6 +11,8 @@ public record PersonalizedRecipeSummaryDTO(
         String authorUsername,
         long likeCount,
         long superLikeCount,
+        long followCount,
         boolean likedByCurrentUser,
-        boolean superLikedByCurrentUser
+        boolean superLikedByCurrentUser,
+        boolean followedByCurrentUser
 ) {}

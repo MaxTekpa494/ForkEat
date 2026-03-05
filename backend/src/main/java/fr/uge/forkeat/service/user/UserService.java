@@ -60,4 +60,22 @@ public class UserService {
         return passwordHasherPort.matches(rawPassword, hashedPassword);
     }
 
+    @Transactional
+    public void follow(String followerUsername, String followedUsername) {
+        Objects.requireNonNull(followerUsername);
+        Objects.requireNonNull(followedUsername);
+        var followerId = userPersistence.findIdByUsernameOrThrow(followerUsername);
+        var followedId = userPersistence.findIdByUsernameOrThrow(followedUsername);
+        userPersistence.follow(followerId, followedId);
+    }
+
+    @Transactional
+    public void unfollow(String followerUsername, String followedUsername) {
+        Objects.requireNonNull(followerUsername);
+        Objects.requireNonNull(followedUsername);
+        var followerId = userPersistence.findIdByUsernameOrThrow(followerUsername);
+        var followedId = userPersistence.findIdByUsernameOrThrow(followedUsername);
+        userPersistence.unfollow(followerId, followedId);
+    }
+
 }

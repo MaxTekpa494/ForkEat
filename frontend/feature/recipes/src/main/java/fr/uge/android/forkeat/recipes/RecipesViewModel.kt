@@ -156,6 +156,59 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun followRecipe(recipeId: UUID) {
+        viewModelScope.launch {
+            updateFollowStates(recipeId, followed = true)
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = api.followRecipe(token = token, id = recipeId)
+                if (!response.isSuccessful) {
+                    updateFollowStates(recipeId, followed = false)
+                    handleError(response.code())
+                }
+            } catch (e: Exception) {
+                updateFollowStates(recipeId, followed = false)
+                _errorMessage.value = "Erreur réseau : ${e.message}"
+            }
+        }
+    }
+
+    fun unfollowRecipe(recipeId: UUID) {
+        viewModelScope.launch {
+            updateFollowStates(recipeId, followed = false)
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = api.unfollowRecipe(token = token, id = recipeId)
+                if (!response.isSuccessful) {
+                    updateFollowStates(recipeId, followed = true)
+                    handleError(response.code())
+                }
+            } catch (e: Exception) {
+                updateFollowStates(recipeId, followed = true)
+                _errorMessage.value = "Erreur réseau : ${e.message}"
+            }
+        }
+    }
+
+    private fun updateFollowStates(recipeId: UUID, followed: Boolean) {
+        _recipes.value = _recipes.value.map { recipe ->
+            if (recipe.id == recipeId && recipe.followedByCurrentUser != followed) {
+                recipe.copy(
+                    followedByCurrentUser = followed,
+                    followCount = if (followed) recipe.followCount + 1 else recipe.followCount - 1
+                )
+            } else recipe
+        }
+        _currentRecipe.value?.let { current ->
+            if (current.id == recipeId && current.hasFollowed != followed) {
+                _currentRecipe.value = current.copy(
+                    hasFollowed = followed,
+                    nbFollow = if (followed) current.nbFollow + 1 else current.nbFollow - 1
+                )
+            }
+        }
+    }
+
     fun superLikeRecipe(recipeId: UUID){
         viewModelScope.launch {
             try {

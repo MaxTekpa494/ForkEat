@@ -29,13 +29,19 @@
 
                     <!-- Bouton Suivre -->
                     <div class="mb-6">
-                        <button th:if="${!vm.followedByCurrentUser()}"
-                                class="px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-full transition shadow-md">
-                            <i class="fas fa-user-plus mr-2"></i>Suivre
-                        </button>
-                        <button th:if="${vm.followedByCurrentUser()}"
-                                class="px-6 py-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full transition border border-white/40">
-                            <i class="fas fa-user-check mr-2"></i>Abonné
+                        <form id="follow-form"
+                              th:action="@{/profile/{username}/follow(username=${vm.profile().publicProfile().username()})}"
+                              method="post">
+                        </form>
+                        <button type="button"
+                                th:data-username="${vm.profile().publicProfile().username()}"
+                                th:data-followed="${vm.followedByCurrentUser()}"
+                                th:class="${vm.followedByCurrentUser()} ?
+                                    'px-6 py-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full transition border border-white/40' :
+                                    'px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-full transition shadow-md'"
+                                onclick="handleFollow(this)">
+                            <i th:class="${vm.followedByCurrentUser()} ? 'fas fa-user-check mr-2' : 'fas fa-user-plus mr-2'"></i>
+                            <span th:text="${vm.followedByCurrentUser()} ? 'Abonné' : 'Suivre'"></span>
                         </button>
                     </div>
 
@@ -47,7 +53,7 @@
                                 <div class="text-secondary-300 text-sm">Recettes</div>
                             </div>
                             <div class="text-center">
-                                <div class="font-bold text-2xl" th:text="${vm.profile().socialStats().followerCount()}">0</div>
+                                <div id="follower-count" class="font-bold text-2xl" th:text="${vm.profile().socialStats().followerCount()}">0</div>
                                 <div class="text-secondary-300 text-sm">Abonnes</div>
                             </div>
                             <div class="text-center">
@@ -143,6 +149,46 @@
             </div>
         </div>
     </section>
+
+    <script>
+        async function handleFollow(button) {
+            if (button.disabled) return;
+            button.disabled = true;
+
+            const username = button.dataset.username;
+            const isFollowed = button.dataset.followed === 'true';
+            const action = isFollowed ? 'unfollow' : 'follow';
+
+            const form = document.getElementById('follow-form');
+            form.action = '/profile/' + username + '/' + action;
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form)
+                });
+
+                if (response.ok) {
+                    const followerCount = document.getElementById('follower-count');
+                    if (isFollowed) {
+                        button.dataset.followed = 'false';
+                        button.className = 'px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-full transition shadow-md';
+                        button.querySelector('i').className = 'fas fa-user-plus mr-2';
+                        button.querySelector('span').textContent = 'Suivre';
+                        followerCount.textContent = parseInt(followerCount.textContent) - 1;
+                    } else {
+                        button.dataset.followed = 'true';
+                        button.className = 'px-6 py-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full transition border border-white/40';
+                        button.querySelector('i').className = 'fas fa-user-check mr-2';
+                        button.querySelector('span').textContent = 'Abonné';
+                        followerCount.textContent = parseInt(followerCount.textContent) + 1;
+                    }
+                }
+            } finally {
+                button.disabled = false;
+            }
+        }
+    </script>
 
 </div>
 </body>

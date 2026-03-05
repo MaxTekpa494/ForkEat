@@ -186,7 +186,6 @@ public final class RecipeRestController {
     return ResponseEntity.ok().build();
   }
 
-
   @PostMapping("/smart-search")
   public ResponseEntity<HttpResponse<PersonalizedRecipeSummaryDTO>> smartSearch(
           @RequestBody SmartSearchRequestDTO request) {
@@ -202,4 +201,15 @@ public final class RecipeRestController {
     return ResponseEntity.ok(new ListResponse<>(dtos, dtos.size()));
   }
 
+    @PutMapping("/{id}/follow")
+    public ResponseEntity<HttpResponse<Void>> followRecipe(@PathVariable UUID id) {
+        recipeService.followRecipe(authPort.extractUsername(), id);
+        return ResponseEntity.ok(new SuccessResponse());
+    }
+
+    @DeleteMapping("/{id}/follow")
+    public ResponseEntity<HttpResponse<Void>> unfollowRecipe(@PathVariable UUID id) {
+        recipeService.unfollowRecipe(authPort.extractUsername(), id);
+        return ResponseEntity.ok(new SuccessResponse());
+    }
 }

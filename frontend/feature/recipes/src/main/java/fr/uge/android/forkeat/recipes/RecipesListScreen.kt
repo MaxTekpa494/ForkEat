@@ -40,6 +40,8 @@ fun RecipesListScreen(
     onLikeRecipe: (UUID) -> Unit = {},
     onUnlikeRecipe: (UUID) -> Unit = {},
     onSuperLikeRecipe: (UUID) -> Unit = {},
+    onFollowRecipe: (UUID) -> Unit = {},
+    onUnfollowRecipe: (UUID) -> Unit = {},
     insufficientFunds: Boolean = false,
     onDismissInsufficientFunds: () -> Unit = {},
     emailNotVerified: Boolean = false,
@@ -113,7 +115,7 @@ fun RecipesListScreen(
             ) {
                 items(recipes) { recipe ->
                     RecipeCard(
-                        recipe = if (!isLoggedIn) recipe.copy(likedByCurrentUser = false, superLikedByCurrentUser = false) else recipe,
+                        recipe = if (!isLoggedIn) recipe.copy(likedByCurrentUser = false, superLikedByCurrentUser = false, followedByCurrentUser = false) else recipe,
                         onRecipeClick = { onRecipeClick(recipe.id.toString()) },
                         onUsernameClick = { username ->
                             if (!isLoggedIn) {
@@ -129,6 +131,8 @@ fun RecipesListScreen(
                         onLike = onLikeRecipe,
                         onUnlike = onUnlikeRecipe,
                         onSuperLike = onSuperLikeRecipe,
+                        onFollow = onFollowRecipe,
+                        onUnfollow = onUnfollowRecipe,
                     )
                 }
                 if (isLoading) {

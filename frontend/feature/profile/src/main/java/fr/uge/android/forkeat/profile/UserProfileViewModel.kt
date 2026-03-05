@@ -142,6 +142,51 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun followRecipe(recipeId: UUID) {
+        viewModelScope.launch {
+            updateFollowStates(recipeId, followed = true)
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = ForkEatApi.recipeService.followRecipe(token = token, id = recipeId)
+                if (!response.isSuccessful) {
+                    updateFollowStates(recipeId, followed = false)
+                    handleError(response.code())
+                }
+            } catch (e: Exception) {
+                updateFollowStates(recipeId, followed = false)
+            }
+        }
+    }
+
+    fun unfollowRecipe(recipeId: UUID) {
+        viewModelScope.launch {
+            updateFollowStates(recipeId, followed = false)
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = ForkEatApi.recipeService.unfollowRecipe(token = token, id = recipeId)
+                if (!response.isSuccessful) {
+                    updateFollowStates(recipeId, followed = true)
+                    handleError(response.code())
+                }
+            } catch (e: Exception) {
+                updateFollowStates(recipeId, followed = true)
+            }
+        }
+    }
+
+    private fun updateFollowStates(recipeId: UUID, followed: Boolean) {
+        _uiState.value = _uiState.value.copy(
+            recipes = _uiState.value.recipes.map { recipe ->
+                if (recipe.id == recipeId && recipe.followedByCurrentUser != followed) {
+                    recipe.copy(
+                        followedByCurrentUser = followed,
+                        followCount = if (followed) recipe.followCount + 1 else recipe.followCount - 1
+                    )
+                } else recipe
+            }
+        )
+    }
+
     private fun updateRecipeInList(recipeId: UUID, liked: Boolean) {
         _uiState.value = _uiState.value.copy(
             recipes = _uiState.value.recipes.map { recipe ->
@@ -155,6 +200,54 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
                 } else recipe
             }
         )
+    }
+
+    fun follow() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                followedByCurrentUser = true,
+                followerCount = _uiState.value.followerCount + 1
+            )
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = ForkEatApi.profileService.followUser(token, targetUsername)
+                if (!response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(
+                        followedByCurrentUser = false,
+                        followerCount = _uiState.value.followerCount - 1
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    followedByCurrentUser = false,
+                    followerCount = _uiState.value.followerCount - 1
+                )
+            }
+        }
+    }
+
+    fun unfollow() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                followedByCurrentUser = false,
+                followerCount = _uiState.value.followerCount - 1
+            )
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = ForkEatApi.profileService.unfollowUser(token, targetUsername)
+                if (!response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(
+                        followedByCurrentUser = true,
+                        followerCount = _uiState.value.followerCount + 1
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    followedByCurrentUser = true,
+                    followerCount = _uiState.value.followerCount + 1
+                )
+            }
+        }
     }
 
     private fun handleError(code: Int) {

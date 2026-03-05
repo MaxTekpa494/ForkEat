@@ -5,8 +5,10 @@ import fr.uge.forkeat.presentation.dto.user.UserProfileDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
+import fr.uge.forkeat.presentation.response.SuccessResponse;
 import fr.uge.forkeat.service.ProfileService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.user.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -15,10 +17,12 @@ import org.springframework.web.bind.annotation.*;
 public class ProfileRestController {
 
     private final ProfileService profileService;
+    private final UserService userService;
     private final AuthenticationPort authenticationPort;
 
-    public ProfileRestController(ProfileService profileService, AuthenticationPort authenticationPort) {
+    public ProfileRestController(ProfileService profileService, UserService userService, AuthenticationPort authenticationPort) {
         this.profileService = profileService;
+        this.userService = userService;
         this.authenticationPort = authenticationPort;
     }
 
@@ -50,5 +54,17 @@ public class ProfileRestController {
         );
 
         return ResponseEntity.ok(new ItemResponse<>(dto));
+    }
+
+    @PutMapping("/{username}/follow")
+    public ResponseEntity<HttpResponse<Void>> follow(@PathVariable String username) {
+        userService.follow(authenticationPort.extractUsername(), username);
+        return ResponseEntity.ok(new SuccessResponse());
+    }
+
+    @DeleteMapping("/{username}/follow")
+    public ResponseEntity<HttpResponse<Void>> unfollow(@PathVariable String username) {
+        userService.unfollow(authenticationPort.extractUsername(), username);
+        return ResponseEntity.ok(new SuccessResponse());
     }
 }

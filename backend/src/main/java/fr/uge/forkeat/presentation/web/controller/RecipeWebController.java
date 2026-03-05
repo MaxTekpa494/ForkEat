@@ -315,4 +315,16 @@ public class RecipeWebController {
         recipeService.superLikeRecipe(user.id(), id);
         return "redirect:/recipes/" + id;
     }
+
+    @PostMapping("/{id}/follow")
+    public String followRecipe(@PathVariable UUID id) {
+        recipeService.followRecipe(authPort.extractUsername(), id);
+        return "redirect:/recipes/" + id;
+    }
+
+    @PostMapping("/{id}/unfollow")
+    public String unfollowRecipe(@PathVariable UUID id) {
+        recipeService.unfollowRecipe(authPort.extractUsername(), id);
+        return "redirect:/recipes/" + id;
+    }
 }
