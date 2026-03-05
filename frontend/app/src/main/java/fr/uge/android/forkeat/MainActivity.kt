@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -40,6 +41,7 @@ import fr.uge.android.forkeat.profile.ProfileGuestScreen
 import fr.uge.android.forkeat.profile.ProfileScreen
 import fr.uge.android.forkeat.recipes.recipesGraph
 import fr.uge.android.forkeat.wallet.WalletScreen
+import fr.uge.android.forkeat.moderator.ModeratorRecipesScreen
 
 class MainActivity : ComponentActivity() {
     private var pendingDeepLink: String? = null
@@ -68,7 +70,8 @@ class MainActivity : ComponentActivity() {
                 val currentRoute = navBackStackEntry?.destination?.route
                 
                 val adminRoutes = listOf("admin-dashboard", "admin-recipes", "admin-wallets", "admin-create")
-                val hideBarsRoutes = listOf("login", "register", "forgot-password", "forgot-password-code", "recipes/{id}") + adminRoutes
+                val moderatorRoutes = listOf("moderator-recipes", "moderator-reports")
+                val hideBarsRoutes = listOf("login", "register", "forgot-password", "forgot-password-code", "recipes/{id}") + adminRoutes + moderatorRoutes
                 
                 val shouldShowBars = currentRoute !in hideBarsRoutes
                     && currentRoute?.startsWith("admin-users") != true
@@ -77,12 +80,14 @@ class MainActivity : ComponentActivity() {
                 var isCheckingAuth by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
                 var isLoggedIn by remember { mutableStateOf(false) }
                 var isAdmin by remember { mutableStateOf(false) }
+                var isModerator by remember { mutableStateOf(false) }
                 var startDestination by remember { mutableStateOf("home") }
 
                 val logout: () -> Unit = {
                     ForkEatApi.logout()
                     isLoggedIn = false
                     isAdmin = false
+                    isModerator = false
                     startDestination = "home"
                     navController.navigate("home") {
                         popUpTo(0) { inclusive = true }
@@ -97,7 +102,14 @@ class MainActivity : ComponentActivity() {
                                 val role = response.body()!!.resource.role
                                 isLoggedIn = true
                                 isAdmin = role == "ADMIN"
-                                startDestination = if (isAdmin) "admin-dashboard" else "home"
+                                isModerator = role == "MODERATOR"
+                                if (isAdmin) {
+                                    startDestination = "admin-dashboard"
+                                } else if (isModerator) {
+                                    startDestination = "moderator-recipes"
+                                } else {
+                                    startDestination = "home"
+                                }
                             } else {
                                 ForkEatApi.logout()
                                 startDestination = "home"
@@ -280,6 +292,22 @@ class MainActivity : ComponentActivity() {
                                     onNavigateToWallets = { navController.navigate("admin-wallets") },
                                     onLogout = logout
                                 )
+                            }
+
+                            // Moderator routes
+                            composable("moderator-recipes") {
+                                ModeratorRecipesScreen(
+                                    currentRoute = "moderator-recipes",
+                                    onNavigateToReports = { },
+                                    onNavigateToRecipe = { id -> navController.navigate("recipes/$id") },
+                                    onLogout = logout
+                                )
+                            }
+                            composable("moderator-reports") {
+                                // Placeholder for moderator reports screen
+                                Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                                    Text("Moderator Reports Screen - To be implemented") // TODO: Implement moderator reports screen
+                                }
                             }
                         }
                     }
