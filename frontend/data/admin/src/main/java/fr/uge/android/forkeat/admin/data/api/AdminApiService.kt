@@ -2,17 +2,16 @@ package fr.uge.android.forkeat.admin.data.api
 
 import fr.uge.android.forkeat.admin.data.dto.AdminCreateUserRequest
 import fr.uge.android.forkeat.admin.data.dto.AdminRecipeStatsDTO
-import fr.uge.android.forkeat.admin.data.dto.AdminRecipesListResponse
 import fr.uge.android.forkeat.admin.data.dto.AdminUserStatsDTO
 import fr.uge.android.forkeat.admin.data.dto.AdminUsersListResponse
 import fr.uge.android.forkeat.admin.data.dto.PlatformWalletDTO
 import fr.uge.android.forkeat.network.dto.UserDTO
 import fr.uge.android.forkeat.network.ForkEatApi
+import fr.uge.android.forkeat.recipes.data.dto.SimpleRecipesListResponse
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
-import retrofit2.http.Path
 import retrofit2.http.Query
 
 object AdminApi {
@@ -50,15 +49,7 @@ interface AdminApiService {
     @POST("api/admin/admins")
     suspend fun createAdmin(@Body request: AdminCreateUserRequest): Response<UserDTO>
 
-    @GET("api/admin/recipes/pending")
-    suspend fun getPendingRecipes(): Response<AdminRecipesListResponse>
-
     @GET("api/admin/recipes/published")
-    suspend fun getPublishedRecipes(@Query("page") page: Int = 0): Response<AdminRecipesListResponse>
+    suspend fun getPublishedRecipes(@Query("page") page: Int = 0): Response<SimpleRecipesListResponse>
 
-    @POST("api/admin/recipes/{id}/validate")
-    suspend fun validateRecipe(@Path("id") id: String): Response<Unit>
-
-    @POST("api/admin/recipes/{id}/reject")
-    suspend fun rejectRecipe(@Path("id") id: String): Response<Unit>
 }

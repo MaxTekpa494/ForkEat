@@ -42,6 +42,8 @@ dependencies {
     implementation(project(":core:designsystem"))
     implementation(project(":core:network"))
     implementation(project(":data:admin"))
+    implementation(project(":data:moderator"))
+    implementation(project(":data:recipes"))
     implementation(libs.coil.compose)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
