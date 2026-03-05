@@ -77,11 +77,13 @@ class MainActivity : ComponentActivity() {
                 var isCheckingAuth by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
                 var isLoggedIn by remember { mutableStateOf(false) }
                 var isAdmin by remember { mutableStateOf(false) }
+                var startDestination by remember { mutableStateOf("home") }
 
                 val logout: () -> Unit = {
                     ForkEatApi.logout()
                     isLoggedIn = false
                     isAdmin = false
+                    startDestination = "home"
                     navController.navigate("home") {
                         popUpTo(0) { inclusive = true }
                     }
@@ -95,18 +97,23 @@ class MainActivity : ComponentActivity() {
                                 val role = response.body()!!.resource.role
                                 isLoggedIn = true
                                 isAdmin = role == "ADMIN"
+                                startDestination = if (isAdmin) "admin-dashboard" else "home"
                             } else {
                                 ForkEatApi.logout()
+                                startDestination = "home"
                             }
                         } catch (_: Exception) {
                             ForkEatApi.logout()
+                            startDestination = "home"
                         }
+                    } else {
+                        startDestination = "home"
                     }
                     isCheckingAuth = false
                     pendingDeepLink?.let { dest ->
                         pendingDeepLink = null
                         navController.navigate(dest) {
-                            popUpTo("home") { inclusive = false }
+                            popUpTo(startDestination) { inclusive = false }
                         }
                     }
                 }
@@ -124,7 +131,7 @@ class MainActivity : ComponentActivity() {
                     ) { innerPadding ->
                         NavHost(
                             navController = navController,
-                            startDestination = "home",
+                            startDestination = startDestination,
                             modifier = Modifier.padding(innerPadding)
                         ) {
                             composable("home") {
