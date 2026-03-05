@@ -31,6 +31,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Color.Companion.Red
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
+import fr.uge.android.forkeat.designsystem.InfiniteListHandler
 import fr.uge.android.forkeat.designsystem.theme.Primary500
 import fr.uge.android.forkeat.designsystem.theme.Secondary900
 import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
@@ -59,17 +60,12 @@ fun RecipesListScreen(
 ) {
   val listState = rememberLazyListState()
 
-  val shouldLoadMore by remember {
-    derivedStateOf {
-      val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
-      lastVisibleItem != null && lastVisibleItem.index >= listState.layoutInfo.totalItemsCount - 1
-    }
-  }
-  LaunchedEffect(shouldLoadMore, recipes.size, totalCount) {
-    if (shouldLoadMore) {
-      onLoadMore()
-    }
-  }
+  InfiniteListHandler(
+    listState,
+    isLoading,
+    1,
+    onLoadMore
+  )
 
   Box(modifier = Modifier.fillMaxSize()) {
     Column(

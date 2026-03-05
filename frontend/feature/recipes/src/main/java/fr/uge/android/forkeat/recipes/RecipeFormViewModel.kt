@@ -8,7 +8,7 @@ import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.TokenManager
 import fr.uge.android.forkeat.recipes.data.api.RecipeApi
-import fr.uge.android.forkeat.recipes.data.dto.AllergenDTO
+import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.CreateRecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeIngredientDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeStepDTO
@@ -43,23 +43,23 @@ data class IngredientState(
 // --- UI state ---
 
 data class RecipeFormUiState(
-    val title: String = "",
-    val summary: String = "",
-    val preparationMinutes: String = "",
-    val status: String = "PUBLISHED",
-    val steps: List<StepState> = emptyList(),
-    val ingredients: List<IngredientState> = emptyList(),
-    val selectedAllergenIds: Set<String> = emptySet(),
-    val availableAllergens: List<AllergenDTO> = emptyList(),
-    val availableIngredientNames: List<String> = emptyList(),
-    val availableDietaries: List<String> = emptyList(),
-    val selectedDietaries: Set<String> = emptySet(),
-    val currentImageUrl: String? = null, // image existante (edit / variante)
-    val imageUri: Uri? = null,            // nouvelle image choisie par l'utilisateur
-    val isLoadingFormData: Boolean = false,
-    val isSubmitting: Boolean = false,
-    val errorMessage: String? = null,
-    val resultRecipeId: UUID? = null
+  val title: String = "",
+  val summary: String = "",
+  val preparationMinutes: String = "",
+  val status: String = "PUBLISHED",
+  val steps: List<StepState> = emptyList(),
+  val ingredients: List<IngredientState> = emptyList(),
+  val selectedAllergenIds: Set<String> = emptySet(),
+  val availableAllergens: List<RecipeAllergenDTO> = emptyList(),
+  val availableIngredientNames: List<String> = emptyList(),
+  val availableDietaries: List<String> = emptyList(),
+  val selectedDietaries: Set<String> = emptySet(),
+  val currentImageUrl: String? = null, // image existante (edit / variante)
+  val imageUri: Uri? = null,            // nouvelle image choisie par l'utilisateur
+  val isLoadingFormData: Boolean = false,
+  val isSubmitting: Boolean = false,
+  val errorMessage: String? = null,
+  val resultRecipeId: UUID? = null
 )
 
 // --- ViewModel ---

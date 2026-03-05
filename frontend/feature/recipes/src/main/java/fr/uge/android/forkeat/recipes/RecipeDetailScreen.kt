@@ -1,7 +1,6 @@
 package fr.uge.android.forkeat.recipes
 
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
@@ -65,7 +64,7 @@ import fr.uge.android.forkeat.designsystem.theme.Primary500
 import fr.uge.android.forkeat.designsystem.theme.Secondary700
 import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
 import fr.uge.android.forkeat.designsystem.theme.Typography
-import fr.uge.android.forkeat.recipes.data.dto.AllergenDTO
+import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDiffDTO
@@ -446,7 +445,7 @@ private fun DiffBadge(type: RecipeDiffDTO.DiffType) {
 // ══════════════════════════════════════════════════════════════════════════════
 
 @Composable
-fun AllergenBadges(allergens: List<AllergenDTO>) {
+fun AllergenBadges(allergens: List<RecipeAllergenDTO>) {
     Row(
         Modifier
             .padding(vertical = 4.dp)
@@ -953,8 +952,8 @@ fun PreviewRecipeDetailScreen() {
             RecipeIngredientDTO("Beurre doux froid", 125.0, "g")
         ),
         allergens = listOf(
-            AllergenDTO("1", "Gluten", "élevé"),
-            AllergenDTO("2", "Lait", "moyen")
+            RecipeAllergenDTO("1", "Gluten", "élevé"),
+            RecipeAllergenDTO("2", "Lait", "moyen")
         ),
         dietaries = listOf("vegetarian"),
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
@@ -1015,7 +1014,7 @@ fun PreviewRecipeDetailScreenWithDiff() {
         status = "PUBLISHED",
         steps = listOf(RecipeStepDTO(1, "Préparez la pâte."), RecipeStepDTO(2, "Ajoutez la cannelle.")),
         ingredients = listOf(RecipeIngredientDTO("Farine", 250.0, "g")),
-        allergens = listOf(AllergenDTO("1", "Gluten", "élevé")),
+        allergens = listOf(RecipeAllergenDTO("1", "Gluten", "élevé")),
         dietaries = listOf("vegetarian"),
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
         updatedAt = Instant.parse("2026-02-10T12:00:00Z"),
