@@ -11,9 +11,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.automirrored.filled.MenuBook
-import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -56,8 +55,7 @@ fun ModeratorScaffold(
     currentRoute: String,
     onNavigateToRecipes: () -> Unit,
     onNavigateToReports: () -> Unit,
-    onLogout: () -> Unit,
-    onRefresh: (() -> Unit)? = null,
+    onExit: () -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val selectedTab = when (currentRoute) {
@@ -99,7 +97,7 @@ fun ModeratorScaffold(
                         )
                         Spacer(Modifier.width(8.dp))
                         Text(
-                            text = "Modo",
+                            text = "Modérateur",
                             fontSize = 10.sp,
                             fontWeight = FontWeight.Bold,
                             color = ModeratorOrange300,
@@ -111,20 +109,11 @@ fun ModeratorScaffold(
                     }
                 },
                 actions = {
-                    if (onRefresh != null) {
-                        IconButton(onClick = onRefresh) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = "Rafraîchir",
-                                tint = ModeratorOrange300
-                            )
-                        }
-                    }
-                    IconButton(onClick = onLogout) {
+                    IconButton(onClick = onExit) {
                         Icon(
-                            imageVector = Icons.AutoMirrored.Filled.ExitToApp,
-                            contentDescription = "Déconnexion",
-                            tint = ModeratorOrange300
+                            imageVector = Icons.Default.Close,
+                            contentDescription = "Quitter le mode modérateur",
+                            tint = Color.White
                         )
                     }
                 },

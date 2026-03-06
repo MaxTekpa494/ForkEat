@@ -59,7 +59,7 @@ fun ModeratorRecipesScreen(
     currentRoute: String,
     onNavigateToReports: () -> Unit,
     onNavigateToRecipe: (String) -> Unit = {},
-    onLogout: () -> Unit,
+    onExit: () -> Unit,
     viewModel: ModeratorRecipesViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
@@ -68,7 +68,7 @@ fun ModeratorRecipesScreen(
         currentRoute = currentRoute,
         onNavigateToRecipes = {},
         onNavigateToReports = onNavigateToReports,
-        onLogout = onLogout
+        onExit = onExit
     ) { innerPadding ->
         PullToRefreshBox(
             isRefreshing = uiState.isLoading,

@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -228,7 +229,9 @@ private fun ForkEatLoggedInTopBar(
     onNavigateToDashboard: () -> Unit,
     onNavigateToProfile: () -> Unit,
     onNavigateToWallet: () -> Unit,
-    onLogout: () -> Unit
+    onNavigateToModerator: () -> Unit = {},
+    onLogout: () -> Unit,
+    isModerator: Boolean = false
 ) {
     var menuExpanded by remember { mutableStateOf(false) }
     TopAppBar(
@@ -272,6 +275,17 @@ private fun ForkEatLoggedInTopBar(
                     onClick = { menuExpanded = false; onNavigateToWallet() },
                     leadingIcon = { Icon(Icons.Default.Wallet, contentDescription = null, tint = Secondary700) },
                 )
+                if (isModerator) {
+                    HorizontalDivider(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                        color = Gray100,
+                    )
+                    DropdownMenuItem(
+                        text = { Text("Mode Modérateur", fontWeight = FontWeight.SemiBold, color = Orange500) },
+                        onClick = { menuExpanded = false; onNavigateToModerator() },
+                        leadingIcon = { Icon(Icons.Default.Security, contentDescription = null, tint = Orange500) },
+                    )
+                }
                 HorizontalDivider(
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
                     color = Gray100,
@@ -617,6 +631,7 @@ private fun NavBar(
 fun ForkEatScaffold(
     navController: NavHostController? = null,
     isLoggedIn: Boolean = false,
+    isModerator: Boolean = false,
     onLogout: () -> Unit = {},
     showBars: Boolean = true,
     content: @Composable (PaddingValues) -> Unit
@@ -639,7 +654,9 @@ fun ForkEatScaffold(
                 onNavigateToDashboard = { navController?.navigate("dashboard") },
                 onNavigateToProfile = { navController?.navigate("profile") },
                 onNavigateToWallet = { navController?.navigate("wallet") },
-                onLogout = onLogout
+                onNavigateToModerator = { navController?.navigate("moderator-recipes") },
+                onLogout = onLogout,
+                isModerator = isModerator
               )
             } else {
               ForkEatTopBar(

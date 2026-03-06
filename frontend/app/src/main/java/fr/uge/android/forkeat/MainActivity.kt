@@ -105,8 +105,6 @@ class MainActivity : ComponentActivity() {
                                 isModerator = role == "MODERATOR"
                                 if (isAdmin) {
                                     startDestination = "admin-dashboard"
-                                } else if (isModerator) {
-                                    startDestination = "moderator-recipes"
                                 } else {
                                     startDestination = "home"
                                 }
@@ -139,7 +137,8 @@ class MainActivity : ComponentActivity() {
                         navController = navController,
                         onLogout = logout,
                         isLoggedIn = isLoggedIn,
-                        showBars = shouldShowBars
+                        showBars = shouldShowBars,
+                        isModerator = isModerator
                     ) { innerPadding ->
                         NavHost(
                             navController = navController,
@@ -300,7 +299,7 @@ class MainActivity : ComponentActivity() {
                                     currentRoute = "moderator-recipes",
                                     onNavigateToReports = { },
                                     onNavigateToRecipe = { id -> navController.navigate("recipes/$id") },
-                                    onLogout = logout
+                                    onExit = { navController.popBackStack() }
                                 )
                             }
                             composable("moderator-reports") {
