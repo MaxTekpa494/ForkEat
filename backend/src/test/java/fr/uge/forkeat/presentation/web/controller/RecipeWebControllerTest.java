@@ -2,11 +2,14 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
+import fr.uge.forkeat.service.exception.RecipeAlreadyReportedException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.model.recipe.RecipeReportType;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
@@ -66,6 +69,9 @@ class RecipeWebControllerTest {
 
     @MockitoBean
     private WalletService walletService;
+
+    @MockitoBean
+    private RecipeReportService recipeReportService;
 
     @Nested
     class ListRecipes {
@@ -345,6 +351,53 @@ class RecipeWebControllerTest {
             doThrow(new InsufficientFundsException(50L, 100L)).when(recipeService).superLikeRecipe(any(), any());
             mockMvc.perform(post("/recipes/{id}/super-like", id))
                     .andExpect(status().isPaymentRequired());
+        }
+    }
+
+    @Nested
+    class ReportRecipe {
+
+        @Test
+        @WithMockUser(username = "john")
+        void shouldRedirectWithSuccessFlashAfterReport() throws Exception {
+            var id = UUID.randomUUID();
+            when(authenticationPort.extractUsername()).thenReturn("john");
+            when(recipeReportService.reportRecipe(any())).thenReturn(null);
+
+            mockMvc.perform(post("/recipes/{id}/report", id)
+                            .param("reportType", "SPAM")
+                            .param("justification", "Ceci est du spam"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/recipes/" + id))
+                    .andExpect(flash().attributeExists("reportSuccess"));
+        }
+
+        @Test
+        @WithMockUser(username = "john")
+        void shouldReturn404WhenRecipeNotFound() throws Exception {
+            var id = UUID.randomUUID();
+            when(authenticationPort.extractUsername()).thenReturn("john");
+            when(recipeReportService.reportRecipe(any())).thenThrow(new RecipeNotFoundException(id));
+
+            mockMvc.perform(post("/recipes/{id}/report", id)
+                            .param("reportType", "SPAM")
+                            .param("justification", "Recette introuvable"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @WithMockUser(username = "john")
+        void shouldRedirectWithErrorFlashWhenAlreadyReported() throws Exception {
+            var id = UUID.randomUUID();
+            when(authenticationPort.extractUsername()).thenReturn("john");
+            when(recipeReportService.reportRecipe(any()))
+                    .thenThrow(new RecipeAlreadyReportedException(id, UUID.randomUUID()));
+
+            mockMvc.perform(post("/recipes/{id}/report", id)
+                            .param("reportType", "SPAM")
+                            .param("justification", "Déjà signalé"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(flash().attributeExists("reportError"));
         }
     }
 

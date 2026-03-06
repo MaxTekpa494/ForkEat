@@ -4,13 +4,13 @@ import fr.uge.forkeat.presentation.dto.recipe.*;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.response.*;
+import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
-import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
-import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserService;
 import org.slf4j.Logger;
@@ -30,21 +30,21 @@ import java.util.UUID;
 public final class RecipeRestController {
 
   private final RecipeService recipeService;
+  private final RecipeReportService recipeReportService;
   private final AuthenticationPort authPort;
   private final UserService userService;
   private final RecipeSmartSearchService smartSearchService;
-  private final WalletService walletService;
 
-  private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
+    private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
-  public RecipeRestController(RecipeService recipeService, AuthenticationPort authPort,
-                              UserService userService, RecipeSmartSearchService smartSearchService,
-                              WalletService walletService) {
+  public RecipeRestController(RecipeService recipeService, RecipeReportService recipeReportService,
+                              AuthenticationPort authPort, UserService userService,
+                              RecipeSmartSearchService smartSearchService) {
     this.recipeService = recipeService;
+    this.recipeReportService = recipeReportService;
     this.authPort = authPort;
     this.userService = userService;
     this.smartSearchService = smartSearchService;
-    this.walletService = walletService;
   }
 
   public record AllergensIngredients(List<AllergenDTO> allergens, List<String> ingredients, List<String> dietaries) {
@@ -211,5 +211,14 @@ public final class RecipeRestController {
     public ResponseEntity<HttpResponse<Void>> unfollowRecipe(@PathVariable UUID id) {
         recipeService.unfollowRecipe(authPort.extractUsername(), id);
         return ResponseEntity.ok(new SuccessResponse());
+    }
+
+    @PostMapping("/{id}/reports")
+    public ResponseEntity<HttpResponse<RecipeReportDTO>> reportRecipe(
+            @PathVariable UUID id,
+            @RequestBody RecipeReportRequestDTO request) {
+        var command = new CreateRecipeReport(id, authPort.extractUsername(), request.reportType(), request.justification());
+        var report = recipeReportService.reportRecipe(command);
+        return ResponseEntity.status(201).body(new CreatedResponse<>(RecipeReportDTO.from(report)));
     }
 }

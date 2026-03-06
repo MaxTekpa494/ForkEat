@@ -7,11 +7,14 @@ import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
+import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ModerationRagException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
+import fr.uge.forkeat.service.model.recipe.RecipeReportType;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.user.UserService;
@@ -23,6 +26,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 import java.util.Objects;
@@ -37,17 +41,19 @@ public class RecipeWebController {
     private final UserService userService;
     private final RecipeSmartSearchService smartSearchService;
     private final WalletService walletService;
+    private final RecipeReportService recipeReportService;
 
     private final Logger logger = LoggerFactory.getLogger(RecipeWebController.class);
 
     public RecipeWebController(RecipeService recipeService, UserService userService,
                                AuthenticationPort authPort, RecipeSmartSearchService smartSearchService,
-                               WalletService walletService) {
+                               WalletService walletService, RecipeReportService recipeReportService) {
         this.recipeService = recipeService;
         this.userService = userService;
         this.authPort = authPort;
         this.smartSearchService = smartSearchService;
         this.walletService = walletService;
+        this.recipeReportService = recipeReportService;
     }
 
     @GetMapping("/create")
@@ -313,6 +319,17 @@ public class RecipeWebController {
     public String superLikeRecipe(@PathVariable UUID id) {
         var user = userService.getUserByUsername(authPort.extractUsername());
         recipeService.superLikeRecipe(user.id(), id);
+        return "redirect:/recipes/" + id;
+    }
+
+    @PostMapping("/{id}/report")
+    public String reportRecipe(@PathVariable UUID id,
+                               @RequestParam("reportType") RecipeReportType reportType,
+                               @RequestParam("justification") String justification,
+                               RedirectAttributes redirectAttributes) {
+        var command = new CreateRecipeReport(id, authPort.extractUsername(), reportType, justification);
+        recipeReportService.reportRecipe(command);
+        redirectAttributes.addFlashAttribute("reportSuccess", "Votre signalement a bien été enregistré.");
         return "redirect:/recipes/" + id;
     }
 
