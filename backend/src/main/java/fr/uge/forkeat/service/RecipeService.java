@@ -335,5 +335,6 @@ public class RecipeService {
                   userId, recipeId, effectivePrice, promotionId, earningsPart, redistPart);
       }
       recipePersistence.superLikeRecipe(userId, recipeId, effectivePrice, promotionId, isBonusFree);
+      walletPersistence.saveTransaction(new Transaction(UUID.randomUUID(), wallet.id(), null, effectivePrice, TransactionType.SUPER_LIKE, Instant.now(), null, TransactionStatus.SUCCEEDED));
   }
 }
