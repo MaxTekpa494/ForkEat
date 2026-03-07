@@ -105,7 +105,6 @@ public class GlobalRestExceptionHandler {
                 .body(Map.of("error", "Conflict", "message", e.getMessage(), "timestamp", Instant.now().toString()));
     }
 
-    }
     @ExceptionHandler(PromotionNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handlePromotionNotFound(PromotionNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)
@@ -129,3 +128,5 @@ public class GlobalRestExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
                 .body(Map.of("error", "Unprocessable Entity", "message", e.getMessage(), "timestamp", Instant.now().toString()));
     }
+
+}
