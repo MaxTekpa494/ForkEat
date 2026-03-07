@@ -5,6 +5,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.TokenManager
+import fr.uge.android.forkeat.network.dto.UserReportRequestDTO
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,7 +28,10 @@ data class UserProfileUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val insufficientFunds: Boolean = false,
-    val emailNotVerified: Boolean = false
+    val emailNotVerified: Boolean = false,
+    val showReportDialog: Boolean = false,
+    val reportSuccess: Boolean = false,
+    val reportAlreadyDone: Boolean = false
 )
 
 class UserProfileViewModel(application: Application) : AndroidViewModel(application) {
@@ -44,6 +48,42 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
 
     fun dismissEmailNotVerified() {
         _uiState.value = _uiState.value.copy(emailNotVerified = false)
+    }
+
+    fun showReportDialog() {
+        _uiState.value = _uiState.value.copy(showReportDialog = true)
+    }
+
+    fun dismissReportDialog() {
+        _uiState.value = _uiState.value.copy(showReportDialog = false)
+    }
+
+    fun dismissReportSuccess() {
+        _uiState.value = _uiState.value.copy(reportSuccess = false)
+    }
+
+    fun dismissReportAlreadyDone() {
+        _uiState.value = _uiState.value.copy(reportAlreadyDone = false)
+    }
+
+    fun reportUser(reportType: String, justification: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(showReportDialog = false)
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = ForkEatApi.profileService.reportUser(
+                    token = token,
+                    username = targetUsername,
+                    request = UserReportRequestDTO(reportType, justification)
+                )
+                when {
+                    response.isSuccessful -> _uiState.value = _uiState.value.copy(reportSuccess = true)
+                    response.code() == 409 -> _uiState.value = _uiState.value.copy(reportAlreadyDone = true)
+                }
+            } catch (e: Exception) {
+                // Silently fail
+            }
+        }
     }
 
     fun loadProfile(username: String, page: Int = 0) {

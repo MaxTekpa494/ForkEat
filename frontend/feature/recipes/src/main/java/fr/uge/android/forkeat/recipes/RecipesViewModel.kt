@@ -11,6 +11,7 @@ import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDiffDTO
+import fr.uge.android.forkeat.recipes.data.dto.RecipeReportRequestDTO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -48,6 +49,16 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     val insufficientFunds: StateFlow<Boolean> = _insufficientFunds.asStateFlow()
 
     fun dismissInsufficientFunds() { _insufficientFunds.value = false }
+
+    private val _reportSuccess = MutableStateFlow(false)
+    val reportSuccess: StateFlow<Boolean> = _reportSuccess.asStateFlow()
+
+    fun dismissReportSuccess() { _reportSuccess.value = false }
+
+    private val _reportAlreadyReported = MutableStateFlow(false)
+    val reportAlreadyReported: StateFlow<Boolean> = _reportAlreadyReported.asStateFlow()
+
+    fun dismissReportAlreadyReported() { _reportAlreadyReported.value = false }
 
     private val _currentPage = MutableStateFlow(0)
 
@@ -238,6 +249,26 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Le serveur est indisponible, veuillez réessayer plus tard."
+            }
+        }
+    }
+
+    fun reportRecipe(recipeId: UUID, reportType: String, justification: String) {
+        viewModelScope.launch {
+            try {
+                val token = tokenManager.getToken() ?: return@launch
+                val response = api.reportRecipe(
+                    token = token,
+                    id = recipeId,
+                    request = RecipeReportRequestDTO(reportType, justification)
+                )
+                when {
+                    response.isSuccessful -> _reportSuccess.value = true
+                    response.code() == 409 -> _reportAlreadyReported.value = true
+                    else -> _errorMessage.value = "Erreur lors du signalement (${response.code()})"
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Erreur réseau : ${e.message}"
             }
         }
     }

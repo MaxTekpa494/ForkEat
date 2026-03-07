@@ -317,6 +317,8 @@ class MainActivity : ComponentActivity() {
                                 val diff by recipesViewModel.currentDiff.collectAsState()
                                 val insufficientFunds by recipesViewModel.insufficientFunds.collectAsState()
                                 val emailNotVerified by recipesViewModel.emailNotVerified.collectAsState()
+                                val reportSuccess by recipesViewModel.reportSuccess.collectAsState()
+                                val reportAlreadyReported by recipesViewModel.reportAlreadyReported.collectAsState()
                                 val currentUsername = remember { ForkEatApi.getCurrentUsername() }
 
                                 when (val r = recipe) {
@@ -346,7 +348,14 @@ class MainActivity : ComponentActivity() {
                                         onDismissEmailNotVerified = { recipesViewModel.dismissEmailNotVerified() },
                                         onNavigateToAccount = { navController.navigate("account") },
                                         onNavigateToWallet = { navController.navigate("wallet") },
-                                        onNavigateToLogin = { navController.navigate("welcome") }
+                                        onNavigateToLogin = { navController.navigate("welcome") },
+                                        onReport = { id, type, justification ->
+                                            recipesViewModel.reportRecipe(id, type, justification)
+                                        },
+                                        reportSuccess = reportSuccess,
+                                        onDismissReportSuccess = { recipesViewModel.dismissReportSuccess() },
+                                        reportAlreadyReported = reportAlreadyReported,
+                                        onDismissReportAlreadyReported = { recipesViewModel.dismissReportAlreadyReported() }
                                     )
                                 }
                             }
