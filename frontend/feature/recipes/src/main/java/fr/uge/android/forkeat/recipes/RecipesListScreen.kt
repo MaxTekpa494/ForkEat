@@ -5,13 +5,16 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import fr.uge.android.forkeat.designsystem.theme.*
 import fr.uge.android.forkeat.network.ForkEatApi
@@ -49,6 +52,7 @@ fun RecipesListScreen(
     onNavigateToLogin: () -> Unit = {},
     onNavigateToWallet: () -> Unit = {},
     onNavigateToAccount: () -> Unit = {},
+    onNavigateToSmartSearch: () -> Unit = {},
 ) {
     val listState = rememberLazyListState()
     val currentUsername = remember(isLoggedIn) { if (isLoggedIn) ForkEatApi.getCurrentUsername() else null }
@@ -97,6 +101,33 @@ fun RecipesListScreen(
                 onAllergenToggle = onAllergenToggle,
                 onClearFilters = onClearFilters
             )
+
+            if (isLoggedIn) {
+                OutlinedButton(
+                    onClick = onNavigateToSmartSearch,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(bottom = 4.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary500),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, Primary500.copy(alpha = 0.5f))
+                ) {
+                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Column {
+                        Text(
+                            "Recherche Intelligente par IA",
+                            fontWeight = FontWeight.SemiBold,
+                            style = MaterialTheme.typography.bodySmall
+                        )
+                        Text(
+                            "Décrivez votre envie en langage naturel — 0,10 €",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Gray500
+                        )
+                    }
+                }
+            }
 
             if (errorMessage != null) {
                 Text(

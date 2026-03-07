@@ -7,9 +7,11 @@ import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsResponseDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeItemResponse
 import fr.uge.android.forkeat.recipes.data.dto.RecipesListResponse
+import fr.uge.android.forkeat.recipes.data.dto.SmartSearchRequestDTO
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.Header
@@ -102,4 +104,9 @@ interface RecipeApiService {
 
     @GET("api/recipes/allergens")
     suspend fun getAllergens(): Response<RecipesListResponse<AllergenDTO>>
+
+    @POST("api/recipes/smart-search")
+    suspend fun smartSearch(
+        @Body request: SmartSearchRequestDTO
+    ): Response<RecipesListResponse<PersonalizedRecipeSummaryDTO>>
 }

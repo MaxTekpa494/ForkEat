@@ -49,6 +49,8 @@ import fr.uge.android.forkeat.recipes.RecipeFormScreen
 import fr.uge.android.forkeat.recipes.RecipeFormViewModel
 import fr.uge.android.forkeat.recipes.RecipesListScreen
 import fr.uge.android.forkeat.recipes.RecipesViewModel
+import fr.uge.android.forkeat.recipes.SmartSearchScreen
+import fr.uge.android.forkeat.recipes.SmartSearchViewModel
 import fr.uge.android.forkeat.wallet.WalletScreen
 import fr.uge.android.forkeat.wallet.WalletViewModel
 import java.util.UUID
@@ -100,8 +102,35 @@ class MainActivity : ComponentActivity() {
                 var isLoggedIn by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
                 val recipesViewModel: RecipesViewModel = viewModel()
                 val walletViewModel: WalletViewModel = viewModel()
+                val smartSearchViewModel: SmartSearchViewModel = viewModel()
 
                 var showWelcomeOnLaunch by remember { mutableStateOf(!isLoggedIn) }
+
+                // ── Actions recette partagées ─────────────────────────────────────
+                // Chaque action met à jour les deux ViewModels : recipesViewModel
+                // (liste principale) ET smartSearchViewModel (résultats de recherche).
+                // Ainsi un like depuis la fiche recette ou la liste principale se
+                // reflète immédiatement dans les résultats du smart search, et vice-versa.
+                val likeRecipe: (UUID) -> Unit = { id ->
+                    recipesViewModel.likeRecipe(id)
+                    smartSearchViewModel.updateLikeState(id, liked = true)
+                }
+                val unlikeRecipe: (UUID) -> Unit = { id ->
+                    recipesViewModel.unlikeRecipe(id)
+                    smartSearchViewModel.updateLikeState(id, liked = false)
+                }
+                val followRecipe: (UUID) -> Unit = { id ->
+                    recipesViewModel.followRecipe(id)
+                    smartSearchViewModel.updateFollowState(id, followed = true)
+                }
+                val unfollowRecipe: (UUID) -> Unit = { id ->
+                    recipesViewModel.unfollowRecipe(id)
+                    smartSearchViewModel.updateFollowState(id, followed = false)
+                }
+                val superLikeRecipe: (UUID) -> Unit = { id ->
+                    recipesViewModel.superLikeRecipe(id)
+                    smartSearchViewModel.updateSuperLikeState(id)
+                }
 
                 val logout: () -> Unit = {
                     ForkEatApi.logout()
@@ -269,18 +298,19 @@ class MainActivity : ComponentActivity() {
                                     onRecipeClick = { id -> navController.navigate("recipes/$id") },
                                     onNavigateToUserProfile = { runAuth { navController.navigate("user/$it") } },
                                     onNavigateToMyProfile = { runAuth { navController.navigate("profile") } },
-                                    onLikeRecipe = { id -> runAuth { recipesViewModel.likeRecipe(id) } },
-                                    onUnlikeRecipe = { id -> runAuth { recipesViewModel.unlikeRecipe(id) } },
-                                    onSuperLikeRecipe = { id -> runAuth { recipesViewModel.superLikeRecipe(id) } },
-                                    onFollowRecipe = { id -> runAuth { recipesViewModel.followRecipe(id) } },
-                                    onUnfollowRecipe = { id -> runAuth { recipesViewModel.unfollowRecipe(id) } },
+                                    onLikeRecipe = { id -> runAuth { likeRecipe(id) } },
+                                    onUnlikeRecipe = { id -> runAuth { unlikeRecipe(id) } },
+                                    onSuperLikeRecipe = { id -> runAuth { superLikeRecipe(id) } },
+                                    onFollowRecipe = { id -> runAuth { followRecipe(id) } },
+                                    onUnfollowRecipe = { id -> runAuth { unfollowRecipe(id) } },
                                     onNavigateToLogin = { navController.navigate("welcome") },
                                     insufficientFunds = insufficientFunds,
                                     onDismissInsufficientFunds = { recipesViewModel.dismissInsufficientFunds() },
                                     emailNotVerified = emailNotVerified,
                                     onDismissEmailNotVerified = { recipesViewModel.dismissEmailNotVerified() },
                                     onNavigateToWallet = { navController.navigate("wallet") },
-                                    onNavigateToAccount = { navController.navigate("account") }
+                                    onNavigateToAccount = { navController.navigate("account") },
+                                    onNavigateToSmartSearch = { runAuth { navController.navigate("smart-search") } }
                                 )
                             }
                             composable(
@@ -335,11 +365,11 @@ class MainActivity : ComponentActivity() {
                                         onCreateVariant = { runAuth { navController.navigate("recipe-form?parentId=${r.id}") } },
                                         onNavigateToUserProfile = { runAuth { navController.navigate("user/$it") } },
                                         onNavigateToMyProfile = { runAuth { navController.navigate("profile") } },
-                                        onLike = { id -> runAuth { recipesViewModel.likeRecipe(id) } },
-                                        onUnlike = { id -> runAuth { recipesViewModel.unlikeRecipe(id) } },
-                                        onSuperLike = { id -> runAuth { recipesViewModel.superLikeRecipe(id) } },
-                                        onFollow = { id -> runAuth { recipesViewModel.followRecipe(id) } },
-                                        onUnfollow = { id -> runAuth { recipesViewModel.unfollowRecipe(id) } },
+                                        onLike = { id -> runAuth { likeRecipe(id) } },
+                                        onUnlike = { id -> runAuth { unlikeRecipe(id) } },
+                                        onSuperLike = { id -> runAuth { superLikeRecipe(id) } },
+                                        onFollow = { id -> runAuth { followRecipe(id) } },
+                                        onUnfollow = { id -> runAuth { unfollowRecipe(id) } },
                                         insufficientFunds = insufficientFunds,
                                         onDismissInsufficientFunds = { recipesViewModel.dismissInsufficientFunds() },
                                         emailNotVerified = emailNotVerified,
@@ -375,6 +405,42 @@ class MainActivity : ComponentActivity() {
                                         onNavigateToVariant = { navController.navigate("recipe-form?parentId=$it") },
                                         onNavigateToDetail = { navController.navigate("recipes/$it") },
                                         onBack = { navController.popBackStack() }
+                                    )
+                                }
+                            }
+                            composable("smart-search") {
+                                AuthenticatedScreen(isLoggedIn, redirectToWelcome) {
+                                    val query by smartSearchViewModel.query.collectAsState()
+                                    val results by smartSearchViewModel.results.collectAsState()
+                                    val isLoading by smartSearchViewModel.isLoading.collectAsState()
+                                    val hasSearched by smartSearchViewModel.hasSearched.collectAsState()
+                                    val error by smartSearchViewModel.error.collectAsState()
+                                    val isModerationError by smartSearchViewModel.isModerationError.collectAsState()
+                                    val balance by smartSearchViewModel.balance.collectAsState()
+
+                                    SmartSearchScreen(
+                                        query = query,
+                                        results = results,
+                                        isLoading = isLoading,
+                                        hasSearched = hasSearched,
+                                        error = error,
+                                        isModerationError = isModerationError,
+                                        balance = balance,
+                                        onQueryChange = { smartSearchViewModel.onQueryChange(it) },
+                                        onSearch = { smartSearchViewModel.search() },
+                                        onNewSearch = { smartSearchViewModel.newSearch() },
+                                        onBack = { navController.popBackStack() },
+                                        onRecipeClick = { id -> navController.navigate("recipes/$id") },
+                                        onNavigateToWallet = { navController.navigate("wallet") },
+                                        isLoggedIn = isLoggedIn,
+                                        onNavigateToUserProfile = { runAuth { navController.navigate("user/$it") } },
+                                        onNavigateToMyProfile = { runAuth { navController.navigate("profile") } },
+                                        onNavigateToLogin = { navController.navigate("welcome") },
+                                        onLike = { id -> runAuth { likeRecipe(id) } },
+                                        onUnlike = { id -> runAuth { unlikeRecipe(id) } },
+                                        onSuperLike = { id -> runAuth { superLikeRecipe(id) } },
+                                        onFollow = { id -> runAuth { followRecipe(id) } },
+                                        onUnfollow = { id -> runAuth { unfollowRecipe(id) } },
                                     )
                                 }
                             }
