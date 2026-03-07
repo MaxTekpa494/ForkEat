@@ -271,8 +271,8 @@ class RecipeDTOMapperTest {
 		var id = UUID.randomUUID();
 		var now = Instant.now();
 		var summary = new RecipeSummary(id, "Tarte aux pommes", "Une délicieuse tarte", "https://img.com/tarte.jpg", 45, now, "chef_test");
-		var counts = new RecipeCounts(10L, 3L);
-		var interaction = new RecipeUserInteraction(true, false);
+		var counts = new RecipeCounts(10L, 3L, 0L);
+		var interaction = new RecipeUserInteraction(true, false, false);
 		var personalized = new PersonalizedRecipeSummary(summary, counts, interaction);
 
 		var dto = RecipeDTOMapper.toSummaryDTO(personalized);
@@ -286,8 +286,10 @@ class RecipeDTOMapperTest {
 		assertEquals("chef_test", dto.authorUsername());
 		assertEquals(10L, dto.likeCount());
 		assertEquals(3L, dto.superLikeCount());
+		assertEquals(0L, dto.followCount());
 		assertTrue(dto.likedByCurrentUser());
 		assertFalse(dto.superLikedByCurrentUser());
+		assertFalse(dto.followedByCurrentUser());
 	}
 
 	@Test

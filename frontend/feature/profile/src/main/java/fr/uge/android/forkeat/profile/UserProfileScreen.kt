@@ -78,7 +78,12 @@ fun UserProfileScreen(
             .background(SurfaceCream)
     ) {
         item {
-            UserProfileHeader(uiState = uiState, onNavigateBack = onNavigateBack)
+            UserProfileHeader(
+                uiState = uiState,
+                onNavigateBack = onNavigateBack,
+                onFollow = { viewModel.follow() },
+                onUnfollow = { viewModel.unfollow() }
+            )
         }
 
         if (uiState.isLoading && uiState.recipes.isEmpty()) {
@@ -123,7 +128,9 @@ fun UserProfileScreen(
                     onNavigateToLogin = onNavigateToLogin,
                     onLike = { viewModel.likeRecipe(it) },
                     onUnlike = { viewModel.unlikeRecipe(it) },
-                    onSuperLike = { viewModel.superLikeRecipe(it) }
+                    onSuperLike = { viewModel.superLikeRecipe(it) },
+                    onFollow = { viewModel.followRecipe(it) },
+                    onUnfollow = { viewModel.unfollowRecipe(it) }
                 )
             }
             if (uiState.isLoading) {
@@ -144,7 +151,12 @@ fun UserProfileScreen(
 }
 
 @Composable
-private fun UserProfileHeader(uiState: UserProfileUiState, onNavigateBack: () -> Unit) {
+private fun UserProfileHeader(
+    uiState: UserProfileUiState,
+    onNavigateBack: () -> Unit,
+    onFollow: () -> Unit,
+    onUnfollow: () -> Unit
+) {
     val currentUsername = remember { ForkEatApi.getCurrentUsername() }
     val isOwnProfile = uiState.username == currentUsername
     val isLoggedIn = ForkEatApi.isLoggedIn()
@@ -217,7 +229,7 @@ private fun UserProfileHeader(uiState: UserProfileUiState, onNavigateBack: () ->
                     Spacer(Modifier.height(20.dp))
                     if (uiState.followedByCurrentUser) {
                         OutlinedButton(
-                            onClick = { /* Pas d'effet pour l'instant */ },
+                            onClick = onUnfollow,
                             shape = RoundedCornerShape(50),
                             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
@@ -227,7 +239,7 @@ private fun UserProfileHeader(uiState: UserProfileUiState, onNavigateBack: () ->
                         }
                     } else {
                         Button(
-                            onClick = { /* Pas d'effet pour l'instant */ },
+                            onClick = onFollow,
                             shape = RoundedCornerShape(50),
                             colors = ButtonDefaults.buttonColors(containerColor = Primary500, contentColor = Color.White),
                             modifier = Modifier.height(38.dp)

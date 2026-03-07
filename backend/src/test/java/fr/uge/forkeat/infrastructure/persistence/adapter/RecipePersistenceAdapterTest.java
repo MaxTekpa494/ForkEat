@@ -574,7 +574,7 @@ class RecipePersistenceAdapterTest {
         @Test
         void shouldReturnInteractionsForUser() {
             var recipeId = UUID.randomUUID();
-            var projection = new RecipeUserInteractionProjection(recipeId.toString(), true, false);
+            var projection = new RecipeUserInteractionProjection(recipeId.toString(), true, false, true);
             when(neo4jRecipeRepository.findUserInteractionsByRecipeIds(List.of(recipeId.toString()), "viewer"))
                     .thenReturn(List.of(projection));
 
@@ -585,6 +585,7 @@ class RecipePersistenceAdapterTest {
             assertNotNull(interaction);
             assertTrue(interaction.likedByCurrentUser());
             assertFalse(interaction.superLikedByCurrentUser());
+            assertTrue(interaction.followedByCurrentUser());
         }
 
         @Test

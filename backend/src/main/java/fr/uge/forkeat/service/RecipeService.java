@@ -13,6 +13,7 @@ import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.port.EventPublisherPort;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.port.UserIdentityPort;
 import fr.uge.forkeat.service.port.StoragePort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,15 +34,17 @@ public class RecipeService {
   private final EventPublisherPort<RecipePublishedEvent> eventPublisher;
   private final WalletPersistence walletPersistence;
   private final AuthenticationPort authPort;
+  private final UserIdentityPort userIdentityPort;
   private final Logger logger = LoggerFactory.getLogger(RecipeService.class);
   private static final String FOLDER_STORAGE = "recipes";
 
-  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService, WalletPersistence walletPersistence, AuthenticationPort authPort, EventPublisherPort<RecipePublishedEvent> eventPublisher) {
+  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService, WalletPersistence walletPersistence, AuthenticationPort authPort, EventPublisherPort<RecipePublishedEvent> eventPublisher, UserIdentityPort userIdentityPort) {
     this.recipePersistence = recipePersistence;
     this.storageService = storageService;
     this.eventPublisher = eventPublisher;
     this.walletPersistence = walletPersistence;
     this.authPort = authPort;
+    this.userIdentityPort = userIdentityPort;
   }
 
   @Transactional
@@ -207,6 +210,26 @@ public class RecipeService {
       throw new RecipeNotFoundException(recipeId);
     }
     recipePersistence.unlikeRecipe(userId, recipeId);
+  }
+
+  @Transactional
+  public void followRecipe(String username, UUID recipeId) {
+    Objects.requireNonNull(username);
+    if (!recipePersistence.existRecipe(recipeId)) {
+      throw new RecipeNotFoundException(recipeId);
+    }
+    var userId = userIdentityPort.findIdByUsernameOrThrow(username);
+    recipePersistence.followRecipe(userId, recipeId);
+  }
+
+  @Transactional
+  public void unfollowRecipe(String username, UUID recipeId) {
+    Objects.requireNonNull(username);
+    if (!recipePersistence.existRecipe(recipeId)) {
+      throw new RecipeNotFoundException(recipeId);
+    }
+    var userId = userIdentityPort.findIdByUsernameOrThrow(username);
+    recipePersistence.unfollowRecipe(userId, recipeId);
   }
 
   @Transactional

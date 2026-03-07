@@ -8,6 +8,7 @@ import org.springframework.data.neo4j.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.Instant;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -54,4 +55,21 @@ public interface Neo4jUserRepository extends Neo4jRepository<UserNode, UUID> {
             """)
     boolean isFollowing(@Param("followerUsername") String followerUsername,
                         @Param("followedUsername") String followedUsername);
+
+    @Query("""
+            MATCH (follower:User {id: $followerId})
+            MATCH (followed:User {id: $followedId})
+            MERGE (follower)-[f:FOLLOWS]->(followed)
+            ON CREATE SET f.since = $since
+            """)
+    void follow(@Param("followerId") UUID followerId,
+                @Param("followedId") UUID followedId,
+                @Param("since") Instant since);
+
+    @Query("""
+            MATCH (follower:User {id: $followerId})-[f:FOLLOWS]->(followed:User {id: $followedId})
+            DELETE f
+            """)
+    void unfollow(@Param("followerId") UUID followerId,
+                  @Param("followedId") UUID followedId);
 }
