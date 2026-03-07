@@ -6,6 +6,7 @@ import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsResponseDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeItemResponse
+import fr.uge.android.forkeat.recipes.data.dto.RecipeReportRequestDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipesListResponse
 import fr.uge.android.forkeat.recipes.data.dto.SmartSearchRequestDTO
 import okhttp3.MultipartBody
@@ -104,6 +105,13 @@ interface RecipeApiService {
 
     @GET("api/recipes/allergens")
     suspend fun getAllergens(): Response<RecipesListResponse<AllergenDTO>>
+
+    @POST("api/recipes/{id}/reports")
+    suspend fun reportRecipe(
+        @Header("Authorization") token: String,
+        @Path("id") id: UUID,
+        @Body request: RecipeReportRequestDTO
+    ): Response<Unit>
 
     @POST("api/recipes/smart-search")
     suspend fun smartSearch(

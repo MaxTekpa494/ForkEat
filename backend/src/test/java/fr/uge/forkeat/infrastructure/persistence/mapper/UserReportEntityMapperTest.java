@@ -1,0 +1,164 @@
+package fr.uge.forkeat.infrastructure.persistence.mapper;
+
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserReportEntity;
+import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.ReportStatus;
+import fr.uge.forkeat.service.model.user.UserReport;
+import fr.uge.forkeat.service.model.user.UserReportType;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Nested;
+import org.junit.jupiter.api.Test;
+
+import java.time.Instant;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class UserReportEntityMapperTest {
+
+    private UserEntity reportedUserEntity;
+    private UserEntity reporterEntity;
+    private UserEntity reviewerEntity;
+    private Instant now;
+
+    @BeforeEach
+    void setUp() {
+        now = Instant.now();
+
+        reportedUserEntity = new UserEntity();
+        reportedUserEntity.setId(UUID.randomUUID());
+        reportedUserEntity.setUsername("target");
+        reportedUserEntity.setFirstName("Alice");
+        reportedUserEntity.setLastName("Martin");
+        reportedUserEntity.setEmail("target@test.com");
+        reportedUserEntity.setPassword("hashed");
+        reportedUserEntity.setRole(UserRole.MEMBER);
+        reportedUserEntity.setStatus(UserStatus.ACTIVE);
+        reportedUserEntity.setAuthMode(AuthMode.LOCAL);
+
+        reporterEntity = new UserEntity();
+        reporterEntity.setId(UUID.randomUUID());
+        reporterEntity.setUsername("reporter");
+        reporterEntity.setFirstName("Jean");
+        reporterEntity.setLastName("Dupont");
+        reporterEntity.setEmail("reporter@test.com");
+        reporterEntity.setPassword("hashed");
+        reporterEntity.setRole(UserRole.MEMBER);
+        reporterEntity.setStatus(UserStatus.ACTIVE);
+        reporterEntity.setAuthMode(AuthMode.LOCAL);
+
+        reviewerEntity = new UserEntity();
+        reviewerEntity.setId(UUID.randomUUID());
+        reviewerEntity.setUsername("moderator");
+        reviewerEntity.setFirstName("Mod");
+        reviewerEntity.setLastName("Era");
+        reviewerEntity.setEmail("mod@test.com");
+        reviewerEntity.setPassword("hashed");
+        reviewerEntity.setRole(UserRole.MODERATOR);
+        reviewerEntity.setStatus(UserStatus.ACTIVE);
+        reviewerEntity.setAuthMode(AuthMode.LOCAL);
+    }
+
+    private UserReportEntity buildEntity(UserEntity reportedUser, UserEntity reporter,
+                                         UserReportType type, String justification) {
+        var entity = new UserReportEntity();
+        entity.setId(UUID.randomUUID());
+        entity.setReportedUser(reportedUser);
+        entity.setReporter(reporter);
+        entity.setReportType(type);
+        entity.setStatus(ReportStatus.PENDING);
+        entity.setJustification(justification);
+        return entity;
+    }
+
+    @Nested
+    class ToDomain {
+
+        @Test
+        void shouldConvertEntityToDomain() {
+            var entity = buildEntity(reportedUserEntity, reporterEntity, UserReportType.SPAM, "Ceci est un spam");
+
+            var domain = UserReportEntityMapper.toDomain(entity);
+
+            assertNotNull(domain);
+            assertEquals(reportedUserEntity.getId(), domain.reportedUserId());
+            assertEquals(reporterEntity.getId(), domain.reporterId());
+            assertEquals(UserReportType.SPAM, domain.reportType());
+            assertEquals(ReportStatus.PENDING, domain.status());
+            assertEquals("Ceci est un spam", domain.justification());
+            assertNull(domain.reviewedAt());
+            assertNull(domain.reviewedById());
+        }
+
+        @Test
+        void shouldHandleNullReporter() {
+            var entity = buildEntity(reportedUserEntity, null, UserReportType.HARASSMENT, "Justification");
+
+            var domain = UserReportEntityMapper.toDomain(entity);
+
+            assertNull(domain.reporterId());
+        }
+
+        @Test
+        void shouldHandleNullReviewedBy() {
+            var entity = buildEntity(reportedUserEntity, reporterEntity, UserReportType.FRAUD, "Arnaque");
+            entity.setReviewedBy(null);
+
+            var domain = UserReportEntityMapper.toDomain(entity);
+
+            assertNull(domain.reviewedById());
+        }
+
+        @Test
+        void shouldMapReviewedByWhenPresent() {
+            var entity = buildEntity(reportedUserEntity, reporterEntity, UserReportType.SPAM, "Spam confirmé");
+            entity.setStatus(ReportStatus.VALIDATED);
+            entity.setReviewedBy(reviewerEntity);
+            entity.setReviewedAt(now);
+
+            var domain = UserReportEntityMapper.toDomain(entity);
+
+            assertEquals(reviewerEntity.getId(), domain.reviewedById());
+            assertEquals(now, domain.reviewedAt());
+            assertEquals(ReportStatus.VALIDATED, domain.status());
+        }
+    }
+
+    @Nested
+    class ToEntity {
+
+        @Test
+        void shouldConvertDomainToEntity() {
+            var report = new UserReport(
+                    UUID.randomUUID(), reportedUserEntity.getId(), reporterEntity.getId(),
+                    UserReportType.INAPPROPRIATE_CONTENT, ReportStatus.PENDING,
+                    "Contenu inapproprié", now, now, null, null
+            );
+
+            var entity = UserReportEntityMapper.toEntity(report, reportedUserEntity, reporterEntity);
+
+            assertNotNull(entity);
+            assertEquals(reportedUserEntity, entity.getReportedUser());
+            assertEquals(reporterEntity, entity.getReporter());
+            assertEquals(UserReportType.INAPPROPRIATE_CONTENT, entity.getReportType());
+            assertEquals(ReportStatus.PENDING, entity.getStatus());
+            assertEquals("Contenu inapproprié", entity.getJustification());
+        }
+
+        @Test
+        void shouldSetNullReporter_WhenReporterIsNull() {
+            var report = new UserReport(
+                    UUID.randomUUID(), reportedUserEntity.getId(), null,
+                    UserReportType.SPAM, ReportStatus.PENDING,
+                    "Justification", now, now, null, null
+            );
+
+            var entity = UserReportEntityMapper.toEntity(report, reportedUserEntity, null);
+
+            assertNull(entity.getReporter());
+        }
+    }
+}

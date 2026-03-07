@@ -3,7 +3,10 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.presentation.dto.user.UserProfileDTO;
 import fr.uge.forkeat.service.ProfileService;
+import fr.uge.forkeat.service.UserReportService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.UserAlreadyReportedException;
+import fr.uge.forkeat.service.model.user.UserReportType;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
@@ -55,6 +58,9 @@ class ProfileControllerTest {
 
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private UserReportService userReportService;
 
     private User testUser;
 
@@ -225,6 +231,50 @@ class ProfileControllerTest {
                     .when(userService).unfollow("testuser", "unknown");
 
             mockMvc.perform(post("/profile/unknown/unfollow").with(csrf()))
+                    .andExpect(status().is4xxClientError());
+        }
+    }
+
+    @Nested
+    class ReportUserTests {
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void report_ShouldRedirectWithSuccessFlash_WhenSuccessful() throws Exception {
+            when(userReportService.reportUser(any())).thenReturn(null);
+
+            mockMvc.perform(post("/profile/otheruser/report").with(csrf())
+                            .param("reportType", "SPAM")
+                            .param("justification", "Ceci est du spam"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/profile/otheruser"))
+                    .andExpect(flash().attributeExists("reportSuccess"));
+
+            verify(userReportService).reportUser(any());
+        }
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void report_ShouldRedirectWithErrorFlash_WhenAlreadyReported() throws Exception {
+            when(userReportService.reportUser(any()))
+                    .thenThrow(new UserAlreadyReportedException(UUID.randomUUID(), UUID.randomUUID()));
+
+            mockMvc.perform(post("/profile/otheruser/report").with(csrf())
+                            .param("reportType", "HARASSMENT")
+                            .param("justification", "Déjà signalé"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(flash().attributeExists("reportError"));
+        }
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void report_ShouldReturn4xx_WhenUserNotFound() throws Exception {
+            when(userReportService.reportUser(any()))
+                    .thenThrow(new ResourceNotFoundException("User not found: otheruser"));
+
+            mockMvc.perform(post("/profile/otheruser/report").with(csrf())
+                            .param("reportType", "SPAM")
+                            .param("justification", "Utilisateur introuvable"))
                     .andExpect(status().is4xxClientError());
         }
     }

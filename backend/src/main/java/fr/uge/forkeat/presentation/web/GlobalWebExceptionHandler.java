@@ -108,4 +108,22 @@ public class GlobalWebExceptionHandler {
 		return "redirect:/recipes/smart-search";
 	}
 
+	@ExceptionHandler(RecipeAlreadyReportedException.class)
+	public String handleRecipeAlreadyReported(RecipeAlreadyReportedException ex,
+											  RedirectAttributes redirectAttributes,
+											  HttpServletRequest request) {
+		redirectAttributes.addFlashAttribute("reportError", "Vous avez déjà signalé cette recette.");
+		String uri = request.getRequestURI();
+		return "redirect:" + uri.substring(0, uri.lastIndexOf("/report"));
+	}
+
+	@ExceptionHandler(UserAlreadyReportedException.class)
+	public String handleUserAlreadyReported(UserAlreadyReportedException ex,
+											RedirectAttributes redirectAttributes,
+											HttpServletRequest request) {
+		redirectAttributes.addFlashAttribute("reportError", "Vous avez déjà signalé cet utilisateur.");
+		String uri = request.getRequestURI();
+		return "redirect:" + uri.substring(0, uri.lastIndexOf("/report"));
+	}
+
 }
