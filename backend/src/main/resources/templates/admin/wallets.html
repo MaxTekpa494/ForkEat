@@ -92,6 +92,58 @@
                 </div>
             </div>
 
+            <!-- Historique des transactions -->
+            <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mb-8">
+                <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="font-display font-bold text-lg text-secondary-900 flex items-center gap-2">
+                        <i class="fas fa-history text-primary-500"></i> Historique des mouvements
+                    </h2>
+                    <span class="text-xs text-gray-400" th:text="${#lists.size(walletTransactions)} + ' transaction(s)'">0 transaction(s)</span>
+                </div>
+
+                <div th:if="${#lists.isEmpty(walletTransactions)}" class="p-8 text-center">
+                    <i class="fas fa-receipt text-4xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500 font-medium">Aucune transaction pour le moment</p>
+                    <p class="text-gray-400 text-sm mt-1">Les mouvements apparaîtront ici dès le premier super-like</p>
+                </div>
+
+                <div th:unless="${#lists.isEmpty(walletTransactions)}"
+                     class="overflow-y-auto divide-y divide-gray-50"
+                     style="max-height: 400px;">
+                    <div th:each="tx : ${walletTransactions}"
+                         class="px-6 py-4 hover:bg-gray-50 transition flex items-center justify-between">
+                        <div class="flex items-center gap-4">
+                            <!-- Icône wallet -->
+                            <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
+                                 th:classappend="${tx.walletType().name() == 'EARNINGS'} ? 'bg-primary-50' : 'bg-secondary-50'">
+                                <i class="fas"
+                                   th:classappend="${tx.walletType().name() == 'EARNINGS'} ? 'fa-coins text-primary-500' : 'fa-exchange-alt text-secondary-600'"></i>
+                            </div>
+                            <div>
+                                <!-- Wallet + raison -->
+                                <div class="flex items-center gap-2">
+                                    <span class="font-medium text-secondary-900 text-sm"
+                                          th:text="${tx.walletType().name() == 'EARNINGS'} ? 'Bénéfices' : 'Redistribution'">Wallet</span>
+                                    <span class="text-xs px-2 py-0.5 rounded-full font-medium"
+                                          th:classappend="${tx.reason() == 'SUPER_LIKE_EARNED'} ? 'bg-green-100 text-green-700' :
+                                                          (${tx.reason() == 'SUPER_LIKE_REDISTRIBUTION'} ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700')"
+                                          th:text="${tx.reason() == 'SUPER_LIKE_EARNED'} ? 'Gains super-like' :
+                                                    (${tx.reason() == 'SUPER_LIKE_REDISTRIBUTION'} ? 'Redistribution' : 'Bonus financé')">Raison</span>
+                                </div>
+                                <div class="text-xs text-gray-400 mt-0.5"
+                                     th:text="${#temporals.format(tx.createdAt(), 'dd/MM/yyyy à HH:mm:ss')}">Date</div>
+                            </div>
+                        </div>
+                        <!-- Montant signé -->
+                        <div class="font-bold text-lg flex-shrink-0"
+                             th:classappend="${tx.amountCents() >= 0} ? 'text-green-600' : 'text-red-500'"
+                             th:text="${(tx.amountCents() >= 0 ? '+' : '') + #numbers.formatDecimal(tx.amountCents() / 100.0, 1, 2) + ' €'}">
+                            +0.00 €
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- Résumé global -->
             <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
                 <h2 class="font-display font-bold text-lg text-secondary-900 mb-5 flex items-center gap-2">
