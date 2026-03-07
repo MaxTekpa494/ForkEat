@@ -1,6 +1,7 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
+import fr.uge.forkeat.presentation.dto.recipe.PersonalizedRecipeSummaryDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
@@ -28,6 +29,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.UnaryOperator;
 
 @Controller
 @RequestMapping("/recipes")
@@ -296,35 +298,83 @@ public class RecipeWebController {
 
 
     @PostMapping("/{id}/like")
-    public String likeRecipe(@PathVariable UUID id) {
+    public String likeRecipe(@PathVariable UUID id, HttpSession session) {
         var user = userService.getUserByUsername(authPort.extractUsername());
         recipeService.likeRecipe(user.id(), id);
+        syncSmartSearchSession(session, id, dto -> new PersonalizedRecipeSummaryDTO(
+                dto.id(), dto.title(), dto.summary(), dto.imageUrl(), dto.preparationMinutes(),
+                dto.authorUsername(),
+                dto.likeCount() + 1, dto.superLikeCount(), dto.followCount(),
+                true, dto.superLikedByCurrentUser(), dto.followedByCurrentUser()
+        ));
         return "redirect:/recipes/" + id;
     }
 
     @PostMapping("/{id}/unlike")
-    public String unlikeRecipe(@PathVariable UUID id) {
+    public String unlikeRecipe(@PathVariable UUID id, HttpSession session) {
         var user = userService.getUserByUsername(authPort.extractUsername());
         recipeService.unlikeRecipe(user.id(), id);
+        syncSmartSearchSession(session, id, dto -> new PersonalizedRecipeSummaryDTO(
+                dto.id(), dto.title(), dto.summary(), dto.imageUrl(), dto.preparationMinutes(),
+                dto.authorUsername(),
+                dto.likeCount() - 1, dto.superLikeCount(), dto.followCount(),
+                false, dto.superLikedByCurrentUser(), dto.followedByCurrentUser()
+        ));
         return "redirect:/recipes/" + id;
     }
 
     @PostMapping("/{id}/super-like")
-    public String superLikeRecipe(@PathVariable UUID id) {
+    public String superLikeRecipe(@PathVariable UUID id, HttpSession session) {
         var user = userService.getUserByUsername(authPort.extractUsername());
         recipeService.superLikeRecipe(user.id(), id);
+        syncSmartSearchSession(session, id, dto -> dto.superLikedByCurrentUser() ? dto :
+                new PersonalizedRecipeSummaryDTO(
+                        dto.id(), dto.title(), dto.summary(), dto.imageUrl(), dto.preparationMinutes(),
+                        dto.authorUsername(),
+                        dto.likeCount(), dto.superLikeCount() + 1, dto.followCount(),
+                        dto.likedByCurrentUser(), true, dto.followedByCurrentUser()
+                ));
         return "redirect:/recipes/" + id;
     }
 
     @PostMapping("/{id}/follow")
-    public String followRecipe(@PathVariable UUID id) {
+    public String followRecipe(@PathVariable UUID id, HttpSession session) {
         recipeService.followRecipe(authPort.extractUsername(), id);
+        syncSmartSearchSession(session, id, dto -> new PersonalizedRecipeSummaryDTO(
+                dto.id(), dto.title(), dto.summary(), dto.imageUrl(), dto.preparationMinutes(),
+                dto.authorUsername(),
+                dto.likeCount(), dto.superLikeCount(), dto.followCount() + 1,
+                dto.likedByCurrentUser(), dto.superLikedByCurrentUser(), true
+        ));
         return "redirect:/recipes/" + id;
     }
 
     @PostMapping("/{id}/unfollow")
-    public String unfollowRecipe(@PathVariable UUID id) {
+    public String unfollowRecipe(@PathVariable UUID id, HttpSession session) {
         recipeService.unfollowRecipe(authPort.extractUsername(), id);
+        syncSmartSearchSession(session, id, dto -> new PersonalizedRecipeSummaryDTO(
+                dto.id(), dto.title(), dto.summary(), dto.imageUrl(), dto.preparationMinutes(),
+                dto.authorUsername(),
+                dto.likeCount(), dto.superLikeCount(), dto.followCount() - 1,
+                dto.likedByCurrentUser(), dto.superLikedByCurrentUser(), false
+        ));
         return "redirect:/recipes/" + id;
+    }
+
+    /**
+     * Met à jour localement les résultats du smart search stockés en session
+     * pour la recette, sans relancer la recherche (qui est payante).
+     */
+    @SuppressWarnings("unchecked")
+    private void syncSmartSearchSession(HttpSession session, UUID recipeId,
+                                        UnaryOperator<PersonalizedRecipeSummaryDTO> updater) {
+        var cached = (List<PersonalizedRecipeSummaryDTO>) session.getAttribute("smartSearchResults");
+        if (cached == null || cached.isEmpty()) return;
+
+        var updated = cached.stream()
+                .map(dto -> dto.id().equals(recipeId) ? updater.apply(dto) : dto)
+                .toList();
+
+        session.setAttribute("smartSearchResults", updated);
     }
 }
