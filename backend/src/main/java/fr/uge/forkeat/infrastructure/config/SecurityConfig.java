@@ -66,6 +66,7 @@ public class SecurityConfig {
 							response.getWriter().write("{\"error\": \"Unauthorized\"}");
 						}))
 				.authorizeHttpRequests(auth -> auth
+						.requestMatchers("/api/stream/**").permitAll()
 						.requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers("/api/recipes/*/like").authenticated()
 						.requestMatchers("/api/auth/**").permitAll()
