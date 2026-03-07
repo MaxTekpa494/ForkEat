@@ -3,6 +3,8 @@ package fr.uge.android.forkeat.recipes
 import android.app.Application
 import android.content.ContentValues
 import android.content.Context
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.net.Uri
 import android.provider.MediaStore
 import androidx.lifecycle.AndroidViewModel
@@ -49,7 +51,7 @@ data class RecipeFormUiState(
     val title: String = "",
     val summary: String = "",
     val preparationMinutes: String = "",
-    val status: String = "PUBLISHED",
+    val status: String = "PENDING_REVIEW",
     val steps: List<StepState> = emptyList(),
     val ingredients: List<IngredientState> = emptyList(),
     val selectedAllergenIds: Set<String> = emptySet(),
@@ -140,7 +142,7 @@ class RecipeFormViewModel(
                     title = recipe.title,
                     summary = recipe.summary,
                     preparationMinutes = recipe.preparationMinutes.toString(),
-                    status = if (isVariant) "PUBLISHED" else recipe.status,
+                    status = if (isVariant) "PENDING_REVIEW" else recipe.status,
                     steps = recipe.steps.map { StepState(it.instruction) },
                     ingredients = recipe.ingredients.map {
                         IngredientState(it.name, it.quantity.toString(), it.unit)
@@ -186,6 +188,12 @@ class RecipeFormViewModel(
 
     fun removeStep(index: Int) {
         val steps = _uiState.value.steps.toMutableList().also { it.removeAt(index) }
+        _uiState.value = _uiState.value.copy(steps = steps)
+    }
+
+    fun insertStep(afterIndex: Int) {
+        val steps = _uiState.value.steps.toMutableList()
+        steps.add(afterIndex + 1, StepState())
         _uiState.value = _uiState.value.copy(steps = steps)
     }
 
@@ -236,6 +244,29 @@ class RecipeFormViewModel(
         _uiState.value = _uiState.value.copy(selectedDietaries = current)
     }
 
+    // --- Image ---
+
+    private fun compressImageUri(uri: Uri): File {
+        val contentResolver = getApplication<Application>().contentResolver
+        val original = BitmapFactory.decodeStream(contentResolver.openInputStream(uri))
+
+        // Redimensionner si la plus grande dimension dépasse 1920px
+        val bitmap = if (original.width > 1920 || original.height > 1920) {
+            val scale = 1920f / maxOf(original.width, original.height)
+            Bitmap.createScaledBitmap(
+                original,
+                (original.width * scale).toInt(),
+                (original.height * scale).toInt(),
+                true
+            ).also { original.recycle() }
+        } else original
+
+        val tempFile = File.createTempFile("recipe_img", ".jpg", getApplication<Application>().cacheDir)
+        tempFile.outputStream().use { bitmap.compress(Bitmap.CompressFormat.JPEG, 85, it) }
+        bitmap.recycle()
+        return tempFile
+    }
+
     // --- Soumission ---
 
     fun submitRecipe() {
@@ -283,13 +314,10 @@ class RecipeFormViewModel(
                     .toRequestBody("application/json".toMediaTypeOrNull())
 
                 val imagePart = state.imageUri?.let { uri ->
-                    val contentResolver = getApplication<Application>().contentResolver
-                    val inputStream = contentResolver.openInputStream(uri)
-                    val tempFile = File.createTempFile("recipe_img", ".jpg", getApplication<Application>().cacheDir)
-                    tempFile.outputStream().use { out -> inputStream?.copyTo(out) }
+                    val tempFile = compressImageUri(uri)
                     MultipartBody.Part.createFormData(
                         "image", tempFile.name,
-                        tempFile.asRequestBody("image/*".toMediaTypeOrNull())
+                        tempFile.asRequestBody("image/jpeg".toMediaTypeOrNull())
                     )
                 }
 

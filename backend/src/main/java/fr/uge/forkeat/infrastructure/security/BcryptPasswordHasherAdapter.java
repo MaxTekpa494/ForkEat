@@ -1,11 +1,11 @@
 package fr.uge.forkeat.infrastructure.security;
 
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
-public class BcryptPasswordHasherAdapter implements PasswordHasher {
+public class BcryptPasswordHasherAdapter implements PasswordHasherPort {
 
     private final PasswordEncoder passwordEncoder;
 

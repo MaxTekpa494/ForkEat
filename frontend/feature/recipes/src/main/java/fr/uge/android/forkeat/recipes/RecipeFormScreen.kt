@@ -35,6 +35,7 @@ import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
@@ -174,7 +175,7 @@ fun RecipeFormScreen(
             // Statut
             FormSectionTitle("Statut")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("PUBLISHED" to "Publié", "DRAFT" to "Brouillon").forEach { (value, label) ->
+                listOf("PENDING_REVIEW" to "Soumettre à validation", "DRAFT" to "Brouillon").forEach { (value, label) ->
                     val isSelected = uiState.status == value
                     FilterChip(
                         selected = isSelected,
@@ -241,6 +242,9 @@ fun RecipeFormScreen(
                     onInstructionChange = { viewModel.updateStep(index, it) },
                     onRemove = { viewModel.removeStep(index) }
                 )
+                if (index < uiState.steps.size - 1) {
+                    InsertStepButton(onClick = { viewModel.insertStep(index) })
+                }
             }
             OutlinedButton(
                 onClick = viewModel::addStep,
@@ -364,6 +368,25 @@ private fun formFieldColors() = OutlinedTextFieldDefaults.colors(
     unfocusedContainerColor = Color.White,
     focusedContainerColor = Color.White
 )
+
+@Composable
+private fun InsertStepButton(onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE5E7EB))
+        IconButton(onClick = onClick, modifier = Modifier.size(24.dp)) {
+            Icon(
+                Icons.Default.Add,
+                contentDescription = "Insérer une étape",
+                tint = Primary500,
+                modifier = Modifier.size(14.dp)
+            )
+        }
+        HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFE5E7EB))
+    }
+}
 
 @Composable
 private fun StepFormItem(

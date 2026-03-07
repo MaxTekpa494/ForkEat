@@ -73,6 +73,8 @@ public class SecurityConfig {
 						.requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
 						.requestMatchers("/api/recipes/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/wallet/**").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers("/api/account/**").authenticated()
+						.requestMatchers("/api/profile/**").authenticated()
 						.requestMatchers("/api/admin/**").hasRole("ADMIN")
 						.requestMatchers("/api/moderator/**").hasRole("MODERATOR")
 						.requestMatchers("/api/user/**").authenticated()
@@ -95,6 +97,7 @@ public class SecurityConfig {
 
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/", "/auth/**", "/login", "/error/**", "/css/**", "/js/**", "/images/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/recipes/create", "/recipes/create-variant").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
 						.requestMatchers("/recipes/my").authenticated()
 						.requestMatchers("/recipes/create", "/recipes/*/edit").hasAuthority("EMAIL_VERIFIED")

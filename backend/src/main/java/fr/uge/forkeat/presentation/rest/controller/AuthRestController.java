@@ -4,14 +4,13 @@ import fr.uge.forkeat.presentation.dto.user.*;
 import fr.uge.forkeat.presentation.mapper.rest.UserDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
-import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.port.PasswordHasher;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.GoogleTokenVerificationService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import fr.uge.forkeat.service.user.UserService;
+import fr.uge.forkeat.service.user.UserUpdateService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
@@ -36,7 +35,7 @@ public class AuthRestController {
 	private final UserService userService;
 	private final EmailVerificationService emailVerificationService;
 	private final GoogleTokenVerificationService googleTokenVerificationService;
-	private final PasswordHasher passwordHasher;
+	private final UserUpdateService userUpdateService;
 
 	public AuthRestController(UserRegistrationService userRegistrationService,
 			AuthenticationManager authenticationManager,
@@ -44,14 +43,14 @@ public class AuthRestController {
 			UserService userService,
 			EmailVerificationService emailVerificationService,
 			GoogleTokenVerificationService googleTokenVerificationService,
-			PasswordHasher passwordHasher) {
+			UserUpdateService userUpdateService) {
 		this.userRegistrationService = userRegistrationService;
 		this.authenticationManager = authenticationManager;
 		this.authPort = authPort;
 		this.userService = userService;
 		this.emailVerificationService = emailVerificationService;
 		this.googleTokenVerificationService = googleTokenVerificationService;
-		this.passwordHasher = Objects.requireNonNull(passwordHasher);
+		this.userUpdateService = Objects.requireNonNull(userUpdateService);
 	}
 
 	/**
@@ -64,9 +63,6 @@ public class AuthRestController {
 	@PostMapping("/register")
 	public ResponseEntity<HttpResponse<UserDTO>> registerUser(@RequestBody UserRegisterDTO userRegisterDTO) {
 		Objects.requireNonNull(userRegisterDTO);
-		if (userRegisterDTO.password().length() < 8) {
-			throw new RegisterFailureException("The password must have at least 8 characters");
-		}
 		var user = userRegistrationService.registerUser(UserDTOMapper.toUserRegister(userRegisterDTO));
 		var userDTO = UserDTOMapper.toDTO(user);
 		return ResponseEntity.ok(new ItemResponse<>(userDTO));
@@ -134,14 +130,12 @@ public class AuthRestController {
 
 	@PostMapping("/forgot-password/confirm-code")
 	public ResponseEntity<?> forgotPasswordConfirmCode(@RequestBody ChangePasswordConfirmCodeDTO changePasswordConfirmCodeDTO) {
-		if (!changePasswordConfirmCodeDTO.password().equals(changePasswordConfirmCodeDTO.confirmPassword())) {
-			throw new RegisterFailureException("Passwords do not match");
-		}
-		if (changePasswordConfirmCodeDTO.password().length() < 8) {
-			throw new RegisterFailureException("The password must have at least 8 characters");
-		}
-		var user = userService.getUserByEmail(changePasswordConfirmCodeDTO.email());
-		emailVerificationService.confirmPasswordChange(user.id(), changePasswordConfirmCodeDTO.code(), passwordHasher.hash(changePasswordConfirmCodeDTO.password()));
+		userUpdateService.confirmForgotPasswordChange(
+				changePasswordConfirmCodeDTO.email(),
+				changePasswordConfirmCodeDTO.code(),
+				changePasswordConfirmCodeDTO.password(),
+				changePasswordConfirmCodeDTO.confirmPassword()
+		);
 		return ResponseEntity.ok().build();
 	}
 }

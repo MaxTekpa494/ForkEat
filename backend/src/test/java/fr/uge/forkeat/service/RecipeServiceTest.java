@@ -1,10 +1,12 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.service.event.RecipePublishedEvent;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.recipe.projection.*;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
 import fr.uge.forkeat.service.model.superlike.SuperLikeConfig;
@@ -12,9 +14,12 @@ import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.PlatformWalletPersistence;
 import fr.uge.forkeat.service.persistence.PromotionPersistence;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.port.EventPublisherPort;
 import fr.uge.forkeat.service.persistence.SuperLikeConfigPersistence;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.StoragePort;
+import fr.uge.forkeat.service.port.UserIdentityPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,6 +50,12 @@ class RecipeServiceTest {
     private PromotionPersistence promotionPersistence;
     @Mock
     private StoragePort storageService;
+    @Mock
+    private EventPublisherPort<RecipePublishedEvent> eventPublisherPort;
+    @Mock
+    private AuthenticationPort authPort;
+    @Mock
+    private UserIdentityPort userIdentityPort;
     @Mock
     private PlatformWalletPersistence platformWalletPersistence;
 
@@ -95,8 +106,8 @@ class RecipeServiceTest {
         void shouldReturnPersonalizedRecipeWhenFound() {
             var recipeId = UUID.randomUUID();
             var recipe = createRecipe(recipeId, "Tarte aux pommes", RecipeStatus.PUBLISHED);
-            var counts = new RecipeCounts(10L, 5L);
-            var interaction = new RecipeUserInteraction(true, false);
+            var counts = new RecipeCounts(10L, 5L, 2L);
+            var interaction = new RecipeUserInteraction(true, false, false);
             var username = "user1";
 
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
@@ -118,7 +129,7 @@ class RecipeServiceTest {
         void shouldReturnPersonalizedRecipeWithNoneInteractionWhenUsernameIsNull() {
             var recipeId = UUID.randomUUID();
             var recipe = createRecipe(recipeId, "Tarte aux pommes", RecipeStatus.PUBLISHED);
-            var counts = new RecipeCounts(10L, 5L);
+            var counts = new RecipeCounts(10L, 5L, 2L);
 
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
             when(recipePersistence.findRecipeCounts(recipeId)).thenReturn(counts);
@@ -186,50 +197,69 @@ class RecipeServiceTest {
     class SearchRecipes {
 
         @Test
-        void shouldDelegateToPersistence() {
-            var recipe = createRecipe(UUID.randomUUID(), "Tarte", RecipeStatus.PUBLISHED);
-            var pageResult = new PageResult<>(List.of(recipe), 1L);
+        void shouldReturnPersonalizedSummariesWhenAuthenticated() {
+            var recipeId = UUID.randomUUID();
+            var summary = createRecipeSummary(recipeId, "Tarte");
+            var counts = new RecipeCounts(5L, 2L, 1L);
+            var interaction = new RecipeUserInteraction(true, false, false);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "tarte", List.of(), 12, 0);
-            when(recipePersistence.searchRecipes(criteria)).thenReturn(pageResult);
+
+            when(authPort.extractUsername()).thenReturn("user1");
+            when(recipePersistence.searchRecipes(criteria)).thenReturn(new PageResult<>(List.of(summary), 1L));
+            when(recipePersistence.findRecipeCounts(List.of(recipeId))).thenReturn(Map.of(recipeId, counts));
+            when(recipePersistence.findUserRecipeInteractions(List.of(recipeId), "user1")).thenReturn(Map.of(recipeId, interaction));
 
             var result = recipeService.searchRecipes(criteria);
 
             assertEquals(1, result.items().size());
-            assertEquals("Tarte", result.items().getFirst().title());
+            var item = result.items().getFirst();
+            assertEquals("Tarte", item.summary().title());
+            assertEquals(5L, item.counts().likeCount());
+            assertEquals(2L, item.counts().superLikeCount());
+            assertTrue(item.interaction().likedByCurrentUser());
             verify(recipePersistence).searchRecipes(criteria);
+            verify(recipePersistence).findRecipeCounts(List.of(recipeId));
+            verify(recipePersistence).findUserRecipeInteractions(List.of(recipeId), "user1");
+        }
+
+        @Test
+        void shouldReturnNoneInteractionWhenNotAuthenticated() {
+            var recipeId = UUID.randomUUID();
+            var summary = createRecipeSummary(recipeId, "Salade");
+            var counts = new RecipeCounts(3L, 0L, 0L);
+            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "salade", List.of(), 12, 0);
+
+            when(authPort.extractUsername()).thenReturn(null);
+            when(recipePersistence.searchRecipes(criteria)).thenReturn(new PageResult<>(List.of(summary), 1L));
+            when(recipePersistence.findRecipeCounts(List.of(recipeId))).thenReturn(Map.of(recipeId, counts));
+
+            var result = recipeService.searchRecipes(criteria);
+
+            assertEquals(1, result.items().size());
+            var item = result.items().getFirst();
+            assertEquals(RecipeUserInteraction.NONE, item.interaction());
+            verify(recipePersistence, never()).findUserRecipeInteractions(any(), any());
+        }
+
+        @Test
+        void shouldReturnEmptyPageWhenNoResults() {
+            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "inexistant", List.of(), 12, 0);
+
+            when(authPort.extractUsername()).thenReturn("user1");
+            when(recipePersistence.searchRecipes(criteria)).thenReturn(new PageResult<>(List.of(), 0L));
+
+            var result = recipeService.searchRecipes(criteria);
+
+            assertTrue(result.items().isEmpty());
+            assertEquals(0L, result.total());
+            verify(recipePersistence, never()).findRecipeCounts(Collections.singletonList(any()));
+            verify(recipePersistence, never()).findUserRecipeInteractions(any(), any());
         }
 
         @Test
         void shouldThrowWhenCriteriaIsNull() {
             assertThrows(NullPointerException.class,
                     () -> recipeService.searchRecipes(null));
-        }
-
-        @Test
-        void shouldWorkWithAllergens() {
-            var recipe = createRecipe(UUID.randomUUID(), "Salade", RecipeStatus.PUBLISHED);
-            var pageResult = new PageResult<>(List.of(recipe), 1L);
-            var allergens = List.of("Gluten", "Lactose");
-            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "salade", allergens, 12, 0);
-            when(recipePersistence.searchRecipes(criteria)).thenReturn(pageResult);
-
-            var result = recipeService.searchRecipes(criteria);
-
-            assertEquals(1, result.items().size());
-            verify(recipePersistence).searchRecipes(criteria);
-        }
-
-        @Test
-        void shouldWorkWithNullSearch() {
-            var recipe = createRecipe(UUID.randomUUID(), "Recette", RecipeStatus.PUBLISHED);
-            var pageResult = new PageResult<>(List.of(recipe), 1L);
-            var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, null, List.of(), 12, 0);
-            when(recipePersistence.searchRecipes(criteria)).thenReturn(pageResult);
-
-            var result = recipeService.searchRecipes(criteria);
-
-            assertEquals(1, result.items().size());
-            verify(recipePersistence).searchRecipes(criteria);
         }
     }
 
@@ -416,9 +446,8 @@ class RecipeServiceTest {
         void shouldLikeRecipe() {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
-            var recipe = createRecipe(recipeId, "Tarte", RecipeStatus.PUBLISHED);
 
-            when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
+            when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
 
             recipeService.likeRecipe(userId, recipeId);
 
@@ -430,7 +459,7 @@ class RecipeServiceTest {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
 
-            when(recipePersistence.findById(recipeId)).thenReturn(Optional.empty());
+            when(recipePersistence.existRecipe(recipeId)).thenReturn(false);
 
             assertThrows(RecipeNotFoundException.class, () -> recipeService.likeRecipe(userId, recipeId));
             verify(recipePersistence, never()).likeRecipe(any(), any());
@@ -440,9 +469,8 @@ class RecipeServiceTest {
         void shouldUnlikeRecipe() {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
-            var recipe = createRecipe(recipeId, "Tarte", RecipeStatus.PUBLISHED);
 
-            when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
+            when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
 
             recipeService.unlikeRecipe(userId, recipeId);
 
@@ -454,11 +482,15 @@ class RecipeServiceTest {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
 
-            when(recipePersistence.findById(recipeId)).thenReturn(Optional.empty());
+            when(recipePersistence.existRecipe(recipeId)).thenReturn(false);
 
             assertThrows(RecipeNotFoundException.class, () -> recipeService.unlikeRecipe(userId, recipeId));
             verify(recipePersistence, never()).unlikeRecipe(any(), any());
         }
+    }
+
+    private RecipeSummary createRecipeSummary(UUID id, String title) {
+        return new RecipeSummary(id, title, "Summary for " + title, null, 30, now, "chef_test");
     }
 
     @Nested
@@ -471,6 +503,12 @@ class RecipeServiceTest {
             var config = new SuperLikeConfig(UUID.randomUUID(), 100L, new BigDecimal("0.40"), Instant.now());
 
             when(recipePersistence.hasSuperLikedRecipe(userId, recipeId)).thenReturn(false);
+            when(walletPersistence.findByUserId(userId)).thenReturn(Optional.of(createWallet()));
+            when(walletPersistence.getEarningsWallet()).thenReturn(createWallet());
+            when(walletPersistence.saveTransaction(any())).thenReturn(null);
+            when(walletPersistence.getRedistributionWallet()).thenReturn(createWallet());
+            doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong());
+            doNothing().when(walletPersistence).incrementBalanceById(any(), anyLong());
             when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.of(createWallet(200L)));
             when(superLikeConfigPersistence.get()).thenReturn(config);
             when(promotionPersistence.findActiveAt(any())).thenReturn(Optional.empty());

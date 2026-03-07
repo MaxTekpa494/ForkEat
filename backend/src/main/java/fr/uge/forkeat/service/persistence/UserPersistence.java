@@ -5,12 +5,13 @@ import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
 import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
+import fr.uge.forkeat.service.port.UserIdentityPort;
 
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
-public interface UserPersistence {
+public interface UserPersistence extends UserIdentityPort {
 	User saveUser(User user, String hashedPassword);
 
 	User updateUser(User user);
@@ -41,7 +42,13 @@ public interface UserPersistence {
 
 	UserSocialStats findUserSocialStats(String username);
 
+	Optional<UUID> findIdByUsername(String username);
+
 	boolean isFollowing(String followerUsername, String followedUsername);
+
+	void follow(UUID followerId, UUID followedId);
+
+	void unfollow(UUID followerId, UUID followedId);
 
 	PageResult<User> findAllByRole(UserRole role);
 

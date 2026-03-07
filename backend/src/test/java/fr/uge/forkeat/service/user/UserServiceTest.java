@@ -9,7 +9,7 @@ import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -19,6 +19,9 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
@@ -28,7 +31,7 @@ class UserServiceTest {
     private UserPersistence userPersistence;
 
     @Mock
-    private PasswordHasher passwordHasher;
+    private PasswordHasherPort passwordHasherPort;
 
     @InjectMocks
     private UserService userService;
@@ -237,7 +240,7 @@ class UserServiceTest {
             var hashedPassword = "hashedPassword123";
 
             when(userPersistence.findPasswordHashByUsername(username)).thenReturn(hashedPassword);
-            when(passwordHasher.matches(rawPassword, hashedPassword)).thenReturn(true);
+            when(passwordHasherPort.matches(rawPassword, hashedPassword)).thenReturn(true);
 
             // When
             boolean result = userService.checkUserPassword(username, rawPassword);
@@ -254,7 +257,7 @@ class UserServiceTest {
             var hashedPassword = "hashedPassword123";
 
             when(userPersistence.findPasswordHashByUsername(username)).thenReturn(hashedPassword);
-            when(passwordHasher.matches(rawPassword, hashedPassword)).thenReturn(false);
+            when(passwordHasherPort.matches(rawPassword, hashedPassword)).thenReturn(false);
 
             // When
             boolean result = userService.checkUserPassword(username, rawPassword);
@@ -273,6 +276,110 @@ class UserServiceTest {
 
             // When/Then
             assertThrows(ResourceNotFoundException.class, () -> userService.checkUserPassword(username, rawPassword));
+        }
+    }
+
+    @Nested
+    class FollowTests {
+
+        @Test
+        void follow_ShouldCallPersistence_WhenBothUsersExist() {
+            // Given
+            var followerId = UUID.randomUUID();
+            var followedId = UUID.randomUUID();
+            when(userPersistence.findIdByUsernameOrThrow("alice")).thenReturn(followerId);
+            when(userPersistence.findIdByUsernameOrThrow("bob")).thenReturn(followedId);
+
+            // When
+            userService.follow("alice", "bob");
+
+            // Then
+            verify(userPersistence).follow(followerId, followedId);
+        }
+
+        @Test
+        void follow_ShouldThrow_WhenFollowerNotFound() {
+            // Given
+            when(userPersistence.findIdByUsernameOrThrow("unknown"))
+                    .thenThrow(new ResourceNotFoundException("User not found: unknown"));
+
+            // When/Then
+            assertThrows(ResourceNotFoundException.class, () -> userService.follow("unknown", "bob"));
+            verify(userPersistence, never()).follow(any(), any());
+        }
+
+        @Test
+        void follow_ShouldThrow_WhenFollowedNotFound() {
+            // Given
+            when(userPersistence.findIdByUsernameOrThrow("alice")).thenReturn(UUID.randomUUID());
+            when(userPersistence.findIdByUsernameOrThrow("unknown"))
+                    .thenThrow(new ResourceNotFoundException("User not found: unknown"));
+
+            // When/Then
+            assertThrows(ResourceNotFoundException.class, () -> userService.follow("alice", "unknown"));
+            verify(userPersistence, never()).follow(any(), any());
+        }
+
+        @Test
+        void follow_ShouldThrow_WhenFollowerUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> userService.follow(null, "bob"));
+        }
+
+        @Test
+        void follow_ShouldThrow_WhenFollowedUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> userService.follow("alice", null));
+        }
+    }
+
+    @Nested
+    class UnfollowTests {
+
+        @Test
+        void unfollow_ShouldCallPersistence_WhenBothUsersExist() {
+            // Given
+            var followerId = UUID.randomUUID();
+            var followedId = UUID.randomUUID();
+            when(userPersistence.findIdByUsernameOrThrow("alice")).thenReturn(followerId);
+            when(userPersistence.findIdByUsernameOrThrow("bob")).thenReturn(followedId);
+
+            // When
+            userService.unfollow("alice", "bob");
+
+            // Then
+            verify(userPersistence).unfollow(followerId, followedId);
+        }
+
+        @Test
+        void unfollow_ShouldThrow_WhenFollowerNotFound() {
+            // Given
+            when(userPersistence.findIdByUsernameOrThrow("unknown"))
+                    .thenThrow(new ResourceNotFoundException("User not found: unknown"));
+
+            // When/Then
+            assertThrows(ResourceNotFoundException.class, () -> userService.unfollow("unknown", "bob"));
+            verify(userPersistence, never()).unfollow(any(), any());
+        }
+
+        @Test
+        void unfollow_ShouldThrow_WhenFollowedNotFound() {
+            // Given
+            when(userPersistence.findIdByUsernameOrThrow("alice")).thenReturn(UUID.randomUUID());
+            when(userPersistence.findIdByUsernameOrThrow("unknown"))
+                    .thenThrow(new ResourceNotFoundException("User not found: unknown"));
+
+            // When/Then
+            assertThrows(ResourceNotFoundException.class, () -> userService.unfollow("alice", "unknown"));
+            verify(userPersistence, never()).unfollow(any(), any());
+        }
+
+        @Test
+        void unfollow_ShouldThrow_WhenFollowerUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> userService.unfollow(null, "bob"));
+        }
+
+        @Test
+        void unfollow_ShouldThrow_WhenFollowedUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> userService.unfollow("alice", null));
         }
     }
 }

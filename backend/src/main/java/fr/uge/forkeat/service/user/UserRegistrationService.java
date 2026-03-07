@@ -1,6 +1,6 @@
 package fr.uge.forkeat.service.user;
 
-import fr.uge.forkeat.service.PasswordValidator;
+import fr.uge.forkeat.service.model.PasswordValidator;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
@@ -9,7 +9,7 @@ import fr.uge.forkeat.service.model.user.UserRegister;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.persistence.UserPersistence;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -28,15 +28,15 @@ public class UserRegistrationService {
     private static final SecureRandom SECURE_RANDOM = new SecureRandom();
     private final UserPersistence userPersistence;
     private final WalletService walletService;
-    private final PasswordHasher passwordHasher;
+    private final PasswordHasherPort passwordHasherPort;
     private final EmailVerificationService emailVerificationService;
 
     UserRegistrationService(UserPersistence userPersistence, WalletService walletService,
-                            PasswordHasher passwordHasher,
+                            PasswordHasherPort passwordHasherPort,
                             EmailVerificationService emailVerificationService) {
         this.userPersistence = userPersistence;
         this.walletService = walletService;
-        this.passwordHasher = passwordHasher;
+        this.passwordHasherPort = passwordHasherPort;
         this.emailVerificationService = emailVerificationService;
     }
 
@@ -66,7 +66,7 @@ public class UserRegistrationService {
                 false
         );
 
-        var savedUser = userPersistence.saveUser(user, passwordHasher.hash(userRegister.password()));
+        var savedUser = userPersistence.saveUser(user, passwordHasherPort.hash(userRegister.password()));
         walletService.createWallet(savedUser.id());
         emailVerificationService.sendEmailConfirmation(savedUser.id(), savedUser.email());
         return savedUser;
@@ -134,7 +134,7 @@ public class UserRegistrationService {
                 true
         );
 
-        var savedUser = userPersistence.saveUser(user, passwordHasher.hash(userRegister.password()));
+        var savedUser = userPersistence.saveUser(user, passwordHasherPort.hash(userRegister.password()));
         walletService.createWallet(savedUser.id());
         return savedUser;
     }
@@ -164,7 +164,7 @@ public class UserRegistrationService {
     );
 
     // Admin has no personal wallet per platform specification
-    return userPersistence.saveUser(user, passwordHasher.hash(userRegister.password()));
+    return userPersistence.saveUser(user, passwordHasherPort.hash(userRegister.password()));
   }
 
   private String generateUsername(String email) {

@@ -9,7 +9,14 @@
 <div layout:fragment="content">
 
     <!-- Hero header -->
-    <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
+    <section class="relative bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
+        <!-- Bouton signalement discret (coin supérieur droit) -->
+        <button th:if="${isAuthenticated and currentUsername != vm.profile().publicProfile().username()}"
+                onclick="openReportModal()"
+                class="absolute top-4 right-4 text-white/40 hover:text-red-400 transition-colors duration-200"
+                title="Signaler cet utilisateur">
+            <i class="fas fa-flag"></i>
+        </button>
         <div class="container mx-auto px-4">
             <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
 
@@ -29,13 +36,19 @@
 
                     <!-- Bouton Suivre -->
                     <div class="mb-6">
-                        <button th:if="${!vm.followedByCurrentUser()}"
-                                class="px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-full transition shadow-md">
-                            <i class="fas fa-user-plus mr-2"></i>Suivre
-                        </button>
-                        <button th:if="${vm.followedByCurrentUser()}"
-                                class="px-6 py-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full transition border border-white/40">
-                            <i class="fas fa-user-check mr-2"></i>Abonné
+                        <form id="follow-form"
+                              th:action="@{/profile/{username}/follow(username=${vm.profile().publicProfile().username()})}"
+                              method="post">
+                        </form>
+                        <button type="button"
+                                th:data-username="${vm.profile().publicProfile().username()}"
+                                th:data-followed="${vm.followedByCurrentUser()}"
+                                th:class="${vm.followedByCurrentUser()} ?
+                                    'px-6 py-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full transition border border-white/40' :
+                                    'px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-full transition shadow-md'"
+                                onclick="handleFollow(this)">
+                            <i th:class="${vm.followedByCurrentUser()} ? 'fas fa-user-check mr-2' : 'fas fa-user-plus mr-2'"></i>
+                            <span th:text="${vm.followedByCurrentUser()} ? 'Abonné' : 'Suivre'"></span>
                         </button>
                     </div>
 
@@ -47,7 +60,7 @@
                                 <div class="text-secondary-300 text-sm">Recettes</div>
                             </div>
                             <div class="text-center">
-                                <div class="font-bold text-2xl" th:text="${vm.profile().socialStats().followerCount()}">0</div>
+                                <div id="follower-count" class="font-bold text-2xl" th:text="${vm.profile().socialStats().followerCount()}">0</div>
                                 <div class="text-secondary-300 text-sm">Abonnes</div>
                             </div>
                             <div class="text-center">
@@ -80,10 +93,25 @@
                             </div>
                         </div>
                     </div>
+
                 </div>
             </div>
         </div>
     </section>
+
+    <!-- Flash messages signalement -->
+    <div class="container mx-auto px-4 mt-4">
+        <div th:if="${reportSuccess != null}"
+             class="flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm font-medium">
+            <i class="fas fa-check-circle text-green-500"></i>
+            <span th:text="${reportSuccess}"></span>
+        </div>
+        <div th:if="${reportError != null}"
+             class="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">
+            <i class="fas fa-exclamation-circle text-red-500"></i>
+            <span th:text="${reportError}"></span>
+        </div>
+    </div>
 
     <!-- Recettes -->
     <section class="py-12 bg-surface">
@@ -107,71 +135,9 @@
 
             <!-- Grille de recettes -->
             <div th:unless="${#lists.isEmpty(vm.recipes())}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                <div th:each="recipe : ${vm.recipes()}" class="recipe-card">
-                    <a th:href="@{/recipes/{id}(id=${recipe.summary().id()})}"
-                       class="block bg-white rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 group h-full flex flex-col">
-
-                        <!-- Image -->
-                        <div class="aspect-[4/3] bg-secondary-100 overflow-hidden relative">
-                            <img th:if="${recipe.summary().imageUrl() != null and !recipe.summary().imageUrl().isEmpty()}"
-                                 th:src="${recipe.summary().imageUrl()}"
-                                 th:alt="${recipe.summary().title()}"
-                                 class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500">
-                            <div th:unless="${recipe.summary().imageUrl() != null and !recipe.summary().imageUrl().isEmpty()}"
-                                 class="w-full h-full flex items-center justify-center bg-gradient-to-br from-secondary-50 to-secondary-100">
-                                <i class="fas fa-utensils text-4xl text-secondary-300"></i>
-                            </div>
-
-                            <div class="absolute top-3 right-3 bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full text-sm font-medium text-secondary-800 shadow-sm">
-                                <i class="fas fa-clock mr-1 text-primary-500"></i>
-                                <span th:text="${recipe.summary().preparationMinutes() + ' min'}">30 min</span>
-                            </div>
-                        </div>
-
-                        <div class="p-5 flex-1 flex flex-col">
-                            <h3 class="font-bold text-lg text-secondary-900 mb-2 line-clamp-1 group-hover:text-primary-500 transition">
-                                <span th:text="${recipe.summary().title()}">Titre de la recette</span>
-                            </h3>
-
-                            <p th:if="${recipe.summary().summary() != null and !recipe.summary().summary().isEmpty()}"
-                               class="text-secondary-500 text-sm mb-4 line-clamp-2 flex-1"
-                               th:text="${recipe.summary().summary()}">
-                                Description de la recette...
-                            </p>
-
-                            <div class="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
-                                <div class="flex items-center space-x-4">
-                                    <!-- Like : coeur rempli si likedByCurrentUser, vide sinon -->
-                                    <span class="flex items-center space-x-1 text-sm text-secondary-500">
-                                        <i th:class="${recipe.interaction().likedByCurrentUser()} ? 'fas fa-heart text-red-500' : 'far fa-heart text-gray-300'"></i>
-                                        <span th:text="${recipe.counts().likeCount()}">0</span>
-                                    </span>
-                                    <!-- Super-like : nuage or si superLikedByCurrentUser, gris sinon -->
-                                    <span class="flex items-center space-x-1 text-sm text-secondary-500">
-                                        <svg th:if="${recipe.interaction().superLikedByCurrentUser()}" class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <defs>
-                                                <linearGradient id="goldGradientCard" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style="stop-color:#FFED8B;stop-opacity:1" />
-                                                    <stop offset="50%" style="stop-color:#FFC837;stop-opacity:1" />
-                                                    <stop offset="100%" style="stop-color:#DAA520;stop-opacity:1" />
-                                                </linearGradient>
-                                            </defs>
-                                            <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z" fill="url(#goldGradientCard)"/>
-                                            <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z" fill="url(#goldGradientCard)"/>
-                                            <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#FFED8B"/>
-                                        </svg>
-                                        <svg th:unless="${recipe.interaction().superLikedByCurrentUser()}" class="w-4 h-4" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z" fill="#D1D5DB"/>
-                                            <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z" fill="#D1D5DB"/>
-                                            <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#D1D5DB"/>
-                                        </svg>
-                                        <span th:text="${recipe.counts().superLikeCount()}">0</span>
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-                    </a>
-                </div>
+                <th:block th:each="recipe : ${vm.recipes()}">
+                    <div th:replace="~{fragments/recipe-card :: recipeCard(${recipe})}"></div>
+                </th:block>
             </div>
 
             <!-- Pagination -->
@@ -205,6 +171,158 @@
             </div>
         </div>
     </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- MODALE DE SIGNALEMENT                                          -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div th:if="${isAuthenticated and currentUsername != vm.profile().publicProfile().username()}"
+         id="report-modal"
+         class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm"
+         onclick="closeReportModal(event)">
+        <div id="report-modal-content"
+             class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4 transform transition-all duration-200 scale-95 opacity-0">
+
+            <!-- Étape 1 : Avertissement -->
+            <div id="report-step-1">
+                <div class="flex flex-col items-center text-center gap-4 mb-5">
+                    <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-gray-800 font-semibold text-lg">Signaler cet utilisateur</h3>
+                        <p class="text-gray-500 text-sm mt-2 leading-relaxed">
+                            Les signalements sont examinés par notre équipe de modération.
+                            Merci de n'utiliser cette fonctionnalité que pour des utilisateurs présentant
+                            <strong class="text-gray-700">réellement un problème</strong>.
+                            Un signalement abusif ou de mauvaise foi peut entraîner des sanctions sur votre compte.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeReportModal()"
+                            class="flex-1 px-4 py-2 rounded-full border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors duration-150">
+                        Annuler
+                    </button>
+                    <button type="button" onclick="showReportForm()"
+                            class="flex-1 px-4 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors duration-150">
+                        Je comprends, continuer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Étape 2 : Formulaire -->
+            <div id="report-step-2" class="hidden">
+                <h3 class="text-gray-800 font-semibold text-lg mb-4">
+                    <i class="fas fa-flag text-red-500 mr-2"></i>Motif du signalement
+                </h3>
+                <form th:action="@{/profile/{username}/report(username=${vm.profile().publicProfile().username()})}" method="post" class="space-y-4">
+                    <div>
+                        <label for="reportType" class="block text-sm font-medium text-gray-700 mb-1">Motif</label>
+                        <select id="reportType" name="reportType" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400">
+                            <option value="" disabled selected>Choisir un motif</option>
+                            <option value="SPAM">Spam</option>
+                            <option value="HARASSMENT">Harcèlement</option>
+                            <option value="INAPPROPRIATE_CONTENT">Contenu inapproprié</option>
+                            <option value="FRAUD">Fraude</option>
+                            <option value="OTHER">Autre</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="justification" class="block text-sm font-medium text-gray-700 mb-1">Justification</label>
+                        <textarea id="justification" name="justification" rows="3" required
+                                  placeholder="Expliquez brièvement la raison de votre signalement…"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400"></textarea>
+                    </div>
+                    <div class="flex gap-3 mt-2">
+                        <button type="button" onclick="showReportWarning()"
+                                class="flex-1 px-4 py-2 rounded-full border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors duration-150">
+                            Retour
+                        </button>
+                        <button type="submit"
+                                class="flex-1 px-4 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors duration-150">
+                            Envoyer le signalement
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        async function handleFollow(button) {
+            if (button.disabled) return;
+            button.disabled = true;
+
+            const username = button.dataset.username;
+            const isFollowed = button.dataset.followed === 'true';
+            const action = isFollowed ? 'unfollow' : 'follow';
+
+            const form = document.getElementById('follow-form');
+            form.action = '/profile/' + username + '/' + action;
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form)
+                });
+
+                if (response.ok) {
+                    const followerCount = document.getElementById('follower-count');
+                    if (isFollowed) {
+                        button.dataset.followed = 'false';
+                        button.className = 'px-6 py-2 bg-primary-500 hover:bg-primary-600 text-white font-bold rounded-full transition shadow-md';
+                        button.querySelector('i').className = 'fas fa-user-plus mr-2';
+                        button.querySelector('span').textContent = 'Suivre';
+                        followerCount.textContent = parseInt(followerCount.textContent) - 1;
+                    } else {
+                        button.dataset.followed = 'true';
+                        button.className = 'px-6 py-2 bg-white/20 hover:bg-white/30 text-white font-bold rounded-full transition border border-white/40';
+                        button.querySelector('i').className = 'fas fa-user-check mr-2';
+                        button.querySelector('span').textContent = 'Abonné';
+                        followerCount.textContent = parseInt(followerCount.textContent) + 1;
+                    }
+                }
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        function openReportModal() {
+            showReportWarning();
+            const modal = document.getElementById('report-modal');
+            const content = document.getElementById('report-modal-content');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            });
+        }
+
+        function closeReportModal(event) {
+            if (event && event.target !== document.getElementById('report-modal')) return;
+            const modal = document.getElementById('report-modal');
+            const content = document.getElementById('report-modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        function showReportWarning() {
+            document.getElementById('report-step-1').classList.remove('hidden');
+            document.getElementById('report-step-2').classList.add('hidden');
+        }
+
+        function showReportForm() {
+            document.getElementById('report-step-1').classList.add('hidden');
+            document.getElementById('report-step-2').classList.remove('hidden');
+        }
+    </script>
 
 </div>
 </body>

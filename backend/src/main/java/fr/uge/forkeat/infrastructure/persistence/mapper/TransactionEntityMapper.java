@@ -1,10 +1,9 @@
 package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.TransactionEntity;
-import fr.uge.forkeat.service.model.Transaction;
+import fr.uge.forkeat.service.model.transaction.Transaction;
 
 import java.util.Objects;
-import java.util.UUID;
 
 public class TransactionEntityMapper {
 

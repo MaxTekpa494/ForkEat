@@ -13,7 +13,7 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 
 import java.time.Instant;
 import java.util.UUID;
@@ -32,7 +32,7 @@ class UserUpdateServiceTest {
     private UserService userService;
 
     @Mock
-    private PasswordHasher passwordHasher;
+    private PasswordHasherPort passwordHasherPort;
 
     @Mock
     private EmailVerificationService emailVerificationService;
@@ -138,6 +138,19 @@ class UserUpdateServiceTest {
         }
 
         @Test
+        void updateProfile_ShouldThrow_WhenFieldIsBlank() {
+            // When/Then
+            CheckProfileUpdateFailureException exception = assertThrows(
+                    CheckProfileUpdateFailureException.class,
+                    () -> userUpdateService.updateProfile("user", "", "First", "Last")
+            );
+
+            assertEquals("Veuillez remplir tous les champs", exception.getMessage());
+            verifyNoInteractions(userService);
+            verifyNoInteractions(userPersistence);
+        }
+
+        @Test
         void updateProfile_ShouldThrow_WhenUserNotFound() {
             // Given
             when(userService.getUserByUsername("unknown"))
@@ -162,16 +175,34 @@ class UserUpdateServiceTest {
 
             when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-            when(passwordHasher.matches("correctPassword", "storedHash")).thenReturn(true);
+            when(passwordHasherPort.matches("correctPassword", "storedHash")).thenReturn(true);
 
             when(userPersistence.existsByEmail("new@example.com")).thenReturn(false);
 
             // When
-            userUpdateService.requestEmailChange("testuser", "new@example.com", "correctPassword");
+            userUpdateService.requestEmailChange("testuser", "new@example.com", "correctPassword", null, null);
 
             // Then
-            // Verify verification email is sent, NOT user updated directly
-            verify(emailVerificationService).sendEmailChangeCode(userId, "old@example.com", "new@example.com", false);
+            // Verify verification email is sent with no pending password hash (LOCAL user)
+            verify(emailVerificationService).sendEmailChangeCode(userId, "old@example.com", "new@example.com");
+            verify(userPersistence, never()).updateUser(any(User.class));
+        }
+
+        @Test
+        void requestEmailChange_ShouldHashPasswordAndSendCode_ForGoogleUser() {
+            // Given
+            var userId = UUID.randomUUID();
+            var googleUser = createGoogleTestUser(userId, "googleuser", "old@example.com");
+
+            when(userService.getUserByUsername("googleuser")).thenReturn(googleUser);
+            when(userPersistence.existsByEmail("new@example.com")).thenReturn(false);
+            when(passwordHasherPort.hash("NewPass1!")).thenReturn("hashedNewPass");
+
+            // When
+            userUpdateService.requestEmailChange("googleuser", "new@example.com", null, "NewPass1!", "NewPass1!");
+
+            // Then
+            verify(emailVerificationService).sendEmailChangeCode(userId, "old@example.com", "new@example.com", "hashedNewPass");
             verify(userPersistence, never()).updateUser(any(User.class));
         }
 
@@ -183,16 +214,16 @@ class UserUpdateServiceTest {
 
             when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-            when(passwordHasher.matches("wrongPassword", "storedHash")).thenReturn(false);
+            when(passwordHasherPort.matches("wrongPassword", "storedHash")).thenReturn(false);
 
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
                     CheckProfileUpdateFailureException.class,
-                    () -> userUpdateService.requestEmailChange("testuser", "new@example.com", "wrongPassword")
+                    () -> userUpdateService.requestEmailChange("testuser", "new@example.com", "wrongPassword", null, null)
             );
 
             assertEquals("Incorrect password", exception.getMessage());
-            verify(emailVerificationService, never()).sendEmailChangeCode(any(), any(), any(), anyBoolean());
+            verifyNoInteractions(emailVerificationService);
         }
 
         @Test
@@ -203,17 +234,17 @@ class UserUpdateServiceTest {
 
             when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-            when(passwordHasher.matches("correctPassword", "storedHash")).thenReturn(true);
+            when(passwordHasherPort.matches("correctPassword", "storedHash")).thenReturn(true);
             when(userPersistence.existsByEmail("taken@example.com")).thenReturn(true);
 
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
                     CheckProfileUpdateFailureException.class,
-                    () -> userUpdateService.requestEmailChange("testuser", "taken@example.com", "correctPassword")
+                    () -> userUpdateService.requestEmailChange("testuser", "taken@example.com", "correctPassword", null, null)
             );
 
             assertEquals("Cet email est déjà utilisé", exception.getMessage());
-            verify(emailVerificationService, never()).sendEmailChangeCode(any(), any(), any(), anyBoolean());
+            verifyNoInteractions(emailVerificationService);
         }
     }
 
@@ -229,15 +260,15 @@ class UserUpdateServiceTest {
             when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
 
-            when(passwordHasher.matches("currentPassword", "storedHash")).thenReturn(true);
-            when(passwordHasher.matches("newPassword123", "storedHash")).thenReturn(false);
+            when(passwordHasherPort.matches("currentPassword", "storedHash")).thenReturn(true);
+            when(passwordHasherPort.matches("newPassword123", "storedHash")).thenReturn(false);
+            when(passwordHasherPort.hash("newPassword123")).thenReturn("hashedNewPass");
 
             // When
-            userUpdateService.requestPasswordChange("testuser", "currentPassword", "newPassword123");
+            userUpdateService.requestPasswordChange("testuser", "currentPassword", "newPassword123", "newPassword123");
 
             // Then
-            verify(emailVerificationService).sendPasswordChangeCode(userId, "test@example.com");
-            // Should NOT save user directly
+            verify(emailVerificationService).sendPasswordChangeCode(userId, "test@example.com", "hashedNewPass");
             verify(userPersistence, never()).saveUser(any(), anyString());
         }
 
@@ -250,16 +281,16 @@ class UserUpdateServiceTest {
             when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
 
-            when(passwordHasher.matches("wrongPassword", "storedHash")).thenReturn(false);
+            when(passwordHasherPort.matches("wrongPassword", "storedHash")).thenReturn(false);
 
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
                     CheckProfileUpdateFailureException.class,
-                    () -> userUpdateService.requestPasswordChange("testuser", "wrongPassword", "newPassword123")
+                    () -> userUpdateService.requestPasswordChange("testuser", "wrongPassword", "newPassword123", "newPassword123")
             );
 
             assertEquals("Incorrect current password", exception.getMessage());
-            verify(emailVerificationService, never()).sendPasswordChangeCode(any(), any());
+            verify(emailVerificationService, never()).sendPasswordChangeCode(any(), any(), any());
         }
 
         @Test
@@ -267,10 +298,10 @@ class UserUpdateServiceTest {
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
                     CheckProfileUpdateFailureException.class,
-                    () -> userUpdateService.requestPasswordChange("testuser", "currentPassword", "short")
+                    () -> userUpdateService.requestPasswordChange("testuser", "currentPassword", "short", "short")
             );
 
-            assertEquals("New password must be at least 8 characters", exception.getMessage());
+            assertEquals("Le mot de passe doit contenir au moins 8 caractères", exception.getMessage());
 
             verifyNoInteractions(userService);
             verifyNoInteractions(userPersistence);
@@ -279,23 +310,23 @@ class UserUpdateServiceTest {
 
         @Test
         void requestPasswordChange_ShouldThrow_WhenPasswordsAreSame() {
-            // Given
+            // Given — "SamePass1" passe PasswordValidator (longueur, majuscule, chiffre)
             var userId = UUID.randomUUID();
             var existingUser = createTestUser(userId, "testuser", "test@example.com");
 
             when(userService.getUserByUsername("testuser")).thenReturn(existingUser);
             when(userPersistence.findPasswordHashByUsername("testuser")).thenReturn("storedHash");
-            when(passwordHasher.matches("currentPassword", "storedHash")).thenReturn(true);
-            when(passwordHasher.matches("samePassword", "storedHash")).thenReturn(true);
+            when(passwordHasherPort.matches("currentPassword", "storedHash")).thenReturn(true);
+            when(passwordHasherPort.matches("SamePass1", "storedHash")).thenReturn(true);
 
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
                     CheckProfileUpdateFailureException.class,
-                    () -> userUpdateService.requestPasswordChange("testuser", "currentPassword", "samePassword")
+                    () -> userUpdateService.requestPasswordChange("testuser", "currentPassword", "SamePass1", "SamePass1")
             );
 
             assertEquals("Passwords are the same", exception.getMessage());
-            verify(emailVerificationService, never()).sendPasswordChangeCode(any(), any());
+            verify(emailVerificationService, never()).sendPasswordChangeCode(any(), any(), any());
         }
     }
 
@@ -309,10 +340,10 @@ class UserUpdateServiceTest {
             var googleUser = createGoogleTestUser(userId, "googleuser", "google@example.com");
 
             when(userService.getUserByUsername("googleuser")).thenReturn(googleUser);
-            when(passwordHasher.hash("newPassword123")).thenReturn("encodedPassword");
+            when(passwordHasherPort.hash("newPassword123")).thenReturn("encodedPassword");
 
             // When
-            userUpdateService.setPasswordForOAuthUser("googleuser", "newPassword123");
+            userUpdateService.setPasswordForOAuthUser("googleuser", "newPassword123", "newPassword123");
 
             // Then
             verify(userPersistence).saveUser(argThat(user ->
@@ -326,10 +357,10 @@ class UserUpdateServiceTest {
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
                     CheckProfileUpdateFailureException.class,
-                    () -> userUpdateService.setPasswordForOAuthUser("googleuser", "short")
+                    () -> userUpdateService.setPasswordForOAuthUser("googleuser", "short", "short")
             );
 
-            assertEquals("New password must be at least 8 characters", exception.getMessage());
+            assertEquals("Le mot de passe doit contenir au moins 8 caractères", exception.getMessage());
             verifyNoInteractions(userService);
             verifyNoInteractions(userPersistence);
         }
@@ -345,7 +376,7 @@ class UserUpdateServiceTest {
             // When/Then
             CheckProfileUpdateFailureException exception = assertThrows(
                     CheckProfileUpdateFailureException.class,
-                    () -> userUpdateService.setPasswordForOAuthUser("localuser", "newPassword123")
+                    () -> userUpdateService.setPasswordForOAuthUser("localuser", "newPassword123", "newPassword123")
             );
 
             assertEquals("This user already has a local password", exception.getMessage());
@@ -361,10 +392,59 @@ class UserUpdateServiceTest {
             // When/Then
             assertThrows(
                     ResourceNotFoundException.class,
-                    () -> userUpdateService.setPasswordForOAuthUser("unknown", "newPassword123")
+                    () -> userUpdateService.setPasswordForOAuthUser("unknown", "newPassword123", "newPassword123")
             );
 
             verify(userPersistence, never()).saveUser(any(), anyString());
+        }
+    }
+
+    @Nested
+    class ConfirmForgotPasswordChangeTests {
+
+        @Test
+        void confirmForgotPasswordChange_ShouldResetPassword_WhenCodeValid() {
+            var userId = UUID.randomUUID();
+            var user = createTestUser(userId, "testuser", "test@example.com");
+
+            when(userService.getUserByEmail("test@example.com")).thenReturn(user);
+            when(passwordHasherPort.hash("NewPass1")).thenReturn("hashedNew");
+
+            userUpdateService.confirmForgotPasswordChange("test@example.com", "123456", "NewPass1", "NewPass1");
+
+            verify(emailVerificationService).confirmPasswordReset(userId, "123456", "hashedNew");
+        }
+
+        @Test
+        void confirmForgotPasswordChange_ShouldThrow_WhenPasswordsDontMatch() {
+            assertThrows(
+                    CheckProfileUpdateFailureException.class,
+                    () -> userUpdateService.confirmForgotPasswordChange("test@example.com", "123456", "NewPass1", "Different1")
+            );
+            verifyNoInteractions(userService);
+            verifyNoInteractions(emailVerificationService);
+        }
+
+        @Test
+        void confirmForgotPasswordChange_ShouldThrow_WhenPasswordTooShort() {
+            assertThrows(
+                    CheckProfileUpdateFailureException.class,
+                    () -> userUpdateService.confirmForgotPasswordChange("test@example.com", "123456", "short", "short")
+            );
+            verifyNoInteractions(userService);
+            verifyNoInteractions(emailVerificationService);
+        }
+
+        @Test
+        void confirmForgotPasswordChange_ShouldThrow_WhenUserNotFound() {
+            when(userService.getUserByEmail("unknown@example.com"))
+                    .thenThrow(new ResourceNotFoundException("Utilisateur non trouvé"));
+
+            assertThrows(
+                    ResourceNotFoundException.class,
+                    () -> userUpdateService.confirmForgotPasswordChange("unknown@example.com", "123456", "NewPass1", "NewPass1")
+            );
+            verify(emailVerificationService, never()).confirmPasswordReset(any(), any(), any());
         }
     }
 }

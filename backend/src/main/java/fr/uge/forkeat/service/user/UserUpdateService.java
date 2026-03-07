@@ -1,10 +1,12 @@
 package fr.uge.forkeat.service.user;
 
 import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
+import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.PasswordValidator;
 import fr.uge.forkeat.service.persistence.UserPersistence;
-import fr.uge.forkeat.service.port.PasswordHasher;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
@@ -16,16 +18,16 @@ import java.util.Objects;
 public class UserUpdateService {
   private final UserPersistence userPersistence;
   private final UserService userService;
-  private final PasswordHasher passwordHasher;
+  private final PasswordHasherPort passwordHasherPort;
   private final EmailVerificationService emailVerificationService;
 
   UserUpdateService(UserPersistence userPersistence,
                     UserService userService,
-                    PasswordHasher passwordHasher,
+                    PasswordHasherPort passwordHasherPort,
                     EmailVerificationService emailVerificationService) {
     this.userPersistence = Objects.requireNonNull(userPersistence);
     this.userService = Objects.requireNonNull(userService);
-    this.passwordHasher = Objects.requireNonNull(passwordHasher);
+    this.passwordHasherPort = Objects.requireNonNull(passwordHasherPort);
     this.emailVerificationService = Objects.requireNonNull(emailVerificationService);
   }
 
@@ -34,6 +36,10 @@ public class UserUpdateService {
           timeout = 10
   )
   public User updateProfile(String currentUsername, String newUsername, String firstName, String lastName) {
+    if (firstName.isBlank() || lastName.isBlank() || newUsername.isBlank()) {
+      throw new CheckProfileUpdateFailureException("Veuillez remplir tous les champs");
+    }
+
     var user = userService.getUserByUsername(currentUsername);
 
     if (!user.username().equals(newUsername)) {
@@ -63,20 +69,12 @@ public class UserUpdateService {
           isolation = Isolation.REPEATABLE_READ,
           timeout = 10
   )
-  public void requestEmailChange(String username, String newEmail, String currentPassword) {
-    requestEmailChange(username, newEmail, currentPassword, null);
-  }
-
-  @Transactional(
-          isolation = Isolation.REPEATABLE_READ,
-          timeout = 10
-  )
-  public void requestEmailChange(String username, String newEmail, String currentPassword, String newPassword) {
+  public void requestEmailChange(String username, String newEmail, String currentPassword, String newPassword, String confirmPassword) {
     var user = userService.getUserByUsername(username);
 
     if (user.authMode() == AuthMode.LOCAL) {
       var storedHash = userPersistence.findPasswordHashByUsername(username);
-      if (!passwordHasher.matches(currentPassword, storedHash)) {
+      if (!passwordHasherPort.matches(currentPassword, storedHash)) {
         throw new CheckProfileUpdateFailureException("Incorrect password");
       }
     }
@@ -85,53 +83,95 @@ public class UserUpdateService {
       throw new CheckProfileUpdateFailureException("Cet email est déjà utilisé");
     }
 
-    boolean switchingToLocal = user.authMode() == AuthMode.GOOGLE && newPassword != null;
-    if (switchingToLocal) {
-      if (newPassword.length() < 8) {
-        throw new CheckProfileUpdateFailureException("Le mot de passe doit contenir au moins 8 caractères");
+    String pendingPasswordHash = null;
+    if (user.authMode() == AuthMode.GOOGLE && newPassword != null) {
+      if (!newPassword.equals(confirmPassword)) {
+        throw new CheckProfileUpdateFailureException("Les mots de passe ne correspondent pas");
       }
+      try {
+        PasswordValidator.validate(newPassword);
+      } catch (RegisterFailureException e) {
+        throw new CheckProfileUpdateFailureException(e.getMessage());
+      }
+      pendingPasswordHash = passwordHasherPort.hash(newPassword);
     }
 
-    emailVerificationService.sendEmailChangeCode(user.id(), user.email(), newEmail, switchingToLocal);
+    if (pendingPasswordHash != null) {
+      emailVerificationService.sendEmailChangeCode(user.id(), user.email(), newEmail, pendingPasswordHash);
+    } else {
+      emailVerificationService.sendEmailChangeCode(user.id(), user.email(), newEmail);
+    }
   }
 
   @Transactional(
           isolation = Isolation.REPEATABLE_READ,
           timeout = 10
   )
-  public void requestPasswordChange(String username, String currentPassword, String newPassword) {
+  public void requestPasswordChange(String username, String currentPassword, String newPassword, String confirmPassword) {
     Objects.requireNonNull(username);
     Objects.requireNonNull(currentPassword);
     Objects.requireNonNull(newPassword);
+    Objects.requireNonNull(confirmPassword);
 
-    if (newPassword.length() < 8) {
-      throw new CheckProfileUpdateFailureException("New password must be at least 8 characters");
+    if (!newPassword.equals(confirmPassword)) {
+      throw new CheckProfileUpdateFailureException("Les mots de passe ne correspondent pas");
+    }
+
+    try {
+      PasswordValidator.validate(newPassword);
+    } catch (RegisterFailureException e) {
+      throw new CheckProfileUpdateFailureException(e.getMessage());
     }
 
     var user = userService.getUserByUsername(username);
     var storedHash = userPersistence.findPasswordHashByUsername(username);
 
-    if (!passwordHasher.matches(currentPassword, storedHash)) {
+    if (!passwordHasherPort.matches(currentPassword, storedHash)) {
       throw new CheckProfileUpdateFailureException("Incorrect current password");
     }
 
-    if (passwordHasher.matches(newPassword, storedHash)) {
+    if (passwordHasherPort.matches(newPassword, storedHash)) {
       throw new CheckProfileUpdateFailureException("Passwords are the same");
     }
 
-    emailVerificationService.sendPasswordChangeCode(user.id(), user.email());
+    var pendingPasswordHash = passwordHasherPort.hash(newPassword);
+    emailVerificationService.sendPasswordChangeCode(user.id(), user.email(), pendingPasswordHash);
   }
 
   @Transactional(
           isolation = Isolation.REPEATABLE_READ,
           timeout = 10
   )
-  public void setPasswordForOAuthUser(String username, String newPassword) {
+  public void confirmForgotPasswordChange(String email, String code, String newPassword, String confirmPassword) {
+    if (!newPassword.equals(confirmPassword)) {
+      throw new CheckProfileUpdateFailureException("Les mots de passe ne correspondent pas");
+    }
+    try {
+      PasswordValidator.validate(newPassword);
+    } catch (RegisterFailureException e) {
+      throw new CheckProfileUpdateFailureException(e.getMessage());
+    }
+    var user = userService.getUserByEmail(email);
+    emailVerificationService.confirmPasswordReset(user.id(), code, passwordHasherPort.hash(newPassword));
+  }
+
+  @Transactional(
+          isolation = Isolation.REPEATABLE_READ,
+          timeout = 10
+  )
+  public void setPasswordForOAuthUser(String username, String newPassword, String confirmPassword) {
     Objects.requireNonNull(username);
     Objects.requireNonNull(newPassword);
+    Objects.requireNonNull(confirmPassword);
 
-    if (newPassword.length() < 8) {
-      throw new CheckProfileUpdateFailureException("New password must be at least 8 characters");
+    if (!newPassword.equals(confirmPassword)) {
+      throw new CheckProfileUpdateFailureException("Les mots de passe ne correspondent pas");
+    }
+
+    try {
+      PasswordValidator.validate(newPassword);
+    } catch (RegisterFailureException e) {
+      throw new CheckProfileUpdateFailureException(e.getMessage());
     }
 
     var user = userService.getUserByUsername(username);
@@ -153,6 +193,6 @@ public class UserUpdateService {
             Instant.now(),
             user.emailVerified());
 
-    userPersistence.saveUser(updatedUser, passwordHasher.hash(newPassword));
+    userPersistence.saveUser(updatedUser, passwordHasherPort.hash(newPassword));
   }
 }

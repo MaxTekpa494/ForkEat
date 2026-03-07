@@ -3,8 +3,8 @@ package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.TransactionStatus;
-import fr.uge.forkeat.service.model.TransactionType;
+import fr.uge.forkeat.service.model.transaction.TransactionStatus;
+import fr.uge.forkeat.service.model.transaction.TransactionType;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import jakarta.persistence.EntityManager;

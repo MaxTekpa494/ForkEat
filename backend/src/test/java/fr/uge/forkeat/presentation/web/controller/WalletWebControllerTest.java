@@ -5,9 +5,9 @@ import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.user.BankInfoService;
-import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.TransactionStatus; // New import
-import fr.uge.forkeat.service.model.TransactionType;
+import fr.uge.forkeat.service.model.transaction.Transaction;
+import fr.uge.forkeat.service.model.transaction.TransactionStatus; // New import
+import fr.uge.forkeat.service.model.transaction.TransactionType;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.model.AuthMode;
