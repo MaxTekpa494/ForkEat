@@ -46,4 +46,7 @@ public interface UserPersistence {
 	PageResult<User> findAllByRole(UserRole role);
 
 	long countByRole(UserRole role);
+
+	/** Emails de tous les membres actifs avec email vérifié (pour les notifications de promotion). */
+	List<String> findAllActiveMemberEmails();
 }

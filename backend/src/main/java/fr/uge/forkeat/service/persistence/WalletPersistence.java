@@ -23,4 +23,5 @@ public interface WalletPersistence {
     Wallet getEarningsWallet();
     Wallet getRedistributionWallet();
     void incrementBalanceById(UUID id, long amount);
+    void decrementBalanceById(UUID id, long amount);
 }

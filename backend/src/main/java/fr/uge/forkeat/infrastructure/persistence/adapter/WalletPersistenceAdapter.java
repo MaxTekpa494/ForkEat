@@ -170,4 +170,8 @@ public class WalletPersistenceAdapter implements WalletPersistence {
     public void incrementBalanceById(UUID id, long amount){
         this.walletRepository.incrementBalanceById(id, amount);
     }
+
+    public void decrementBalanceById(UUID id, long amount){
+        this.walletRepository.decrementBalanceById(id, amount);
+    }
 }

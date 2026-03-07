@@ -326,9 +326,11 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public void superLikeRecipe(UUID userId, UUID recipeId, long amount){
-        var superLike = new SuperLikeEntity(userId, recipeId, amount);
-        walletRepository.decrementBalanceByUserId(userId, amount);
+    public void superLikeRecipe(UUID userId, UUID recipeId, long amount, UUID promotionId, boolean isBonusFree){
+        var superLike = new SuperLikeEntity(userId, recipeId, amount, promotionId, isBonusFree);
+        if (!isBonusFree) {
+            walletRepository.decrementBalanceByUserId(userId, amount);
+        }
         superLikeRepository.save(superLike);
     }
 

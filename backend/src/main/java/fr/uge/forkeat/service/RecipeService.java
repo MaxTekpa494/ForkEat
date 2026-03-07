@@ -2,11 +2,16 @@ package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
+import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
+import fr.uge.forkeat.service.persistence.PlatformWalletPersistence;
+import fr.uge.forkeat.service.persistence.PromotionPersistence;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.persistence.SuperLikeConfigPersistence;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.StoragePort;
 import org.slf4j.Logger;
@@ -14,6 +19,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -24,13 +30,23 @@ public class RecipeService {
   private final StoragePort storageService;
   private final RecipePersistence recipePersistence;
   private final WalletPersistence walletPersistence;
+  private final SuperLikeConfigPersistence superLikeConfigPersistence;
+  private final PromotionPersistence promotionPersistence;
+  private final PlatformWalletPersistence platformWalletPersistence;
   private final Logger logger = LoggerFactory.getLogger(RecipeService.class);
   private static final String FOLDER_STORAGE = "recipes";
 
-  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService, WalletPersistence walletPersistence) {
+  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService,
+                       WalletPersistence walletPersistence,
+                       SuperLikeConfigPersistence superLikeConfigPersistence,
+                       PromotionPersistence promotionPersistence,
+                       PlatformWalletPersistence platformWalletPersistence) {
     this.recipePersistence = recipePersistence;
     this.storageService = storageService;
     this.walletPersistence = walletPersistence;
+    this.superLikeConfigPersistence = superLikeConfigPersistence;
+    this.promotionPersistence = promotionPersistence;
+    this.platformWalletPersistence = platformWalletPersistence;
   }
 
   @Transactional
@@ -185,22 +201,70 @@ public class RecipeService {
   }
 
   @Transactional
-    public void superLikeRecipe(UUID userId, UUID recipeId) {
-      if(recipePersistence.hasSuperLikedRecipe(userId,  recipeId)){
+  public void superLikeRecipe(UUID userId, UUID recipeId) {
+      if (recipePersistence.hasSuperLikedRecipe(userId, recipeId)) {
           return;
       }
-      var userBalance = walletPersistence.getBalance(userId);
-      var amount = 100L;
-      if (userBalance < amount) {
-        logger.debug("User {} has not enough balance for this recipe", userId);
-        throw new InsufficientFundsException(userBalance, amount);
+
+      // BUG FIX : lecture du solde avec verrou PESSIMISTIC_WRITE pour éviter la race condition
+      var wallet = walletPersistence.loadWalletWithLock(userId)
+              .orElseThrow(() -> new WalletNotFoundException(userId));
+
+      // Résolution du tarif : promotion active ou config de base
+      var config = superLikeConfigPersistence.get();
+      var activePromotion = promotionPersistence.findActiveAt(Instant.now());
+
+      long fullPrice;
+      UUID promotionId = null;
+      boolean isBonusFree = false;
+
+      if (activePromotion.isPresent()) {
+          var promo = activePromotion.get();
+          promotionId = promo.id();
+          fullPrice = promo.priceCents();
+
+          // Vérification du super-like gratuit (tous les N payants → 1 gratuit)
+          if (promo.bonusEveryN() != null) {
+              int paidCount = promotionPersistence.countPaidSuperLikesByUserAndPromotion(userId, promo.id());
+              if (paidCount > 0 && paidCount % promo.bonusEveryN() == 0) {
+                  isBonusFree = true;
+              }
+          }
+      } else {
+          fullPrice = config.priceCents();
       }
+
+      long effectivePrice = isBonusFree ? 0L : fullPrice;
+
+      if (wallet.balance() < effectivePrice) {
+          logger.debug("User {} has insufficient balance for super-like (balance={}, required={})", userId, wallet.balance(), effectivePrice);
+          throw new InsufficientFundsException(wallet.balance(), effectivePrice);
+      }
+
+      // Calcul de la répartition 40/60 sur le plein tarif
+      long earningsPart = Math.round(fullPrice * config.earningsRatio().doubleValue());
+      long redistPart = fullPrice - earningsPart;
+
       var earningsWallet = walletPersistence.getEarningsWallet();
       var redistributionWallet = walletPersistence.getRedistributionWallet();
-      var partForEarnings = Math.round(amount * 0.4);
-      var partForRedistribution = amount - partForEarnings;
-      recipePersistence.superLikeRecipe(userId, recipeId, amount);
-      walletPersistence.incrementBalanceById(earningsWallet.id(), partForEarnings);
-      walletPersistence.incrementBalanceById(redistributionWallet.id(), partForRedistribution);
+
+      if (isBonusFree) {
+          // Le porte-monnaie des bénéfices finance la redistribution du super-like gratuit
+          walletPersistence.decrementBalanceById(earningsWallet.id(), redistPart);
+          walletPersistence.incrementBalanceById(redistributionWallet.id(), redistPart);
+          platformWalletPersistence.recordTransaction(PlatformWalletType.EARNINGS, -redistPart, "BONUS_FINANCED", recipeId);
+          platformWalletPersistence.recordTransaction(PlatformWalletType.REDISTRIBUTION, redistPart, "SUPER_LIKE_REDISTRIBUTION", recipeId);
+          logger.debug("Free super-like for user {} on recipe {} (promo {}): EARNINGS -{}, REDISTRIBUTION +{}",
+                  userId, recipeId, promotionId, redistPart, redistPart);
+      } else {
+          walletPersistence.incrementBalanceById(earningsWallet.id(), earningsPart);
+          walletPersistence.incrementBalanceById(redistributionWallet.id(), redistPart);
+          platformWalletPersistence.recordTransaction(PlatformWalletType.EARNINGS, earningsPart, "SUPER_LIKE_EARNED", recipeId);
+          platformWalletPersistence.recordTransaction(PlatformWalletType.REDISTRIBUTION, redistPart, "SUPER_LIKE_REDISTRIBUTION", recipeId);
+          logger.debug("Paid super-like for user {} on recipe {} (price={}, promo={}): EARNINGS +{}, REDISTRIBUTION +{}",
+                  userId, recipeId, effectivePrice, promotionId, earningsPart, redistPart);
+      }
+
+      recipePersistence.superLikeRecipe(userId, recipeId, effectivePrice, promotionId, isBonusFree);
   }
 }
