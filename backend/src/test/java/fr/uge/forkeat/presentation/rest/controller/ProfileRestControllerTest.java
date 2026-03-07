@@ -1,12 +1,20 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.presentation.dto.user.ChangePasswordConfirmCodeDTO;
 import fr.uge.forkeat.presentation.dto.user.ChangePasswordDTO;
+import fr.uge.forkeat.presentation.dto.user.UserReportDTO;
+import fr.uge.forkeat.presentation.dto.user.UserReportRequestDTO;
 import fr.uge.forkeat.service.ProfileService;
+import fr.uge.forkeat.service.UserReportService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.UserAlreadyReportedException;
+import fr.uge.forkeat.service.model.ReportStatus;
+import fr.uge.forkeat.service.model.user.UserReport;
+import fr.uge.forkeat.service.model.user.UserReportType;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
@@ -38,8 +46,10 @@ import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+import org.springframework.http.MediaType;
 
 @WebMvcTest(ProfileRestController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -59,6 +69,11 @@ class ProfileRestControllerTest {
     private CustomUserDetailsService customUserDetailsService;
     @MockitoBean
     private UserService userService;
+
+    @MockitoBean
+    private UserReportService userReportService;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @Autowired
     ProfileRestControllerTest(MockMvc mockMvc) {
@@ -231,6 +246,65 @@ class ProfileRestControllerTest {
 
             mockMvc.perform(delete("/api/profile/unknown/follow"))
                     .andExpect(status().isNotFound());
+        }
+    }
+
+    @Nested
+    class ReportUserTests {
+
+        @Test
+        void shouldReturn201_WhenReportCreatedSuccessfully() throws Exception {
+            var reportedUserId = UUID.randomUUID();
+            var reporterId = UUID.randomUUID();
+            var request = new UserReportRequestDTO(UserReportType.SPAM, "Ceci est du spam");
+            var report = new UserReport(
+                    UUID.randomUUID(), reportedUserId, reporterId,
+                    UserReportType.SPAM, ReportStatus.PENDING,
+                    "Ceci est du spam", null, null, null, null
+            );
+
+            when(authenticationPort.extractUsername()).thenReturn("reporter");
+            when(userReportService.reportUser(any())).thenReturn(report);
+
+            mockMvc.perform(post("/api/profile/otheruser/reports")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.resource.reportedUserId").value(reportedUserId.toString()))
+                    .andExpect(jsonPath("$.resource.status").value("PENDING"))
+                    .andExpect(jsonPath("$.resource.reportType").value("SPAM"));
+
+            verify(userReportService).reportUser(any());
+        }
+
+        @Test
+        void shouldReturn409_WhenAlreadyReported() throws Exception {
+            var request = new UserReportRequestDTO(UserReportType.HARASSMENT, "Justification");
+
+            when(authenticationPort.extractUsername()).thenReturn("reporter");
+            when(userReportService.reportUser(any()))
+                    .thenThrow(new UserAlreadyReportedException(UUID.randomUUID(), UUID.randomUUID()));
+
+            mockMvc.perform(post("/api/profile/otheruser/reports")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.error").value("Conflict"));
+        }
+
+        @Test
+        void shouldReturn404_WhenUserDoesNotExist() throws Exception {
+            var request = new UserReportRequestDTO(UserReportType.SPAM, "Justification");
+
+            when(authenticationPort.extractUsername()).thenReturn("reporter");
+            when(userReportService.reportUser(any()))
+                    .thenThrow(new ResourceNotFoundException("User not found: otheruser"));
+
+            mockMvc.perform(post("/api/profile/otheruser/reports")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Not Found"));
         }
     }
 

@@ -2,11 +2,16 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.presentation.dto.user.UserDashboardDTO;
 import fr.uge.forkeat.presentation.dto.user.UserProfileDTO;
+import fr.uge.forkeat.presentation.dto.user.UserReportDTO;
+import fr.uge.forkeat.presentation.dto.user.UserReportRequestDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
+import fr.uge.forkeat.presentation.response.CreatedResponse;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.SuccessResponse;
 import fr.uge.forkeat.service.ProfileService;
+import fr.uge.forkeat.service.UserReportService;
+import fr.uge.forkeat.service.model.user.CreateUserReport;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserService;
 import org.springframework.http.ResponseEntity;
@@ -19,11 +24,14 @@ public class ProfileRestController {
     private final ProfileService profileService;
     private final UserService userService;
     private final AuthenticationPort authenticationPort;
+    private final UserReportService userReportService;
 
-    public ProfileRestController(ProfileService profileService, UserService userService, AuthenticationPort authenticationPort) {
+    public ProfileRestController(ProfileService profileService, UserService userService,
+                                 AuthenticationPort authenticationPort, UserReportService userReportService) {
         this.profileService = profileService;
         this.userService = userService;
         this.authenticationPort = authenticationPort;
+        this.userReportService = userReportService;
     }
 
     @GetMapping
@@ -66,5 +74,13 @@ public class ProfileRestController {
     public ResponseEntity<HttpResponse<Void>> unfollow(@PathVariable String username) {
         userService.unfollow(authenticationPort.extractUsername(), username);
         return ResponseEntity.ok(new SuccessResponse());
+    }
+
+    @PostMapping("/{username}/reports")
+    public ResponseEntity<HttpResponse<UserReportDTO>> reportUser(@PathVariable String username,
+                                                                  @RequestBody UserReportRequestDTO request) {
+        var command = new CreateUserReport(username, authenticationPort.extractUsername(), request.reportType(), request.justification());
+        var report = userReportService.reportUser(command);
+        return ResponseEntity.status(201).body(new CreatedResponse<>(UserReportDTO.from(report)));
     }
 }

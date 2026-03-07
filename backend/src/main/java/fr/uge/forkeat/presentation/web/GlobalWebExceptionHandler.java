@@ -117,4 +117,13 @@ public class GlobalWebExceptionHandler {
 		return "redirect:" + uri.substring(0, uri.lastIndexOf("/report"));
 	}
 
+	@ExceptionHandler(UserAlreadyReportedException.class)
+	public String handleUserAlreadyReported(UserAlreadyReportedException ex,
+											RedirectAttributes redirectAttributes,
+											HttpServletRequest request) {
+		redirectAttributes.addFlashAttribute("reportError", "Vous avez déjà signalé cet utilisateur.");
+		String uri = request.getRequestURI();
+		return "redirect:" + uri.substring(0, uri.lastIndexOf("/report"));
+	}
+
 }

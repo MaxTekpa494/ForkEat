@@ -174,6 +174,113 @@ fun ReportRecipeDialog(
     )
 }
 
+private val userReportTypeLabels = linkedMapOf(
+    "SPAM" to "Spam",
+    "HARASSMENT" to "Harcèlement",
+    "INAPPROPRIATE_CONTENT" to "Contenu inapproprié",
+    "FRAUD" to "Fraude",
+    "OTHER" to "Autre"
+)
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ReportUserDialog(
+    onDismiss: () -> Unit,
+    onConfirm: (String, String) -> Unit,
+) {
+    var step by remember { mutableIntStateOf(1) }
+    var selectedType by remember { mutableStateOf("") }
+    var justification by remember { mutableStateOf("") }
+    var expanded by remember { mutableStateOf(false) }
+
+    val errorRed = Color(0xFFEF4444)
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        shape = RoundedCornerShape(24.dp),
+        containerColor = Color.White,
+        title = {
+            Text(
+                if (step == 1) "Signaler cet utilisateur" else "Motif du signalement",
+                fontWeight = FontWeight.Bold,
+                color = Secondary900
+            )
+        },
+        text = {
+            if (step == 1) {
+                Text(
+                    "Les signalements sont examinés par notre équipe de modération. " +
+                    "Merci de n'utiliser cette fonctionnalité que pour des utilisateurs présentant " +
+                    "réellement un problème.\n\n" +
+                    "Un signalement abusif ou de mauvaise foi peut entraîner des sanctions sur votre compte.",
+                    color = Gray500
+                )
+            } else {
+                Column {
+                    ExposedDropdownMenuBox(
+                        expanded = expanded,
+                        onExpandedChange = { expanded = it }
+                    ) {
+                        OutlinedTextField(
+                            value = userReportTypeLabels[selectedType] ?: "Choisir un motif",
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                            modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            expanded = expanded,
+                            onDismissRequest = { expanded = false }
+                        ) {
+                            userReportTypeLabels.forEach { (key, label) ->
+                                DropdownMenuItem(
+                                    text = { Text(label) },
+                                    onClick = {
+                                        selectedType = key
+                                        expanded = false
+                                    }
+                                )
+                            }
+                        }
+                    }
+                    Spacer(Modifier.height(12.dp))
+                    OutlinedTextField(
+                        value = justification,
+                        onValueChange = { justification = it },
+                        placeholder = { Text("Expliquez brièvement la raison…", color = Gray500) },
+                        minLines = 3,
+                        maxLines = 5,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+        },
+        confirmButton = {
+            if (step == 1) {
+                Button(
+                    onClick = { step = 2 },
+                    colors = ButtonDefaults.buttonColors(containerColor = errorRed),
+                    shape = RoundedCornerShape(50)
+                ) { Text("Je comprends, continuer", fontWeight = FontWeight.Bold) }
+            } else {
+                Button(
+                    onClick = { onConfirm(selectedType, justification) },
+                    enabled = selectedType.isNotEmpty() && justification.isNotBlank(),
+                    colors = ButtonDefaults.buttonColors(containerColor = errorRed),
+                    shape = RoundedCornerShape(50)
+                ) { Text("Envoyer le signalement", fontWeight = FontWeight.Bold) }
+            }
+        },
+        dismissButton = {
+            if (step == 1) {
+                TextButton(onClick = onDismiss) { Text("Annuler", color = Gray500) }
+            } else {
+                TextButton(onClick = { step = 1 }) { Text("Retour", color = Gray500) }
+            }
+        }
+    )
+}
+
 @Composable
 fun EmailNotVerifiedDialog(
     onDismiss: () -> Unit,

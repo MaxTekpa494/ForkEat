@@ -99,4 +99,10 @@ public class GlobalRestExceptionHandler {
             .body(Map.of("error", "Conflict", "message", e.getMessage(), "timestamp", Instant.now().toString()));
   }
 
+  @ExceptionHandler(UserAlreadyReportedException.class)
+  public ResponseEntity<Map<String, String>> handleUserAlreadyReported(UserAlreadyReportedException e) {
+    return ResponseEntity.status(HttpStatus.CONFLICT)
+            .body(Map.of("error", "Conflict", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+  }
+
 }
