@@ -107,7 +107,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
 
     @Nested
-    class DeleteRecipe {
+    class RecipeController {
 
         private static final ObjectMapper mapper = new ObjectMapper();
 
