@@ -69,7 +69,7 @@ public class SecurityConfig {
 						}))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/me").authenticated()
-                        .requestMatchers("/api/recipes/*/like").authenticated()
+                        .requestMatchers("/api/recipes/*/like").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/auth/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
 						.requestMatchers("/api/recipes/**").hasAuthority("EMAIL_VERIFIED")
