@@ -74,7 +74,31 @@ public class GlobalRestExceptionHandler {
     @ExceptionHandler(InsufficientFundsException.class)
     public ResponseEntity<Map<String, Object>> insufficientFundsException(InsufficientFundsException e) {
         return ResponseEntity.status(HttpStatus.PAYMENT_REQUIRED)
-                .body(Map.of("error", "Bad Request", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+                .body(Map.of("error", "Payment Required", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+    }
+
+    @ExceptionHandler(PromotionNotFoundException.class)
+    public ResponseEntity<Map<String, Object>> handlePromotionNotFound(PromotionNotFoundException e) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(Map.of("error", "Not Found", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+    }
+
+    @ExceptionHandler(PromotionOverlapException.class)
+    public ResponseEntity<Map<String, Object>> handlePromotionOverlap(PromotionOverlapException e) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("error", "Conflict", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+    }
+
+    @ExceptionHandler(PromotionModificationForbiddenException.class)
+    public ResponseEntity<Map<String, Object>> handlePromotionModificationForbidden(PromotionModificationForbiddenException e) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(Map.of("error", "Unprocessable Entity", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+    }
+
+    @ExceptionHandler(PromotionNotProfitableException.class)
+    public ResponseEntity<Map<String, Object>> handlePromotionNotProfitable(PromotionNotProfitableException e) {
+        return ResponseEntity.status(HttpStatus.UNPROCESSABLE_ENTITY)
+                .body(Map.of("error", "Unprocessable Entity", "message", e.getMessage(), "timestamp", Instant.now().toString()));
     }
 
 }
