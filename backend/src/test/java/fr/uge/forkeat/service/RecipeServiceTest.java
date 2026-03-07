@@ -29,7 +29,9 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -65,7 +67,8 @@ class RecipeServiceTest {
     @BeforeEach
     void setUp() {
         recipeService = new RecipeService(recipePersistence, storageService, walletPersistence,
-                superLikeConfigPersistence, promotionPersistence, platformWalletPersistence);
+                authPort, superLikeConfigPersistence, promotionPersistence, platformWalletPersistence,
+                eventPublisherPort, userIdentityPort);
         now = Instant.now();
     }
 
@@ -503,11 +506,8 @@ class RecipeServiceTest {
             var config = new SuperLikeConfig(UUID.randomUUID(), 100L, new BigDecimal("0.40"), Instant.now());
 
             when(recipePersistence.hasSuperLikedRecipe(userId, recipeId)).thenReturn(false);
-            when(walletPersistence.findByUserId(userId)).thenReturn(Optional.of(createWallet()));
-            when(walletPersistence.getEarningsWallet()).thenReturn(createWallet());
             when(walletPersistence.saveTransaction(any())).thenReturn(null);
-            when(walletPersistence.getRedistributionWallet()).thenReturn(createWallet());
-            doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong());
+            doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean());
             doNothing().when(walletPersistence).incrementBalanceById(any(), anyLong());
             when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.of(createWallet(200L)));
             when(superLikeConfigPersistence.get()).thenReturn(config);
@@ -575,6 +575,10 @@ class RecipeServiceTest {
                 now,
                 now
         );
+    }
+
+    private Wallet createWallet() {
+        return createWallet(1000L);
     }
 
     private Wallet createWallet(long balance) {

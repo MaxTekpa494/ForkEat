@@ -828,7 +828,7 @@ class RecipePersistenceAdapterTest {
             var recipeId = UUID.randomUUID();
             long amount = 100L;
 
-            adapter.superLikeRecipe(userId, recipeId, amount);
+            adapter.superLikeRecipe(userId, recipeId, amount, null, false);
 
             verify(superLikeRepository).save(any(SuperLikeEntity.class));
             verify(walletRepository).decrementBalanceByUserId(userId, amount);
