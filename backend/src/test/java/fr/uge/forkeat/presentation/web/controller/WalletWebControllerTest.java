@@ -1,6 +1,7 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.user.BankInfoService;
@@ -52,6 +53,8 @@ class WalletWebControllerTest {
     @MockitoBean
     private BankInfoService bankInfoService;
 
+    @MockitoBean
+    private PromotionService promotionService;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
