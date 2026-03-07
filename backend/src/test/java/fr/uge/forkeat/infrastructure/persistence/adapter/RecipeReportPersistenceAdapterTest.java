@@ -22,7 +22,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -90,41 +89,14 @@ class RecipeReportPersistenceAdapterTest {
             );
             var savedEntity = createReportEntity(recipe.getId(), reporter.getId());
 
-            when(recipeRepository.findById(recipe.getId())).thenReturn(Optional.of(recipe));
-            when(userRepository.findById(reporter.getId())).thenReturn(Optional.of(reporter));
+            when(recipeRepository.getReferenceById(recipe.getId())).thenReturn(recipe);
+            when(userRepository.getReferenceById(reporter.getId())).thenReturn(reporter);
             when(recipeReportRepository.save(any())).thenReturn(savedEntity);
 
             var result = adapter.save(report);
 
             assertNotNull(result);
             verify(recipeReportRepository).save(any());
-        }
-
-        @Test
-        void shouldThrowIllegalState_WhenRecipeNotFound() {
-            var report = new RecipeReport(
-                    UUID.randomUUID(), recipe.getId(), reporter.getId(),
-                    RecipeReportType.SPAM, ReportStatus.PENDING, "Justification", now, null, null
-            );
-
-            when(recipeRepository.findById(recipe.getId())).thenReturn(Optional.empty());
-
-            assertThrows(IllegalStateException.class, () -> adapter.save(report));
-            verify(recipeReportRepository, never()).save(any());
-        }
-
-        @Test
-        void shouldThrowIllegalState_WhenReporterNotFound() {
-            var report = new RecipeReport(
-                    UUID.randomUUID(), recipe.getId(), reporter.getId(),
-                    RecipeReportType.SPAM, ReportStatus.PENDING, "Justification", now, null, null
-            );
-
-            when(recipeRepository.findById(recipe.getId())).thenReturn(Optional.of(recipe));
-            when(userRepository.findById(reporter.getId())).thenReturn(Optional.empty());
-
-            assertThrows(IllegalStateException.class, () -> adapter.save(report));
-            verify(recipeReportRepository, never()).save(any());
         }
 
         @Test
@@ -135,12 +107,12 @@ class RecipeReportPersistenceAdapterTest {
             );
             var savedEntity = createReportEntity(recipe.getId(), null);
 
-            when(recipeRepository.findById(recipe.getId())).thenReturn(Optional.of(recipe));
+            when(recipeRepository.getReferenceById(recipe.getId())).thenReturn(recipe);
             when(recipeReportRepository.save(any())).thenReturn(savedEntity);
 
             adapter.save(report);
 
-            verify(userRepository, never()).findById(any());
+            verify(userRepository, never()).getReferenceById(any());
         }
     }
 

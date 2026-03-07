@@ -28,12 +28,9 @@ public final class UserReportPersistenceAdapter implements UserReportPersistence
     public UserReport save(UserReport report) {
         Objects.requireNonNull(report);
 
-        var reportedUser = userRepository.findById(report.reportedUserId())
-                .orElseThrow(() -> new IllegalStateException("User not found: " + report.reportedUserId()));
-
+        var reportedUser = userRepository.getReferenceById(report.reportedUserId());
         var reporter = report.reporterId() != null
-                ? userRepository.findById(report.reporterId())
-                        .orElseThrow(() -> new IllegalStateException("User not found: " + report.reporterId()))
+                ? userRepository.getReferenceById(report.reporterId())
                 : null;
 
         var entity = UserReportEntityMapper.toEntity(report, reportedUser, reporter);

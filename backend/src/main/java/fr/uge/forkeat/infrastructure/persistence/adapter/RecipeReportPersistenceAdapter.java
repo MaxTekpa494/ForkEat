@@ -32,12 +32,9 @@ public final class RecipeReportPersistenceAdapter implements RecipeReportPersist
     public RecipeReport save(RecipeReport report) {
         Objects.requireNonNull(report);
 
-        var recipe = recipeRepository.findById(report.recipeId())
-                .orElseThrow(() -> new IllegalStateException("Recipe not found: " + report.recipeId()));
-
+        var recipe = recipeRepository.getReferenceById(report.recipeId());
         var reporter = report.reporterId() != null
-                ? userRepository.findById(report.reporterId())
-                        .orElseThrow(() -> new IllegalStateException("User not found: " + report.reporterId()))
+                ? userRepository.getReferenceById(report.reporterId())
                 : null;
 
         var entity = RecipeReportEntityMapper.toEntity(report, recipe, reporter);

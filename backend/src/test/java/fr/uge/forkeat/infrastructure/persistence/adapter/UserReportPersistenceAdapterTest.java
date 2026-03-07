@@ -19,7 +19,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -92,8 +91,8 @@ class UserReportPersistenceAdapterTest {
             var report = createReport(reportedUser.getId(), reporter.getId());
             var savedEntity = createReportEntity();
 
-            when(userRepository.findById(reportedUser.getId())).thenReturn(Optional.of(reportedUser));
-            when(userRepository.findById(reporter.getId())).thenReturn(Optional.of(reporter));
+            when(userRepository.getReferenceById(reportedUser.getId())).thenReturn(reportedUser);
+            when(userRepository.getReferenceById(reporter.getId())).thenReturn(reporter);
             when(userReportRepository.save(any())).thenReturn(savedEntity);
 
             var result = adapter.save(report);
@@ -103,37 +102,16 @@ class UserReportPersistenceAdapterTest {
         }
 
         @Test
-        void shouldThrowIllegalState_WhenReportedUserNotFound() {
-            var report = createReport(reportedUser.getId(), reporter.getId());
-
-            when(userRepository.findById(reportedUser.getId())).thenReturn(Optional.empty());
-
-            assertThrows(IllegalStateException.class, () -> adapter.save(report));
-            verify(userReportRepository, never()).save(any());
-        }
-
-        @Test
-        void shouldThrowIllegalState_WhenReporterNotFound() {
-            var report = createReport(reportedUser.getId(), reporter.getId());
-
-            when(userRepository.findById(reportedUser.getId())).thenReturn(Optional.of(reportedUser));
-            when(userRepository.findById(reporter.getId())).thenReturn(Optional.empty());
-
-            assertThrows(IllegalStateException.class, () -> adapter.save(report));
-            verify(userReportRepository, never()).save(any());
-        }
-
-        @Test
         void shouldNotFetchReporter_WhenReporterIdIsNull() {
             var report = createReport(reportedUser.getId(), null);
             var savedEntity = createReportEntity();
 
-            when(userRepository.findById(reportedUser.getId())).thenReturn(Optional.of(reportedUser));
+            when(userRepository.getReferenceById(reportedUser.getId())).thenReturn(reportedUser);
             when(userReportRepository.save(any())).thenReturn(savedEntity);
 
             adapter.save(report);
 
-            verify(userRepository, times(1)).findById(any());
+            verify(userRepository, times(1)).getReferenceById(any());
         }
     }
 

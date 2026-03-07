@@ -14,6 +14,7 @@ import fr.uge.forkeat.service.UserReportService;
 import fr.uge.forkeat.service.model.user.CreateUserReport;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -81,6 +82,6 @@ public class ProfileRestController {
                                                                   @RequestBody UserReportRequestDTO request) {
         var command = new CreateUserReport(username, authenticationPort.extractUsername(), request.reportType(), request.justification());
         var report = userReportService.reportUser(command);
-        return ResponseEntity.status(201).body(new CreatedResponse<>(UserReportDTO.from(report)));
+        return ResponseEntity.status(HttpStatus.CREATED).body(new CreatedResponse<>(UserReportDTO.from(report)));
     }
 }
