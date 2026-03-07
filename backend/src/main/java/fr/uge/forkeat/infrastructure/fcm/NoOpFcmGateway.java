@@ -3,7 +3,7 @@ package fr.uge.forkeat.infrastructure.fcm;
 import fr.uge.forkeat.service.port.FcmGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnMissingBean;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.stereotype.Component;
 
 /**
@@ -11,7 +11,7 @@ import org.springframework.stereotype.Component;
  * Active automatiquement quand app.fcm.enabled=false (ou non défini).
  */
 @Component
-@ConditionalOnMissingBean(FcmGateway.class)
+@ConditionalOnProperty(name = "app.fcm.enabled", havingValue = "false", matchIfMissing = true)
 public class NoOpFcmGateway implements FcmGateway {
 
     private final Logger logger = LoggerFactory.getLogger(NoOpFcmGateway.class);
