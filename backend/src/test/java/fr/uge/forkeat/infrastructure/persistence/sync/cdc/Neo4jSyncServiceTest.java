@@ -199,4 +199,28 @@ class Neo4jSyncServiceTest {
         neo4jSyncService.handleRecipeChange("c", payload);
         verifyNoInteractions(recipeNodeClient);
     }
+
+    @Test
+    void handleSuperLikeChange_ShouldMergeSuperLike_WhenOperationIsCreate() {
+        ObjectNode payload = mapper.createObjectNode();
+        ObjectNode after = payload.putObject("after");
+        after.put("id", "id");
+        after.put("user_id", "user-123");
+        after.put("recipe_id", "recipeId");
+        after.put("amount", "100");
+        neo4jSyncService.handleSuperLikeChange("c", payload);
+        verify(userNodeClient).addSuperLike("user-123", "recipeId", 100);
+    }
+
+    @Test
+    void handleSuperLikeChange_ShouldMergeSuperLike_WhenOperationIsRead() {
+        ObjectNode payload = mapper.createObjectNode();
+        ObjectNode after = payload.putObject("after");
+        after.put("id", "id");
+        after.put("user_id", "user-123");
+        after.put("recipe_id", "recipeId");
+        after.put("amount", "100");
+        neo4jSyncService.handleSuperLikeChange("r", payload);
+        verify(userNodeClient).addSuperLike("user-123", "recipeId", 100);
+    }
 }

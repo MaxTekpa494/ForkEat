@@ -8,8 +8,9 @@ import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.WithdrawalException;        // New import
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.TransactionType;
+import fr.uge.forkeat.service.model.transaction.Transaction;
+import fr.uge.forkeat.service.model.transaction.TransactionType;
+import fr.uge.forkeat.service.model.transaction.TransactionStatus;
 import fr.uge.forkeat.service.model.user.BankInfo;                   // New import
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
@@ -113,7 +114,7 @@ class WalletRestControllerIntegrationTest { // Renamed class
     @Test
     void shouldReturnTransactions() throws Exception {
         var transactions = List.of(
-                new Transaction(UUID.randomUUID(), null, UUID.randomUUID(), 1000L, TransactionType.RECHARGE, Instant.now(), "tx_1", fr.uge.forkeat.service.model.TransactionStatus.SUCCEEDED) // Updated Transaction constructor
+                new Transaction(UUID.randomUUID(), null, UUID.randomUUID(), 1000L, TransactionType.RECHARGE, Instant.now(), "tx_1", TransactionStatus.SUCCEEDED) // Updated Transaction constructor
         );
         when(walletService.getTransactionHistory(testUser.id())).thenReturn(transactions);
 

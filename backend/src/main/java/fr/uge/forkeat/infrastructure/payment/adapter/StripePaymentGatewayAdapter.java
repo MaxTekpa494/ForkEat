@@ -9,8 +9,8 @@ import com.stripe.param.checkout.SessionCreateParams;
 import fr.uge.forkeat.service.exception.PaymentException;
 import fr.uge.forkeat.service.exception.StripEventException;
 import fr.uge.forkeat.service.external.PaymentGateway;
-import fr.uge.forkeat.service.model.PaymentRequest;
-import fr.uge.forkeat.service.model.PaymentResponse;
+import fr.uge.forkeat.service.model.payment.PaymentRequest;
+import fr.uge.forkeat.service.model.payment.PaymentResponse;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 

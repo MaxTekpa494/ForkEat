@@ -1,7 +1,7 @@
 package fr.uge.forkeat.service.persistence;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.model.Transaction;
+import fr.uge.forkeat.service.model.transaction.Transaction;
 import fr.uge.forkeat.service.model.wallet.Wallet;
 
 import java.util.List;
@@ -20,4 +20,7 @@ public interface WalletPersistence {
     Optional<Transaction> findTransactionByStripeTransactionID(String stripeTransactionID);
     Optional<Transaction> findTransactionById(UUID id);
     Transaction updateTransaction(Transaction transaction);
+    Wallet getEarningsWallet();
+    Wallet getRedistributionWallet();
+    void incrementBalanceById(UUID id, long amount);
 }

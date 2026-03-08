@@ -162,6 +162,12 @@
                        class="nav-link text-secondary-700 hover:text-primary-500 font-medium transition py-2 border-b-2 border-transparent hover:border-primary-500">
                         Créer
                     </a>
+                    <a th:if="${isAuthenticated}"
+                       th:href="@{/recipes/smart-search}"
+                       class="nav-link text-secondary-700 hover:text-primary-500 font-medium transition py-2 border-b-2 border-transparent hover:border-primary-500 flex items-center space-x-1">
+                        <i class="fas fa-robot text-sm"></i>
+                        <span>Recherche IA</span>
+                    </a>
                 </div>
 
                 <div class="hidden md:flex items-center space-x-3">
@@ -195,11 +201,11 @@
 
                                 <a th:href="@{/profile}"
                                    class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
-                                    <i class="fas fa-home mr-3 text-secondary-400"></i> Dashboard
+                                    <i class="fas fa-user mr-3 text-secondary-400"></i> Mon profil
                                 </a>
                                 <a th:href="@{/account}"
                                    class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
-                                    <i class="fas fa-user mr-3 text-secondary-400"></i> Mon profil
+                                    <i class="fas fa-cog mr-3 text-secondary-400"></i> Mon Compte
                                 </a>
                                 <a th:href="@{/wallet}"
                                    class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
@@ -242,6 +248,12 @@
                    class="block text-secondary-800 font-medium hover:text-primary-500">
                     Créer une recette
                 </a>
+                <a th:if="${isAuthenticated}"
+                   th:href="@{/recipes/smart-search}"
+                   class="flex items-center space-x-2 text-secondary-800 font-medium hover:text-primary-500">
+                    <i class="fas fa-robot"></i>
+                    <span>Recherche IA</span>
+                </a>
 
                 <div th:unless="${isAuthenticated}" class="pt-6 border-t border-gray-100 grid grid-cols-2 gap-4">
                     <a th:href="@{/login}"
@@ -255,11 +267,11 @@
                 </div>
 
                 <div th:if="${isAuthenticated}" class="pt-4 border-t border-gray-100 space-y-3">
-                    <a th:href="@{/dashboard}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
-                        <i class="fas fa-home w-8"></i> Dashboard
-                    </a>
                     <a th:href="@{/profile}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
                         <i class="fas fa-user w-8"></i> Mon profil
+                    </a>
+                    <a th:href="@{/account}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
+                        <i class="fas fa-cog w-8"></i> Mon Compte
                     </a>
                     <a th:href="@{/wallet}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
                         <i class="fas fa-wallet w-8"></i> Portefeuille

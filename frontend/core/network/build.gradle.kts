@@ -5,9 +5,7 @@ plugins {
 
 android {
     namespace = "fr.uge.android.forkeat.network"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 24

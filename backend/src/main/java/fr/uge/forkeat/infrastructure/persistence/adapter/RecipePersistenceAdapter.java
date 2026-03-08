@@ -5,17 +5,22 @@ import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRep
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.DietaryEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.SuperLikeEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import jakarta.persistence.EntityManager;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,6 +37,8 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     private final RecipeDietaryRepository recipeDietaryRepository;
     private final DietaryRepository dietaryRepository;
     private final EntityManager entityManager;
+    private final SuperLikeRepository superLikeRepository;
+    private final WalletRepository walletRepository;
 
     public RecipePersistenceAdapter(RecipeRepository recipeRepository, UserRepository userRepository,
                                     AllergenRepository allergenRepository, IngredientRepository ingredientRepository,
@@ -39,7 +46,8 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                                     RecipeAllergenRepository recipeAllergenRepository,
                                     RecipeIngredientRepository recipeIngredientRepository,
                                     RecipeDietaryRepository recipeDietaryRepository,
-                                    DietaryRepository dietaryRepository, EntityManager entityManager) {
+                                    DietaryRepository dietaryRepository, EntityManager entityManager,
+                                    SuperLikeRepository superLikeRepository, WalletRepository walletRepository) {
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
         this.allergenRepository = allergenRepository;
@@ -50,12 +58,20 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         this.recipeDietaryRepository = recipeDietaryRepository;
         this.entityManager = entityManager;
         this.dietaryRepository = dietaryRepository;
+        this.superLikeRepository = superLikeRepository;
+        this.walletRepository = walletRepository;
     }
 
     @Override
     public Optional<Recipe> findById(UUID id) {
         Objects.requireNonNull(id);
         return recipeRepository.findById(id).map(RecipeEntityMapper::toDomain);
+    }
+
+    @Override
+    public boolean existRecipe(UUID id) {
+        Objects.requireNonNull(id);
+        return recipeRepository.existsById(id);
     }
 
     @Override
@@ -78,7 +94,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public PageResult<Recipe> searchRecipes(RecipeSearchCriteria criteria) {
+    public PageResult<RecipeSummary> searchRecipes(RecipeSearchCriteria criteria) {
         Objects.requireNonNull(criteria);
         var pageable = PageRequest.of(criteria.page(), criteria.size());
         var pageResult = recipeRepository.searchRecipes(criteria.status(), criteria.search(), criteria.allergens(), pageable);
@@ -119,6 +135,11 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                 .distinct()
                 .sorted()
                 .toList();
+    }
+
+    @Override
+    public List<String> findAllUnitNames() {
+        return recipeIngredientRepository.findAllDistinctUnits();
     }
 
     @Override
@@ -229,7 +250,24 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public PageResult<RecipeSummary> findRecipeSummaries(String username, RecipeStatus status, int size, int page) {
+    public List<RecipeSummary> findSummariesByIds(List<UUID> ids) {
+        Objects.requireNonNull(ids);
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        var viewMap = recipeRepository.findSummariesByIds(ids).stream()
+                .collect(Collectors.toMap(
+                        RecipeSummaryView::getId,
+                        v -> new RecipeSummary(v.getId(), v.getTitle(), v.getSummary(), v.getImageUrl(), v.getPreparationMinutes(), v.getCreatedAt(), v.getAuthorUsername())
+                ));
+        return ids.stream()
+                .map(viewMap::get)
+                .filter(Objects::nonNull) // Normalement c'est pas sensé être null car les deux tables sont synchros
+                .toList();
+    }
+
+    @Override
+    public PageResult<RecipeSummary> findUserRecipeSummaries(String username, RecipeStatus status, int size, int page) {
         Objects.requireNonNull(username);
         Objects.requireNonNull(status);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
@@ -243,7 +281,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         var summaries = views.stream()
                 .map(s -> new RecipeSummary(
                         s.getId(), s.getTitle(), s.getSummary(), s.getImageUrl(),
-                        s.getPreparationMinutes(), s.getCreatedAt()
+                        s.getPreparationMinutes(), s.getCreatedAt(), username
                 ))
                 .toList();
 
@@ -266,7 +304,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         return neo4jRecipeRepository.findCountsByRecipeIds(recipeIdStrings).stream()
                 .collect(Collectors.toMap(
                         r -> UUID.fromString(r.recipeId()),
-                        r -> new RecipeCounts(r.likeCount(), r.superLikeCount())
+                        r -> new RecipeCounts(r.likeCount(), r.superLikeCount(), r.followCount())
                 ));
     }
 
@@ -289,7 +327,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         return neo4jRecipeRepository.findUserInteractionsByRecipeIds(recipeIdStrings, currentUsername).stream()
                 .collect(Collectors.toMap(
                         r -> UUID.fromString(r.recipeId()),
-                        r -> new RecipeUserInteraction(r.likedByCurrentUser(), r.superLikedByCurrentUser())
+                        r -> new RecipeUserInteraction(r.likedByCurrentUser(), r.superLikedByCurrentUser(), r.followedByCurrentUser())
                 ));
     }
 
@@ -312,6 +350,33 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         Objects.requireNonNull(recipeId);
         neo4jRecipeRepository.unlikeRecipe(userId, recipeId);
     }
+
+    @Override
+    public void followRecipe(UUID userId, UUID recipeId) {
+        Objects.requireNonNull(userId);
+        Objects.requireNonNull(recipeId);
+        neo4jRecipeRepository.followRecipe(userId, recipeId, Instant.now());
+    }
+
+    @Override
+    public void unfollowRecipe(UUID userId, UUID recipeId) {
+        Objects.requireNonNull(userId);
+        Objects.requireNonNull(recipeId);
+        neo4jRecipeRepository.unfollowRecipe(userId, recipeId);
+    }
+
+    @Override
+    public void superLikeRecipe(UUID userId, UUID recipeId, long amount){
+        var superLike = new SuperLikeEntity(userId, recipeId, amount);
+        walletRepository.decrementBalanceByUserId(userId, amount);
+        superLikeRepository.save(superLike);
+    }
+
+    @Override
+    public boolean hasSuperLikedRecipe(UUID userId, UUID recipeId){
+        return superLikeRepository.existsByRecipeIdAndUserId(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
+    }
+
     /**
      * Récupère les ingrédients existants et crée/persiste les nouveaux si nécessaire.
      * Pour eviter le fait que ça plante quand on rajoute de nouveaux à la creation/modification d'une

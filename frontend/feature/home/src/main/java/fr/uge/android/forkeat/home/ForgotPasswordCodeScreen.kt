@@ -19,6 +19,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Visibility
+import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -26,6 +29,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
@@ -43,7 +48,10 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
@@ -63,6 +71,10 @@ fun ForgotPasswordCodeScreen(
     viewModel: ForgotPasswordViewModel = viewModel(),
 ) {
     var code by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    var confirmPassword by remember { mutableStateOf("") }
+    var passwordVisible by remember { mutableStateOf(false) }
+    var confirmPasswordVisible by remember { mutableStateOf(false) }
 
     val uiState by viewModel.uiState.collectAsState()
 
@@ -103,15 +115,15 @@ fun ForgotPasswordCodeScreen(
 
             // Header
             Text(
-                    text = "Nous vous avons envoyez un mail",
-                    fontSize = 28.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Secondary900,
-                )
+                text = "Nous vous avons envoyez un mail",
+                fontSize = 28.sp,
+                fontWeight = FontWeight.Bold,
+                color = Secondary900,
+            )
 
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Rentrez le code reçu par mail pour lancer le changement de mot de passe",
+                text = "Rentrez le code reçu par mail et votre nouveau mot de passe",
                 fontSize = 14.sp,
                 color = Gray500,
             )
@@ -140,25 +152,119 @@ fun ForgotPasswordCodeScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            // Separator
+            // Code input
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier.fillMaxWidth(),
             ) {
                 HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFD1D5DB))
-                CodeTextFieldFullWidth(onCodeChange = { input -> code = input})
+                CodeTextFieldFullWidth(onCodeChange = { input -> code = input })
             }
 
             Spacer(Modifier.height(24.dp))
 
-                Spacer(Modifier.height(24.dp))
+            // New password field
+            Text(
+                text = "Nouveau mot de passe",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Secondary900,
+            )
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = password,
+                onValueChange = {
+                    password = it
+                    viewModel.clearError()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text("\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022", color = Color(0xFF9CA3AF))
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF9CA3AF))
+                },
+                trailingIcon = {
+                    IconButton(onClick = { passwordVisible = !passwordVisible }) {
+                        Icon(
+                            if (passwordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (passwordVisible) "Masquer" else "Afficher",
+                            tint = Color(0xFF9CA3AF),
+                        )
+                    }
+                },
+                visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color(0xFFE5E7EB),
+                    focusedBorderColor = Primary500,
+                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = Color.White,
+                ),
+                singleLine = true,
+                enabled = !uiState.isLoading,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Next,
+                ),
+            )
 
-            // Login button
+            Spacer(Modifier.height(16.dp))
+
+            // Confirm password field
+            Text(
+                text = "Confirmer le mot de passe",
+                fontSize = 14.sp,
+                fontWeight = FontWeight.Medium,
+                color = Secondary900,
+            )
+            Spacer(Modifier.height(6.dp))
+            OutlinedTextField(
+                value = confirmPassword,
+                onValueChange = {
+                    confirmPassword = it
+                    viewModel.clearError()
+                },
+                modifier = Modifier.fillMaxWidth(),
+                placeholder = {
+                    Text("\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022", color = Color(0xFF9CA3AF))
+                },
+                leadingIcon = {
+                    Icon(Icons.Default.Lock, contentDescription = null, tint = Color(0xFF9CA3AF))
+                },
+                trailingIcon = {
+                    IconButton(onClick = { confirmPasswordVisible = !confirmPasswordVisible }) {
+                        Icon(
+                            if (confirmPasswordVisible) Icons.Default.VisibilityOff else Icons.Default.Visibility,
+                            contentDescription = if (confirmPasswordVisible) "Masquer" else "Afficher",
+                            tint = Color(0xFF9CA3AF),
+                        )
+                    }
+                },
+                visualTransformation = if (confirmPasswordVisible) VisualTransformation.None else PasswordVisualTransformation(),
+                shape = RoundedCornerShape(12.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    unfocusedBorderColor = Color(0xFFE5E7EB),
+                    focusedBorderColor = Primary500,
+                    unfocusedContainerColor = Color.White,
+                    focusedContainerColor = Color.White,
+                ),
+                singleLine = true,
+                enabled = !uiState.isLoading,
+                keyboardOptions = KeyboardOptions(
+                    keyboardType = KeyboardType.Password,
+                    imeAction = ImeAction.Done,
+                ),
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // Submit button
             Button(
-                onClick = { viewModel.sendCodeForgotPassword(code) },
+                onClick = { viewModel.sendCodeForgotPassword(code, password, confirmPassword) },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(50),
-                enabled = code.length == 6,
+                enabled = code.length == 6 && password.isNotBlank() && confirmPassword.isNotBlank(),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Primary500,
                     contentColor = Color.White,

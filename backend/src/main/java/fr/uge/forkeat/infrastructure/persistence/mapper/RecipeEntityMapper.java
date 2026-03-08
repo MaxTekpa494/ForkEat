@@ -1,9 +1,11 @@
 package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.*;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.service.model.recipe.Allergen;
 import fr.uge.forkeat.service.model.recipe.Recipe;
 import fr.uge.forkeat.service.model.recipe.RecipeIngredient;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 
 import java.math.BigDecimal;
 import java.util.List;
@@ -48,6 +50,20 @@ public final class RecipeEntityMapper {
             entity.getName(),
             entity.getSeverity()
     );
+  }
+
+  public static RecipeSummary toDomain(RecipeSummaryView recipeSummaryView) {
+    if (recipeSummaryView == null) {
+      return null;
+    }
+    return new RecipeSummary(
+            recipeSummaryView.getId(),
+            recipeSummaryView.getTitle(),
+            recipeSummaryView.getSummary(),
+            recipeSummaryView.getImageUrl(),
+            recipeSummaryView.getPreparationMinutes(),
+            recipeSummaryView.getCreatedAt(),
+            recipeSummaryView.getAuthorUsername());
   }
 
   /**

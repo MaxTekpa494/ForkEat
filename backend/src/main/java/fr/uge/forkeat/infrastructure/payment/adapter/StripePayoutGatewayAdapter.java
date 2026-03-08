@@ -18,7 +18,6 @@ import java.util.*;
 public class StripePayoutGatewayAdapter implements PayoutGateway {
 
     private static final Logger log = LoggerFactory.getLogger(StripePayoutGatewayAdapter.class);
-    private static final String CAPABILITY_NOT_ACTIVE = "insufficient_capabilities_for_transfer";
     private final StripeProperties stripeProperties;
 
     public StripePayoutGatewayAdapter(StripeProperties stripeProperties) {
@@ -144,14 +143,6 @@ public class StripePayoutGatewayAdapter implements PayoutGateway {
             return transfer.getId();
 
         } catch (StripeException e) {
-
-            if (CAPABILITY_NOT_ACTIVE.equals(e.getCode())) {
-                return "tr_pending_" + UUID.randomUUID()
-                        .toString()
-                        .replace("-", "")
-                        .substring(0, 12);
-            }
-
             throw new PaymentException("Stripe transfer failed: " + e.getMessage(), e);
         }
     }

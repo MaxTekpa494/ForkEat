@@ -6,6 +6,8 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.projection.UserProfile
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -23,4 +25,7 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     boolean existsByEmail(String email);
     Page<UserEntity> findByRole(UserRole role, Pageable pageable);
     long countByRole(UserRole role);
+
+    @Query("SELECT u.id FROM UserEntity u WHERE u.username = :username")
+    Optional<UUID> findIdByUsername(@Param("username") String username);
 }

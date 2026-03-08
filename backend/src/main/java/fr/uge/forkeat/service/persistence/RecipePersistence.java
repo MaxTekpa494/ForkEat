@@ -14,11 +14,13 @@ public interface RecipePersistence {
 
   Optional<Recipe> findById(UUID id);
 
+  boolean existRecipe(UUID id);
+
   List<Recipe> findByStatus(RecipeStatus status);
 
   PageResult<Recipe> findByStatus(RecipeStatus status, int size, int page);
 
-  PageResult<Recipe> searchRecipes(RecipeSearchCriteria criteria);
+  PageResult<RecipeSummary> searchRecipes(RecipeSearchCriteria criteria);
 
   List<Recipe> findByAuthorId(UUID authorId);
 
@@ -27,6 +29,8 @@ public interface RecipePersistence {
   List<Allergen> findAllAllergens();
 
   List<String> findAllIngredientNames();
+
+  List<String> findAllUnitNames();
 
   List<String> findAllDietaryNames();
 
@@ -40,7 +44,11 @@ public interface RecipePersistence {
 
   long countByStatus(RecipeStatus status);
 
-  PageResult<RecipeSummary> findRecipeSummaries(String username, RecipeStatus status, int size, int page);
+  // Alors ici on ne fait pas Page<RecipeSummary> parce qu'on
+  // n'est pas sensé renvoyer plein de recette quand c'est du RAG...
+  List<RecipeSummary> findSummariesByIds(List<UUID> ids);
+
+  PageResult<RecipeSummary> findUserRecipeSummaries(String username, RecipeStatus status, int size, int page);
 
   RecipeCounts findRecipeCounts(UUID recipeId);
 
@@ -56,4 +64,11 @@ public interface RecipePersistence {
 
   void unlikeRecipe(UUID userId, UUID recipeId);
 
+  void followRecipe(UUID userId, UUID recipeId);
+
+  void unfollowRecipe(UUID userId, UUID recipeId);
+
+  void superLikeRecipe(UUID userId, UUID recipeId, long amount);
+
+  boolean hasSuperLikedRecipe(UUID userId, UUID recipeId);
 }

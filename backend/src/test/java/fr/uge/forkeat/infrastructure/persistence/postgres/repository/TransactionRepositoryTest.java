@@ -5,8 +5,8 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.TransactionEnti
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.TransactionType;
-import fr.uge.forkeat.service.model.TransactionStatus; // New import
+import fr.uge.forkeat.service.model.transaction.TransactionType;
+import fr.uge.forkeat.service.model.transaction.TransactionStatus; // New import
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import org.junit.jupiter.api.BeforeEach;

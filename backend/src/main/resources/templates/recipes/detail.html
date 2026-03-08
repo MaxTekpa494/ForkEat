@@ -15,6 +15,15 @@
     <section class="py-12 bg-surface">
         <div class="container mx-auto px-4 max-w-4xl">
 
+            <!-- Bouton retour -->
+            <div class="mb-4">
+                <button onclick="history.back()"
+                        class="inline-flex items-center gap-2 text-sm text-secondary-500 hover:text-secondary-800 transition-colors">
+                    <i class="fas fa-arrow-left text-xs"></i>
+                    Retour
+                </button>
+            </div>
+
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!-- BANNIÈRE VARIANTE + TOGGLE (visible uniquement si variante)    -->
             <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -63,16 +72,33 @@
 
                 <!-- Image -->
                 <div th:if="${recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}"
-                     class="aspect-[16/9] bg-secondary-100 overflow-hidden relative">
+                     class="aspect-[16/9] bg-secondary-100 overflow-hidden relative group">
                     <img th:src="${recipe.imageUrl}"
                          th:alt="${recipe.title}"
-                         class="w-full h-full object-cover">
+                         class="w-full h-full object-cover cursor-zoom-in transition-transform duration-300 group-hover:scale-[1.02]"
+                         onclick="openImageModal(this.src, this.alt)">
+                    <!-- Indicateur zoom -->
+                    <div class="absolute bottom-3 right-3 bg-black/40 text-white text-xs px-2 py-1 rounded-full flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none">
+                        <i class="fas fa-search-plus text-[10px]"></i> Agrandir
+                    </div>
                     <!-- Badge image modifiée -->
                     <div th:if="${diff != null and diff.imageChanged}"
                          class="absolute top-3 right-3 flex items-center gap-1.5 bg-amber-500 text-white text-xs font-bold px-3 py-1.5 rounded-full shadow-md">
                         <i class="fas fa-image"></i>
                         Image modifiée
                     </div>
+                </div>
+
+                <!-- Lightbox modal -->
+                <div id="imageModal"
+                     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/80 backdrop-blur-sm p-4"
+                     onclick="closeImageModal()">
+                    <button class="absolute top-4 right-4 text-white text-2xl hover:text-gray-300 transition" onclick="closeImageModal()">
+                        <i class="fas fa-times"></i>
+                    </button>
+                    <img id="modalImage" src="" alt=""
+                         class="max-h-[90vh] max-w-[90vw] object-contain rounded-xl shadow-2xl"
+                         onclick="event.stopPropagation()">
                 </div>
                 <!-- Badge image ajoutée si parent n'en avait pas -->
                 <div th:if="${diff != null and diff.imageChanged and (recipe.imageUrl == null or recipe.imageUrl.isEmpty())}"
@@ -161,6 +187,46 @@
                                 <span th:text="${recipe.nbLike}">0</span>
                             </button>
                         </form>
+
+                        <!-- Modale de confirmation Super Like -->
+                        <div th:replace="~{fragments/modals :: superLikeModal('super-like-modal', 'super-like-modal-content', 'confirmSuperLike()', 'closeSuperLikeModal()', 'closeSuperLikeModal(event)')}"></div>
+
+                        <!-- Modale fonds insuffisants -->
+                        <div th:replace="~{fragments/modals :: insufficientFundsModal('insufficient-funds-modal', 'insufficient-funds-modal-content', 'closeInsufficientFundsModal()')}"></div>
+
+                        <form id="super-like-form" th:action="@{/recipes/{id}/super-like(id=${recipe.id})}" method="post">
+                            <button type="button"
+                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-400 text-sm font-semibold cursor-pointer transition-all duration-200 hover:border-yellow-500 hover:text-yellow-500 hover:bg-yellow-50"
+                                    th:classappend="${recipe.hasSuperLiked} ? ' border-yellow-500 text-yellow-500 bg-yellow-50' : ''"
+                                    th:data-recipe-id="${recipe.id}"
+                                    th:data-liked="${recipe.hasSuperLiked}"
+                                    th:data-auth="${isAuthenticated}"
+                                    onclick="handleSuperLike(this)"
+                                    aria-label="Super like cette recette">
+                                <svg width="18px" height="18px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                    <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z"
+                                          fill="currentColor"/>
+                                    <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z"
+                                          fill="currentColor"/>
+                                    <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="currentColor"/>
+                                </svg>
+                                <span th:text="${recipe.nbSuperLike}">0</span>
+                            </button>
+                        </form>
+
+                        <!-- Follow / Unfollow -->
+                        <form th:if="${isAuthenticated}" id="follow-form" th:action="@{/recipes/{id}/follow(id=${recipe.id})}" method="post" class="hidden"></form>
+                        <button type="button"
+                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 text-sm font-semibold cursor-pointer transition-all duration-200 hover:border-primary-400 hover:text-primary-500 hover:bg-primary-50"
+                                th:classappend="${recipe.hasFollowed} ? ' border-primary-500 text-primary-500 bg-primary-50' : ''"
+                                th:data-recipe-id="${recipe.id}"
+                                th:data-followed="${recipe.hasFollowed}"
+                                th:data-auth="${isAuthenticated}"
+                                onclick="handleFollow(this)"
+                                aria-label="Suivre cette recette">
+                            <i th:class="${recipe.hasFollowed} ? 'fas fa-bookmark' : 'far fa-bookmark'"></i>
+                            <span th:text="${recipe.nbFollow}">0</span>
+                        </button>
                     </div>
 
                     <!-- Description / Summary -->
@@ -501,6 +567,9 @@
 
         // ── Like / Unlike sans navigation ────────────────────────────────────
         async function handleLike(button) {
+            if (button.disabled) return;
+            button.disabled = true;
+
             const recipeId = button.dataset.recipeId;
             const isLiked = button.dataset.liked === 'true';
             const action = isLiked ? 'unlike' : 'like';
@@ -508,28 +577,180 @@
             const form = document.getElementById('like-form');
             form.action = '/recipes/' + recipeId + '/' + action;
 
-            const response = await fetch(form.action, {
-                method: 'POST',
-                body: new FormData(form)
-            });
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form)
+                });
 
-            if (response.url.includes('/login')) {
-                window.location.href = response.url;
-                return;
-            }
-
-            if (response.ok) {
-                const span = button.querySelector('span');
-                const count = parseInt(span.textContent);
-                if (isLiked) {
-                    span.textContent = count - 1;
-                    button.classList.remove('border-red-500', 'text-red-500', 'bg-red-50');
-                    button.dataset.liked = 'false';
-                } else {
-                    span.textContent = count + 1;
-                    button.classList.add('border-red-500', 'text-red-500', 'bg-red-50');
-                    button.dataset.liked = 'true';
+                if (response.url.includes('/login')) {
+                    window.location.href = response.url;
+                    return;
                 }
+
+                if (response.ok) {
+                    const span = button.querySelector('span');
+                    const count = parseInt(span.textContent);
+                    if (isLiked) {
+                        span.textContent = count - 1;
+                        button.classList.remove('border-red-500', 'text-red-500', 'bg-red-50');
+                        button.dataset.liked = 'false';
+                    } else {
+                        span.textContent = count + 1;
+                        button.classList.add('border-red-500', 'text-red-500', 'bg-red-50');
+                        button.dataset.liked = 'true';
+                    }
+                }
+            } finally {
+                button.disabled = false;
+            }
+        }
+        let _superLikeBtn = null;
+
+        function handleSuperLike(btn) {
+            if (btn.dataset.auth !== 'true') { window.location.href = '/auth/login'; return; }
+            const alreadyLiked = btn.dataset.liked === 'true';
+            if (alreadyLiked) {
+                // Si déjà liké, soumettre directement (toggle off)
+               return;
+            }
+            // Sinon, ouvrir la modale
+            _superLikeBtn = btn;
+            const modal = document.getElementById('super-like-modal');
+            const content = document.getElementById('super-like-modal-content');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            });
+        }
+
+        function closeSuperLikeModal(event) {
+            if (event && event.target !== document.getElementById('super-like-modal')) return;
+            const modal = document.getElementById('super-like-modal');
+            const content = document.getElementById('super-like-modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        function confirmSuperLike() {
+            const form = document.getElementById('super-like-form');
+            const formData = new FormData(form);
+
+            fetch(form.action, {
+                method: form.method,
+                body: formData
+            })
+                .then(response => {
+                    const modal = document.getElementById('super-like-modal');
+                    modal.classList.add('hidden');
+                    modal.classList.remove('flex');
+
+                    if (!response.ok) {
+                        if (response.status === 402) {
+                            openInsufficientFundsModal();
+                        }
+                        return;
+                    }
+
+                    _superLikeBtn.dataset.liked = 'true';
+                    _superLikeBtn.classList.add('border-yellow-500', 'text-yellow-500', 'bg-yellow-50');
+                    _superLikeBtn.classList.remove('border-gray-200', 'text-gray-300');
+                    _superLikeBtn.querySelector('span').textContent = parseInt(_superLikeBtn.querySelector('span').textContent) + 1;
+                })
+                .catch(error => console.error('Erreur:', error));
+        }
+
+        function openInsufficientFundsModal() {
+            const modal = document.getElementById('insufficient-funds-modal');
+            const content = document.getElementById('insufficient-funds-modal-content');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            });
+        }
+
+        function closeInsufficientFundsModal() {
+            const modal = document.getElementById('insufficient-funds-modal');
+            const content = document.getElementById('insufficient-funds-modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        // ── Lightbox image ───────────────────────────────────────────────────
+        function openImageModal(src, alt) {
+            const modal = document.getElementById('imageModal');
+            document.getElementById('modalImage').src = src;
+            document.getElementById('modalImage').alt = alt;
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeImageModal() {
+            const modal = document.getElementById('imageModal');
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+            document.body.style.overflow = '';
+        }
+
+        document.addEventListener('keydown', e => {
+            if (e.key === 'Escape') closeImageModal();
+        });
+
+        // ── Follow / Unfollow sans navigation ────────────────────────────────
+        async function handleFollow(button) {
+            if (button.dataset.auth !== 'true') { window.location.href = '/auth/login'; return; }
+            if (button.disabled) return;
+            button.disabled = true;
+
+            const recipeId = button.dataset.recipeId;
+            const isFollowed = button.dataset.followed === 'true';
+            const action = isFollowed ? 'unfollow' : 'follow';
+
+            const form = document.getElementById('follow-form');
+            form.action = '/recipes/' + recipeId + '/' + action;
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form)
+                });
+
+                if (response.url.includes('/login')) {
+                    window.location.href = response.url;
+                    return;
+                }
+
+                if (response.ok) {
+                    const icon = button.querySelector('i');
+                    const span = button.querySelector('span');
+                    const count = parseInt(span.textContent);
+                    if (isFollowed) {
+                        span.textContent = count - 1;
+                        icon.className = 'far fa-bookmark';
+                        button.classList.remove('border-primary-500', 'text-primary-500', 'bg-primary-50');
+                        button.dataset.followed = 'false';
+                    } else {
+                        span.textContent = count + 1;
+                        icon.className = 'fas fa-bookmark';
+                        button.classList.add('border-primary-500', 'text-primary-500', 'bg-primary-50');
+                        button.dataset.followed = 'true';
+                    }
+                }
+            } finally {
+                button.disabled = false;
             }
         }
 

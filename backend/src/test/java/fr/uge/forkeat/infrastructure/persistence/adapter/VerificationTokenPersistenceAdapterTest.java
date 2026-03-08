@@ -30,7 +30,7 @@ class VerificationTokenPersistenceAdapterTest {
     private VerificationTokenPersistenceAdapter adapter;
 
     private VerificationToken createDomainToken(UUID id, UUID userId, VerificationTokenType type) {
-        return new VerificationToken(id, userId, "token-value", type, null,
+        return new VerificationToken(id, userId, "token-value", type, null, null,
                 Instant.now().plus(24, ChronoUnit.HOURS), Instant.now());
     }
 

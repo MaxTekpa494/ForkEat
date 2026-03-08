@@ -410,4 +410,75 @@ class UserPersistenceAdapterTest {
             assertThrows(NullPointerException.class, () -> adapter.findUserSocialStats(null));
         }
     }
+
+    @Nested
+    class FollowTests {
+
+        @Test
+        void findIdByUsername_ShouldReturnId_WhenExists() {
+            var userId = UUID.randomUUID();
+            when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(userId));
+
+            var result = adapter.findIdByUsername("alice");
+
+            assertTrue(result.isPresent());
+            assertEquals(userId, result.get());
+            verify(userRepository).findIdByUsername("alice");
+        }
+
+        @Test
+        void findIdByUsername_ShouldReturnEmpty_WhenNotExists() {
+            when(userRepository.findIdByUsername("unknown")).thenReturn(Optional.empty());
+
+            var result = adapter.findIdByUsername("unknown");
+
+            assertTrue(result.isEmpty());
+            verify(userRepository).findIdByUsername("unknown");
+        }
+
+        @Test
+        void findIdByUsername_ShouldThrow_WhenNull() {
+            assertThrows(NullPointerException.class, () -> adapter.findIdByUsername(null));
+        }
+
+        @Test
+        void follow_ShouldDelegateToNeo4j() {
+            var followerId = UUID.randomUUID();
+            var followedId = UUID.randomUUID();
+
+            adapter.follow(followerId, followedId);
+
+            verify(neo4jUserRepository).follow(eq(followerId), eq(followedId), any(Instant.class));
+        }
+
+        @Test
+        void follow_ShouldThrow_WhenFollowerIdIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.follow(null, UUID.randomUUID()));
+        }
+
+        @Test
+        void follow_ShouldThrow_WhenFollowedIdIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.follow(UUID.randomUUID(), null));
+        }
+
+        @Test
+        void unfollow_ShouldDelegateToNeo4j() {
+            var followerId = UUID.randomUUID();
+            var followedId = UUID.randomUUID();
+
+            adapter.unfollow(followerId, followedId);
+
+            verify(neo4jUserRepository).unfollow(followerId, followedId);
+        }
+
+        @Test
+        void unfollow_ShouldThrow_WhenFollowerIdIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.unfollow(null, UUID.randomUUID()));
+        }
+
+        @Test
+        void unfollow_ShouldThrow_WhenFollowedIdIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.unfollow(UUID.randomUUID(), null));
+        }
+    }
 }

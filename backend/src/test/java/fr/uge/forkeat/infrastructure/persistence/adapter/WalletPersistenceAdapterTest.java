@@ -3,17 +3,18 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.TransactionEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.PlatformWalletRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.TransactionRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
 
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.TransactionType;
+import fr.uge.forkeat.service.model.transaction.Transaction;
+import fr.uge.forkeat.service.model.transaction.TransactionType;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.model.wallet.Wallet;
-import fr.uge.forkeat.service.model.TransactionStatus; // New import
+import fr.uge.forkeat.service.model.transaction.TransactionStatus; // New import
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -41,6 +42,9 @@ class WalletPersistenceAdapterTest {
 
     @Mock
     private UserRepository userRepository;
+
+    @Mock
+    private PlatformWalletRepository platformWalletRepository;
 
     @InjectMocks
     private WalletPersistenceAdapter adapter;
@@ -393,14 +397,14 @@ class WalletPersistenceAdapterTest {
         var userId = UUID.randomUUID();
         var balance = 5000L;
 
-        when(walletRepository.findBalanceByUserId(userId)).thenReturn(balance);
+        when(walletRepository.findBalanceByUserIdReadOnly(userId)).thenReturn(balance);
 
         // When
         var result = adapter.getBalance(userId);
 
         // Then
         assertEquals(balance, result);
-        verify(walletRepository).findBalanceByUserId(userId);
+        verify(walletRepository).findBalanceByUserIdReadOnly(userId);
     }
 
     @Test
@@ -408,13 +412,13 @@ class WalletPersistenceAdapterTest {
         // Given
         var userId = UUID.randomUUID();
 
-        when(walletRepository.findBalanceByUserId(userId)).thenReturn(null);
+        when(walletRepository.findBalanceByUserIdReadOnly(userId)).thenReturn(null);
 
         // When
         var result = adapter.getBalance(userId);
 
         // Then
         assertEquals(0L, result);
-        verify(walletRepository).findBalanceByUserId(userId);
+        verify(walletRepository).findBalanceByUserIdReadOnly(userId);
     }
 }

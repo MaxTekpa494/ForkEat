@@ -8,6 +8,8 @@ import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.data.neo4j.repository.query.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.time.Instant;
+
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,7 +32,9 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
             OPTIONAL MATCH (:Recipe {id: rid})<-[l:LIKED]-()
             WITH rid, count(l) AS likeCount
             OPTIONAL MATCH (:Recipe {id: rid})<-[sl:SUPER_LIKED]-()
-            RETURN rid AS recipeId, likeCount, count(sl) AS superLikeCount
+            WITH rid, likeCount, count(sl) AS superLikeCount
+            OPTIONAL MATCH (:Recipe {id: rid})<-[f:FOLLOWS_RECIPE]-()
+            RETURN rid AS recipeId, likeCount, superLikeCount, count(f) AS followCount
             """)
     List<RecipeCountsProjection> findCountsByRecipeIds(@Param("recipeIds") List<String> recipeIds);
 
@@ -39,7 +43,9 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
             OPTIONAL MATCH (u:User {username: $username})-[l:LIKED]->(:Recipe {id: rid})
             WITH rid, l IS NOT NULL AS likedByCurrentUser
             OPTIONAL MATCH (u2:User {username: $username})-[sl:SUPER_LIKED]->(:Recipe {id: rid})
-            RETURN rid AS recipeId, likedByCurrentUser, sl IS NOT NULL AS superLikedByCurrentUser
+            WITH rid, likedByCurrentUser, sl IS NOT NULL AS superLikedByCurrentUser
+            OPTIONAL MATCH (u3:User {username: $username})-[f:FOLLOWS_RECIPE]->(:Recipe {id: rid})
+            RETURN rid AS recipeId, likedByCurrentUser, superLikedByCurrentUser, f IS NOT NULL AS followedByCurrentUser
             """)
     List<RecipeUserInteractionProjection> findUserInteractionsByRecipeIds(
             @Param("recipeIds") List<String> recipeIds,
@@ -66,4 +72,20 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
             DELETE (l)
             """)
     void unlikeRecipe(@Param("userId") UUID userId, @Param("recipeId") UUID recipeId);
+
+    @Query("""
+            MATCH (u:User {id: $userId})
+            MATCH (r:Recipe {id: $recipeId})
+            MERGE (u)-[f:FOLLOWS_RECIPE]->(r)
+            ON CREATE SET f.since = $since
+            """)
+    void followRecipe(@Param("userId") UUID userId,
+                      @Param("recipeId") UUID recipeId,
+                      @Param("since") Instant since);
+
+    @Query("""
+            MATCH (u:User {id: $userId})-[f:FOLLOWS_RECIPE]->(r:Recipe {id: $recipeId})
+            DELETE f
+            """)
+    void unfollowRecipe(@Param("userId") UUID userId, @Param("recipeId") UUID recipeId);
 }

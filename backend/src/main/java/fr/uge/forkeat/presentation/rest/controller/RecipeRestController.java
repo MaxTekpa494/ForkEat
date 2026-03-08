@@ -5,9 +5,12 @@ import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.response.*;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.RecipeSmartSearchService;
+import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserService;
 import org.slf4j.Logger;
@@ -29,12 +32,19 @@ public final class RecipeRestController {
   private final RecipeService recipeService;
   private final AuthenticationPort authPort;
   private final UserService userService;
+  private final RecipeSmartSearchService smartSearchService;
+  private final WalletService walletService;
+
   private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
-  public RecipeRestController(RecipeService recipeService, AuthenticationPort authPort, UserService userService) {
+  public RecipeRestController(RecipeService recipeService, AuthenticationPort authPort,
+                              UserService userService, RecipeSmartSearchService smartSearchService,
+                              WalletService walletService) {
     this.recipeService = recipeService;
     this.authPort = authPort;
     this.userService = userService;
+    this.smartSearchService = smartSearchService;
+    this.walletService = walletService;
   }
 
   public record AllergensIngredients(List<AllergenDTO> allergens, List<String> ingredients, List<String> dietaries) {
@@ -43,8 +53,6 @@ public final class RecipeRestController {
   public record RecipeData(RecipeDetailsDTO recipe, RecipeDTO parent, RecipeDiff diff) {
   }
 
-  // Pourquoi pas faire un findwithparent avec {recipe:..., parent:...}
-  // Un endpoint recipe avec juste {recipe:...}
   @GetMapping("/{id}")
   public ResponseEntity<HttpResponse<RecipeData>> getRecipe(@PathVariable UUID id) {
     Objects.requireNonNull(id);
@@ -72,13 +80,21 @@ public final class RecipeRestController {
   }
 
   @GetMapping
-  public ResponseEntity<HttpResponse<RecipeDTO>> getRecipes(RecipeSearchDTO form) {
+  public ResponseEntity<HttpResponse<PersonalizedRecipeSummaryDTO>> getRecipes(RecipeSearchDTO form) {
     var criteria = new RecipeSearchCriteria(
             RecipeStatus.valueOf(form.getStatus()), form.getSearch(), form.getAllergens(), form.getSize(), form.getPage());
     var pageResult = recipeService.searchRecipes(criteria);
-    logger.debug("Liste ingredients : {}", form.getAllergens());
-    var dtos = pageResult.items().stream().map(RecipeDTOMapper::toDTO).toList();
+    var dtos = pageResult.items().stream().map(RecipeDTOMapper::toSummaryDTO).toList();
     return ResponseEntity.ok(new ListResponse<>(dtos, pageResult.total()));
+  }
+
+  @GetMapping("/allergens")
+  public ResponseEntity<ListResponse<AllergenDTO>> getAllergens() {
+    var allAllergens = recipeService.findAllAllergens().stream()
+            .map(RecipeDTOMapper::toDTO)
+            .toList();
+    logger.debug("Liste ingredients : {}", allAllergens);
+    return ResponseEntity.ok(new ListResponse<>(allAllergens, allAllergens.size()));
   }
 
   @GetMapping("/create")
@@ -155,10 +171,45 @@ public final class RecipeRestController {
     return ResponseEntity.ok().build();
   }
 
+    @PostMapping("/{id}/super-like")
+    public ResponseEntity<?> superLikeRecipe(@PathVariable UUID id) {
+        var user = this.userService.getUserByUsername(authPort.extractUsername());
+        this.recipeService.superLikeRecipe(user.id(), id);
+        return ResponseEntity.ok().build();
+    }
+
+
   @DeleteMapping("/{id}/like")
   public ResponseEntity<?> unlikeRecipe(@PathVariable UUID id) {
     var user = userService.getUserByUsername(authPort.extractUsername());
     recipeService.unlikeRecipe(user.id(), id);
     return ResponseEntity.ok().build();
   }
+
+  @PostMapping("/smart-search")
+  public ResponseEntity<HttpResponse<PersonalizedRecipeSummaryDTO>> smartSearch(
+          @RequestBody SmartSearchRequestDTO request) {
+
+    var user = userService.getUserByUsername(authPort.extractUsername());
+
+    var recipes = smartSearchService.search(request.query());
+
+    var dtos = recipes.stream()
+            .map(RecipeDTOMapper::toSummaryDTO)
+            .toList();
+
+    return ResponseEntity.ok(new ListResponse<>(dtos, dtos.size()));
+  }
+
+    @PutMapping("/{id}/follow")
+    public ResponseEntity<HttpResponse<Void>> followRecipe(@PathVariable UUID id) {
+        recipeService.followRecipe(authPort.extractUsername(), id);
+        return ResponseEntity.ok(new SuccessResponse());
+    }
+
+    @DeleteMapping("/{id}/follow")
+    public ResponseEntity<HttpResponse<Void>> unfollowRecipe(@PathVariable UUID id) {
+        recipeService.unfollowRecipe(authPort.extractUsername(), id);
+        return ResponseEntity.ok(new SuccessResponse());
+    }
 }

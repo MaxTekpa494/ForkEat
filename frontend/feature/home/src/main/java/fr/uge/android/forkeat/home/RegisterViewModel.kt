@@ -91,7 +91,7 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
 
                 val response = ForkEatApi.authService.loginWithGoogle(GoogleLoginRequest(idToken))
                 if (response.isSuccessful && response.body() != null) {
-                    tokenManager.saveToken(response.body()!!.token)
+                    // On ne sauvegarde pas le token ici pour forcer l'utilisateur à se connecter
                     _uiState.value = RegisterUiState(isSuccess = true)
                 } else {
                     _uiState.value = RegisterUiState(

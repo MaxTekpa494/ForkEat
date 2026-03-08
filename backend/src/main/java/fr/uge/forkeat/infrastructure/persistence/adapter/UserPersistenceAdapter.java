@@ -1,8 +1,15 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
+import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jUserRepository;
 import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jUserRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.SuperLikeEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.SuperLikeRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.SuperLikeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
@@ -14,7 +21,9 @@ import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -24,11 +33,18 @@ import java.util.UUID;
 public class UserPersistenceAdapter implements UserPersistence {
 
 	private final UserRepository userRepository;
-	private final Neo4jUserRepository neo4jUserRepository;
 
-	public UserPersistenceAdapter(UserRepository userRepository, Neo4jUserRepository neo4jUserRepository) {
-		this.userRepository = Objects.requireNonNull(userRepository);
-		this.neo4jUserRepository = Objects.requireNonNull(neo4jUserRepository);
+    private final Neo4jUserRepository neo4jUserRepository;
+
+    private final SuperLikeRepository superLikeRepository;
+
+    private final WalletRepository walletRepository;
+
+	public UserPersistenceAdapter(UserRepository userRepository, Neo4jUserRepository neo4jUserRepository, SuperLikeRepository superLikeRepository, WalletRepository walletRepository) {
+		this.userRepository = userRepository;
+        this.neo4jUserRepository = neo4jUserRepository;
+        this.superLikeRepository = superLikeRepository;
+        this.walletRepository = walletRepository;
 	}
 
 	@Override
@@ -145,10 +161,30 @@ public class UserPersistenceAdapter implements UserPersistence {
 	}
 
 	@Override
+	public Optional<UUID> findIdByUsername(String username) {
+		Objects.requireNonNull(username);
+		return userRepository.findIdByUsername(username);
+	}
+
+	@Override
 	public boolean isFollowing(String followerUsername, String followedUsername) {
 		Objects.requireNonNull(followerUsername);
 		Objects.requireNonNull(followedUsername);
 		return neo4jUserRepository.isFollowing(followerUsername, followedUsername);
+	}
+
+	@Override
+	public void follow(UUID followerId, UUID followedId) {
+		Objects.requireNonNull(followerId);
+		Objects.requireNonNull(followedId);
+		neo4jUserRepository.follow(followerId, followedId, Instant.now());
+	}
+
+	@Override
+	public void unfollow(UUID followerId, UUID followedId) {
+		Objects.requireNonNull(followerId);
+		Objects.requireNonNull(followedId);
+		neo4jUserRepository.unfollow(followerId, followedId);
 	}
 
 	@Override
@@ -176,4 +212,6 @@ public class UserPersistenceAdapter implements UserPersistence {
 				counts != null ? counts.totalSuperLikeCount() : 0
 		);
 	}
+
+
 }

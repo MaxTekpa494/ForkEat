@@ -1,8 +1,8 @@
 package fr.uge.forkeat.service.external;
 
 import com.stripe.model.Event;
-import fr.uge.forkeat.service.model.PaymentRequest;
-import fr.uge.forkeat.service.model.PaymentResponse;
+import fr.uge.forkeat.service.model.payment.PaymentRequest;
+import fr.uge.forkeat.service.model.payment.PaymentResponse;
 
 public interface PaymentGateway {
 

@@ -16,12 +16,6 @@ public class RecipeEntity {
   @Column(columnDefinition = "UUID")
   private UUID id;
 
-  @Column(length = 50)
-  private String source;
-
-  @Column(name = "external_id", length = 100)
-  private String externalId;
-
   @Column(nullable = false)
   private String title;
 
@@ -105,21 +99,7 @@ public class RecipeEntity {
     this.createdAt = createdAt;
   }
 
-  public String getSource() {
-    return source;
-  }
 
-  public void setSource(String source) {
-    this.source = source;
-  }
-
-  public String getExternalId() {
-    return externalId;
-  }
-
-  public void setExternalId(String externalId) {
-    this.externalId = externalId;
-  }
 
   public String getTitle() {
     return title;

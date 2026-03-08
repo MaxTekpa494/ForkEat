@@ -63,6 +63,7 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
                 <!-- Temps de préparation -->
+
                 <div>
                     <label for="preparationMinutes" class="block text-sm font-medium text-secondary-900 mb-1">
                         <i class="fas fa-clock text-primary-500 mr-1"></i>
@@ -80,9 +81,11 @@
                         <i class="fas fa-camera text-primary-500 mr-1"></i>
                         Photo du plat
                     </label>
+                    <!-- Sélecteur galerie -->
                     <input id="image" name="image" type="file" accept="image/*"
                            onchange="previewImage(this)"
                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-600 hover:file:bg-primary-100 transition cursor-pointer">
+                    <!-- Capture caméra directe (mobile uniquement) -->
                     <!-- Aperçu image -->
                     <div id="imagePreviewContainer" class="mt-2"
                          th:style="${recipe != null and recipe.imageUrl != null and !recipe.imageUrl.isEmpty()} ? '' : 'display:none'">
@@ -111,6 +114,11 @@
             <option th:each="name : ${allIngredientNames}" th:value="${name}"></option>
         </datalist>
 
+        <!-- Datalist pour l'autocomplétion des unités -->
+        <datalist id="unitSuggestions">
+            <option th:each="unit : ${allUnitNames}" th:value="${unit}"></option>
+        </datalist>
+
         <div id="ingredientsList" class="space-y-3">
             <!-- Lignes préremplies (édition) -->
             <th:block th:if="${recipe != null and recipe.ingredients != null}">
@@ -120,34 +128,13 @@
                            placeholder="Nom de l'ingrédient"
                            class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
                     <input type="number" th:name="'ingredients[' + ${iterStat.index} + '].quantity'"
-                           th:value="${ing.quantity}" min="0" step="0.1" required
+                           th:value="${ing.quantity}" min="0" step="any" required
                            placeholder="Qté"
                            class="w-24 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
-                    <select th:name="'ingredients[' + ${iterStat.index} + '].unit'" required
-                            class="w-28 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
-                        <option value="" disabled>Unité</option>
-                        <option value="g" th:selected="${ing.unit == 'g'}">g</option>
-                        <option value="kg" th:selected="${ing.unit == 'kg'}">kg</option>
-                        <option value="ml" th:selected="${ing.unit == 'ml'}">ml</option>
-                        <option value="L" th:selected="${ing.unit == 'L'}">L</option>
-                        <option value="tsp" th:selected="${ing.unit == 'tsp'}">c. à café</option>
-                        <option value="tbsp" th:selected="${ing.unit == 'tbsp'}">c. à soupe</option>
-                        <option value="pcs" th:selected="${ing.unit == 'pcs'}">pièce(s)</option>
-                        <option value="pinch" th:selected="${ing.unit == 'pinch'}">pincée</option>
-                        <!-- Unité non standard provenant de la BDD -->
-                        <option th:if="${ing.unit != null
-                                        and ing.unit != 'g'
-                                        and ing.unit != 'kg'
-                                        and ing.unit != 'ml'
-                                        and ing.unit != 'L'
-                                        and ing.unit != 'tsp'
-                                        and ing.unit != 'tbsp'
-                                        and ing.unit != 'pcs'
-                                        and ing.unit != 'pinch'}"
-                                th:value="${ing.unit}"
-                                th:text="${ing.unit}"
-                                selected></option>
-                    </select>
+                    <input type="text" th:name="'ingredients[' + ${iterStat.index} + '].unit'"
+                           th:value="${ing.unit}" list="unitSuggestions"
+                           placeholder="Unité"
+                           class="w-28 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
                     <button type="button" onclick="removeRow(this, 'ingredient')"
                             class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">
                         <i class="fas fa-trash-alt"></i>
@@ -172,24 +159,35 @@
             Étapes de préparation
         </h2>
 
-        <div id="stepsList" class="space-y-4">
+        <div id="stepsList" class="space-y-2">
             <!-- Étapes préremplies (édition) -->
             <th:block th:if="${recipe != null and recipe.steps != null}">
-                <div th:each="step, iterStat : ${recipe.steps}" class="step-row flex items-start gap-3">
-                    <input type="hidden" th:name="'steps[' + ${iterStat.index} + '].stepNumber'"
-                           th:value="${iterStat.index + 1}">
-                    <span class="step-number flex-shrink-0 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center font-bold text-sm mt-2.5"
-                          th:text="${iterStat.index + 1}">1</span>
-                    <textarea th:name="'steps[' + ${iterStat.index} + '].instruction'"
-                              rows="2" required
-                              placeholder="Décrivez cette étape..."
-                              class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none"
-                              th:text="${step.instruction}"></textarea>
-                    <button type="button" onclick="removeRow(this, 'step')"
-                            class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition mt-2">
-                        <i class="fas fa-trash-alt"></i>
-                    </button>
-                </div>
+                <th:block th:each="step, iterStat : ${recipe.steps}">
+                    <div class="step-row flex items-start gap-3">
+                        <input type="hidden" th:name="'steps[' + ${iterStat.index} + '].stepNumber'"
+                               th:value="${iterStat.index + 1}">
+                        <span class="step-number flex-shrink-0 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center font-bold text-sm mt-2.5"
+                              th:text="${iterStat.index + 1}">1</span>
+                        <textarea th:name="'steps[' + ${iterStat.index} + '].instruction'"
+                                  rows="2" required
+                                  placeholder="Décrivez cette étape..."
+                                  class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none"
+                                  th:text="${step.instruction}"></textarea>
+                        <button type="button" onclick="removeRow(this, 'step')"
+                                class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition mt-2">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
+                    </div>
+                    <!-- Séparateur "Insérer" entre chaque étape (pas après la dernière) -->
+                    <div th:if="${!iterStat.last}" class="step-separator flex items-center gap-2 py-0.5">
+                        <div class="flex-1 border-t border-dashed border-gray-200"></div>
+                        <button type="button" onclick="insertStepAfter(this)" title="Insérer une étape ici"
+                                class="w-6 h-6 flex items-center justify-center text-primary-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition">
+                            <i class="fas fa-plus text-xs"></i>
+                        </button>
+                        <div class="flex-1 border-t border-dashed border-gray-200"></div>
+                    </div>
+                </th:block>
             </th:block>
         </div>
 
@@ -287,6 +285,17 @@
 <script th:inline="javascript">
     /*<![CDATA[*/
 
+    // ── Caméra → transfère le fichier vers l'input principal et affiche l'aperçu ──
+    function onCameraCapture(cameraInput) {
+        var mainInput = document.getElementById('image');
+        if (!cameraInput.files || !cameraInput.files[0]) return;
+        // Crée un DataTransfer pour injecter le fichier dans l'input principal
+        var dt = new DataTransfer();
+        dt.items.add(cameraInput.files[0]);
+        mainInput.files = dt.files;
+        previewImage(mainInput);
+    }
+
     // ── Aperçu image ─────────────────────────
     function previewImage(input) {
         var container = document.getElementById('imagePreviewContainer');
@@ -315,21 +324,12 @@
             '<input type="text" name="ingredients[' + idx + '].name" list="ingredientSuggestions" required ' +
             '       placeholder="Nom de l\'ingrédient" ' +
             '       class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">' +
-            '<input type="number" name="ingredients[' + idx + '].quantity" min="0" step="0.1" required ' +
+            '<input type="number" name="ingredients[' + idx + '].quantity" min="0" step="any" required ' +
             '       placeholder="Qté" ' +
             '       class="w-24 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">' +
-            '<select name="ingredients[' + idx + '].unit" required ' +
-            '        class="w-28 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">' +
-            '  <option value="" disabled selected>Unité</option>' +
-            '  <option value="g">g</option>' +
-            '  <option value="kg">kg</option>' +
-            '  <option value="ml">ml</option>' +
-            '  <option value="L">L</option>' +
-            '  <option value="tsp">c. à café</option>' +
-            '  <option value="tbsp">c. à soupe</option>' +
-            '  <option value="pcs">pièce(s)</option>' +
-            '  <option value="pinch">pincée</option>' +
-            '</select>' +
+            '<input type="text" name="ingredients[' + idx + '].unit" list="unitSuggestions" ' +
+            '       placeholder="Unité" ' +
+            '       class="w-28 px-3 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">' +
             '<button type="button" onclick="removeRow(this, \'ingredient\')" ' +
             '        class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition">' +
             '  <i class="fas fa-trash-alt"></i>' +
@@ -338,30 +338,68 @@
     }
 
     // ── Étapes ───────────────────────────────
-    function addStep() {
-        var list = document.getElementById('stepsList');
-        var rows = list.querySelectorAll('.step-row');
-        var idx = rows.length;
-        var num = idx + 1;
-
+    function createStepRow() {
         var div = document.createElement('div');
         div.className = 'step-row flex items-start gap-3 animate-fadeInUp';
         div.innerHTML =
-            '<input type="hidden" name="steps[' + idx + '].stepNumber" value="' + num + '">' +
-            '<span class="step-number flex-shrink-0 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center font-bold text-sm mt-2.5">' + num + '</span>' +
-            '<textarea name="steps[' + idx + '].instruction" rows="2" required ' +
+            '<input type="hidden" name="steps[0].stepNumber" value="1">' +
+            '<span class="step-number flex-shrink-0 w-8 h-8 bg-primary-500 text-white rounded-full flex items-center justify-center font-bold text-sm mt-2.5">1</span>' +
+            '<textarea name="steps[0].instruction" rows="2" required ' +
             '          placeholder="Décrivez cette étape..." ' +
             '          class="flex-1 px-4 py-2.5 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm resize-none"></textarea>' +
             '<button type="button" onclick="removeRow(this, \'step\')" ' +
             '        class="p-2 text-red-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition mt-2">' +
             '  <i class="fas fa-trash-alt"></i>' +
             '</button>';
-        list.appendChild(div);
+        return div;
+    }
+
+    function createStepSeparator() {
+        var sep = document.createElement('div');
+        sep.className = 'step-separator flex items-center gap-2 py-0.5';
+        sep.innerHTML =
+            '<div class="flex-1 border-t border-dashed border-gray-200"></div>' +
+            '<button type="button" onclick="insertStepAfter(this)" title="Insérer une étape ici" ' +
+            '        class="w-6 h-6 flex items-center justify-center text-primary-400 hover:text-primary-600 hover:bg-primary-50 rounded-full transition">' +
+            '  <i class="fas fa-plus text-xs"></i>' +
+            '</button>' +
+            '<div class="flex-1 border-t border-dashed border-gray-200"></div>';
+        return sep;
+    }
+
+    function addStep() {
+        var list = document.getElementById('stepsList');
+        if (list.querySelectorAll('.step-row').length > 0) {
+            list.appendChild(createStepSeparator());
+        }
+        list.appendChild(createStepRow());
+        reindexSteps();
+    }
+
+    function insertStepAfter(btn) {
+        var separator = btn.closest('.step-separator');
+        var newRow = createStepRow();
+        var newSeparator = createStepSeparator();
+        // Résultat : stepA | [sep cliqué] | newRow | newSep | stepB
+        var nextStep = separator.nextSibling;
+        separator.parentNode.insertBefore(newRow, nextStep);
+        separator.parentNode.insertBefore(newSeparator, nextStep);
+        reindexSteps();
     }
 
     // ── Supprimer une ligne ──────────────────
     function removeRow(btn, type) {
         var row = btn.closest('.' + type + '-row');
+
+        if (type === 'step') {
+            var prev = row.previousElementSibling;
+            var next = row.nextElementSibling;
+            var sep = (prev && prev.classList.contains('step-separator')) ? prev
+                    : (next && next.classList.contains('step-separator')) ? next
+                    : null;
+            if (sep) sep.remove();
+        }
+
         row.style.opacity = '0';
         row.style.transform = 'translateX(20px)';
         row.style.transition = 'all 0.3s ease';

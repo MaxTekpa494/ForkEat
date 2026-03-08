@@ -9,11 +9,12 @@ import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRegister;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.port.PasswordHasher;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
+import fr.uge.forkeat.service.user.UserUpdateService;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -58,7 +59,7 @@ class AuthControllerTest {
     private CustomUserDetailsService customUserDetailsService;
 
     @MockitoBean
-    private PasswordHasher passwordHasher;
+    private UserUpdateService userUpdateService;
 
     @MockitoBean
     private JavaMailSender javaMailSender;
@@ -271,13 +272,9 @@ class AuthControllerTest {
 
 
         @Test
-        void forgotPasswordVerifyCode_ShouldReturnLoginView_WhenCodeIsValid() throws Exception {
-            var user = new User(UUID.randomUUID(), "aziani", "Adel", "Ziani", "chef@forkeat.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
-
-
-            when(userService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
-            when(passwordHasher.hash("NewPassword1")).thenReturn("hashedPassword");
-            doNothing().when(emailVerificationService).confirmPasswordChange(user.id(), "123456", "hashedPassword");
+        void forgotPasswordVerifyCode_ShouldRedirectToLoginWithSuccess_WhenCodeIsValid() throws Exception {
+            doNothing().when(userUpdateService)
+                    .confirmForgotPasswordChange("chef@forkeat.com", "123456", "NewPassword1", "NewPassword1");
 
             mockMvc.perform(post("/auth/forgot-password-verify-code")
                             .with(csrf())
@@ -286,19 +283,17 @@ class AuthControllerTest {
                             .param("verificationCode", "123456")
                             .param("password", "NewPassword1")
                             .param("confirmPassword", "NewPassword1"))
-                    .andExpect(status().isOk())
-                    .andExpect(view().name("layout/login"));
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/auth/login"))
+                    .andExpect(flash().attribute("success",
+                            "Mot de passe réinitialisé avec succès ! Vous pouvez maintenant vous connecter."));
         }
 
         @Test
-        void forgotPasswordVerifyCode_ShouldReturnVerifyCodeView_WhenCodeIsInvalid() throws Exception {
-            var user = new User(UUID.randomUUID(), "aziani", "Adel", "Ziani", "chef@forkeat.com", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
-
-
-            when(userService.getUserByEmail("chef@forkeat.com")).thenReturn(user);
-            when(passwordHasher.hash("NewPassword1")).thenReturn("hashedPassword");
+        void forgotPasswordVerifyCode_ShouldRedirectToForgotPassword_WhenCodeIsInvalid() throws Exception {
             doThrow(new VerificationException("Code incorrect ou expiré"))
-                    .when(emailVerificationService).confirmPasswordChange(user.id(), "000000", "hashedPassword");
+                    .when(userUpdateService)
+                    .confirmForgotPasswordChange("chef@forkeat.com", "000000", "NewPassword1", "NewPassword1");
 
             mockMvc.perform(post("/auth/forgot-password-verify-code")
                             .with(csrf())
@@ -307,14 +302,47 @@ class AuthControllerTest {
                             .param("verificationCode", "000000")
                             .param("password", "NewPassword1")
                             .param("confirmPassword", "NewPassword1"))
-                    .andExpect(status().isBadRequest())
-                    .andExpect(view().name("layout/forgot-password-code"))
-                    .andExpect(model().attributeExists("errorMessage"));
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/auth/forgot-password"))
+                    .andExpect(flash().attributeExists("error"));
         }
 
         @Test
-        void forgotPassword_ShouldReturnVerifyCodeView_WhenPasswordIsUnder8Characters() throws Exception {
+        void forgotPasswordVerifyCode_ShouldRedirectToForgotPassword_WhenPasswordsDontMatch() throws Exception {
+            doThrow(new CheckProfileUpdateFailureException("Les mots de passe ne correspondent pas"))
+                    .when(userUpdateService)
+                    .confirmForgotPasswordChange("chef@forkeat.com", "123456", "NewPassword1", "DifferentPass1");
 
+            mockMvc.perform(post("/auth/forgot-password-verify-code")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("email", "chef@forkeat.com")
+                            .param("verificationCode", "123456")
+                            .param("password", "NewPassword1")
+                            .param("confirmPassword", "DifferentPass1"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/auth/forgot-password"))
+                    .andExpect(flash().attributeExists("error"));
+        }
+
+        @Test
+        void forgotPasswordVerifyCode_ShouldRedirectToForgotPassword_WhenPasswordTooShort() throws Exception {
+            doThrow(new CheckProfileUpdateFailureException("Le mot de passe doit contenir au moins 8 caractères"))
+                    .when(userUpdateService)
+                    .confirmForgotPasswordChange("chef@forkeat.com", "123456", "short", "short");
+
+            mockMvc.perform(post("/auth/forgot-password-verify-code")
+                            .with(csrf())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("email", "chef@forkeat.com")
+                            .param("verificationCode", "123456")
+                            .param("password", "short")
+                            .param("confirmPassword", "short"))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/auth/forgot-password"))
+                    .andExpect(flash().attributeExists("error"));
+
+            verifyNoInteractions(emailVerificationService);
         }
     }
 }

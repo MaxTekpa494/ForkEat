@@ -42,6 +42,17 @@ public class Neo4jSyncService {
         }
     }
 
+    @Transactional
+    public void handleSuperLikeChange(String operation, JsonNode payload) {
+        Objects.requireNonNull(operation);
+        Objects.requireNonNull(payload);
+        switch (operation) {
+            case "c", "r" -> handleSuperLikeCreate(payload);
+            case "d", "u" -> logger.warn("Impossible operation: {}", operation);
+            default -> logger.warn("Unknown operation: {}", operation);
+        }
+    }
+
     private String extractId(JsonNode node) {
         if (node == null || !node.has("id")) return null;
         var idNode = node.get("id");
@@ -127,5 +138,25 @@ public class Neo4jSyncService {
             recipeNodeClient.deleteRecipeNode(id);
             logger.info("Deleted recipe node {}. Variant hierarchy repaired.", id);
         }
+    }
+
+    private void handleSuperLikeCreate(JsonNode payload) {
+        //var before = payload.get("before");
+        var after = payload.get("after");
+        if (after == null) return;
+        var id = extractId(after);
+        if (id == null) {
+            logger.warn("Recipe ID is missing or null in payload");
+            return;
+        }
+        var userId = after.has("user_id") && !after.get("user_id").isNull()
+                ? after.get("user_id").asText() : null;
+        var recipeId = after.has("recipe_id") && !after.get("recipe_id").isNull()
+                ? after.get("recipe_id").asText() : null;
+
+        var amount = after.has("amount") ? after.get("amount").asLong() : 0;
+        userNodeClient.addSuperLike(userId, recipeId, amount);
+
+        logger.info("Created SuperLikeRelationShip: {}", id);
     }
 }

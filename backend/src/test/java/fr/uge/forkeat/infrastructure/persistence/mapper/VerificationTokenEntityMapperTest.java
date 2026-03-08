@@ -58,7 +58,7 @@ class VerificationTokenEntityMapperTest {
             var createdAt = Instant.now();
 
             var domain = new VerificationToken(id, userId, "code-123456",
-                    VerificationTokenType.PASSWORD_CHANGE, null,
+                    VerificationTokenType.PASSWORD_CHANGE, null, null,
                     expiresAt, createdAt);
 
             var entity = VerificationTokenEntityMapper.toEntity(domain);
@@ -85,7 +85,7 @@ class VerificationTokenEntityMapperTest {
         var createdAt = Instant.now();
 
         var original = new VerificationToken(id, userId, "round-trip-token",
-                VerificationTokenType.EMAIL_CHANGE, "new@email.com",
+                VerificationTokenType.EMAIL_CHANGE, "new@email.com", null,
                 expiresAt, createdAt);
 
         var entity = VerificationTokenEntityMapper.toEntity(original);

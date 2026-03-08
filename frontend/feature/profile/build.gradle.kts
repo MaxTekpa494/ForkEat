@@ -37,8 +37,11 @@ kotlin {
 }
 
 dependencies {
+    implementation(project(":feature:recipes"))
     implementation(project(":core:designsystem"))
     implementation(project(":core:network"))
+    implementation(project(":data:profile"))
+    implementation(project(":data:recipes"))
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(platform(libs.androidx.compose.bom))
@@ -47,6 +50,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.material.icons.extended)
+    implementation(libs.coil.compose)
     debugImplementation(libs.androidx.compose.ui.tooling)
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
