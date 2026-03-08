@@ -87,8 +87,6 @@ class UserDTOMapperTest {
     assertEquals(0L, dto.balance());
   }
 
-  // Removed all previous toBankInfoDTO tests as they are obsolete
-  // New test for BankInfo
   @Test
   void toBankInfoResponseDTO_shouldConvertBankInfo() {
     var externalAccountId = "ext_acct_test123";
@@ -111,7 +109,7 @@ class UserDTOMapperTest {
     var walletUpdatedAt = Instant.parse("2024-06-19T09:00:00Z");
 
     var wallet = new Wallet(walletId, userId, 15000L, walletUpdatedAt);
-    var bankInfo = new BankInfo(userId, "Caisse d'Épargne", "ext_acct_ce123"); // Updated BankInfo constructor
+    var bankInfo = new BankInfo(userId, "Caisse d'Épargne", "ext_acct_ce123");
 
     var user = new User(userId, "admin_user", "Jean", "Dupont", "jean.dupont@example.com", UserRole.ADMIN,
             UserStatus.ACTIVE, AuthMode.GOOGLE, createdAt, updatedAt, false);

@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service.persistence;
 
+import fr.uge.forkeat.service.model.SortOrder;
 import fr.uge.forkeat.service.model.wallet.PlatformWallet;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletTransaction;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
@@ -15,5 +16,5 @@ public interface PlatformWalletPersistence {
     List<PlatformWallet> findAll();
     long balance(PlatformWalletType type);
     void recordTransaction(PlatformWalletType walletType, long amountCents, String reason, UUID referenceId);
-    List<PlatformWalletTransaction> findAllTransactionsDesc();
+    List<PlatformWalletTransaction> findAllTransactions(SortOrder order);
 }

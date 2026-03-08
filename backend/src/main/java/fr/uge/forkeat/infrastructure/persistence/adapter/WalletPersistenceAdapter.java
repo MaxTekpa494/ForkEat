@@ -135,7 +135,6 @@ public class WalletPersistenceAdapter implements WalletPersistence {
         TransactionEntity existingEntity = transactionRepository.findById(transaction.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with id: " + transaction.id()));
 
-        // Update fields that can change
         existingEntity.setStripeTransactionID(transaction.stripeTransactionID());
         existingEntity.setStatus(transaction.status());
 

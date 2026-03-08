@@ -6,7 +6,7 @@ import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.user.BankInfoService;
 import fr.uge.forkeat.service.model.transaction.Transaction;
-import fr.uge.forkeat.service.model.transaction.TransactionStatus; // New import
+import fr.uge.forkeat.service.model.transaction.TransactionStatus;
 import fr.uge.forkeat.service.model.transaction.TransactionType;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserService;
@@ -167,7 +167,6 @@ class WalletWebControllerTest {
     @WithMockUser(username = "testuser")
     void walletPage_ShouldDisplayTransactions() throws Exception {
         var walletId = UUID.randomUUID();
-        // Updated Transaction constructor calls
         var transactions = List.of(
                 new Transaction(UUID.randomUUID(), null, walletId, 1000L, TransactionType.RECHARGE, Instant.now(), "tx_1", TransactionStatus.SUCCEEDED),
                 new Transaction(UUID.randomUUID(), null, walletId, 500L, TransactionType.RECHARGE, Instant.now(), "tx_2", TransactionStatus.SUCCEEDED)

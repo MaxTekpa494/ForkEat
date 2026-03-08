@@ -2,16 +2,19 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.presentation.dto.superlike.PromotionDTO;
 import fr.uge.forkeat.presentation.dto.superlike.SuperLikeHistoryDTO;
+import fr.uge.forkeat.presentation.response.HttpResponse;
+import fr.uge.forkeat.presentation.response.ItemResponse;
+import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.List;
-
 @RestController
+@RequestMapping("/api/promotions")
 public class PromotionRestController {
 
     private final PromotionService promotionService;
@@ -27,29 +30,29 @@ public class PromotionRestController {
     }
 
     /** Promotion actuellement en cours (publique). */
-    @GetMapping("/api/promotions/active")
-    public ResponseEntity<PromotionDTO> getActivePromotion() {
+    @GetMapping("/active")
+    public ResponseEntity<HttpResponse<PromotionDTO>> getActivePromotion() {
         return promotionService.findActive()
                 .map(PromotionDTO::from)
-                .map(ResponseEntity::ok)
+                .map(dto -> ResponseEntity.ok((HttpResponse<PromotionDTO>) new ItemResponse<>(dto)))
                 .orElse(ResponseEntity.noContent().build());
     }
 
     /** Promotions à venir (publique). */
-    @GetMapping("/api/promotions/upcoming")
-    public ResponseEntity<List<PromotionDTO>> getUpcomingPromotions() {
+    @GetMapping("/upcoming")
+    public ResponseEntity<HttpResponse<PromotionDTO>> getUpcomingPromotions() {
         var upcoming = promotionService.findUpcoming().stream()
                 .map(PromotionDTO::from)
                 .toList();
-        return ResponseEntity.ok(upcoming);
+        return ResponseEntity.ok(new ListResponse<>(upcoming, upcoming.size()));
     }
 
     /**
      * Historique des super-likes de l'utilisateur connecté avec les promotions appliquées.
      * Accessible aux utilisateurs authentifiés pour leur reporting financier personnel.
      */
-    @GetMapping("/api/wallet/super-likes")
-    public ResponseEntity<List<SuperLikeHistoryDTO>> getSuperLikeHistory() {
+    @GetMapping("/super-likes")
+    public ResponseEntity<HttpResponse<SuperLikeHistoryDTO>> getSuperLikeHistory() {
         var user = userService.getUserByUsername(authPort.extractUsername());
         var history = promotionService.findSuperLikeHistory(user.id()).stream()
                 .map(h -> new SuperLikeHistoryDTO(
@@ -62,6 +65,6 @@ public class PromotionRestController {
                         h.createdAt()
                 ))
                 .toList();
-        return ResponseEntity.ok(history);
+        return ResponseEntity.ok(new ListResponse<>(history, history.size()));
     }
 }

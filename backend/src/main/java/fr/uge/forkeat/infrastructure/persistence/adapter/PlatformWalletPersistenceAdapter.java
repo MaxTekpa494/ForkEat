@@ -6,10 +6,12 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.PlatformWal
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.PlatformWalletTransactionRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.SortOrder;
 import fr.uge.forkeat.service.model.wallet.PlatformWallet;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletTransaction;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.persistence.PlatformWalletPersistence;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
@@ -27,9 +29,9 @@ public class PlatformWalletPersistenceAdapter implements PlatformWalletPersisten
     public PlatformWalletPersistenceAdapter(PlatformWalletRepository platformWalletRepository,
                                              WalletRepository walletRepository,
                                              PlatformWalletTransactionRepository transactionRepository) {
-        this.platformWalletRepository = Objects.requireNonNull(platformWalletRepository);
-        this.walletRepository = Objects.requireNonNull(walletRepository);
-        this.transactionRepository = Objects.requireNonNull(transactionRepository);
+        this.platformWalletRepository = platformWalletRepository;
+        this.walletRepository = walletRepository;
+        this.transactionRepository = transactionRepository;
     }
 
     @Override
@@ -49,7 +51,6 @@ public class PlatformWalletPersistenceAdapter implements PlatformWalletPersisten
         Objects.requireNonNull(wallet);
         var entity = platformWalletRepository.findById(wallet.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Platform wallet not found: " + wallet.id()));
-        // Update balance in the associated wallet
         var walletEntity = entity.getWallet();
         walletEntity.setBalance(wallet.balance());
         walletRepository.save(walletEntity);
@@ -82,8 +83,10 @@ public class PlatformWalletPersistenceAdapter implements PlatformWalletPersisten
     }
 
     @Override
-    public List<PlatformWalletTransaction> findAllTransactionsDesc() {
-        return transactionRepository.findAllByOrderByCreatedAtDesc().stream()
+    public List<PlatformWalletTransaction> findAllTransactions(SortOrder order) {
+        Objects.requireNonNull(order);
+        var direction = order == SortOrder.ASC ? Sort.Direction.ASC : Sort.Direction.DESC;
+        return transactionRepository.findAll(Sort.by(direction, "createdAt")).stream()
                 .map(e -> new PlatformWalletTransaction(
                         e.getId(),
                         PlatformWalletType.valueOf(e.getWalletType()),

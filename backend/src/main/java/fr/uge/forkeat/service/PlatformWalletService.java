@@ -1,6 +1,7 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.SortOrder;
 import fr.uge.forkeat.service.model.wallet.PlatformWallet;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletTransaction;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
@@ -47,7 +48,7 @@ public class PlatformWalletService {
     }
 
     @Transactional(readOnly = true)
-    public List<PlatformWalletTransaction> getTransactionHistory() {
-        return platformWalletPersistence.findAllTransactionsDesc();
+    public List<PlatformWalletTransaction> getTransactionHistory(SortOrder order) {
+        return platformWalletPersistence.findAllTransactions(order);
     }
 }

@@ -35,7 +35,6 @@ public class BankInfoEntity {
 
     public BankInfoEntity(){}
 
-    // Updated constructor
     public BankInfoEntity(String bankName, String externalAccountId, UserEntity user) {
         this.bankName = bankName;
         this.externalAccountId = externalAccountId;

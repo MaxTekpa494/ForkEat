@@ -7,6 +7,7 @@ import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.superlike.Promotion;
+import fr.uge.forkeat.service.model.SortOrder;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.model.user.UserRegister;
 import fr.uge.forkeat.service.model.user.UserRole;
@@ -128,7 +129,7 @@ public class AdminWebController {
     public String wallets(Model model) {
         var benefitsWallet = platformWalletService.getWallet(PlatformWalletType.EARNINGS);
         var redistributionWallet = platformWalletService.getWallet(PlatformWalletType.REDISTRIBUTION);
-        var transactions = platformWalletService.getTransactionHistory();
+        var transactions = platformWalletService.getTransactionHistory(SortOrder.DESC);
         model.addAttribute("benefitsWallet", benefitsWallet);
         model.addAttribute("redistributionWallet", redistributionWallet);
         model.addAttribute("walletTransactions", transactions);

@@ -81,8 +81,8 @@ class AdminSuperLikeRestControllerTest {
 
             mockMvc.perform(get("/api/admin/super-like/config"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.priceCents").value(100))
-                    .andExpect(jsonPath("$.earningsRatio").value(0.40));
+                    .andExpect(jsonPath("$.resource.priceCents").value(100))
+                    .andExpect(jsonPath("$.resource.earningsRatio").value(0.40));
         }
     }
 
@@ -101,7 +101,7 @@ class AdminSuperLikeRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.priceCents").value(200));
+                    .andExpect(jsonPath("$.resource.priceCents").value(200));
         }
 
         @Test
@@ -140,8 +140,8 @@ class AdminSuperLikeRestControllerTest {
 
             mockMvc.perform(get("/api/admin/promotions"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$[0].name").value("Promo"))
-                    .andExpect(jsonPath("$[0].status").value("SCHEDULED"));
+                    .andExpect(jsonPath("$.resources[0].name").value("Promo"))
+                    .andExpect(jsonPath("$.resources[0].status").value("SCHEDULED"));
         }
 
         @Test
@@ -150,7 +150,8 @@ class AdminSuperLikeRestControllerTest {
 
             mockMvc.perform(get("/api/admin/promotions"))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$").isEmpty());
+                    .andExpect(jsonPath("$.resources").isEmpty())
+                    .andExpect(jsonPath("$.total").value(0));
         }
     }
 
@@ -166,8 +167,8 @@ class AdminSuperLikeRestControllerTest {
 
             mockMvc.perform(get("/api/admin/promotions/{id}", id))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.name").value("Promo"))
-                    .andExpect(jsonPath("$.status").value("SCHEDULED"));
+                    .andExpect(jsonPath("$.resource.name").value("Promo"))
+                    .andExpect(jsonPath("$.resource.status").value("SCHEDULED"));
         }
 
         @Test
@@ -196,8 +197,8 @@ class AdminSuperLikeRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isCreated())
-                    .andExpect(jsonPath("$.name").value("Promo"))
-                    .andExpect(jsonPath("$.status").value("SCHEDULED"));
+                    .andExpect(jsonPath("$.resource.name").value("Promo"))
+                    .andExpect(jsonPath("$.resource.status").value("SCHEDULED"));
         }
 
         @Test
@@ -275,8 +276,8 @@ class AdminSuperLikeRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.name").value("Updated"))
-                    .andExpect(jsonPath("$.priceCents").value(200));
+                    .andExpect(jsonPath("$.resource.name").value("Updated"))
+                    .andExpect(jsonPath("$.resource.priceCents").value(200));
         }
 
         @Test
