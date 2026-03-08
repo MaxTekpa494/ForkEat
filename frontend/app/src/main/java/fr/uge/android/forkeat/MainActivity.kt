@@ -51,23 +51,24 @@ import fr.uge.android.forkeat.recipes.RecipeFormScreen
 import fr.uge.android.forkeat.recipes.RecipeFormViewModel
 import fr.uge.android.forkeat.recipes.RecipesListScreen
 import fr.uge.android.forkeat.recipes.RecipesViewModel
+import fr.uge.android.forkeat.recipes.SmartSearchScreen
+import fr.uge.android.forkeat.recipes.SmartSearchViewModel
 import fr.uge.android.forkeat.wallet.WalletScreen
-import fr.uge.android.forkeat.wallet.WalletViewModel
 import java.util.UUID
 
 @Composable
 fun AuthenticatedScreen(
-    isLoggedIn: Boolean,
-    onNavigateToWelcome: () -> Unit,
-    content: @Composable () -> Unit
+  isLoggedIn: Boolean,
+  onNavigateToWelcome: () -> Unit,
+  content: @Composable () -> Unit
 ) {
-    if (isLoggedIn) {
-        content()
-    } else {
-        LaunchedEffect(Unit) {
-            onNavigateToWelcome()
-        }
+  if (isLoggedIn) {
+    content()
+  } else {
+    LaunchedEffect(Unit) {
+      onNavigateToWelcome()
     }
+  }
 }
 
 class MainActivity : ComponentActivity() {
@@ -95,20 +96,46 @@ class MainActivity : ComponentActivity() {
         val navController = rememberNavController()
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
-        var isLoggedIn by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
-        val recipesViewModel: RecipesViewModel = viewModel()
-
-        var isAdmin by remember { mutableStateOf(ForkEatApi.isAdmin()) }
-        var isModerator by remember { mutableStateOf(ForkEatApi.isModerator()) }
-        var startDestination by remember { mutableStateOf(if (isAdmin) "admin-dashboard" else "home") }
-        var showWelcomeOnLaunch by remember { mutableStateOf(!isLoggedIn) }
-
         val hideBarsRoutes =
-          listOf("login", "register", "forgot-password", "forgot-password-code", "recipes/{id}")
+          listOf("login", "register", "welcome", "forgot-password", "forgot-password-code")
         val shouldShowBars = currentRoute != null
                 && currentRoute !in hideBarsRoutes
                 && !currentRoute.startsWith("admin-")
                 && !currentRoute.startsWith("moderator-")
+        var isLoggedIn by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
+        var isAdmin by remember { mutableStateOf(ForkEatApi.isAdmin()) }
+        var isModerator by remember { mutableStateOf(ForkEatApi.isModerator()) }
+        var startDestination by remember { mutableStateOf(if (isAdmin) "admin-dashboard" else "home") }
+        val recipesViewModel: RecipesViewModel = viewModel()
+        val smartSearchViewModel: SmartSearchViewModel = viewModel()
+
+        var showWelcomeOnLaunch by remember { mutableStateOf(!isLoggedIn) }
+
+        // ── Actions recette partagées ─────────────────────────────────────
+        // Chaque action met à jour les deux ViewModels : recipesViewModel
+        // (liste principale) ET smartSearchViewModel (résultats de recherche).
+        // Ainsi un like depuis la fiche recette ou la liste principale se
+        // reflète immédiatement dans les résultats du smart search, et vice-versa.
+        val likeRecipe: (UUID) -> Unit = { id ->
+          recipesViewModel.likeRecipe(id)
+          smartSearchViewModel.updateLikeState(id, liked = true)
+        }
+        val unlikeRecipe: (UUID) -> Unit = { id ->
+          recipesViewModel.unlikeRecipe(id)
+          smartSearchViewModel.updateLikeState(id, liked = false)
+        }
+        val followRecipe: (UUID) -> Unit = { id ->
+          recipesViewModel.followRecipe(id)
+          smartSearchViewModel.updateFollowState(id, followed = true)
+        }
+        val unfollowRecipe: (UUID) -> Unit = { id ->
+          recipesViewModel.unfollowRecipe(id)
+          smartSearchViewModel.updateFollowState(id, followed = false)
+        }
+        val superLikeRecipe: (UUID) -> Unit = { id ->
+          recipesViewModel.superLikeRecipe(id)
+          smartSearchViewModel.updateSuperLikeState(id)
+        }
 
         val logout: () -> Unit = {
           ForkEatApi.logout()
@@ -191,7 +218,7 @@ class MainActivity : ComponentActivity() {
                 onNavigateToRegister = { navController.navigate("register") },
                 onLoginSuccess = {
                   isLoggedIn = true
-                  isAdmin = ForkEatApi.isAdmin()
+                  isAdmin = ForkEatApi.isModerator()
                   isModerator = ForkEatApi.isModerator()
                   startDestination = if (isAdmin) "admin-dashboard" else "home"
                   val destination = if (isAdmin) "admin-dashboard" else "recipes"
@@ -295,18 +322,19 @@ class MainActivity : ComponentActivity() {
                 onRecipeClick = { id -> navController.navigate("recipes/$id") },
                 onNavigateToUserProfile = { runAuth { navController.navigate("user/$it") } },
                 onNavigateToMyProfile = { runAuth { navController.navigate("profile") } },
-                onLikeRecipe = { id -> runAuth { recipesViewModel.likeRecipe(id) } },
-                onUnlikeRecipe = { id -> runAuth { recipesViewModel.unlikeRecipe(id) } },
-                onSuperLikeRecipe = { id -> runAuth { recipesViewModel.superLikeRecipe(id) } },
-                onFollowRecipe = { id -> runAuth { recipesViewModel.followRecipe(id) } },
-                onUnfollowRecipe = { id -> runAuth { recipesViewModel.unfollowRecipe(id) } },
+                onLikeRecipe = { id -> runAuth { likeRecipe(id) } },
+                onUnlikeRecipe = { id -> runAuth { unlikeRecipe(id) } },
+                onSuperLikeRecipe = { id -> runAuth { superLikeRecipe(id) } },
+                onFollowRecipe = { id -> runAuth { followRecipe(id) } },
+                onUnfollowRecipe = { id -> runAuth { unfollowRecipe(id) } },
                 onNavigateToLogin = { navController.navigate("welcome") },
                 insufficientFunds = insufficientFunds,
                 onDismissInsufficientFunds = { recipesViewModel.dismissInsufficientFunds() },
                 emailNotVerified = emailNotVerified,
                 onDismissEmailNotVerified = { recipesViewModel.dismissEmailNotVerified() },
                 onNavigateToWallet = { navController.navigate("wallet") },
-                onNavigateToAccount = { navController.navigate("account") }
+                onNavigateToAccount = { navController.navigate("account") },
+                onNavigateToSmartSearch = { runAuth { navController.navigate("smart-search") } }
               )
             }
             composable(
@@ -347,6 +375,8 @@ class MainActivity : ComponentActivity() {
               val diff by recipesViewModel.currentDiff.collectAsState()
               val insufficientFunds by recipesViewModel.insufficientFunds.collectAsState()
               val emailNotVerified by recipesViewModel.emailNotVerified.collectAsState()
+              val reportSuccess by recipesViewModel.reportSuccess.collectAsState()
+              val reportAlreadyReported by recipesViewModel.reportAlreadyReported.collectAsState()
               val currentUsername = remember { ForkEatApi.getCurrentUsername() }
 
               when (val r = recipe) {
@@ -377,7 +407,14 @@ class MainActivity : ComponentActivity() {
                   onDismissEmailNotVerified = { recipesViewModel.dismissEmailNotVerified() },
                   onNavigateToAccount = { navController.navigate("account") },
                   onNavigateToWallet = { navController.navigate("wallet") },
-                  onNavigateToLogin = { navController.navigate("welcome") }
+                  onNavigateToLogin = { navController.navigate("welcome") },
+                  onReport = { id, type, justification ->
+                    recipesViewModel.reportRecipe(id, type, justification)
+                  },
+                  reportSuccess = reportSuccess,
+                  onDismissReportSuccess = { recipesViewModel.dismissReportSuccess() },
+                  reportAlreadyReported = reportAlreadyReported,
+                  onDismissReportAlreadyReported = { recipesViewModel.dismissReportAlreadyReported() }
                 )
               }
             }
@@ -402,21 +439,49 @@ class MainActivity : ComponentActivity() {
                   isLoggedIn = isLoggedIn,
                   onLogout = logout,
                   onNavigateToCreateRecipe = { navController.navigate("recipe-form") },
-                  onNavigateToEdit = { recipeId ->
-                    navController.navigate("recipe-form?recipeId=$recipeId")
-                  },
-                  onNavigateToVariant = { parentId ->
-                    navController.navigate("recipe-form?parentId=$parentId")
-                  },
-                  onNavigateToDetail = { recipeId ->
-                    navController.navigate("recipes/$recipeId")
-                  },
+                  onNavigateToEdit = { navController.navigate("recipe-form?recipeId=$it") },
+                  onNavigateToVariant = { navController.navigate("recipe-form?parentId=$it") },
+                  onNavigateToDetail = { navController.navigate("recipes/$it") },
                   onBack = { navController.popBackStack() }
                 )
               }
             }
+            composable("smart-search") {
+              AuthenticatedScreen(isLoggedIn, redirectToWelcome) {
+                val query by smartSearchViewModel.query.collectAsState()
+                val results by smartSearchViewModel.results.collectAsState()
+                val isLoading by smartSearchViewModel.isLoading.collectAsState()
+                val hasSearched by smartSearchViewModel.hasSearched.collectAsState()
+                val error by smartSearchViewModel.error.collectAsState()
+                val isModerationError by smartSearchViewModel.isModerationError.collectAsState()
+                val balance by smartSearchViewModel.balance.collectAsState()
 
-            // ── Admin routes ───────────────────────────────────────────────
+                SmartSearchScreen(
+                  query = query,
+                  results = results,
+                  isLoading = isLoading,
+                  hasSearched = hasSearched,
+                  error = error,
+                  isModerationError = isModerationError,
+                  balance = balance,
+                  onQueryChange = { smartSearchViewModel.onQueryChange(it) },
+                  onSearch = { smartSearchViewModel.search() },
+                  onNewSearch = { smartSearchViewModel.newSearch() },
+                  onBack = { navController.popBackStack() },
+                  onRecipeClick = { id -> navController.navigate("recipes/$id") },
+                  onNavigateToWallet = { navController.navigate("wallet") },
+                  isLoggedIn = isLoggedIn,
+                  onNavigateToUserProfile = { runAuth { navController.navigate("user/$it") } },
+                  onNavigateToMyProfile = { runAuth { navController.navigate("profile") } },
+                  onNavigateToLogin = { navController.navigate("welcome") },
+                  onLike = { id -> runAuth { likeRecipe(id) } },
+                  onUnlike = { id -> runAuth { unlikeRecipe(id) } },
+                  onSuperLike = { id -> runAuth { superLikeRecipe(id) } },
+                  onFollow = { id -> runAuth { followRecipe(id) } },
+                  onUnfollow = { id -> runAuth { unfollowRecipe(id) } },
+                )
+              }
+            }
             composable("admin-dashboard") {
               AdminDashboardScreen(
                 currentRoute = "admin-dashboard",
@@ -431,9 +496,7 @@ class MainActivity : ComponentActivity() {
             }
             composable(
               route = "admin-users?tab={tab}",
-              arguments = listOf(
-                navArgument("tab") { type = NavType.IntType; defaultValue = 0 }
-              )
+              arguments = listOf(navArgument("tab") { type = NavType.IntType; defaultValue = 0 })
             ) { backStackEntry ->
               val tab = backStackEntry.arguments?.getInt("tab") ?: 0
               AdminUsersScreen(
@@ -453,7 +516,6 @@ class MainActivity : ComponentActivity() {
                 onNavigateToUsers = { navController.navigate("admin-users") },
                 onNavigateToWallets = { navController.navigate("admin-wallets") },
                 onNavigateToCreate = { navController.navigate("admin-create") },
-                onNavigateToRecipe = { id -> navController.navigate("recipes/$id") },
                 onLogout = logout
               )
             }

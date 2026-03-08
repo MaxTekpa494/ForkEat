@@ -3,6 +3,9 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.presentation.dto.user.UserProfileDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.ProfileService;
+import fr.uge.forkeat.service.UserReportService;
+import fr.uge.forkeat.service.model.user.CreateUserReport;
+import fr.uge.forkeat.service.model.user.UserReportType;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserService;
 import org.springframework.stereotype.Controller;
@@ -17,11 +20,14 @@ public class ProfileWebController {
     private final AuthenticationPort authPort;
     private final ProfileService profileService;
     private final UserService userService;
+    private final UserReportService userReportService;
 
-    ProfileWebController(AuthenticationPort authPort, ProfileService profileService, UserService userService) {
+    ProfileWebController(AuthenticationPort authPort, ProfileService profileService,
+                         UserService userService, UserReportService userReportService) {
         this.authPort = authPort;
         this.profileService = profileService;
         this.userService = userService;
+        this.userReportService = userReportService;
     }
 
     @GetMapping
@@ -69,6 +75,17 @@ public class ProfileWebController {
     public String unfollow(@PathVariable String username, RedirectAttributes redirectAttributes) {
         userService.unfollow(authPort.extractUsername(), username);
         redirectAttributes.addFlashAttribute("success", "Vous ne suivez plus " + username);
+        return "redirect:/profile/" + username;
+    }
+
+    @PostMapping("/{username}/report")
+    public String reportUser(@PathVariable String username,
+                             @RequestParam("reportType") UserReportType reportType,
+                             @RequestParam("justification") String justification,
+                             RedirectAttributes redirectAttributes) {
+        var command = new CreateUserReport(username, authPort.extractUsername(), reportType, justification);
+        userReportService.reportUser(command);
+        redirectAttributes.addFlashAttribute("reportSuccess", "Votre signalement a bien été enregistré.");
         return "redirect:/profile/" + username;
     }
 }

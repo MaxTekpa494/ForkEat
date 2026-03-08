@@ -98,11 +98,16 @@ fun RecipeDetailScreen(
     onDismissEmailNotVerified: () -> Unit = {},
     onNavigateToAccount: () -> Unit = {},
     onNavigateToWallet: () -> Unit = {},
-    onNavigateToLogin: () -> Unit = {}
+    onNavigateToLogin: () -> Unit = {},
+    onReport: (UUID, String, String) -> Unit = { id, type, justification -> },    reportSuccess: Boolean = false,
+    onDismissReportSuccess: () -> Unit = {},
+    reportAlreadyReported: Boolean = false,
+    onDismissReportAlreadyReported: () -> Unit = {},
 ) {
     var diffModeActive by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showSuperLikeConfirm by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
     val currentUsername = remember { ForkEatApi.getCurrentUsername() }
 
     if (insufficientFunds) {
@@ -151,6 +156,50 @@ fun RecipeDetailScreen(
                 showSuperLikeConfirm = false
                 onSuperLike(recipe.id)
             }
+        )
+    }
+
+    if (showReportDialog) {
+        ReportRecipeDialog(
+            onDismiss = { showReportDialog = false },
+            onConfirm = { type, justification ->
+                showReportDialog = false
+                onReport(recipe.id, type, justification)
+            }
+        )
+    }
+
+    if (reportSuccess) {
+        AlertDialog(
+            onDismissRequest = onDismissReportSuccess,
+            title = { Text("Signalement envoyé", fontWeight = FontWeight.Bold, color = Secondary900) },
+            text = { Text("Votre signalement a bien été enregistré. Notre équipe va l'examiner.", color = Gray500) },
+            confirmButton = {
+                Button(
+                    onClick = onDismissReportSuccess,
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary500),
+                    shape = RoundedCornerShape(50)
+                ) { Text("OK", fontWeight = FontWeight.Bold) }
+            },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Color.White
+        )
+    }
+
+    if (reportAlreadyReported) {
+        AlertDialog(
+            onDismissRequest = onDismissReportAlreadyReported,
+            title = { Text("Déjà signalée", fontWeight = FontWeight.Bold, color = Secondary900) },
+            text = { Text("Vous avez déjà signalé cette recette.", color = Gray500) },
+            confirmButton = {
+                Button(
+                    onClick = onDismissReportAlreadyReported,
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary500),
+                    shape = RoundedCornerShape(50)
+                ) { Text("OK", fontWeight = FontWeight.Bold) }
+            },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Color.White
         )
     }
 
@@ -411,6 +460,25 @@ fun RecipeDetailScreen(
                 Text("Préparation", style = Typography.titleMedium, color = Secondary700)
                 Spacer(Modifier.height(4.dp))
                 recipe.steps.forEach { StepCard(it) }
+            }
+
+            if (isAuthenticated && !isOwner) {
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = { showReportDialog = true },
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                    ) {
+                        Text(
+                            "Signaler cette recette",
+                            color = Gray500.copy(alpha = 0.5f),
+                            style = Typography.labelSmall
+                        )
+                    }
+                }
             }
 
             Spacer(Modifier.height(24.dp))

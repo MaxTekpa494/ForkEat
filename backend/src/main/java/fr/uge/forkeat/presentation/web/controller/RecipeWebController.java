@@ -1,17 +1,21 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
+import fr.uge.forkeat.presentation.dto.recipe.PersonalizedRecipeSummaryDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
+import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ModerationRagException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
+import fr.uge.forkeat.service.model.recipe.RecipeReportType;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.user.UserService;
@@ -23,11 +27,13 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.UnaryOperator;
 
 @Controller
 @RequestMapping("/recipes")
@@ -37,17 +43,19 @@ public class RecipeWebController {
     private final UserService userService;
     private final RecipeSmartSearchService smartSearchService;
     private final WalletService walletService;
+    private final RecipeReportService recipeReportService;
 
     private final Logger logger = LoggerFactory.getLogger(RecipeWebController.class);
 
     public RecipeWebController(RecipeService recipeService, UserService userService,
                                AuthenticationPort authPort, RecipeSmartSearchService smartSearchService,
-                               WalletService walletService) {
+                               WalletService walletService, RecipeReportService recipeReportService) {
         this.recipeService = recipeService;
         this.userService = userService;
         this.authPort = authPort;
         this.smartSearchService = smartSearchService;
         this.walletService = walletService;
+        this.recipeReportService = recipeReportService;
     }
 
     @GetMapping("/create")
@@ -296,35 +304,94 @@ public class RecipeWebController {
 
 
     @PostMapping("/{id}/like")
-    public String likeRecipe(@PathVariable UUID id) {
+    public String likeRecipe(@PathVariable UUID id, HttpSession session) {
         var user = userService.getUserByUsername(authPort.extractUsername());
         recipeService.likeRecipe(user.id(), id);
+        syncSmartSearchSession(session, id, dto -> new PersonalizedRecipeSummaryDTO(
+                dto.id(), dto.title(), dto.summary(), dto.imageUrl(), dto.preparationMinutes(),
+                dto.authorUsername(),
+                dto.likeCount() + 1, dto.superLikeCount(), dto.followCount(),
+                true, dto.superLikedByCurrentUser(), dto.followedByCurrentUser()
+        ));
         return "redirect:/recipes/" + id;
     }
 
     @PostMapping("/{id}/unlike")
-    public String unlikeRecipe(@PathVariable UUID id) {
+    public String unlikeRecipe(@PathVariable UUID id, HttpSession session) {
         var user = userService.getUserByUsername(authPort.extractUsername());
         recipeService.unlikeRecipe(user.id(), id);
+        syncSmartSearchSession(session, id, dto -> new PersonalizedRecipeSummaryDTO(
+                dto.id(), dto.title(), dto.summary(), dto.imageUrl(), dto.preparationMinutes(),
+                dto.authorUsername(),
+                dto.likeCount() - 1, dto.superLikeCount(), dto.followCount(),
+                false, dto.superLikedByCurrentUser(), dto.followedByCurrentUser()
+        ));
         return "redirect:/recipes/" + id;
     }
 
     @PostMapping("/{id}/super-like")
-    public String superLikeRecipe(@PathVariable UUID id) {
+    public String superLikeRecipe(@PathVariable UUID id, HttpSession session) {
         var user = userService.getUserByUsername(authPort.extractUsername());
         recipeService.superLikeRecipe(user.id(), id);
+        syncSmartSearchSession(session, id, dto -> dto.superLikedByCurrentUser() ? dto :
+                new PersonalizedRecipeSummaryDTO(
+                        dto.id(), dto.title(), dto.summary(), dto.imageUrl(), dto.preparationMinutes(),
+                        dto.authorUsername(),
+                        dto.likeCount(), dto.superLikeCount() + 1, dto.followCount(),
+                        dto.likedByCurrentUser(), true, dto.followedByCurrentUser()
+                ));
+        return "redirect:/recipes/" + id;
+    }
+
+    @PostMapping("/{id}/report")
+    public String reportRecipe(@PathVariable UUID id,
+                               @RequestParam("reportType") RecipeReportType reportType,
+                               @RequestParam("justification") String justification,
+                               RedirectAttributes redirectAttributes) {
+        var command = new CreateRecipeReport(id, authPort.extractUsername(), reportType, justification);
+        recipeReportService.reportRecipe(command);
+        redirectAttributes.addFlashAttribute("reportSuccess", "Votre signalement a bien été enregistré.");
         return "redirect:/recipes/" + id;
     }
 
     @PostMapping("/{id}/follow")
-    public String followRecipe(@PathVariable UUID id) {
+    public String followRecipe(@PathVariable UUID id, HttpSession session) {
         recipeService.followRecipe(authPort.extractUsername(), id);
+        syncSmartSearchSession(session, id, dto -> new PersonalizedRecipeSummaryDTO(
+                dto.id(), dto.title(), dto.summary(), dto.imageUrl(), dto.preparationMinutes(),
+                dto.authorUsername(),
+                dto.likeCount(), dto.superLikeCount(), dto.followCount() + 1,
+                dto.likedByCurrentUser(), dto.superLikedByCurrentUser(), true
+        ));
         return "redirect:/recipes/" + id;
     }
 
     @PostMapping("/{id}/unfollow")
-    public String unfollowRecipe(@PathVariable UUID id) {
+    public String unfollowRecipe(@PathVariable UUID id, HttpSession session) {
         recipeService.unfollowRecipe(authPort.extractUsername(), id);
+        syncSmartSearchSession(session, id, dto -> new PersonalizedRecipeSummaryDTO(
+                dto.id(), dto.title(), dto.summary(), dto.imageUrl(), dto.preparationMinutes(),
+                dto.authorUsername(),
+                dto.likeCount(), dto.superLikeCount(), dto.followCount() - 1,
+                dto.likedByCurrentUser(), dto.superLikedByCurrentUser(), false
+        ));
         return "redirect:/recipes/" + id;
+    }
+
+    /**
+     * Met à jour localement les résultats du smart search stockés en session
+     * pour la recette, sans relancer la recherche (qui est payante).
+     */
+    @SuppressWarnings("unchecked")
+    private void syncSmartSearchSession(HttpSession session, UUID recipeId,
+                                        UnaryOperator<PersonalizedRecipeSummaryDTO> updater) {
+        var cached = (List<PersonalizedRecipeSummaryDTO>) session.getAttribute("smartSearchResults");
+        if (cached == null || cached.isEmpty()) return;
+
+        var updated = cached.stream()
+                .map(dto -> dto.id().equals(recipeId) ? updater.apply(dto) : dto)
+                .toList();
+
+        session.setAttribute("smartSearchResults", updated);
     }
 }

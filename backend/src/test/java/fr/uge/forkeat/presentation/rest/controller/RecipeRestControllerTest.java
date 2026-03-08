@@ -1,18 +1,21 @@
-package fr.uge.forkeat.presentation.rest;
+package fr.uge.forkeat.presentation.rest.controller;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
+import fr.uge.forkeat.presentation.dto.recipe.RecipeReportRequestDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.response.CreatedResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.presentation.response.NotContentResponse;
-import fr.uge.forkeat.presentation.rest.controller.RecipeRestController;
+import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
-import fr.uge.forkeat.service.WalletService;
+import fr.uge.forkeat.service.exception.RecipeAlreadyReportedException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
+import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
@@ -32,46 +35,58 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
-import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@ExtendWith(MockitoExtension.class)
-class RecipeControllerTest {
+@WebMvcTest(RecipeRestController.class)
+@AutoConfigureMockMvc(addFilters = false)
+class RecipeRestControllerTest {
 
-    @Mock
+    @MockitoBean
     private RecipeService recipeService;
 
-    @Mock
+    @MockitoBean
     private UserService userService;
 
-    @Mock
+    @MockitoBean
     private AuthenticationPort authPort;
 
-    @Mock
+    @MockitoBean
+    private RecipeReportService recipeReportService;
+
+    @MockitoBean
     private RecipeSmartSearchService recipeSmartSearchService;
-    @Mock
-    private WalletService walletService;
 
     private RecipeRestController recipeController;
     private Instant now;
+    private final MockMvc mockMvc;
+    private final ObjectMapper objectMapper = new ObjectMapper();
+
+    @Autowired
+    RecipeRestControllerTest(MockMvc mockMvc){this.mockMvc = mockMvc;}
 
     @BeforeEach
     void setUp() {
-        recipeController = new RecipeRestController(recipeService, authPort, userService,
-                recipeSmartSearchService, walletService);
+        recipeController = new RecipeRestController(recipeService, recipeReportService, authPort, userService,
+                recipeSmartSearchService);
         now = Instant.now();
     }
 
@@ -835,6 +850,68 @@ class RecipeControllerTest {
 
     }
 
+    // ========== ReportRecipe ==========
+
+    @Nested
+    class ReportRecipe {
+
+        @Test
+        void shouldReturn201_WhenReportCreatedSuccessfully() throws Exception {
+            var recipeId = UUID.randomUUID();
+            var reporterId = UUID.randomUUID();
+            var request = new RecipeReportRequestDTO(RecipeReportType.SPAM, "Ceci est un spam");
+            var report = new RecipeReport(
+                    UUID.randomUUID(), recipeId, reporterId,
+                    RecipeReportType.SPAM, ReportStatus.PENDING,
+                    "Ceci est un spam", Instant.now(), null, null
+            );
+
+            when(authPort.extractUsername()).thenReturn("reporter");
+            when(recipeReportService.reportRecipe(any())).thenReturn(report);
+
+            mockMvc.perform(post("/api/recipes/{id}/reports", recipeId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.resource.recipeId").value(recipeId.toString()))
+                    .andExpect(jsonPath("$.resource.status").value("PENDING"))
+                    .andExpect(jsonPath("$.resource.reportType").value("SPAM"));
+
+            verify(recipeReportService).reportRecipe(any());
+        }
+
+        @Test
+        void shouldReturn404_WhenRecipeDoesNotExist() throws Exception {
+            var recipeId = UUID.randomUUID();
+            var request = new RecipeReportRequestDTO(RecipeReportType.SPAM, "Justification");
+
+            when(authPort.extractUsername()).thenReturn("reporter");
+            when(recipeReportService.reportRecipe(any())).thenThrow(new RecipeNotFoundException(recipeId));
+
+            mockMvc.perform(post("/api/recipes/{id}/reports", recipeId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.error").value("Not Found"));
+        }
+
+        @Test
+        void shouldReturn409_WhenAlreadyReported() throws Exception {
+            var recipeId = UUID.randomUUID();
+            var reporterId = UUID.randomUUID();
+            var request = new RecipeReportRequestDTO(RecipeReportType.SPAM, "Justification");
+
+            when(authPort.extractUsername()).thenReturn("reporter");
+            when(recipeReportService.reportRecipe(any()))
+                    .thenThrow(new RecipeAlreadyReportedException(recipeId, reporterId));
+
+            mockMvc.perform(post("/api/recipes/{id}/reports", recipeId)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(request)))
+                    .andExpect(status().isConflict())
+                    .andExpect(jsonPath("$.error").value("Conflict"));
+        }
+    }
     // ========== Helpers ==========
 
     private User createUser(UUID id) {
