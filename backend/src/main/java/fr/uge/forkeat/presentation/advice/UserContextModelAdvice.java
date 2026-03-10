@@ -13,6 +13,15 @@ public class UserContextModelAdvice {
         this.authPort = authPort;
     }
 
+    @ModelAttribute("isModerator")
+    public boolean isModerator() {
+        try {
+            return authPort.isModerator();
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
     @ModelAttribute("isAdmin")
     public boolean isAdmin() {
         try {

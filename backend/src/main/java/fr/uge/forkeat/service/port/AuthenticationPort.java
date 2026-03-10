@@ -10,5 +10,6 @@ public interface AuthenticationPort {
     void refreshAuthentication(User user);
     String generateToken(String username);
     boolean isAdmin();
+    boolean isModerator();
     boolean isAuthenticated();
 }
