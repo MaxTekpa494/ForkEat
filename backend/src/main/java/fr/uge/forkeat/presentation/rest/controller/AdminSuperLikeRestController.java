@@ -1,6 +1,6 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
-import fr.uge.forkeat.infrastructure.scheduler.PromotionSchedulingService;
+import fr.uge.forkeat.service.port.PromotionSchedulingPort;
 import fr.uge.forkeat.presentation.dto.superlike.*;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
@@ -22,10 +22,10 @@ import java.util.UUID;
 public class AdminSuperLikeRestController {
 
     private final PromotionService promotionService;
-    private final PromotionSchedulingService schedulingService;
+    private final PromotionSchedulingPort schedulingService;
 
     public AdminSuperLikeRestController(PromotionService promotionService,
-                                        PromotionSchedulingService schedulingService) {
+                                        PromotionSchedulingPort schedulingService) {
         this.promotionService = promotionService;
         this.schedulingService = schedulingService;
     }

@@ -1,6 +1,6 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.infrastructure.scheduler.PromotionSchedulingService;
+import fr.uge.forkeat.service.port.PromotionSchedulingPort;
 import fr.uge.forkeat.service.PlatformWalletService;
 import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.RecipeService;
@@ -42,7 +42,7 @@ public class AdminWebController {
     private final AuthenticationPort authPort;
     private final UserRegistrationService userRegistrationService;
     private final PromotionService promotionService;
-    private final PromotionSchedulingService schedulingService;
+    private final PromotionSchedulingPort schedulingService;
 
     public AdminWebController(UserService userQueryService,
                               RecipeService recipeService,
@@ -50,7 +50,7 @@ public class AdminWebController {
                               AuthenticationPort authPort,
                               UserRegistrationService userRegistrationService,
                               PromotionService promotionService,
-                              PromotionSchedulingService schedulingService) {
+                              PromotionSchedulingPort schedulingService) {
         this.userQueryService = Objects.requireNonNull(userQueryService);
         this.recipeService = Objects.requireNonNull(recipeService);
         this.platformWalletService = Objects.requireNonNull(platformWalletService);
@@ -170,8 +170,6 @@ public class AdminWebController {
         return "redirect:/admin/recipes/pending";
     }
 
-    // ─── Super-like config + promotions ───────────────────────────────────────
-
     @GetMapping("/super-like")
     public String superLikePage(Model model) {
         model.addAttribute("config", promotionService.getConfig());
@@ -230,11 +228,9 @@ public class AdminWebController {
         return "redirect:/admin/super-like?promoCancelled=true";
     }
 
-    /** Injecte la config super-like et le N minimum dans le modèle du formulaire. */
     private void addConfigAttributes(Model model) {
         var config = promotionService.getConfig();
         double ratio = config.earningsRatio().doubleValue();
-        // N minimum tel que N × ratio > (1 − ratio)  ⟺  N > (1−ratio)/ratio
         int minBonusEveryN = (int) Math.floor((1.0 - ratio) / ratio) + 1;
         model.addAttribute("config", config);
         model.addAttribute("minBonusEveryN", minBonusEveryN);

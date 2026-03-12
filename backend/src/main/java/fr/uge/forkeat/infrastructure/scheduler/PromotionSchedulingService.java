@@ -2,6 +2,7 @@ package fr.uge.forkeat.infrastructure.scheduler;
 
 import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.model.superlike.Promotion;
+import fr.uge.forkeat.service.port.PromotionSchedulingPort;
 import fr.uge.forkeat.service.port.FcmGateway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +25,7 @@ import java.util.concurrent.ScheduledFuture;
  * - FCM appelé directement sans système d'événements intermédiaire.
  */
 @Component
-public class PromotionSchedulingService implements ApplicationRunner {
+public class PromotionSchedulingService implements ApplicationRunner, PromotionSchedulingPort {
 
     private final PromotionService promotionService;
     private final FcmGateway fcmGateway;
@@ -40,8 +41,6 @@ public class PromotionSchedulingService implements ApplicationRunner {
         this.taskScheduler = taskScheduler;
     }
 
-    // ─── Appelé depuis AdminSuperLikeRestController ────────────────────────
-
     public void onCreated(Promotion promotion) {
         schedule(promotion);
     }
@@ -55,7 +54,6 @@ public class PromotionSchedulingService implements ApplicationRunner {
         cancelFutures(id);
     }
 
-    // ─── Réconciliation au démarrage ──────────────────────────────────────
 
     @Override
     public void run(ApplicationArguments args) {
@@ -75,8 +73,6 @@ public class PromotionSchedulingService implements ApplicationRunner {
         logger.info("PromotionSchedulingService: startup reconciliation done ({} activated, {} expired, {} scheduled)",
                 activated.size(), expired.size(), promotionService.findUpcoming().size());
     }
-
-    // ─── Scheduling interne ───────────────────────────────────────────────
 
     private void schedule(Promotion promo) {
         var scheduled = new ArrayList<ScheduledFuture<?>>();
