@@ -1,5 +1,5 @@
 -- ============================================================================
--- V24 - Historique des mouvements des wallets plateforme
+-- V26 - Historique des mouvements des wallets plateforme
 -- ============================================================================
 
 CREATE TABLE IF NOT EXISTS platform_wallet_transactions (
