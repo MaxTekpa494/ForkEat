@@ -64,7 +64,7 @@ public class PromotionService {
 
         var config = superLikeConfigPersistence.get();
         validateProfitability(bonusEveryN, config);
-        validateNoOverlap(startsAt, endsAt, null);
+        validateNoOverlap(startsAt, endsAt);
 
         var promotion = new Promotion(
                 UUID.randomUUID(), name, startsAt, endsAt,
@@ -91,7 +91,7 @@ public class PromotionService {
 
         var newStartsAt = startsAt != null ? startsAt : existing.startsAt();
         var newEndsAt   = endsAt   != null ? endsAt   : existing.endsAt();
-        validateNoOverlap(newStartsAt, newEndsAt, id);
+        validateNoOverlap(newStartsAt, newEndsAt);
 
         var updated = new Promotion(
                 id,
@@ -205,8 +205,8 @@ public class PromotionService {
         }
     }
 
-    private void validateNoOverlap(Instant startsAt, Instant endsAt, UUID excludeId) {
-        if (promotionPersistence.hasOverlapping(startsAt, endsAt, excludeId)) {
+    private void validateNoOverlap(Instant startsAt, Instant endsAt) {
+        if (promotionPersistence.hasOverlapping(startsAt, endsAt)) {
             throw new PromotionOverlapException();
         }
     }

@@ -71,11 +71,8 @@ public class PromotionPersistenceAdapter implements PromotionPersistence {
     }
 
     @Override
-    public boolean hasOverlapping(Instant startsAt, Instant endsAt, UUID excludeId) {
-        if (excludeId == null) {
-            return promotionRepository.hasOverlappingAny(startsAt, endsAt);
-        }
-        return promotionRepository.hasOverlappingExcluding(startsAt, endsAt, excludeId.toString());
+    public boolean hasOverlapping(Instant startsAt, Instant endsAt) {
+        return promotionRepository.hasOverlappingAny(startsAt, endsAt);
     }
 
     @Override

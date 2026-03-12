@@ -16,7 +16,7 @@ public interface PromotionPersistence {
     Promotion update(Promotion promotion);
     Optional<Promotion> findActiveAt(Instant instant);
     List<Promotion> findScheduledOrActive();
-    boolean hasOverlapping(Instant startsAt, Instant endsAt, UUID excludeId);
+    boolean hasOverlapping(Instant startsAt, Instant endsAt);
     int countPaidSuperLikesByUserAndPromotion(UUID userId, UUID promotionId);
     void transitionStatus(UUID id, PromotionStatus newStatus);
     List<SuperLikeHistory> findSuperLikeHistoryByUserId(UUID userId);
