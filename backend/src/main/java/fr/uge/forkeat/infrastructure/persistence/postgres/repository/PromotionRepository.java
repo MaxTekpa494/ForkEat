@@ -44,18 +44,6 @@ public interface PromotionRepository extends JpaRepository<PromotionEntity, UUID
     boolean hasOverlappingAny(@Param("startsAt") Instant startsAt,
                               @Param("endsAt") Instant endsAt);
 
-    /** Chevauchement en excluant une promo (modification). */
-    @Query(nativeQuery = true, value = """
-            SELECT COUNT(*) > 0 FROM promotions p
-            WHERE p.status::text NOT IN ('CANCELLED', 'EXPIRED')
-            AND p.id::text != :excludeId
-            AND p.starts_at < COALESCE(CAST(:endsAt AS timestamptz), 'infinity'::timestamptz)
-            AND (p.ends_at IS NULL OR p.ends_at > CAST(:startsAt AS timestamptz))
-            """)
-    boolean hasOverlappingExcluding(@Param("startsAt") Instant startsAt,
-                                    @Param("endsAt") Instant endsAt,
-                                    @Param("excludeId") String excludeId);
-
     @Modifying
     @Query("UPDATE PromotionEntity p SET p.status = :newStatus WHERE p.id = :id")
     void updateStatus(@Param("id") UUID id, @Param("newStatus") PromotionStatus newStatus);
