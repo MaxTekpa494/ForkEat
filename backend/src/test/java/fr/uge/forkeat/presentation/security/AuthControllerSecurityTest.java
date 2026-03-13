@@ -1,19 +1,16 @@
 package fr.uge.forkeat.presentation.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
-import fr.uge.forkeat.presentation.dto.user.TopUpRequestDTO;
-import fr.uge.forkeat.presentation.dto.user.UserDTO;
-import fr.uge.forkeat.service.WalletService;
+import fr.uge.forkeat.infrastructure.config.RateLimitFilter;
+import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.TransactionType;
-import fr.uge.forkeat.service.model.user.BankInfo;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.user.BankInfoService;
-import fr.uge.forkeat.service.user.UserService;
+import fr.uge.forkeat.service.user.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,38 +18,40 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 import org.springframework.transaction.annotation.Transactional;
-import tools.jackson.databind.ObjectMapper;
 
-import java.time.Instant;
-import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = true)
 @ActiveProfiles("test")
 @Transactional
-public class WalletRestControllerSecueirtyTest extends AbstractIntegrationTest {
+public class AuthControllerSecurityTest extends AbstractIntegrationTest {
+
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private WalletService walletService;
+    private UserRegistrationService userRegistrationService;
+
+    @MockitoBean
+    private AuthenticationManager authenticationManager;
+
 
     @MockitoBean
     private AuthenticationPort authPort;
@@ -61,101 +60,98 @@ public class WalletRestControllerSecueirtyTest extends AbstractIntegrationTest {
     private UserService userService;
 
     @MockitoBean
-    private BankInfoService bankInfoService;
+    private EmailVerificationService emailVerificationService;
 
+    @MockitoBean
+    private GoogleTokenVerificationService googleTokenVerificationService;
 
-    // Test fixtures
-    private static final String USERNAME = "testuser";
-    private static final Long USER_ID = 1L;
-    private static final String USER_EMAIL = "test@example.com";
-    private static final Long BALANCE = 5000L;
-    private static final String PAYMENT_URL = "https://payment.example.com/pay";
-    private static final String PAYOUT_ID = "payout_abc123";
+    @MockitoBean
+    private UserUpdateService userUpdateService;
 
+    @MockitoBean
+    RateLimitFilter rateLimitingFilter;
 
-    private static ObjectMapper objectMapper = new ObjectMapper();
-
-    private UserDTO mockUser;
-    private BankInfo mockBankInfo;
-    private List<Transaction> mockTransactions;
 
     @BeforeEach
     void setup() {
-        // User mock
 
-        // BankInfo mock
-        mockBankInfo = new BankInfo(UUID.randomUUID(), "BNP Paribas", "BNPAFRPP");
+        var mapper = new ObjectMapper();
 
-        // Transactions mock
-        mockTransactions = List.of();
+        when(userRegistrationService.registerUser(any())).thenReturn(createUser(UUID.randomUUID()));
 
-        // Auth mock — commun à tous les endpoints
-        when(authPort.extractUsername()).thenReturn(USERNAME);
-        when(userService.getUserByUsername(USERNAME)).thenReturn(createUser(UUID.randomUUID()));
+        when(authPort.generateToken(any())).thenReturn("TOKEN");
+        when(authPort.extractUsername()).thenReturn("Pid3ALI");
 
-        // Wallet mocks
-        when(walletService.prepareTopUp(any(), any(), any(), any()))
-                .thenReturn(PAYMENT_URL);
-        when(walletService.getBalance(any()))
-                .thenReturn(BALANCE);
-        when(walletService.getTransactionHistory(any()))
-                .thenReturn(mockTransactions);
-        when(walletService.requestWithdrawal(any(), any()))
-                .thenReturn(PAYOUT_ID);
+        when(userService.getUserByUsername("Pid3ALI")).thenReturn(createUser(UUID.randomUUID()));
+        when(userService.findByEmail("sid@gmail.com")).thenReturn(Optional.of(createUser(UUID.randomUUID())));
 
-        // BankInfo mocks
-        when(bankInfoService.createOrUpdateBankInfo(any(), any(), any(), any(), any()))
-                .thenReturn(mockBankInfo);
-        when(bankInfoService.getBankInfoByUserId(any()))
-                .thenReturn(Optional.of(mockBankInfo));
+        var mockGoogleToken = mock(GoogleIdToken.class);
+        var mockPayload = mock(GoogleIdToken.Payload.class);
+        when(mockGoogleToken.getPayload()).thenReturn(mockPayload);
+        when(mockPayload.getEmail()).thenReturn("sid@gmail.com");
+        when(mockPayload.get("given_name")).thenReturn("John");
+        when(mockPayload.get("family_name")).thenReturn("Doe");
+        when(googleTokenVerificationService.verify(any())).thenReturn(mockGoogleToken);
+        when(userRegistrationService.registerUserFromOAuth2(any(), any(), any(), any())).thenReturn(createUser(UUID.randomUUID()));
+
+        doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any());
+        doNothing().when(userUpdateService).confirmForgotPasswordChange(any(), any(), any(), any());
     }
-
 
     @Nested
-    class WalletnRestControllerSecurityTest{
-
-
-
+    class AuthRestControllerSecurityTest{
         @Test
-        void testRecharge() throws Exception {
-            testRights(post("/api/wallet/recharge")
+        void testRegister() throws Exception {
+            var mapper = new ObjectMapper();
+
+            testRights(post("/api/auth/register")
                     .contentType(MediaType.APPLICATION_JSON)
-                    .content(objectMapper.writeValueAsString(new TopUpRequestDTO(101L, "src"))), AuthorizationTest.EMAIL_VERIFIED);
+                    .content(mapper.writeValueAsString(new UserRegisterDTO("aza", "adel", "ziani", "beaugossedu77", "adel@forkeat.com"))), AuthorizationTest.UNAUTHENTICATED);
         }
 
         @Test
-        void testGetBalance() throws Exception {
-            testRights(get("/api/wallet/balance"), AuthorizationTest.EMAIL_VERIFIED);
-        }
-
-        @Test
-        void testGetTransactions() throws Exception {
-            testRights(get("/api/wallet/transactions"), AuthorizationTest.EMAIL_VERIFIED);
-        }
-
-        @Test
-        void testCreateOrUpdateBankInfo() throws Exception {
-            testRights(post("/api/wallet/bank-info")
+        void testLogin() throws Exception {
+            testRights(post("/api/auth/login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""
-            {"bankName": "BNP Paribas", "iban": "FR7630006000011234567890189", "bic": "BNPAFRPP"}
-        """), AuthorizationTest.EMAIL_VERIFIED);
+                {"username": "testuser", "password": "password123"}
+            """), AuthorizationTest.UNAUTHENTICATED);
         }
 
         @Test
-        void testGetBankInfo() throws Exception {
-            testRights(get("/api/wallet/bank-info"), AuthorizationTest.EMAIL_VERIFIED);
+        void testMe() throws Exception {
+            testRights(get("/api/auth/me"), AuthorizationTest.MEMBER);
         }
 
         @Test
-        void testRequestWithdrawal() throws Exception {
-            testRights(post("/api/wallet/withdraw")
+        void testGoogleLogin() throws Exception {
+            testRights(post("/api/auth/google-login")
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""
-            {"amount": 500}
-        """), AuthorizationTest.EMAIL_VERIFIED);
+                {"idToken": "google.id.token"}
+            """), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testForgotPassword() throws Exception {
+            testRights(post("/api/auth/forgot-password")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""
+                {"email": "test@example.com"}
+            """), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testForgotPasswordConfirmCode() throws Exception {
+            testRights(post("/api/auth/forgot-password/confirm-code")
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("""
+                {"email": "test@example.com", "code": "123456", "password": "newpass123", "confirmPassword": "newpass123"}
+            """), AuthorizationTest.UNAUTHENTICATED);
         }
     }
+
+
     private void testRights(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
         var expected = status().isForbidden();
 
@@ -193,4 +189,3 @@ public class WalletRestControllerSecueirtyTest extends AbstractIntegrationTest {
                 UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
     }
 }
-

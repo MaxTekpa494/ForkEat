@@ -18,9 +18,11 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.UUID;
@@ -35,7 +37,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 
 
 @SpringBootTest
-@AutoConfigureMockMvc
+@AutoConfigureMockMvc(addFilters = true)
+@ActiveProfiles("test")
+@Transactional
 public class ProfileControllerSecurityTest extends AbstractIntegrationTest {
 
 
@@ -66,6 +70,8 @@ public class ProfileControllerSecurityTest extends AbstractIntegrationTest {
 
     @Nested
     class ProfileRestController{
+
+
         @Test
         void testGetMyProfile() throws Exception {
             testRights(get("/api/profile"), AuthorizationTest.MEMBER);
