@@ -1,15 +1,11 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.service.PlatformWalletService;
+import fr.uge.forkeat.service.RecipeModerationActionService;
 import fr.uge.forkeat.service.RecipeService;
-import fr.uge.forkeat.service.exception.RegisterFailureException;
+import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
+import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
-import fr.uge.forkeat.service.model.user.UserRegister;
-import fr.uge.forkeat.service.model.user.UserRole;
-import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.user.UserRegistrationService;
-import fr.uge.forkeat.service.user.UserService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -29,11 +25,14 @@ public class ModeratorWebController {
     private static final int RECIPES_PAGE_SIZE = 10;
 
     private final RecipeService recipeService;
+    private final RecipeModerationActionService recipeModerationActionService;
     private final AuthenticationPort authPort;
 
     public ModeratorWebController(RecipeService recipeService,
+                                  RecipeModerationActionService recipeModerationActionService,
                                   AuthenticationPort authPort) {
         this.recipeService = Objects.requireNonNull(recipeService);
+        this.recipeModerationActionService = Objects.requireNonNull(recipeModerationActionService);
         this.authPort = Objects.requireNonNull(authPort);
     }
 
@@ -52,12 +51,14 @@ public class ModeratorWebController {
 
     @PostMapping("/recipes/{id}/validate")
     public String validateRecipe(@PathVariable UUID id) {
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.APPROVED, ""));
         recipeService.updateStatus(id, RecipeStatus.PUBLISHED);
         return "redirect:/moderator/recipes";
     }
 
     @PostMapping("/recipes/{id}/reject")
-    public String rejectRecipe(@PathVariable UUID id) {
+    public String rejectRecipe(@PathVariable UUID id, @RequestParam("justification") String justification) {
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.REJECTED, justification));
         recipeService.updateStatus(id, RecipeStatus.REJECTED);
         return "redirect:/moderator/recipes";
     }
