@@ -60,7 +60,6 @@ class UserEntityTest extends AbstractIntegrationTest {
         user.setStatus(UserStatus.ACTIVE);
         user.setAuthMode(AuthMode.LOCAL);
 
-        // Updated BankInfoEntity constructor call
         var externalAccountId = "ext_acct_abc123";
         var bankInfo = new BankInfoEntity("BNP Paribas", externalAccountId, user);
         user.setBankInfo(bankInfo);

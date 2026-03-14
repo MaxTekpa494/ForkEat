@@ -1,13 +1,13 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.repository;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
-import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.UserProfileView;
+import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.user.UserStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
-import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -27,5 +27,10 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     long countByRole(UserRole role);
 
     @Query("SELECT u.id FROM UserEntity u WHERE u.username = :username")
-    Optional<UUID> findIdByUsername(@Param("username") String username);
+    Optional<UUID> findIdByUsername(@org.springframework.data.repository.query.Param("username") String username);
+
+    /** Emails de tous les membres actifs avec email vérifié (pour les notifications de promotion). */
+    @Query("SELECT u.email FROM UserEntity u WHERE u.status = :status AND u.emailVerified = true AND u.role = :role")
+    List<String> findEmailsByStatusAndRole(@org.springframework.data.repository.query.Param("status") UserStatus status,
+                                           @org.springframework.data.repository.query.Param("role") UserRole role);
 }

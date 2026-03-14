@@ -225,6 +225,55 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Historique des super-likes -->
+                    <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mt-8">
+                        <div class="p-6 border-b border-gray-100">
+                            <h2 class="font-display font-bold text-xl text-secondary-900">
+                                <i class="fas fa-star mr-2 text-yellow-500"></i>
+                                Historique des super-likes
+                            </h2>
+                        </div>
+
+                        <div th:if="${#lists.isEmpty(superLikeHistory)}" class="p-8 text-center">
+                            <i class="fas fa-star text-4xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500 font-medium">Aucun super-like pour le moment</p>
+                            <p class="text-gray-400 text-sm mt-2">Vos super-likes apparaîtront ici</p>
+                        </div>
+
+                        <div th:unless="${#lists.isEmpty(superLikeHistory)}"
+                             class="divide-y divide-gray-100 overflow-y-auto"
+                             style="max-height: 320px;">
+                            <div th:each="sl : ${superLikeHistory}"
+                                 class="p-4 hover:bg-gray-50 transition flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 rounded-full flex items-center justify-center"
+                                         th:classappend="${sl.isBonusFree()} ? 'bg-green-50' : 'bg-yellow-50'">
+                                        <i class="fas fa-star text-lg"
+                                           th:classappend="${sl.isBonusFree()} ? 'text-green-500' : 'text-yellow-500'"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-secondary-900" th:text="${sl.recipeTitle()}">Titre recette</div>
+                                        <div class="text-xs text-gray-500"
+                                             th:text="${#temporals.format(sl.createdAt(), 'dd/MM/yyyy HH:mm')}">Date</div>
+                                        <div class="flex items-center gap-2 mt-1">
+                                            <span th:if="${sl.isBonusFree()}"
+                                                  class="text-xs font-bold px-2 py-0.5 rounded-full bg-green-100 text-green-700">
+                                                Gratuit
+                                            </span>
+                                            <span th:if="${sl.promotionName() != null}"
+                                                  class="text-xs font-medium px-2 py-0.5 rounded-full bg-purple-100 text-purple-700"
+                                                  th:text="${sl.promotionName()}">Promo</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="font-bold text-lg"
+                                     th:classappend="${sl.isBonusFree()} ? 'text-green-600' : 'text-red-600'"
+                                     th:text="${sl.isBonusFree() ? 'Gratuit' : ('-' + #numbers.formatDecimal(sl.amountCents() / 100.0, 1, 2) + ' €')}">
+                                    -1.00 €
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- Sidebar -->
