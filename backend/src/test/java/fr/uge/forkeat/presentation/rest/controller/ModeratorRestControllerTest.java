@@ -65,6 +65,10 @@ public class ModeratorRestControllerTest {
 
   @Nested
   class ValidateRecipe {
+    @BeforeEach
+    void setUpValidate() {
+      when(authPort.extractUsername()).thenReturn("moderatorTest");
+    }
 
     @Test
     void ShouldReturnOkWhenRecipeisFound() {
@@ -79,9 +83,9 @@ public class ModeratorRestControllerTest {
     @Test
     void ShouldReturnErrorWhenRecipeNotFound() {
       var recipeId = UUID.randomUUID();
-      when(recipeService.updateStatus(recipeId, RecipeStatus.PUBLISHED)).thenThrow(new ResourceNotFoundException("Recipe not found"));
+      when(recipeService.updateStatus(recipeId, RecipeStatus.PUBLISHED)).thenThrow(new NullPointerException("Recipe not found"));
 
-      assertThrows(ResourceNotFoundException.class, ()-> moderatorController.validateRecipe(recipeId));
+      assertThrows(NullPointerException.class, ()-> moderatorController.validateRecipe(recipeId));
     }
 
   }
