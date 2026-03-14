@@ -1,6 +1,7 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.DuplicateTransactionException;
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.WithdrawalException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.external.PaymentGateway;
@@ -13,6 +14,7 @@ import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.external.PayoutGateway;
 import fr.uge.forkeat.service.user.BankInfoService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -27,6 +29,9 @@ import java.util.UUID;
 
 @Service
 public class WalletService {
+
+	@Value("${app.rag.smart-search-cost:10}")
+	private long smartSearchCost;
 
 	private final PaymentGateway paymentGateway;
 	private final PayoutGateway payoutGateway;
@@ -189,6 +194,20 @@ public class WalletService {
 		}
 	}
 
+
+	@Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 30)
+	public void debitForSmartSearch(UUID userId) {
+		Objects.requireNonNull(userId);
+		var wallet = walletPersistence.loadWalletWithLock(userId)
+				.orElseThrow(() -> new WalletNotFoundException(userId));
+		if (wallet.balance() < smartSearchCost) {
+			throw new InsufficientFundsException(wallet.balance(), smartSearchCost);
+		}
+		walletPersistence.saveWallet(wallet.debit(smartSearchCost));
+		walletPersistence.saveTransaction(new Transaction(
+				UUID.randomUUID(), wallet.id(), null, smartSearchCost,
+				TransactionType.SMART_SEARCH, Instant.now(), null, TransactionStatus.SUCCEEDED));
+	}
 
 	@Transactional(readOnly = true, timeout = 10)
 	public long getBalance(UUID userId) {

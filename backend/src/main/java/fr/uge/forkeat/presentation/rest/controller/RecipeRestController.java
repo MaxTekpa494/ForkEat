@@ -7,6 +7,7 @@ import fr.uge.forkeat.presentation.response.*;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
+import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
@@ -35,17 +36,19 @@ public final class RecipeRestController {
   private final AuthenticationPort authPort;
   private final UserService userService;
   private final RecipeSmartSearchService smartSearchService;
+  private final WalletService walletService;
 
     private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
   public RecipeRestController(RecipeService recipeService, RecipeReportService recipeReportService,
                               AuthenticationPort authPort, UserService userService,
-                              RecipeSmartSearchService smartSearchService) {
+                              RecipeSmartSearchService smartSearchService, WalletService walletService) {
     this.recipeService = recipeService;
     this.recipeReportService = recipeReportService;
     this.authPort = authPort;
     this.userService = userService;
     this.smartSearchService = smartSearchService;
+    this.walletService = walletService;
   }
 
   public record AllergensIngredients(List<AllergenDTO> allergens, List<String> ingredients, List<String> dietaries) {
@@ -192,6 +195,7 @@ public final class RecipeRestController {
           @RequestBody SmartSearchRequestDTO request) {
 
     var user = userService.getUserByUsername(authPort.extractUsername());
+    walletService.debitForSmartSearch(user.id());
 
     var recipes = smartSearchService.search(request.query());
 

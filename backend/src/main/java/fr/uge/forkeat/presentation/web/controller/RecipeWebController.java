@@ -12,6 +12,7 @@ import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.WalletService;
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.ModerationRagException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
@@ -290,8 +291,24 @@ public class RecipeWebController {
     }
 
     @PostMapping("/smart-search")
-    public String smartSearch(@RequestParam("query") String query, HttpSession session) {
-        var username = authPort.extractUsername();
+    public String smartSearch(@RequestParam("query") String query, HttpSession session,
+                              RedirectAttributes redirectAttrs) {
+        var user = userService.getUserByUsername(authPort.extractUsername());
+        try {
+            walletService.debitForSmartSearch(user.id());
+            var dtos = smartSearchService.search(query).stream()
+                    .map(RecipeDTOMapper::toSummaryDTO)
+                    .toList();
+
+            session.setAttribute("smartSearchQuery",   query);
+            session.setAttribute("smartSearchResults", dtos);
+        } catch (InsufficientFundsException e) {
+            redirectAttrs.addFlashAttribute("insufficientFundsError",
+                    "Solde insuffisant pour la recherche intelligente (requis : " + e.getRequired()
+                    + " crédits, disponible : " + e.getAvailable() + " crédits).");
+            redirectAttrs.addFlashAttribute("query", query);
+            return "redirect:/recipes/smart-search";
+        }
 
         var dtos = smartSearchService.search(query).stream()
                 .map(RecipeDTOMapper::toSummaryDTO)

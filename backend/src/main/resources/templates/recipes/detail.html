@@ -204,7 +204,9 @@
                         <div th:replace="~{fragments/modals :: superLikeModal('super-like-modal', 'super-like-modal-content', 'confirmSuperLike()', 'closeSuperLikeModal()', 'closeSuperLikeModal(event)')}"></div>
 
                         <!-- Modale fonds insuffisants -->
-                        <div th:replace="~{fragments/modals :: insufficientFundsModal('insufficient-funds-modal', 'insufficient-funds-modal-content', 'closeInsufficientFundsModal()')}"></div>
+                        <th:block th:with="fundsMsg='Fonds insuffisants pour effectuer un Super Like. Rechargez votre wallet pour continuer.'">
+                            <div th:replace="~{fragments/modals :: insufficientFundsModal('insufficient-funds-modal', 'insufficient-funds-modal-content', 'closeInsufficientFundsModal()', ${fundsMsg})}"></div>
+                        </th:block>
 
                         <form id="super-like-form" th:action="@{/recipes/{id}/super-like(id=${recipe.id})}" method="post">
                             <button type="button"

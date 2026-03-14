@@ -10,6 +10,7 @@ import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.presentation.response.NotContentResponse;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.exception.RecipeAlreadyReportedException;
@@ -75,6 +76,9 @@ class RecipeRestControllerTest {
     @MockitoBean
     private RecipeSmartSearchService recipeSmartSearchService;
 
+    @MockitoBean
+    private WalletService walletService;
+
     private RecipeRestController recipeController;
     private Instant now;
     private final MockMvc mockMvc;
@@ -86,7 +90,7 @@ class RecipeRestControllerTest {
     @BeforeEach
     void setUp() {
         recipeController = new RecipeRestController(recipeService, recipeReportService, authPort, userService,
-                recipeSmartSearchService);
+                recipeSmartSearchService, walletService);
         now = Instant.now();
     }
 
