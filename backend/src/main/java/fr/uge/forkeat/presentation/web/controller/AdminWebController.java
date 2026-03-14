@@ -1,8 +1,11 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.service.PlatformWalletService;
+import fr.uge.forkeat.service.RecipeModerationActionService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
+import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
+import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.model.user.UserRegister;
@@ -32,17 +35,20 @@ public class AdminWebController {
     private final PlatformWalletService platformWalletService;
     private final AuthenticationPort authPort;
     private final UserRegistrationService userRegistrationService;
+    private final RecipeModerationActionService recipeModerationActionService;
 
     public AdminWebController(UserService userQueryService,
                               RecipeService recipeService,
                               PlatformWalletService platformWalletService,
                               AuthenticationPort authPort,
-                              UserRegistrationService userRegistrationService) {
+                              UserRegistrationService userRegistrationService,
+                              RecipeModerationActionService recipeModerationActionService) {
         this.userQueryService = Objects.requireNonNull(userQueryService);
         this.recipeService = Objects.requireNonNull(recipeService);
         this.platformWalletService = Objects.requireNonNull(platformWalletService);
         this.authPort = Objects.requireNonNull(authPort);
         this.userRegistrationService = Objects.requireNonNull(userRegistrationService);
+        this.recipeModerationActionService = Objects.requireNonNull(recipeModerationActionService);
     }
 
     @GetMapping
@@ -138,12 +144,14 @@ public class AdminWebController {
 
     @PostMapping("/recipes/{id}/validate")
     public String validateRecipe(@PathVariable UUID id) {
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.APPROVED, ""));
         recipeService.updateStatus(id, RecipeStatus.PUBLISHED);
         return "redirect:/admin/recipes/pending";
     }
 
     @PostMapping("/recipes/{id}/reject")
-    public String rejectRecipe(@PathVariable UUID id) {
+    public String rejectRecipe(@PathVariable UUID id, @RequestParam("justification") String justification) {
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.REJECTED, justification));
         recipeService.updateStatus(id, RecipeStatus.REJECTED);
         return "redirect:/admin/recipes/pending";
     }
