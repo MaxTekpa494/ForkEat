@@ -172,14 +172,6 @@ public final class RecipeRestController {
     return ResponseEntity.ok().build();
   }
 
-    @PostMapping("/{id}/super-like")
-    public ResponseEntity<?> superLikeRecipe(@PathVariable UUID id) {
-        var user = this.userService.getUserByUsername(authPort.extractUsername());
-        this.recipeService.superLikeRecipe(user.id(), id);
-        return ResponseEntity.ok().build();
-    }
-
-
   @DeleteMapping("/{id}/like")
   public ResponseEntity<?> unlikeRecipe(@PathVariable UUID id) {
     var user = userService.getUserByUsername(authPort.extractUsername());

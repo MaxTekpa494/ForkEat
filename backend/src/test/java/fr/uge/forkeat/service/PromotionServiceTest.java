@@ -146,7 +146,7 @@ class PromotionServiceTest {
             var saved = new Promotion(UUID.randomUUID(), "Promo", starts, ends, 100L, null, PromotionStatus.SCHEDULED, now);
 
             when(superLikeConfigPersistence.get()).thenReturn(defaultConfig);
-            when(promotionPersistence.hasOverlapping(starts, ends, null)).thenReturn(false);
+            when(promotionPersistence.hasOverlapping(starts, ends)).thenReturn(false);
             when(promotionPersistence.save(any())).thenReturn(saved);
 
             var result = promotionService.create("Promo", starts, ends, 100L, null);
@@ -184,7 +184,7 @@ class PromotionServiceTest {
             var ends = now.plusSeconds(3660);
 
             when(superLikeConfigPersistence.get()).thenReturn(defaultConfig);
-            when(promotionPersistence.hasOverlapping(starts, ends, null)).thenReturn(true);
+            when(promotionPersistence.hasOverlapping(starts, ends)).thenReturn(true);
 
             assertThrows(PromotionOverlapException.class,
                     () -> promotionService.create("Promo", starts, ends, 100L, null));
@@ -217,7 +217,7 @@ class PromotionServiceTest {
 
             when(promotionPersistence.findById(id)).thenReturn(Optional.of(existing));
             when(superLikeConfigPersistence.get()).thenReturn(defaultConfig);
-            when(promotionPersistence.hasOverlapping(any(), any(), eq(id))).thenReturn(false);
+            when(promotionPersistence.hasOverlapping(any(), any())).thenReturn(false);
             when(promotionPersistence.update(any())).thenReturn(updated);
 
             var result = promotionService.update(id, "Updated", null, null, 200L, null);
@@ -268,7 +268,7 @@ class PromotionServiceTest {
 
             when(promotionPersistence.findById(id)).thenReturn(Optional.of(existing));
             when(superLikeConfigPersistence.get()).thenReturn(defaultConfig);
-            when(promotionPersistence.hasOverlapping(any(), any(), eq(id))).thenReturn(false);
+            when(promotionPersistence.hasOverlapping(any(), any())).thenReturn(false);
             when(promotionPersistence.update(any())).thenReturn(preserved);
 
             var result = promotionService.update(id, null, null, null, null, null);

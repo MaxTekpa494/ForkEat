@@ -8,7 +8,6 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.SuperLikeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
-import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
@@ -38,7 +37,6 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     private final DietaryRepository dietaryRepository;
     private final EntityManager entityManager;
     private final SuperLikeRepository superLikeRepository;
-    private final WalletRepository walletRepository;
 
     public RecipePersistenceAdapter(RecipeRepository recipeRepository, UserRepository userRepository,
                                     AllergenRepository allergenRepository, IngredientRepository ingredientRepository,
@@ -47,7 +45,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                                     RecipeIngredientRepository recipeIngredientRepository,
                                     RecipeDietaryRepository recipeDietaryRepository,
                                     DietaryRepository dietaryRepository, EntityManager entityManager,
-                                    SuperLikeRepository superLikeRepository, WalletRepository walletRepository) {
+                                    SuperLikeRepository superLikeRepository) {
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
         this.allergenRepository = allergenRepository;
@@ -59,7 +57,6 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         this.entityManager = entityManager;
         this.dietaryRepository = dietaryRepository;
         this.superLikeRepository = superLikeRepository;
-        this.walletRepository = walletRepository;
     }
 
     @Override
@@ -368,9 +365,6 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     @Override
     public void superLikeRecipe(UUID userId, UUID recipeId, long amount, UUID promotionId, boolean isBonusFree){
         var superLike = new SuperLikeEntity(userId, recipeId, amount, promotionId, isBonusFree);
-        if (!isBonusFree) {
-            walletRepository.decrementBalanceByUserId(userId, amount);
-        }
         superLikeRepository.save(superLike);
     }
 

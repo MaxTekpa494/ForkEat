@@ -327,6 +327,7 @@ public class RecipeService {
           logger.debug("Free super-like for user {} on recipe {} (promo {}): EARNINGS -{}, REDISTRIBUTION +{}",
                   userId, recipeId, promotionId, redistPart, redistPart);
       } else {
+          walletPersistence.decrementBalanceById(wallet.id(), effectivePrice);
           walletPersistence.incrementBalanceById(earningsWallet.id(), earningsPart);
           walletPersistence.incrementBalanceById(redistributionWallet.id(), redistPart);
           platformWalletPersistence.recordTransaction(PlatformWalletType.EARNINGS, earningsPart, "SUPER_LIKE_EARNED", recipeId);
