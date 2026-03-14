@@ -148,7 +148,6 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun updateRecipeStates(recipeId: UUID, liked: Boolean) {
-        // Update main list
         _recipes.value = _recipes.value.map { recipe ->
             if (recipe.id == recipeId) {
                 if (recipe.likedByCurrentUser != liked) {
@@ -160,7 +159,6 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
             } else recipe
         }
 
-        // Update current details if open
         _currentRecipe.value?.let { current ->
             if (current.id == recipeId && current.hasLiked != liked) {
                 _currentRecipe.value = current.copy(

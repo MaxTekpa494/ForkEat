@@ -10,6 +10,7 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 //Main Application
 @SpringBootApplication
 @EnableConfigurationProperties({StripeProperties.class, RateLimitProperties.class})
+@org.springframework.scheduling.annotation.EnableScheduling
 public class ForkEatApplication {
 	static void main(String[] args) {
 		SpringApplication.run(ForkEatApplication.class, args);

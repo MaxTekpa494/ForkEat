@@ -4,6 +4,6 @@ public enum TransactionType {
     RECHARGE,
     SUPER_LIKE,
     REDISTRIBUTION,
-    WITHDRAWAL // New type for withdrawal transactions
+    WITHDRAWAL
     // SMART_SEARCH = Transaction au moment de la recherche intelligente
 }

@@ -163,7 +163,6 @@ fun ForgotPasswordCodeScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // New password field
             Text(
                 text = "Nouveau mot de passe",
                 fontSize = 14.sp,
