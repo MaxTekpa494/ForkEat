@@ -23,7 +23,6 @@ public record RecipeReport(
         Objects.requireNonNull(reportType);
         Objects.requireNonNull(status);
         Objects.requireNonNull(justification);
-        Objects.requireNonNull(reviewedAt);
         if (justification.isBlank()) {
             throw new IllegalArgumentException("justification cannot be empty");
         }
