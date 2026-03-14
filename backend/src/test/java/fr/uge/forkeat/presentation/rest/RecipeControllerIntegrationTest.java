@@ -465,36 +465,78 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
     @WithMockUser(username = "chef_integration")
     void myRecipes_shouldReturnUserOwnedRecipes() throws Exception {
         createAndSaveRecipe("Ma recette 1", RecipeStatus.PUBLISHED, null);
-        createAndSaveRecipe("Ma recette 2", RecipeStatus.DRAFT, null);
+        createAndSaveRecipe("Ma recette 2", RecipeStatus.PUBLISHED, null);
 
-        mockMvc.perform(get("/api/recipes/my-recipes"))
+        mockMvc.perform(get("/api/recipes/my-recipes").param("status", "PUBLISHED"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resources").isArray())
-                .andExpect(jsonPath("$.resources[*].username", everyItem(is("chef_integration"))))
-                .andExpect(jsonPath("$.total").value(greaterThanOrEqualTo(2)));
-    }
-
-    @Test
-    @WithMockUser(username = "chef_sans_recettes")
-    void myRecipes_shouldReturnEmptyListForUserWithNoRecipes() throws Exception {
-        // "chef_sans_recettes" n'existe pas en BD et n'a aucune recette
-        mockMvc.perform(get("/api/recipes/my-recipes"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.resources").isArray())
-                .andExpect(jsonPath("$.resources", hasSize(0)))
-                .andExpect(jsonPath("$.total").value(0));
+                .andExpect(jsonPath("$.resource.recipes.items").isArray())
+                .andExpect(jsonPath("$.resource.recipes.items[*].summary.authorUsername", everyItem(is("chef_integration"))))
+                .andExpect(jsonPath("$.resource.recipes.total").value(greaterThanOrEqualTo(2)));
     }
 
     @Test
     @WithMockUser(username = "chef_integration")
-    void myRecipes_shouldReturnBothPublishedAndDraftRecipes() throws Exception {
+    void myRecipes_shouldReturnEmptyListForUserWithNoRecipes() throws Exception {
+        // chef_integration existe en BD mais n'a aucune recette REJECTED
+        mockMvc.perform(get("/api/recipes/my-recipes").param("status", "REJECTED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resource.recipes.items").isArray())
+                .andExpect(jsonPath("$.resource.recipes.items", hasSize(0)))
+                .andExpect(jsonPath("$.resource.recipes.total").value(0));
+    }
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void myRecipes_shouldExposeStatsForAllStatuses() throws Exception {
         createAndSaveRecipe("Publiée", RecipeStatus.PUBLISHED, null);
         createAndSaveRecipe("Brouillon", RecipeStatus.DRAFT, null);
         createAndSaveRecipe("En attente", RecipeStatus.PENDING_REVIEW, null);
 
+        mockMvc.perform(get("/api/recipes/my-recipes").param("status", "PUBLISHED"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resource.stats.published").value(greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.resource.stats.draft").value(greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.resource.stats.pendingReview").value(greaterThanOrEqualTo(1)));
+    }
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void myRecipes_shouldFilterByDraftStatus() throws Exception {
+        createAndSaveRecipe("Publiée", RecipeStatus.PUBLISHED, null);
+        createAndSaveRecipe("Brouillon", RecipeStatus.DRAFT, null);
+
+        mockMvc.perform(get("/api/recipes/my-recipes").param("status", "DRAFT"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resource.recipes.items").isArray())
+                .andExpect(jsonPath("$.resource.recipes.items", hasSize(greaterThanOrEqualTo(1))))
+                .andExpect(jsonPath("$.resource.recipes.items[0].status").value("DRAFT"));
+    }
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void myRecipes_shouldUsePublishedAsDefaultStatus() throws Exception {
+        createAndSaveRecipe("Publiée", RecipeStatus.PUBLISHED, null);
+        createAndSaveRecipe("Brouillon", RecipeStatus.DRAFT, null);
+
         mockMvc.perform(get("/api/recipes/my-recipes"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.total").value(greaterThanOrEqualTo(3)));
+                .andExpect(jsonPath("$.resource.recipes.items[*].status", everyItem(is("PUBLISHED"))));
+    }
+
+    @Test
+    @WithMockUser(username = "chef_integration")
+    void myRecipes_shouldRespectPaginationParams() throws Exception {
+        createAndSaveRecipe("Recette A", RecipeStatus.PUBLISHED, null);
+        createAndSaveRecipe("Recette B", RecipeStatus.PUBLISHED, null);
+        createAndSaveRecipe("Recette C", RecipeStatus.PUBLISHED, null);
+
+        mockMvc.perform(get("/api/recipes/my-recipes")
+                        .param("status", "PUBLISHED")
+                        .param("page", "0")
+                        .param("size", "2"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.resource.recipes.items", hasSize(2)))
+                .andExpect(jsonPath("$.resource.recipes.total").value(greaterThanOrEqualTo(3)));
     }
 
     // ========== POST /api/recipes/create-variant ==========

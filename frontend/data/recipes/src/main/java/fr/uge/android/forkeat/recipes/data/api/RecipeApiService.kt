@@ -3,6 +3,7 @@ package fr.uge.android.forkeat.recipes.data.api
 import fr.uge.android.forkeat.recipes.data.dto.AllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.CreateRecipeFormDataResponse
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
+import fr.uge.android.forkeat.recipes.data.dto.AuthorRecipesResponse
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsResponseDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeItemResponse
@@ -67,7 +68,11 @@ interface RecipeApiService {
     ): Response<RecipeItemResponse>
 
     @GET("api/recipes/my-recipes")
-    suspend fun getMyRecipes(): Response<RecipesListResponse<RecipeDTO>>
+    suspend fun getMyRecipes(
+        @Query("status") status: String = "PUBLISHED",
+        @Query("page") page: Int = 0,
+        @Query("size") size: Int = 20
+    ): Response<AuthorRecipesResponse>
 
     @POST("api/recipes/{id}/delete")
     suspend fun deleteRecipe(@Path("id") id: UUID): Response<Void>

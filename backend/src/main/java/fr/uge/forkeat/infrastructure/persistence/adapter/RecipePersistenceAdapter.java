@@ -8,14 +8,11 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.SuperLikeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
-import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
-import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
-import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
+import fr.uge.forkeat.service.model.recipe.projection.*;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import jakarta.persistence.EntityManager;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -375,6 +372,40 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     @Override
     public boolean hasSuperLikedRecipe(UUID userId, UUID recipeId){
         return superLikeRepository.existsByRecipeIdAndUserId(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
+    }
+
+    @Override
+    public PageResult<AuthorRecipeSummary> findRecipesByAuthor(UUID authorId, RecipeStatus status, int page, int size) {
+        Objects.requireNonNull(authorId);
+        Objects.requireNonNull(status);
+        var pageable = PageRequest.of(page, size);
+        var pageResult = recipeRepository.findRecipeSummariesByAuthorIdAndStatus(authorId, status.name(), pageable);
+        var summaries = pageResult.getContent().stream()
+                .map(v -> {
+                    var summary = new RecipeSummary(v.getId(), v.getTitle(), v.getSummary(), v.getImageUrl(), v.getPreparationMinutes(), v.getCreatedAt(), v.getAuthorUsername());
+                    var rejectionInfo = v.getJustification() != null
+                            ? new RecipeRejectionInfo(v.getJustification(), v.getRejectedAt())
+                            : null;
+                    return new AuthorRecipeSummary(summary, RecipeStatus.valueOf(v.getStatus()), rejectionInfo);
+                })
+                .toList();
+        return new PageResult<>(summaries, pageResult.getTotalElements());
+    }
+
+    @Override
+    public UserRecipeStats countRecipesByAuthorGroupedByStatus(UUID authorId) {
+        Objects.requireNonNull(authorId);
+        var counts = recipeRepository.countByAuthorIdGroupByStatus(authorId);
+        long published = 0, draft = 0, pendingReview = 0, rejected = 0;
+        for (var row : counts) {
+            switch (RecipeStatus.valueOf(row.getStatus())) {
+                case PUBLISHED -> published = row.getCount();
+                case DRAFT -> draft = row.getCount();
+                case PENDING_REVIEW -> pendingReview = row.getCount();
+                case REJECTED -> rejected = row.getCount();
+            }
+        }
+        return new UserRecipeStats(published, draft, pendingReview, rejected);
     }
 
     /**

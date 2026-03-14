@@ -4,7 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
-import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
+import fr.uge.android.forkeat.recipes.data.dto.AuthorRecipeSummaryDTO
+import fr.uge.android.forkeat.recipes.data.dto.UserRecipeStatsDTO
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -18,15 +19,21 @@ sealed class MyRecipesNavigationEvent {
 }
 
 data class MyRecipesUiState(
-    val recipes: List<RecipeDTO> = emptyList(),
+    val recipes: List<AuthorRecipeSummaryDTO> = emptyList(),
+    val stats: UserRecipeStatsDTO = UserRecipeStatsDTO(),
+    val selectedStatus: String = "PUBLISHED",
+    val total: Long = 0,
+    val currentPage: Int = 0,
     val isLoading: Boolean = false,
+    val isLoadingMore: Boolean = false,
     val errorMessage: String? = null,
-    val recipeToDelete: RecipeDTO? = null
+    val recipeToDelete: AuthorRecipeSummaryDTO? = null
 )
 
 class MyRecipesViewModel : ViewModel() {
 
     private val api: RecipeApiService = ForkEatApi.recipeService
+    private val pageSize = 20
 
     private val _uiState = MutableStateFlow(MyRecipesUiState())
     val uiState: StateFlow<MyRecipesUiState> = _uiState
@@ -35,17 +42,30 @@ class MyRecipesViewModel : ViewModel() {
     val navigationEvent = _navigationEvent.receiveAsFlow()
 
     init {
-        loadMyRecipes()
+        loadMyRecipes("PUBLISHED")
     }
 
-    fun loadMyRecipes() {
+    fun onStatusChange(status: String) {
+        _uiState.value = _uiState.value.copy(
+            selectedStatus = status,
+            recipes = emptyList(),
+            currentPage = 0,
+            total = 0
+        )
+        loadMyRecipes(status)
+    }
+
+    fun loadMyRecipes(status: String = _uiState.value.selectedStatus) {
         viewModelScope.launch {
-            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null)
+            _uiState.value = _uiState.value.copy(isLoading = true, errorMessage = null, currentPage = 0)
             try {
-                val response = api.getMyRecipes()
+                val response = api.getMyRecipes(status = status, page = 0, size = pageSize)
                 if (response.isSuccessful) {
+                    val body = response.body()?.resource
                     _uiState.value = _uiState.value.copy(
-                        recipes = response.body()?.resources ?: emptyList(),
+                        recipes = body?.recipes?.items ?: emptyList(),
+                        stats = body?.stats ?: UserRecipeStatsDTO(),
+                        total = body?.recipes?.total ?: 0,
                         isLoading = false
                     )
                 } else {
@@ -63,19 +83,51 @@ class MyRecipesViewModel : ViewModel() {
         }
     }
 
-    fun onEditRecipe(recipe: RecipeDTO) {
+    fun loadNextPage() {
+        val currentState = _uiState.value
+        if (currentState.isLoading || currentState.isLoadingMore || currentState.recipes.size >= currentState.total) {
+            return
+        }
+
         viewModelScope.launch {
-            _navigationEvent.send(MyRecipesNavigationEvent.NavigateToEdit(recipe.id))
+            _uiState.value = currentState.copy(isLoadingMore = true)
+            try {
+                val nextPage = currentState.currentPage + 1
+                val response = api.getMyRecipes(
+                    status = currentState.selectedStatus,
+                    page = nextPage,
+                    size = pageSize
+                )
+                if (response.isSuccessful) {
+                    val body = response.body()?.resource
+                    val newRecipes = body?.recipes?.items ?: emptyList()
+                    _uiState.value = _uiState.value.copy(
+                        recipes = currentState.recipes + newRecipes,
+                        currentPage = nextPage,
+                        isLoadingMore = false
+                    )
+                } else {
+                    _uiState.value = _uiState.value.copy(isLoadingMore = false)
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoadingMore = false)
+            }
         }
     }
 
-    fun onCreateVariant(recipe: RecipeDTO) {
+    fun onEditRecipe(recipe: AuthorRecipeSummaryDTO) {
         viewModelScope.launch {
-            _navigationEvent.send(MyRecipesNavigationEvent.NavigateToVariant(recipe.id))
+            _navigationEvent.send(MyRecipesNavigationEvent.NavigateToEdit(recipe.summary.id))
         }
     }
 
-    fun requestDelete(recipe: RecipeDTO) {
+    fun onCreateVariant(recipe: AuthorRecipeSummaryDTO) {
+        viewModelScope.launch {
+            _navigationEvent.send(MyRecipesNavigationEvent.NavigateToVariant(recipe.summary.id))
+        }
+    }
+
+    fun requestDelete(recipe: AuthorRecipeSummaryDTO) {
         _uiState.value = _uiState.value.copy(recipeToDelete = recipe)
     }
 
@@ -88,11 +140,9 @@ class MyRecipesViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(recipeToDelete = null)
         viewModelScope.launch {
             try {
-                val response = api.deleteRecipe(recipe.id)
+                val response = api.deleteRecipe(recipe.summary.id)
                 if (response.isSuccessful) {
-                    _uiState.value = _uiState.value.copy(
-                        recipes = _uiState.value.recipes.filter { it.id != recipe.id }
-                    )
+                    loadMyRecipes()
                 } else {
                     _uiState.value = _uiState.value.copy(
                         errorMessage = "Suppression échouée (${response.code()})"

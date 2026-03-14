@@ -2,8 +2,7 @@ package fr.uge.forkeat.service.persistence;
 
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
-import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
-import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
+import fr.uge.forkeat.service.model.recipe.projection.*;
 
 import java.util.List;
 import java.util.Map;
@@ -71,4 +70,8 @@ public interface RecipePersistence {
   void superLikeRecipe(UUID userId, UUID recipeId, long amount);
 
   boolean hasSuperLikedRecipe(UUID userId, UUID recipeId);
+
+  PageResult<AuthorRecipeSummary> findRecipesByAuthor(UUID authorId, RecipeStatus status, int page, int size);
+
+  UserRecipeStats countRecipesByAuthorGroupedByStatus(UUID authorId);
 }

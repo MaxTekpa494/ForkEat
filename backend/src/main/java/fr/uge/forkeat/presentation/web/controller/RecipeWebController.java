@@ -4,8 +4,10 @@ import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
+import fr.uge.forkeat.presentation.dto.recipe.RecipePaginationDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
+import fr.uge.forkeat.presentation.web.viewmodel.AuthorRecipesViewModel;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
@@ -94,15 +96,12 @@ public class RecipeWebController {
 
 
     @GetMapping("/my-recipes")
-    public String myRecipes(Model model) {
+    public String myRecipes(RecipePaginationDTO pagination, Model model) {
         var username = authPort.extractUsername();
-        var myRecipes = recipeService.findByAuthorUsername(username);
-        var recipesDTO = myRecipes.stream()
-                .map(RecipeDTOMapper::toDTO)
-                .toList();
-
-        model.addAttribute("recipes", recipesDTO);
-        model.addAttribute("username", username);
+        var result = recipeService.findRecipesByAuthor(username, RecipeStatus.valueOf(pagination.getStatus()), pagination.getPage(), pagination.getSize());
+        var totalPages = (int) Math.ceil((double) result.recipes().total() / pagination.getSize());
+        var vm = new AuthorRecipesViewModel(result.stats(), result.recipes().items(), pagination.getPage(), totalPages, result.recipes().total(), pagination.getStatus());
+        model.addAttribute("vm", vm);
         return "recipes/my-recipes";
     }
 

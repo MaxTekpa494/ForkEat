@@ -3,6 +3,7 @@ package fr.uge.forkeat.presentation.rest.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeReportRequestDTO;
+import fr.uge.forkeat.presentation.dto.recipe.RecipePaginationDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.response.CreatedResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
@@ -17,6 +18,7 @@ import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.recipe.projection.*;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
@@ -318,6 +320,7 @@ class RecipeRestControllerTest {
             var response = recipeController.pageCreateRecipe();
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
+            assert response.getBody() != null;
             var data = (RecipeRestController.AllergensIngredients) ((ItemResponse<?>) response.getBody()).resource();
             assertTrue(data.allergens().isEmpty());
             assertTrue(data.ingredients().isEmpty());
@@ -624,48 +627,150 @@ class RecipeRestControllerTest {
     @Nested
     class MyRecipes {
 
+        private RecipePaginationDTO defaultPagination() {
+            var p = new RecipePaginationDTO();
+            p.setStatus("PUBLISHED");
+            p.setPage(0);
+            p.setSize(10);
+            return p;
+        }
+
         @Test
         void shouldReturnRecipesForAuthenticatedUser() {
-            var recipe1 = createRecipe(UUID.randomUUID(), "Ma recette 1", null, RecipeStatus.PUBLISHED);
-            var recipe2 = createRecipe(UUID.randomUUID(), "Ma recette 2", null, RecipeStatus.DRAFT);
+            var summary1 = new RecipeSummary(UUID.randomUUID(), "Ma recette 1", "desc", null, 30, null, "chef_test");
+            var summary2 = new RecipeSummary(UUID.randomUUID(), "Ma recette 2", "desc", null, 15, null, "chef_test");
+            var authorSummary1 = new AuthorRecipeSummary(summary1, RecipeStatus.PUBLISHED, null);
+            var authorSummary2 = new AuthorRecipeSummary(summary2, RecipeStatus.PUBLISHED, null);
+            var stats = new UserRecipeStats(2, 0, 0, 0);
+            var page = new PageResult<>(List.of(authorSummary1, authorSummary2), 2L);
+            var authorRecipesPage = new AuthorRecipesPage(stats, page);
 
             when(authPort.extractUsername()).thenReturn("chef_test");
-            when(recipeService.findByAuthorUsername("chef_test")).thenReturn(List.of(recipe1, recipe2));
+            when(recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, 10)).thenReturn(authorRecipesPage);
 
-            var response = recipeController.myRecipes();
+            var response = recipeController.myRecipes(defaultPagination());
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
-            assertInstanceOf(ListResponse.class, response.getBody());
-            var listResponse = (ListResponse<?>) response.getBody();
-            assertEquals(2, listResponse.resources().size());
-            assertEquals(2, listResponse.total());
-            verify(recipeService).findByAuthorUsername("chef_test");
+            assertInstanceOf(ItemResponse.class, response.getBody());
+            var itemResponse = (ItemResponse<?>) response.getBody();
+            assertInstanceOf(AuthorRecipesPage.class, itemResponse.resource());
+            var result = (AuthorRecipesPage) itemResponse.resource();
+            assertEquals(2, result.recipes().items().size());
+            assertEquals(2, result.recipes().total());
+            assertEquals(2, result.stats().published());
         }
 
         @Test
         void shouldReturnEmptyListWhenUserHasNoRecipes() {
-            when(authPort.extractUsername()).thenReturn("nouveau_chef");
-            when(recipeService.findByAuthorUsername("nouveau_chef")).thenReturn(List.of());
+            var stats = new UserRecipeStats(0, 0, 0, 0);
+            var page = new PageResult<AuthorRecipeSummary>(List.of(), 0L);
+            var authorRecipesPage = new AuthorRecipesPage(stats, page);
 
-            var response = recipeController.myRecipes();
+            when(authPort.extractUsername()).thenReturn("nouveau_chef");
+            when(recipeService.findRecipesByAuthor("nouveau_chef", RecipeStatus.PUBLISHED, 0, 10)).thenReturn(authorRecipesPage);
+
+            var response = recipeController.myRecipes(defaultPagination());
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
-            var listResponse = (ListResponse<?>) response.getBody();
-            assertNotNull(listResponse);
-            assertTrue(listResponse.resources().isEmpty());
-            assertEquals(0, listResponse.total());
+            assertInstanceOf(ItemResponse.class, response.getBody());
+            var result = (AuthorRecipesPage) ((ItemResponse<?>) response.getBody()).resource();
+            assertTrue(result.recipes().items().isEmpty());
+            assertEquals(0, result.recipes().total());
         }
 
         @Test
         void shouldUseAuthenticatedUsernameToFetchRecipes() {
-            when(authPort.extractUsername()).thenReturn("chef_test");
-            when(recipeService.findByAuthorUsername("chef_test")).thenReturn(List.of());
+            var stats = UserRecipeStats.ZERO;
+            var authorRecipesPage = new AuthorRecipesPage(stats, new PageResult<>(List.of(), 0L));
 
-            recipeController.myRecipes();
+            when(authPort.extractUsername()).thenReturn("chef_test");
+            when(recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, 10)).thenReturn(authorRecipesPage);
+
+            recipeController.myRecipes(defaultPagination());
 
             verify(authPort).extractUsername();
-            verify(recipeService).findByAuthorUsername("chef_test");
-            verifyNoMoreInteractions(recipeService);
+            verify(recipeService).findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, 10);
+        }
+
+        @Test
+        void shouldForwardStatusParameterToService() {
+            var stats = new UserRecipeStats(0, 2, 0, 0);
+            var summary = new RecipeSummary(UUID.randomUUID(), "Brouillon", "desc", null, 10, null, "chef_test");
+            var authorSummary = new AuthorRecipeSummary(summary, RecipeStatus.DRAFT, null);
+            var page = new PageResult<>(List.of(authorSummary), 1L);
+            var authorRecipesPage = new AuthorRecipesPage(stats, page);
+
+            when(authPort.extractUsername()).thenReturn("chef_test");
+            when(recipeService.findRecipesByAuthor("chef_test", RecipeStatus.DRAFT, 0, 10)).thenReturn(authorRecipesPage);
+
+            var pagination = new RecipePaginationDTO();
+            pagination.setStatus("DRAFT");
+            pagination.setPage(0);
+            pagination.setSize(10);
+
+            var response = recipeController.myRecipes(pagination);
+
+            verify(recipeService).findRecipesByAuthor("chef_test", RecipeStatus.DRAFT, 0, 10);
+            var result = (AuthorRecipesPage) ((ItemResponse<?>) response.getBody()).resource();
+            assertEquals(1, result.recipes().items().size());
+            assertEquals(RecipeStatus.DRAFT, result.recipes().items().getFirst().status());
+        }
+
+        @Test
+        void shouldForwardPaginationParamsToService() {
+            var stats = UserRecipeStats.ZERO;
+            var authorRecipesPage = new AuthorRecipesPage(stats, new PageResult<>(List.of(), 0L));
+
+            when(authPort.extractUsername()).thenReturn("chef_test");
+            when(recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 2, 5)).thenReturn(authorRecipesPage);
+
+            var pagination = new RecipePaginationDTO();
+            pagination.setStatus("PUBLISHED");
+            pagination.setPage(2);
+            pagination.setSize(5);
+
+            recipeController.myRecipes(pagination);
+
+            verify(recipeService).findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 2, 5);
+        }
+
+        @Test
+        void shouldExposeAllStatsInResponse() {
+            var stats = new UserRecipeStats(3, 1, 2, 1);
+            var authorRecipesPage = new AuthorRecipesPage(stats, new PageResult<>(List.of(), 0L));
+
+            when(authPort.extractUsername()).thenReturn("chef_test");
+            when(recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, 10)).thenReturn(authorRecipesPage);
+
+            var result = (AuthorRecipesPage) ((ItemResponse<?>) recipeController.myRecipes(defaultPagination()).getBody()).resource();
+
+            assertEquals(3, result.stats().published());
+            assertEquals(1, result.stats().draft());
+            assertEquals(2, result.stats().pendingReview());
+            assertEquals(1, result.stats().rejected());
+        }
+
+        @Test
+        void shouldIncludeRejectionInfoForRejectedRecipe() {
+            var rejectionInfo = new RecipeRejectionInfo("Contenu inapproprié", java.time.Instant.now());
+            var summary = new RecipeSummary(UUID.randomUUID(), "Recette refusée", "desc", null, 20, null, "chef_test");
+            var authorSummary = new AuthorRecipeSummary(summary, RecipeStatus.REJECTED, rejectionInfo);
+            var stats = new UserRecipeStats(0, 0, 0, 1);
+            var page = new PageResult<>(List.of(authorSummary), 1L);
+            var authorRecipesPage = new AuthorRecipesPage(stats, page);
+
+            when(authPort.extractUsername()).thenReturn("chef_test");
+            when(recipeService.findRecipesByAuthor("chef_test", RecipeStatus.REJECTED, 0, 10)).thenReturn(authorRecipesPage);
+
+            var pagination = new RecipePaginationDTO();
+            pagination.setStatus("REJECTED");
+            pagination.setPage(0);
+            pagination.setSize(10);
+
+            var result = (AuthorRecipesPage) ((ItemResponse<?>) recipeController.myRecipes(pagination).getBody()).resource();
+
+            assertNotNull(result.recipes().items().getFirst().rejectionInfo());
+            assertEquals("Contenu inapproprié", result.recipes().items().getFirst().rejectionInfo().justification());
         }
     }
 

@@ -330,6 +330,85 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
     }
 
     @Nested
+    class FindRecipesByAuthor {
+
+        @Test
+        void shouldReturnRecipesFilteredByStatus() {
+            adapter.save(createRecipe(UUID.randomUUID(), "Publiée", RecipeStatus.PUBLISHED));
+            adapter.save(createRecipe(UUID.randomUUID(), "Brouillon", RecipeStatus.DRAFT));
+
+            var published = adapter.findRecipesByAuthor(savedAuthor.getId(), RecipeStatus.PUBLISHED, 0, 10);
+            var drafts = adapter.findRecipesByAuthor(savedAuthor.getId(), RecipeStatus.DRAFT, 0, 10);
+
+            assertEquals(1, published.items().size());
+            assertEquals("Publiée", published.items().getFirst().summary().title());
+            assertEquals(RecipeStatus.PUBLISHED, published.items().getFirst().status());
+            assertEquals(1, drafts.items().size());
+        }
+
+        @Test
+        void shouldReturnEmptyForUnknownAuthor() {
+            adapter.save(createRecipe(UUID.randomUUID(), "Publiée", RecipeStatus.PUBLISHED));
+
+            var result = adapter.findRecipesByAuthor(UUID.randomUUID(), RecipeStatus.PUBLISHED, 0, 10);
+
+            assertTrue(result.items().isEmpty());
+            assertEquals(0L, result.total());
+        }
+
+        @Test
+        void shouldRespectPagination() {
+            for (int i = 1; i <= 5; i++) {
+                adapter.save(createRecipe(UUID.randomUUID(), "Recette " + i, RecipeStatus.PUBLISHED));
+            }
+
+            var firstPage = adapter.findRecipesByAuthor(savedAuthor.getId(), RecipeStatus.PUBLISHED, 0, 3);
+            var secondPage = adapter.findRecipesByAuthor(savedAuthor.getId(), RecipeStatus.PUBLISHED, 1, 3);
+
+            assertEquals(5L, firstPage.total());
+            assertEquals(3, firstPage.items().size());
+            assertEquals(2, secondPage.items().size());
+        }
+
+        @Test
+        void shouldReturnNullRejectionInfoForNonRejectedRecipe() {
+            adapter.save(createRecipe(UUID.randomUUID(), "Publiée", RecipeStatus.PUBLISHED));
+
+            var result = adapter.findRecipesByAuthor(savedAuthor.getId(), RecipeStatus.PUBLISHED, 0, 10);
+
+            assertNull(result.items().getFirst().rejectionInfo());
+        }
+    }
+
+    @Nested
+    class CountRecipesByAuthorGroupedByStatus {
+
+        @Test
+        void shouldReturnCorrectCountsPerStatus() {
+            adapter.save(createRecipe(UUID.randomUUID(), "Published 1", RecipeStatus.PUBLISHED));
+            adapter.save(createRecipe(UUID.randomUUID(), "Published 2", RecipeStatus.PUBLISHED));
+            adapter.save(createRecipe(UUID.randomUUID(), "Draft", RecipeStatus.DRAFT));
+
+            var stats = adapter.countRecipesByAuthorGroupedByStatus(savedAuthor.getId());
+
+            assertEquals(2L, stats.published());
+            assertEquals(1L, stats.draft());
+            assertEquals(0L, stats.pendingReview());
+            assertEquals(0L, stats.rejected());
+        }
+
+        @Test
+        void shouldReturnZerosForAuthorWithNoRecipes() {
+            var stats = adapter.countRecipesByAuthorGroupedByStatus(UUID.randomUUID());
+
+            assertEquals(0L, stats.published());
+            assertEquals(0L, stats.draft());
+            assertEquals(0L, stats.pendingReview());
+            assertEquals(0L, stats.rejected());
+        }
+    }
+
+    @Nested
     class FindUserRecipeInteractions {
 
         @Test
