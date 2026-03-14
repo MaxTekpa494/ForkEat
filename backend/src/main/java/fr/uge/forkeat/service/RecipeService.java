@@ -272,15 +272,27 @@ public class RecipeService {
 
   @Transactional
   public void superLikeRecipe(UUID userId, UUID recipeId) {
-      if (recipePersistence.hasSuperLikedRecipe(userId, recipeId)) {
-          return;
-      }
+      if (recipePersistence.hasSuperLikedRecipe(userId, recipeId)) return;
 
-      // BUG FIX : lecture du solde avec verrou PESSIMISTIC_WRITE pour éviter la race condition
       var wallet = walletPersistence.loadWalletWithLock(userId)
               .orElseThrow(() -> new WalletNotFoundException(userId));
 
-      // Résolution du tarif : promotion active ou config de base
+      var pricing = resolvePricing(userId);
+
+      if (wallet.balance() < pricing.effectivePrice()) {
+          logger.debug("User {} has insufficient balance for super-like (balance={}, required={})",
+                  userId, wallet.balance(), pricing.effectivePrice());
+          throw new InsufficientFundsException(wallet.balance(), pricing.effectivePrice());
+      }
+
+      applyWalletMovements(wallet.id(), recipeId, pricing);
+      recipePersistence.superLikeRecipe(userId, recipeId, pricing.effectivePrice(), pricing.promotionId(), pricing.isBonusFree());
+      walletPersistence.saveTransaction(new Transaction(UUID.randomUUID(), wallet.id(), null, pricing.effectivePrice(), TransactionType.SUPER_LIKE, Instant.now(), null, TransactionStatus.SUCCEEDED));
+  }
+
+  private record SuperLikePricing(long fullPrice, long effectivePrice, UUID promotionId, boolean isBonusFree, long earningsPart, long redistPart) {}
+
+  private SuperLikePricing resolvePricing(UUID userId) {
       var config = superLikeConfigPersistence.get();
       var activePromotion = promotionPersistence.findActiveAt(Instant.now());
 
@@ -292,8 +304,6 @@ public class RecipeService {
           var promo = activePromotion.get();
           promotionId = promo.id();
           fullPrice = promo.priceCents();
-
-          // Vérification du super-like gratuit (tous les N payants → 1 gratuit)
           if (promo.bonusEveryN() != null) {
               int paidCount = promotionPersistence.countPaidSuperLikesByUserAndPromotion(userId, promo.id());
               if (paidCount > 0 && paidCount % promo.bonusEveryN() == 0) {
@@ -304,38 +314,32 @@ public class RecipeService {
           fullPrice = config.priceCents();
       }
 
-      long effectivePrice = isBonusFree ? 0L : fullPrice;
-
-      if (wallet.balance() < effectivePrice) {
-          logger.debug("User {} has insufficient balance for super-like (balance={}, required={})", userId, wallet.balance(), effectivePrice);
-          throw new InsufficientFundsException(wallet.balance(), effectivePrice);
-      }
-
-      // Calcul de la répartition 40/60 sur le plein tarif
       long earningsPart = Math.round(fullPrice * config.earningsRatio().doubleValue());
       long redistPart = fullPrice - earningsPart;
+      long effectivePrice = isBonusFree ? 0L : fullPrice;
 
+      return new SuperLikePricing(fullPrice, effectivePrice, promotionId, isBonusFree, earningsPart, redistPart);
+  }
+
+  private void applyWalletMovements(UUID walletId, UUID recipeId, SuperLikePricing pricing) {
       var earningsWallet = walletPersistence.getEarningsWallet();
       var redistributionWallet = walletPersistence.getRedistributionWallet();
 
-      if (isBonusFree) {
-          // Le porte-monnaie des bénéfices finance la redistribution du super-like gratuit
-          walletPersistence.decrementBalanceById(earningsWallet.id(), redistPart);
-          walletPersistence.incrementBalanceById(redistributionWallet.id(), redistPart);
-          platformWalletPersistence.recordTransaction(PlatformWalletType.EARNINGS, -redistPart, "BONUS_FINANCED", recipeId);
-          platformWalletPersistence.recordTransaction(PlatformWalletType.REDISTRIBUTION, redistPart, "SUPER_LIKE_REDISTRIBUTION", recipeId);
-          logger.debug("Free super-like for user {} on recipe {} (promo {}): EARNINGS -{}, REDISTRIBUTION +{}",
-                  userId, recipeId, promotionId, redistPart, redistPart);
+      if (pricing.isBonusFree()) {
+          walletPersistence.decrementBalanceById(earningsWallet.id(), pricing.redistPart());
+          walletPersistence.incrementBalanceById(redistributionWallet.id(), pricing.redistPart());
+          platformWalletPersistence.recordTransaction(PlatformWalletType.EARNINGS, -pricing.redistPart(), "BONUS_FINANCED", recipeId);
+          platformWalletPersistence.recordTransaction(PlatformWalletType.REDISTRIBUTION, pricing.redistPart(), "SUPER_LIKE_REDISTRIBUTION", recipeId);
+          logger.debug("Free super-like on recipe {} (promo {}): EARNINGS -{}, REDISTRIBUTION +{}",
+                  recipeId, pricing.promotionId(), pricing.redistPart(), pricing.redistPart());
       } else {
-          walletPersistence.decrementBalanceById(wallet.id(), effectivePrice);
-          walletPersistence.incrementBalanceById(earningsWallet.id(), earningsPart);
-          walletPersistence.incrementBalanceById(redistributionWallet.id(), redistPart);
-          platformWalletPersistence.recordTransaction(PlatformWalletType.EARNINGS, earningsPart, "SUPER_LIKE_EARNED", recipeId);
-          platformWalletPersistence.recordTransaction(PlatformWalletType.REDISTRIBUTION, redistPart, "SUPER_LIKE_REDISTRIBUTION", recipeId);
-          logger.debug("Paid super-like for user {} on recipe {} (price={}, promo={}): EARNINGS +{}, REDISTRIBUTION +{}",
-                  userId, recipeId, effectivePrice, promotionId, earningsPart, redistPart);
+          walletPersistence.decrementBalanceById(walletId, pricing.effectivePrice());
+          walletPersistence.incrementBalanceById(earningsWallet.id(), pricing.earningsPart());
+          walletPersistence.incrementBalanceById(redistributionWallet.id(), pricing.redistPart());
+          platformWalletPersistence.recordTransaction(PlatformWalletType.EARNINGS, pricing.earningsPart(), "SUPER_LIKE_EARNED", recipeId);
+          platformWalletPersistence.recordTransaction(PlatformWalletType.REDISTRIBUTION, pricing.redistPart(), "SUPER_LIKE_REDISTRIBUTION", recipeId);
+          logger.debug("Paid super-like on recipe {} (price={}, promo={}): EARNINGS +{}, REDISTRIBUTION +{}",
+                  recipeId, pricing.effectivePrice(), pricing.promotionId(), pricing.earningsPart(), pricing.redistPart());
       }
-      recipePersistence.superLikeRecipe(userId, recipeId, effectivePrice, promotionId, isBonusFree);
-      walletPersistence.saveTransaction(new Transaction(UUID.randomUUID(), wallet.id(), null, effectivePrice, TransactionType.SUPER_LIKE, Instant.now(), null, TransactionStatus.SUCCEEDED));
   }
 }
