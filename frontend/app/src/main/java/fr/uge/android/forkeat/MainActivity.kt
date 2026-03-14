@@ -218,7 +218,7 @@ class MainActivity : ComponentActivity() {
                 onNavigateToRegister = { navController.navigate("register") },
                 onLoginSuccess = {
                   isLoggedIn = true
-                  isAdmin = ForkEatApi.isModerator()
+                  isAdmin = ForkEatApi.isAdmin()
                   isModerator = ForkEatApi.isModerator()
                   startDestination = if (isAdmin) "admin-dashboard" else "home"
                   val destination = if (isAdmin) "admin-dashboard" else "recipes"
@@ -250,6 +250,7 @@ class MainActivity : ComponentActivity() {
                 onLoginSuccess = {
                   isLoggedIn = true
                   isAdmin = ForkEatApi.isAdmin()
+                  isModerator = ForkEatApi.isModerator()
                   val destination = if (isAdmin) "admin-dashboard" else "recipes"
                   navController.navigate(destination) {
                     popUpTo("home") { inclusive = true }

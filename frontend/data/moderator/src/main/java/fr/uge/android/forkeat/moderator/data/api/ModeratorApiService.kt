@@ -4,6 +4,7 @@ import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.recipes.data.dto.RecipesListResponse
 import fr.uge.android.forkeat.recipes.data.dto.SimpleRecipesListResponse
 import retrofit2.Response
+import retrofit2.http.Body
 import retrofit2.http.GET
 import retrofit2.http.POST
 import retrofit2.http.Path
@@ -14,6 +15,8 @@ object ModeratorApi {
         ForkEatApi.createService(ModeratorApiService::class.java)
     }
 }
+
+data class RejectRecipeRequest(val justification: String)
 
 interface ModeratorApiService {
 
@@ -31,5 +34,6 @@ interface ModeratorApiService {
     @POST("api/moderator/recipes/{id}/reject")
     suspend fun rejectRecipe(
       @Path("id") id: String,
+      @Body request: RejectRecipeRequest
     ): Response<Unit>
 }

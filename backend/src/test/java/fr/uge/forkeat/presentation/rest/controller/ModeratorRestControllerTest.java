@@ -1,7 +1,10 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
+import fr.uge.forkeat.presentation.dto.recipe.RejectRecipeRequest;
 import fr.uge.forkeat.presentation.response.ListResponse;
+import fr.uge.forkeat.service.RecipeModerationActionService;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Recipe;
@@ -26,13 +29,17 @@ public class ModeratorRestControllerTest {
 
   @Mock
   private RecipeService recipeService;
+  @Mock
+  private AuthenticationPort authPort;
+  @Mock
+  private RecipeModerationActionService recipeModerationActionService;
 
   private ModeratorRestController moderatorController;
   private Instant now;
 
   @BeforeEach
   void setUp() {
-    moderatorController = new ModeratorRestController(recipeService);
+    moderatorController = new ModeratorRestController(authPort, recipeService, recipeModerationActionService);
     now = Instant.now();
   }
 
@@ -42,7 +49,6 @@ public class ModeratorRestControllerTest {
     @Test
     void shouldFilterByPendingStatus() {
       var pendingRecipe = createRecipe(UUID.randomUUID(), "En attente", RecipeStatus.PENDING_REVIEW);
-      var draftRecipe = createRecipe(UUID.randomUUID(), "Brouillon", RecipeStatus.DRAFT);
       var pageResult = new PageResult<>(List.of(pendingRecipe), 1);
 
       when(recipeService.findByStatus(RecipeStatus.PENDING_REVIEW, 12, 0)).thenReturn(pageResult);
@@ -82,26 +88,37 @@ public class ModeratorRestControllerTest {
 
   @Nested
   class RejectRecipe {
+        @BeforeEach
+        void setUpReject() {
+            when(authPort.extractUsername()).thenReturn("moderatorTest");
+        }
 
-    @Test
-    void ShouldReturnOkWhenRecipeisFound() {
-      var recipeId = UUID.randomUUID();
-      var recipe = createRecipe(recipeId, "test", RecipeStatus.REJECTED);
-      when(recipeService.updateStatus(recipeId, RecipeStatus.REJECTED)).thenReturn(recipe);
+        @Test
+        void ShouldReturnOkWhenRecipeisFound() {
+            var recipeId = UUID.randomUUID();
+            var recipe = createRecipe(recipeId, "test", RecipeStatus.REJECTED);
+            when(recipeService.updateStatus(recipeId, RecipeStatus.REJECTED)).thenReturn(recipe);
 
-      var response = moderatorController.rejectRecipe(recipeId);
-      assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+            var response = moderatorController.rejectRecipe(recipeId, new RejectRecipeRequest("justification"));
+            assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+        }
+
+        @Test
+        void ShouldReturnErrorWhenRecipeNotFound() {
+            var recipeId = UUID.randomUUID();
+            when(recipeService.updateStatus(recipeId, RecipeStatus.REJECTED)).thenThrow(new ResourceNotFoundException("Recipe not found"));
+
+            assertThrows(ResourceNotFoundException.class, ()-> moderatorController.rejectRecipe(recipeId, new RejectRecipeRequest("justification")));
+        }
+
+        @Test
+        void ShouldFailOnEmptyJustification() {
+            var recipeId = UUID.randomUUID();
+            assertThrows(IllegalArgumentException.class, () ->
+                moderatorController.rejectRecipe(recipeId, new RejectRecipeRequest(""))
+            );
+        }
     }
-
-    @Test
-    void ShouldReturnErrorWhenRecipeNotFound() {
-      var recipeId = UUID.randomUUID();
-      when(recipeService.updateStatus(recipeId, RecipeStatus.REJECTED)).thenThrow(new ResourceNotFoundException("Recipe not found"));
-
-      assertThrows(ResourceNotFoundException.class, ()-> moderatorController.rejectRecipe(recipeId));
-    }
-
-  }
 
   private Recipe createRecipe(UUID id, String title, RecipeStatus status) {
     return new Recipe(

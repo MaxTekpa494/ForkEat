@@ -3,6 +3,7 @@ package fr.uge.android.forkeat.moderator
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.moderator.data.api.ModeratorApi
+import fr.uge.android.forkeat.moderator.data.api.RejectRecipeRequest
 import fr.uge.android.forkeat.recipes.data.dto.SimpleRecipeDTO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -103,11 +104,11 @@ class ModeratorRecipesViewModel : ViewModel() {
         }
     }
 
-    fun rejectRecipe(id: String) {
+    fun rejectRecipe(id: String, justification: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = id, error = null)
             try {
-                val response = moderatorService.rejectRecipe(id)
+                val response = moderatorService.rejectRecipe(id, RejectRecipeRequest(justification))
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         actionInProgress = null,

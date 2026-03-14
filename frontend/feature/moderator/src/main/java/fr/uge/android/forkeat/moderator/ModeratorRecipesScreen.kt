@@ -150,7 +150,7 @@ fun ModeratorRecipesScreen(
                     recipes = uiState.pendingRecipes,
                     actionInProgress = uiState.actionInProgress,
                     onValidate = { viewModel.validateRecipe(it) },
-                    onReject = { viewModel.rejectRecipe(it) },
+                    onReject = { id, justification -> viewModel.rejectRecipe(id, justification) },
                     onNavigateToRecipe = onNavigateToRecipe,
                     onLoadMore = { viewModel.loadMorePendingRecipes() },
                     isLoading = uiState.isLoading
@@ -165,7 +165,7 @@ private fun PendingRecipesContent(
     recipes: List<SimpleRecipeDTO>,
     actionInProgress: String?,
     onValidate: (String) -> Unit,
-    onReject: (String) -> Unit,
+    onReject: (String, String) -> Unit,
     onNavigateToRecipe: (String) -> Unit,
     onLoadMore: () -> Unit = {},
     isLoading: Boolean = false
@@ -198,7 +198,7 @@ private fun PendingRecipesContent(
                     recipe = recipe,
                     isActionInProgress = actionInProgress == recipe.id,
                     onValidate = { onValidate(recipe.id) },
-                    onReject = { onReject(recipe.id) },
+                    onReject = { justification -> onReject(recipe.id, justification) },
                     onNavigateToRecipe = { onNavigateToRecipe(recipe.id) }
                 )
             }
@@ -211,26 +211,52 @@ private fun PendingRecipeCard(
     recipe: SimpleRecipeDTO,
     isActionInProgress: Boolean,
     onValidate: () -> Unit,
-    onReject: () -> Unit,
+    onReject: (String) -> Unit,
     onNavigateToRecipe: () -> Unit
 ) {
     var showRejectDialog by remember { mutableStateOf(false) }
+    var justification by remember { mutableStateOf("") }
+    var justificationError by remember { mutableStateOf<String?>(null) }
 
     if (showRejectDialog) {
         AlertDialog(
             onDismissRequest = { showRejectDialog = false },
             title = { Text("Rejeter la recette", fontWeight = FontWeight.Bold) },
             text = {
-                Text(
-                    text = "Voulez-vous rejeter « ${recipe.title} » ?\nL'auteur sera informé du refus.",
-                    fontSize = 14.sp
-                )
+                Column {
+                    Text(
+                        text = "Merci d'indiquer une justification pour le rejet de « ${recipe.title} ».",
+                        fontSize = 14.sp
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    androidx.compose.material3.OutlinedTextField(
+                        value = justification,
+                        onValueChange = {
+                            justification = it
+                            if (it.isNotBlank()) justificationError = null
+                        },
+                        label = { Text("Justification*") },
+                        isError = justificationError != null,
+                        minLines = 2,
+                        maxLines = 4,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (justificationError != null) {
+                        Text(justificationError!!, color = Color(0xFFDC2626), fontSize = 12.sp)
+                    }
+                }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        showRejectDialog = false
-                        onReject()
+                        if (justification.isBlank()) {
+                            justificationError = "La justification ne peut pas être vide."
+                        } else {
+                            showRejectDialog = false
+                            onReject(justification.trim())
+                            justification = ""
+                            justificationError = null
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
                 ) {
