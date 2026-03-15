@@ -16,7 +16,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Objects;
 import java.util.UUID;
 
 @RestController
@@ -32,9 +31,9 @@ public class ModeratorRestController {
   public ModeratorRestController(AuthenticationPort authPort,
                                  RecipeService recipeService,
                                  RecipeModerationActionService recipeModerationActionService) {
-    this.authPort = Objects.requireNonNull(authPort);
-    this.recipeService = Objects.requireNonNull(recipeService);
-    this.recipeModerationActionService = Objects.requireNonNull(recipeModerationActionService);
+    this.authPort = authPort;
+    this.recipeService = recipeService;
+    this.recipeModerationActionService = recipeModerationActionService;
   }
 
   @GetMapping("/recipes/pending")
