@@ -14,5 +14,7 @@ public interface RecipeReportPersistence {
 
     List<RecipeReport> findByStatus(ReportStatus status);
 
+    boolean existsById(UUID recipeReportId);
+
     boolean existsByRecipeIdAndReporterId(UUID recipeId, UUID reporterId);
 }

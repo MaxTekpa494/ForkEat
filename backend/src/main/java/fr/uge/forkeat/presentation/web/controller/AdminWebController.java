@@ -166,15 +166,13 @@ public class AdminWebController {
 
     @PostMapping("/recipes/{id}/validate")
     public String validateRecipe(@PathVariable UUID id) {
-        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.APPROVED, ""));
-        recipeService.updateStatus(id, RecipeStatus.PUBLISHED);
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.APPROVED, "", null));
         return "redirect:/admin/recipes/pending";
     }
 
     @PostMapping("/recipes/{id}/reject")
     public String rejectRecipe(@PathVariable UUID id, @RequestParam("justification") String justification) {
-        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.REJECTED, justification));
-        recipeService.updateStatus(id, RecipeStatus.REJECTED);
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.REJECTED, justification, null));
         return "redirect:/admin/recipes/pending";
     }
 

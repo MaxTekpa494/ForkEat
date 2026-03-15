@@ -4,6 +4,7 @@ import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationAction;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
+import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.persistence.RecipeModerationActionPersistence;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.persistence.RecipeReportPersistence;
@@ -34,12 +35,14 @@ class RecipeModerationActionServiceTest {
     private RecipeReportPersistence recipeReportPersistence;
     @Mock
     private UserIdentityPort userIdentityPort;
+    @Mock
+    private RecipeService recipeService;
 
     private RecipeModerationActionService recipeModerationActionService;
 
     @BeforeEach
     void setUp() {
-        recipeModerationActionService = new RecipeModerationActionService(moderationActionPersistence, recipePersistence, recipeReportPersistence, userIdentityPort);
+        recipeModerationActionService = new RecipeModerationActionService(moderationActionPersistence, recipePersistence, recipeReportPersistence, userIdentityPort, recipeService);
     }
 
     // TODO : à changer quand on fera signalement avec relatedreport != null
@@ -55,7 +58,7 @@ class RecipeModerationActionServiceTest {
         void shouldCreateModerationActionSuccessfully() {
             var recipeId = UUID.randomUUID();
             var moderatorId = UUID.randomUUID();
-            var command = new CreateRecipeModerationAction(recipeId, "mod", RecipeModerationActionType.REJECTED, "Justification");
+            var command = new CreateRecipeModerationAction(recipeId, "mod", RecipeModerationActionType.REJECTED, "Justification", null);
             var expected = createModerationAction(recipeId, moderatorId, RecipeModerationActionType.REJECTED, "Justification");
 
             when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
@@ -74,7 +77,7 @@ class RecipeModerationActionServiceTest {
         @Test
         void shouldThrowRecipeNotFoundException_WhenRecipeDoesNotExist() {
             var recipeId = UUID.randomUUID();
-            var command = new CreateRecipeModerationAction(recipeId, "mod", RecipeModerationActionType.APPROVED, "Justification");
+            var command = new CreateRecipeModerationAction(recipeId, "mod", RecipeModerationActionType.APPROVED, "Justification", null);
 
             when(recipePersistence.existRecipe(recipeId)).thenReturn(false);
 

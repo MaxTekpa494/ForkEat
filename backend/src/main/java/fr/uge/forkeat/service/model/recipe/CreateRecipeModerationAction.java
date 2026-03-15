@@ -7,7 +7,8 @@ public record CreateRecipeModerationAction(
         UUID recipeId,
         String moderatorUsername,
         RecipeModerationActionType moderationActionType,
-        String justification
+        String justification,
+        UUID relatedReportId
 ) {
     public CreateRecipeModerationAction {
         Objects.requireNonNull(recipeId);

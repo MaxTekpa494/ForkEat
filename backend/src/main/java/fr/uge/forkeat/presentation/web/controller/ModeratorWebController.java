@@ -31,9 +31,9 @@ public class ModeratorWebController {
     public ModeratorWebController(RecipeService recipeService,
                                   RecipeModerationActionService recipeModerationActionService,
                                   AuthenticationPort authPort) {
-        this.recipeService = Objects.requireNonNull(recipeService);
-        this.recipeModerationActionService = Objects.requireNonNull(recipeModerationActionService);
-        this.authPort = Objects.requireNonNull(authPort);
+        this.recipeService = recipeService;
+        this.recipeModerationActionService = recipeModerationActionService;
+        this.authPort = authPort;
     }
 
     @GetMapping("/recipes")
@@ -51,15 +51,13 @@ public class ModeratorWebController {
 
     @PostMapping("/recipes/{id}/validate")
     public String validateRecipe(@PathVariable UUID id) {
-        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.APPROVED, ""));
-        recipeService.updateStatus(id, RecipeStatus.PUBLISHED);
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.APPROVED, "", null));
         return "redirect:/moderator/recipes";
     }
 
     @PostMapping("/recipes/{id}/reject")
     public String rejectRecipe(@PathVariable UUID id, @RequestParam("justification") String justification) {
-        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.REJECTED, justification));
-        recipeService.updateStatus(id, RecipeStatus.REJECTED);
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.REJECTED, justification, null));
         return "redirect:/moderator/recipes";
     }
 }

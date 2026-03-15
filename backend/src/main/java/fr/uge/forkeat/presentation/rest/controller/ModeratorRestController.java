@@ -48,15 +48,13 @@ public class ModeratorRestController {
 
   @PostMapping("/recipes/{id}/validate")
   public ResponseEntity<Void> validateRecipe(@PathVariable UUID id) {
-    recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.APPROVED, ""));
-    recipeService.updateStatus(id, RecipeStatus.PUBLISHED);
+    recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.APPROVED, "", null));
     return ResponseEntity.noContent().build();
   }
 
   @PostMapping("/recipes/{id}/reject")
   public ResponseEntity<Void> rejectRecipe(@PathVariable UUID id, @RequestBody RejectRecipeRequest request) {
-    recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.REJECTED, request.justification()));
-    recipeService.updateStatus(id, RecipeStatus.REJECTED);
+    recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.REJECTED, request.justification(), null));
     return ResponseEntity.noContent().build();
   }
 
