@@ -10,7 +10,11 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSumma
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
-import fr.uge.forkeat.service.model.recipe.projection.*;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeRejectionInfo;
+import fr.uge.forkeat.service.model.recipe.projection.AuthorRecipeSummary;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
+import fr.uge.forkeat.service.model.recipe.projection.UserRecipeStats;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import jakarta.persistence.EntityManager;
 import org.springframework.data.domain.PageRequest;

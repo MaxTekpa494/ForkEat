@@ -2,8 +2,10 @@ package fr.uge.forkeat.service.persistence;
 
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
-import fr.uge.forkeat.service.model.recipe.projection.*;
-
+import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
+import fr.uge.forkeat.service.model.recipe.projection.AuthorRecipeSummary;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
+import fr.uge.forkeat.service.model.recipe.projection.UserRecipeStats;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
