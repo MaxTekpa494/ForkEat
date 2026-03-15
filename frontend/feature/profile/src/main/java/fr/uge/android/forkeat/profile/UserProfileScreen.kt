@@ -27,6 +27,8 @@ import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.recipes.EmailNotVerifiedDialog
 import fr.uge.android.forkeat.recipes.InsufficientFundsDialog
 import fr.uge.android.forkeat.recipes.RecipeCard
+import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
+import kotlin.collections.isNotEmpty
 import fr.uge.android.forkeat.recipes.ReportUserDialog
 
 @Composable

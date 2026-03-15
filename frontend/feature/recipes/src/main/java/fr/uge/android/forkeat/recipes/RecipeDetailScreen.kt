@@ -65,7 +65,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import fr.uge.android.forkeat.designsystem.theme.*
 import fr.uge.android.forkeat.network.ForkEatApi
-import fr.uge.android.forkeat.recipes.data.dto.AllergenDTO
+import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDiffDTO
@@ -131,9 +131,9 @@ fun RecipeDetailScreen(
             text = { Text("Voulez-vous vraiment supprimer « ${recipe.title} » ?\nCette action est irréversible.", color = Gray500) },
             confirmButton = {
                 Button(
-                    onClick = { 
+                    onClick = {
                         showDeleteDialog = false
-                        onDelete() 
+                        onDelete()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
                     shape = RoundedCornerShape(50)
@@ -576,7 +576,7 @@ private fun DiffBadge(type: RecipeDiffDTO.DiffType) {
 }
 
 @Composable
-fun AllergenBadges(allergens: List<AllergenDTO>) {
+fun AllergenBadges(allergens: List<RecipeAllergenDTO>) {
     Row(
         Modifier
             .padding(vertical = 4.dp)
@@ -1190,8 +1190,8 @@ fun PreviewRecipeDetailScreen() {
             RecipeIngredientDTO("Beurre doux froid", 125.0, "g")
         ),
         allergens = listOf(
-            AllergenDTO("1", "Gluten", "élevé"),
-            AllergenDTO("2", "Lait", "moyen")
+            RecipeAllergenDTO("1", "Gluten", "élevé"),
+            RecipeAllergenDTO("2", "Lait", "moyen")
         ),
         dietaries = listOf("vegetarian"),
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
@@ -1222,8 +1222,6 @@ fun PreviewRecipeDetailScreenWithDiff() {
         dietaries = emptyList(),
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
         updatedAt = Instant.parse("2026-02-10T12:00:00Z"),
-        nbLike = 5,
-        hasLiked = false
     )
     val diff = RecipeDiffDTO(
         titleChanged = true,
@@ -1260,7 +1258,7 @@ fun PreviewRecipeDetailScreenWithDiff() {
         status = "PUBLISHED",
         steps = listOf(RecipeStepDTO(1, "Préparez la pâte."), RecipeStepDTO(2, "Ajoutez la cannelle.")),
         ingredients = listOf(RecipeIngredientDTO("Farine", 250.0, "g")),
-        allergens = listOf(AllergenDTO("1", "Gluten", "élevé")),
+        allergens = listOf(RecipeAllergenDTO("1", "Gluten", "élevé")),
         dietaries = listOf("vegetarian"),
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
         updatedAt = Instant.parse("2026-02-10T12:00:00Z"),

@@ -134,13 +134,12 @@
                             </form>
 
                             <!-- Rejeter -->
-                            <form th:action="@{/admin/recipes/{id}/reject(id=${recipe.id()})}" method="post" class="inline">
-                                <button type="submit"
-                                        class="inline-flex items-center gap-2 px-5 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 rounded-xl font-semibold text-sm transition"
-                                        onclick="return confirm('Rejeter cette recette ? Elle ne sera pas publiée.')">
-                                    <i class="fas fa-times"></i> Rejeter
-                                </button>
-                            </form>
+                            <button type="button"
+                                    class="inline-flex items-center gap-2 px-5 py-2 bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 hover:border-red-300 rounded-xl font-semibold text-sm transition"
+                                    th:attr="data-recipe-id=${recipe.id()}"
+                                    onclick="openRejectModalFromButton(this)">
+                                <i class="fas fa-times"></i> Rejeter
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -148,6 +147,31 @@
             </div>
         </div>
     </section>
+
+
+    <!-- Modale de rejet -->
+    <div th:replace="~{fragments/modals :: rejectRecipeModal('rejectModal', 'rejectForm')}"></div>
+
+    <!-- Bloc scripts -->
+    <th:block layout:fragment="scripts">
+        <script>
+            let rejectModal = document.getElementById('rejectModal');
+            let rejectForm = document.getElementById('rejectForm');
+            function openRejectModal(recipeId) {
+                rejectForm.action = `/admin/recipes/${recipeId}/reject`;
+                rejectModal.classList.remove('hidden');
+            }
+            function openRejectModalFromButton(btn) {
+                const recipeId = btn.getAttribute('data-recipe-id');
+                openRejectModal(recipeId);
+            }
+            function closeRejectModal() {
+                rejectModal.classList.add('hidden');
+                rejectForm.action = '';
+                rejectForm.reset();
+            }
+        </script>
+    </th:block>
 
 </div>
 </body>

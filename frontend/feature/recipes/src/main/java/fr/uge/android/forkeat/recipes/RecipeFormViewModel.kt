@@ -12,8 +12,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.TokenManager
-import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
-import fr.uge.android.forkeat.recipes.data.dto.AllergenDTO
+import fr.uge.android.forkeat.recipes.data.api.RecipeApi
+import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.CreateRecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeIngredientDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeStepDTO
@@ -55,7 +55,7 @@ data class RecipeFormUiState(
     val steps: List<StepState> = emptyList(),
     val ingredients: List<IngredientState> = emptyList(),
     val selectedAllergenIds: Set<String> = emptySet(),
-    val availableAllergens: List<AllergenDTO> = emptyList(),
+    val availableAllergens: List<RecipeAllergenDTO> = emptyList(),
     val availableIngredientNames: List<String> = emptyList(),
     val availableDietaries: List<String> = emptyList(),
     val selectedDietaries: Set<String> = emptySet(),
@@ -75,7 +75,7 @@ class RecipeFormViewModel(
     savedStateHandle: SavedStateHandle
 ) : AndroidViewModel(application) {
 
-    private val api: RecipeApiService = ForkEatApi.recipeService
+    private val api = RecipeApi.service
     private val tokenManager = TokenManager(application)
 
     val mode: RecipeFormMode = when {

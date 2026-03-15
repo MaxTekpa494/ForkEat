@@ -2,9 +2,12 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.service.port.PromotionSchedulingPort;
 import fr.uge.forkeat.service.PlatformWalletService;
+import fr.uge.forkeat.service.RecipeModerationActionService;
 import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
+import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
+import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.superlike.Promotion;
 import fr.uge.forkeat.service.model.SortOrder;
@@ -41,6 +44,7 @@ public class AdminWebController {
     private final PlatformWalletService platformWalletService;
     private final AuthenticationPort authPort;
     private final UserRegistrationService userRegistrationService;
+    private final RecipeModerationActionService recipeModerationActionService;
     private final PromotionService promotionService;
     private final PromotionSchedulingPort schedulingService;
 
@@ -49,6 +53,7 @@ public class AdminWebController {
                               PlatformWalletService platformWalletService,
                               AuthenticationPort authPort,
                               UserRegistrationService userRegistrationService,
+                              RecipeModerationActionService recipeModerationActionService,
                               PromotionService promotionService,
                               PromotionSchedulingPort schedulingService) {
         this.userQueryService = Objects.requireNonNull(userQueryService);
@@ -56,6 +61,7 @@ public class AdminWebController {
         this.platformWalletService = Objects.requireNonNull(platformWalletService);
         this.authPort = Objects.requireNonNull(authPort);
         this.userRegistrationService = Objects.requireNonNull(userRegistrationService);
+        this.recipeModerationActionService = Objects.requireNonNull(recipeModerationActionService);
         this.promotionService = Objects.requireNonNull(promotionService);
         this.schedulingService = Objects.requireNonNull(schedulingService);
     }
@@ -160,13 +166,13 @@ public class AdminWebController {
 
     @PostMapping("/recipes/{id}/validate")
     public String validateRecipe(@PathVariable UUID id) {
-        recipeService.updateStatus(id, RecipeStatus.PUBLISHED);
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.APPROVED, "", null));
         return "redirect:/admin/recipes/pending";
     }
 
     @PostMapping("/recipes/{id}/reject")
-    public String rejectRecipe(@PathVariable UUID id) {
-        recipeService.updateStatus(id, RecipeStatus.REJECTED);
+    public String rejectRecipe(@PathVariable UUID id, @RequestParam("justification") String justification) {
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.REJECTED, justification, null));
         return "redirect:/admin/recipes/pending";
     }
 

@@ -34,6 +34,7 @@ kotlin {
 }
 
 dependencies {
+  implementation(project(":core:network"))
   implementation(libs.androidx.core.ktx)
   implementation(libs.androidx.appcompat)
   implementation(libs.material)

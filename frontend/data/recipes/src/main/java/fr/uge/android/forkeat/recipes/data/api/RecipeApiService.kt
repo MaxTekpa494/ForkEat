@@ -1,6 +1,7 @@
 package fr.uge.android.forkeat.recipes.data.api
 
-import fr.uge.android.forkeat.recipes.data.dto.AllergenDTO
+import fr.uge.android.forkeat.network.ForkEatApi
+import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.CreateRecipeFormDataResponse
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
@@ -23,6 +24,12 @@ import retrofit2.http.Part
 import retrofit2.http.Path
 import retrofit2.http.Query
 import java.util.UUID
+
+object RecipeApi {
+    val service: RecipeApiService by lazy {
+        ForkEatApi.createService(RecipeApiService::class.java)
+    }
+}
 
 interface RecipeApiService {
 
@@ -104,7 +111,7 @@ interface RecipeApiService {
     ): Response<Unit>
 
     @GET("api/recipes/allergens")
-    suspend fun getAllergens(): Response<RecipesListResponse<AllergenDTO>>
+    suspend fun getAllergens(): Response<RecipesListResponse<RecipeAllergenDTO>>
 
     @POST("api/recipes/{id}/reports")
     suspend fun reportRecipe(

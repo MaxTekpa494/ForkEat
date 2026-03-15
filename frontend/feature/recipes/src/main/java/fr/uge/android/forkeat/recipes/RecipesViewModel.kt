@@ -5,9 +5,10 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.TokenManager
+import fr.uge.android.forkeat.recipes.data.api.RecipeApi
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
-import fr.uge.android.forkeat.recipes.data.dto.AllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
+import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDiffDTO
@@ -20,7 +21,10 @@ import java.util.UUID
 
 class RecipesViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val api: RecipeApiService = ForkEatApi.recipeService
+    private val api: RecipeApiService = RecipeApi.service
+
+
+
     private val tokenManager = TokenManager(application)
 
     private val _recipes = MutableStateFlow<List<PersonalizedRecipeSummaryDTO>>(emptyList())
@@ -73,8 +77,8 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     private val _selectedAllergens = MutableStateFlow<Set<String>>(emptySet())
     val selectedAllergens: StateFlow<Set<String>> = _selectedAllergens.asStateFlow()
 
-    private val _availableAllergens = MutableStateFlow<List<AllergenDTO>>(emptyList())
-    val availableAllergens: StateFlow<List<AllergenDTO>> = _availableAllergens.asStateFlow()
+    private val _availableAllergens = MutableStateFlow<List<RecipeAllergenDTO>>(emptyList())
+    val availableAllergens: StateFlow<List<RecipeAllergenDTO>> = _availableAllergens.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -154,7 +158,7 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
                 } else recipe
             } else recipe
         }
-        
+
         _currentRecipe.value?.let { current ->
             if (current.id == recipeId && current.hasLiked != liked) {
                 _currentRecipe.value = current.copy(
@@ -341,7 +345,7 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
                     _currentParent.value = data?.parent
                     _currentDiff.value = data?.diff
                     _errorMessage.value = null
-                    
+
                     // Synchronize local state in main list
                     data?.recipe?.let { recipe ->
                         updateRecipeStates(recipe.id, recipe.hasLiked)
