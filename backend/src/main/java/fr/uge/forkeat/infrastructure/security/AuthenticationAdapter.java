@@ -85,6 +85,16 @@ public class AuthenticationAdapter implements AuthenticationPort {
     }
 
     @Override
+    public boolean isModerator() {
+        var auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            return false;
+        }
+        return auth.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_MODERATOR"));
+    }
+
+    @Override
     public void refreshAuthentication(User user) {
         String roleName = user.role().name().startsWith("ROLE_")
                 ? user.role().name()

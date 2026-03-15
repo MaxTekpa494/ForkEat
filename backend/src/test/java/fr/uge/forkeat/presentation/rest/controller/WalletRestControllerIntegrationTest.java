@@ -2,21 +2,21 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.uge.forkeat.presentation.dto.user.TopUpRequestDTO;
-import fr.uge.forkeat.presentation.dto.user.CreateBankInfoRequestDTO; // New import
-import fr.uge.forkeat.presentation.dto.user.WithdrawalRequestDTO;     // New import
+import fr.uge.forkeat.presentation.dto.user.CreateBankInfoRequestDTO;
+import fr.uge.forkeat.presentation.dto.user.WithdrawalRequestDTO;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
-import fr.uge.forkeat.service.exception.WithdrawalException;        // New import
+import fr.uge.forkeat.service.exception.WithdrawalException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.transaction.Transaction;
-import fr.uge.forkeat.service.model.transaction.TransactionType;
 import fr.uge.forkeat.service.model.transaction.TransactionStatus;
-import fr.uge.forkeat.service.model.user.BankInfo;                   // New import
+import fr.uge.forkeat.service.model.transaction.TransactionType;
+import fr.uge.forkeat.service.model.user.BankInfo;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.user.BankInfoService;                  // New import
+import fr.uge.forkeat.service.user.BankInfoService;
 import fr.uge.forkeat.service.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -55,7 +55,7 @@ class WalletRestControllerIntegrationTest { // Renamed class
     private UserService userService;
 
     @MockitoBean
-    private BankInfoService bankInfoService; // New mock
+    private BankInfoService bankInfoService;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
@@ -114,7 +114,7 @@ class WalletRestControllerIntegrationTest { // Renamed class
     @Test
     void shouldReturnTransactions() throws Exception {
         var transactions = List.of(
-                new Transaction(UUID.randomUUID(), null, UUID.randomUUID(), 1000L, TransactionType.RECHARGE, Instant.now(), "tx_1", TransactionStatus.SUCCEEDED) // Updated Transaction constructor
+                new Transaction(UUID.randomUUID(), null, UUID.randomUUID(), 1000L, TransactionType.RECHARGE, Instant.now(), "tx_1", TransactionStatus.SUCCEEDED)
         );
         when(walletService.getTransactionHistory(testUser.id())).thenReturn(transactions);
 

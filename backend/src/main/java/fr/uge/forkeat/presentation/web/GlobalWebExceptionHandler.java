@@ -126,4 +126,36 @@ public class GlobalWebExceptionHandler {
 		return "redirect:" + uri.substring(0, uri.lastIndexOf("/report"));
 	}
 
+
+	@ExceptionHandler(PromotionNotFoundException.class)
+	@ResponseStatus(HttpStatus.NOT_FOUND)
+	public String handlePromotionNotFound(PromotionNotFoundException ex, Model model) {
+		model.addAttribute("errorMessage", ex.getMessage());
+		model.addAttribute("pageTitle", "Promotion non trouvée");
+		return "error/404";
+	}
+
+	@ExceptionHandler(PromotionModificationForbiddenException.class)
+	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+	public String handlePromotionModificationForbidden(PromotionModificationForbiddenException ex, Model model) {
+		model.addAttribute("errorMessage", ex.getMessage());
+		model.addAttribute("pageTitle", "Modification interdite");
+		return "error/422";
+	}
+
+	@ExceptionHandler(PromotionOverlapException.class)
+	@ResponseStatus(HttpStatus.CONFLICT)
+	public String handlePromotionOverlap(PromotionOverlapException ex, Model model) {
+		model.addAttribute("errorMessage", ex.getMessage());
+		model.addAttribute("pageTitle", "Conflit de promotion");
+		return "error/409";
+	}
+
+	@ExceptionHandler(PromotionNotProfitableException.class)
+	@ResponseStatus(HttpStatus.UNPROCESSABLE_ENTITY)
+	public String handlePromotionNotProfitable(PromotionNotProfitableException ex, Model model) {
+		model.addAttribute("errorMessage", ex.getMessage());
+		model.addAttribute("pageTitle", "Promotion non rentable");
+		return "error/422";
+	}
 }

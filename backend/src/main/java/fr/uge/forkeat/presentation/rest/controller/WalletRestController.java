@@ -1,14 +1,15 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
-import fr.uge.forkeat.presentation.dto.user.TopUpRequestDTO;
-import fr.uge.forkeat.presentation.dto.user.CreateBankInfoRequestDTO;
 import fr.uge.forkeat.presentation.dto.user.BankInfoResponseDTO;
+import fr.uge.forkeat.presentation.dto.user.CreateBankInfoRequestDTO;
+import fr.uge.forkeat.presentation.dto.user.TopUpRequestDTO;
+import fr.uge.forkeat.presentation.dto.user.TransactionDTO;
 import fr.uge.forkeat.presentation.dto.user.WithdrawalRequestDTO;
 import fr.uge.forkeat.presentation.mapper.rest.BankInfoDTOMapper;
+import fr.uge.forkeat.presentation.mapper.rest.TransactionDTOMapper;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.WithdrawalException;
-import fr.uge.forkeat.service.model.transaction.Transaction;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.BankInfoService;
 import fr.uge.forkeat.service.user.UserService;
@@ -53,9 +54,11 @@ public class WalletRestController {
     }
 
     @GetMapping("/transactions")
-    public ResponseEntity<List<Transaction>> getTransactions() {
+    public ResponseEntity<List<TransactionDTO>> getTransactions() {
         var user = userService.getUserByUsername(authPort.extractUsername());
-        var transactions = walletService.getTransactionHistory(user.id());
+        var transactions = walletService.getTransactionHistory(user.id()).stream()
+                .map(TransactionDTOMapper::toDTO)
+                .toList();
         return ResponseEntity.ok(transactions);
     }
 

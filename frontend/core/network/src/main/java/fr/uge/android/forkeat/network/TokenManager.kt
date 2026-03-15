@@ -22,6 +22,8 @@ class TokenManager(context: Context) {
 
     fun isAdmin(): Boolean = prefs.getString(KEY_ROLE, null) == "ADMIN"
 
+    fun isModerator(): Boolean = prefs.getString(KEY_ROLE, null) == "MODERATOR"
+
     fun clearToken() {
         prefs.edit().remove(KEY_TOKEN).remove(KEY_ROLE).apply()
     }

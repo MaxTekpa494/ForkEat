@@ -1,7 +1,9 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.SortOrder;
 import fr.uge.forkeat.service.model.wallet.PlatformWallet;
+import fr.uge.forkeat.service.model.wallet.PlatformWalletTransaction;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.persistence.PlatformWalletPersistence;
 import org.springframework.stereotype.Service;
@@ -9,6 +11,7 @@ import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -42,5 +45,10 @@ public class PlatformWalletService {
                 .orElseThrow(() -> new ResourceNotFoundException("Platform wallet not found: " + type));
         var updated = new PlatformWallet(wallet.id(), wallet.type(), wallet.balance() + amount, Instant.now());
         return platformWalletPersistence.save(updated);
+    }
+
+    @Transactional(readOnly = true)
+    public List<PlatformWalletTransaction> getTransactionHistory(SortOrder order) {
+        return platformWalletPersistence.findAllTransactions(order);
     }
 }

@@ -5,9 +5,7 @@ plugins {
 
 android {
     namespace = "fr.uge.android.forkeat.network"
-    compileSdk {
-        version = release(36)
-    }
+    compileSdk = 35
 
     defaultConfig {
         minSdk = 24
@@ -31,7 +29,6 @@ kotlin {
 }
 
 dependencies {
-    api(project(":data:recipes"))
     implementation(libs.androidx.core.ktx)
     api(libs.retrofit)
     implementation(libs.retrofit.converter.gson)

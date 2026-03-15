@@ -74,9 +74,6 @@ class RecipePersistenceAdapterTest {
 
 
     @Mock
-    private WalletRepository walletRepository;
-
-    @Mock
     private SuperLikeRepository superLikeRepository;
 
     @Mock
@@ -94,7 +91,7 @@ class RecipePersistenceAdapterTest {
                 allergenRepository, ingredientRepository,
                 neo4jRecipeRepository,
                 recipeAllergenRepository, recipeIngredientRepository,
-                recipeDietaryRepository, dietaryRepository, entityManager,superLikeRepository, walletRepository);
+                recipeDietaryRepository, dietaryRepository, entityManager, superLikeRepository);
         now = Instant.now();
 
         author = new UserEntity();
@@ -955,15 +952,14 @@ class RecipePersistenceAdapterTest {
     class SuperLike {
 
         @Test
-        void shouldSaveSuperLikeAndDecrementWallet() {
+        void shouldSaveSuperLike() {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
             long amount = 100L;
 
-            adapter.superLikeRecipe(userId, recipeId, amount);
+            adapter.superLikeRecipe(userId, recipeId, amount, null, false);
 
             verify(superLikeRepository).save(any(SuperLikeEntity.class));
-            verify(walletRepository).decrementBalanceByUserId(userId, amount);
         }
 
         @Test

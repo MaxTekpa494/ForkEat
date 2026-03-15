@@ -40,6 +40,10 @@
                        class="text-violet-200 hover:text-white font-medium transition py-2 border-b-2 border-transparent hover:border-violet-400">
                         Porte-monnaies
                     </a>
+                    <a th:href="@{/admin/super-like}"
+                       class="text-violet-200 hover:text-white font-medium transition py-2 border-b-2 border-transparent hover:border-violet-400">
+                        Super-like
+                    </a>
                 </div>
 
                 <!-- Admin dropdown -->
@@ -85,6 +89,10 @@
                                    class="block px-4 py-2 text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition mx-2 rounded-lg">
                                     <i class="fas fa-university mr-3 text-violet-400"></i> Porte-monnaies
                                 </a>
+                                <a th:href="@{/admin/super-like}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-violet-50 hover:text-violet-700 transition mx-2 rounded-lg">
+                                    <i class="fas fa-star mr-3 text-violet-400"></i> Super-like
+                                </a>
 
                                 <div class="border-t my-2 border-gray-100"></div>
 
@@ -122,6 +130,9 @@
                 <a th:href="@{/admin/wallets}" class="flex items-center text-violet-200 hover:text-white font-medium py-2">
                     <i class="fas fa-university w-8 text-violet-400"></i> Porte-monnaies
                 </a>
+                <a th:href="@{/admin/super-like}" class="flex items-center text-violet-200 hover:text-white font-medium py-2">
+                    <i class="fas fa-star w-8 text-violet-400"></i> Super-like
+                </a>
                 <div class="pt-4 border-t border-violet-700">
                     <form th:action="@{/logout}" method="post">
                         <button type="submit" class="w-full flex items-center text-red-400 hover:text-red-300 py-2 font-medium">
@@ -133,8 +144,97 @@
         </div>
     </div>
 
+    <div th:if="${isModerator} and ${inModeratorInterface} and !${isAdmin}"
+         class="bg-orange-900 backdrop-blur-md shadow-lg border-b border-orange-700">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between h-20">
+
+                <a th:href="@{/moderator/recipes}" class="flex items-center space-x-2 group">
+                    <div class="w-10 h-10 bg-orange-700 rounded-full flex items-center justify-center group-hover:bg-orange-600 transition-colors duration-300">
+                        <i class="fas fa-utensils text-orange-200 text-lg group-hover:text-white transition-colors"></i>
+                    </div>
+                    <span class="font-display font-bold text-2xl tracking-tight">
+                        <span class="text-white">Fork</span><span class="text-orange-300">Eat</span>
+                    </span>
+                </a>
+
+                <!-- Liens modérateur desktop -->
+                <div class="hidden md:flex items-center space-x-6">
+                    <a th:href="@{/moderator/recipes}"
+                       class="text-orange-200 hover:text-white font-medium transition py-2 border-b-2 border-transparent hover:border-orange-400">
+                        Recettes
+                    </a>
+                    <a th:href="@{/moderator/reports}"
+                       class="text-orange-200 hover:text-white font-medium transition py-2 border-b-2 border-transparent hover:border-orange-400">
+                        Signalements
+                    </a>
+                </div>
+
+                <!-- Moderator dropdown -->
+                <div class="hidden md:flex items-center">
+                    <div class="relative">
+                        <button id="user-menu-button" class="flex items-center space-x-3 text-orange-200 hover:text-white font-medium transition pl-2">
+                            <span th:text="${currentUsername}" class="hidden lg:block">Modérateur</span>
+                            <div class="user-avatar w-10 h-10 bg-orange-700 text-white rounded-full flex items-center justify-center font-bold shadow-md ring-2 ring-orange-500">
+                                <span th:text="${!#strings.isEmpty(currentUsername) ? #strings.substring(currentUsername, 0, 1).toUpperCase() : '?'}">M</span>
+                            </div>
+                            <i class="fas fa-chevron-down text-xs text-orange-400 transition-transform duration-200" id="moderator-user-menu-chevron"></i>
+                        </button>
+
+                        <div id="user-menu-dropdown" class="absolute right-0 top-full mt-2 w-60 hidden z-[9999] origin-top-right">
+                            <div class="bg-white rounded-xl shadow-2xl py-2 border border-gray-100">
+
+                                <div class="px-4 py-3 border-b border-gray-100 mb-2">
+                                    <p class="text-xs text-orange-500 uppercase font-bold tracking-wider">Modération</p>
+                                    <p class="text-sm font-semibold text-gray-900 mt-0.5" th:text="${currentUsername}">Modérateur</p>
+                                </div>
+
+                                <a th:href="@{/moderator/recipes}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition mx-2 rounded-lg">
+                                    <i class="fas fa-book-open mr-3 text-orange-400"></i> Recettes
+                                </a>
+                                <a th:href="@{/moderator/reports}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition mx-2 rounded-lg">
+                                    <i class="fas fa-flag mr-3 text-orange-400"></i> Signalements
+                                </a>
+
+                                <div class="border-t my-2 border-gray-100"></div>
+
+                                <a th:href="@{/recipes}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition mx-2 rounded-lg">
+                                    <i class="fas fa-arrow-left mr-3 text-orange-400"></i> Retour au mode utilisateur
+                                </a>
+
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button id="mobile-menu-button" class="md:hidden text-orange-200 hover:text-white transition p-2">
+                    <i class="fas fa-bars text-2xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <div id="mobile-menu" class="hidden md:hidden bg-orange-800 border-t border-orange-700 absolute w-full shadow-lg z-50">
+            <div class="container mx-auto px-4 py-6 space-y-4">
+                <a th:href="@{/moderator/recipes}" class="flex items-center text-orange-200 hover:text-white font-medium py-2">
+                    <i class="fas fa-book-open w-8 text-orange-400"></i> Recettes
+                </a>
+                <a th:href="@{/moderator/reports}" class="flex items-center text-orange-200 hover:text-white font-medium py-2">
+                    <i class="fas fa-flag w-8 text-orange-400"></i> Signalements
+                </a>
+                <div class="pt-4 border-t border-orange-700">
+                <a th:href="@{/recipes}" class="flex items-center text-orange-200 hover:text-white font-medium py-2">
+                    <i class="fas fa-arrow-left w-8 text-orange-400"></i> Retour au mode utilisateur
+                </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- ===== NAVBAR USER ===== -->
-    <div th:unless="${isAdmin}"
+    <div th:unless="${isAdmin} or ${inModeratorInterface}"
          class="bg-white/95 backdrop-blur-md shadow-sm border-b border-gray-100">
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between h-20">
@@ -194,11 +294,9 @@
 
                         <div id="user-menu-dropdown" class="absolute right-0 top-full mt-2 w-60 hidden z-[9999] origin-top-right">
                             <div class="bg-white rounded-xl shadow-2xl py-2 border border-gray-100">
-
                                 <div class="px-4 py-3 border-b border-gray-100 mb-2">
                                     <p class="text-xs text-gray-500 uppercase font-bold tracking-wider">Mon Compte</p>
                                 </div>
-
                                 <a th:href="@{/profile}"
                                    class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
                                     <i class="fas fa-user mr-3 text-secondary-400"></i> Mon profil
@@ -215,7 +313,11 @@
                                    class="block px-4 py-2 text-gray-700 hover:bg-primary-50 hover:text-primary-600 transition mx-2 rounded-lg">
                                     <i class="fas fa-book mr-3 text-secondary-400"></i> Mes recettes
                                 </a>
-
+                                <div class="border-t my-2 border-gray-100"></div>
+                                <a th:if="${isModerator}" th:href="@{/moderator/recipes}"
+                                   class="block px-4 py-2 text-orange-700 hover:bg-orange-50 hover:text-orange-800 transition mx-2 rounded-lg font-semibold">
+                                    <i class="fas fa-user-shield mr-3 text-orange-400"></i> Mode modérateur
+                                </a>
                                 <div class="border-t my-2 border-gray-100"></div>
 
                                 <form th:action="@{/logout}" method="post" class="px-2">
@@ -279,6 +381,12 @@
                     <a th:href="@{/recipes/my-recipes}" class="flex items-center text-secondary-700 hover:text-primary-500 py-2">
                         <i class="fas fa-book w-8"></i> Mes recettes
                     </a>
+                    <div class="border-t border-gray-100 my-2" th:if="${isModerator}"></div>
+                    <a th:if="${isModerator}" th:href="@{/moderator/recipes}"
+                       class="flex items-center text-orange-700 hover:text-orange-800 font-semibold py-2">
+                        <i class="fas fa-user-shield w-8 text-orange-400"></i> Mode modérateur
+                    </a>
+                    <div class="border-t border-gray-100 my-2" th:if="${isModerator}"></div>
                     <form th:action="@{/logout}" method="post">
                         <button type="submit" class="w-full flex items-center text-red-600 hover:text-red-700 py-2 font-medium">
                             <i class="fas fa-sign-out-alt w-8"></i> Déconnexion

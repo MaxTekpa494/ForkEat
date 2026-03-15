@@ -37,7 +37,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import fr.uge.android.forkeat.network.dto.admin.PlatformWalletDTO
+import fr.uge.android.forkeat.admin.data.dto.PlatformWalletDTO
 import java.text.DecimalFormat
 
 @OptIn(ExperimentalMaterial3Api::class)

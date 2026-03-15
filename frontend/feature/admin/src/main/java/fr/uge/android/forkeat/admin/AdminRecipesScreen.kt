@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -55,7 +56,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
-import fr.uge.android.forkeat.network.dto.admin.AdminRecipeDTO
+import fr.uge.android.forkeat.designsystem.InfiniteListHandler
+import fr.uge.android.forkeat.recipes.data.dto.SimpleRecipeDTO
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -67,7 +69,7 @@ fun AdminRecipesScreen(
     onNavigateToCreate: () -> Unit,
     onNavigateToRecipe: (String) -> Unit = {},
     onLogout: () -> Unit,
-    viewModel: AdminRecipesViewModel = viewModel()
+    viewModel: AdminRecipesViewModel = viewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
     var selectedTab by remember { mutableIntStateOf(0) }
@@ -88,7 +90,7 @@ fun AdminRecipesScreen(
         PullToRefreshBox(
             isRefreshing = uiState.isLoading,
             onRefresh = {
-                if (selectedTab == 0) viewModel.loadPending() else viewModel.loadPublished(uiState.publishedPage)
+                if (selectedTab == 0) viewModel.loadPending() else viewModel.loadPublished(uiState.currentPublishedRecipesPage)
             },
             modifier = Modifier
                 .fillMaxSize()
@@ -195,18 +197,18 @@ fun AdminRecipesScreen(
                         recipes = uiState.pendingRecipes,
                         actionInProgress = uiState.actionInProgress,
                         onValidate = { viewModel.validateRecipe(it) },
-                        onReject = { viewModel.rejectRecipe(it) },
-                        onNavigateToRecipe = onNavigateToRecipe
+                        onReject = { id, justification -> viewModel.rejectRecipe(id, justification) },
+                        onNavigateToRecipe = onNavigateToRecipe,
+                        onLoadMore = { viewModel.loadMorePendingRecipes() },
+                        isLoading = uiState.isLoading
                     )
                     1 -> PublishedRecipesTab(
                         recipes = uiState.publishedRecipes,
-                        currentPage = uiState.publishedPage,
-                        totalPages = if (uiState.publishedTotal == 0L) 0
-                                     else ((uiState.publishedTotal - 1) / 20 + 1).toInt(),
                         actionInProgress = uiState.actionInProgress,
-                        onPageChange = { viewModel.loadPublished(it) },
                         onNavigateToRecipe = onNavigateToRecipe,
-                        onUnpublish = { viewModel.unpublishRecipe(it) }
+                        onUnpublish = { viewModel.unpublishRecipe(it) },
+                        onLoadMore = { viewModel.loadMorePublishedRecipes() },
+                        isLoading = uiState.isLoading
                     )
                 }
             }
@@ -218,12 +220,18 @@ fun AdminRecipesScreen(
 
 @Composable
 private fun PendingRecipesTab(
-    recipes: List<AdminRecipeDTO>,
+    recipes: List<SimpleRecipeDTO>,
     actionInProgress: String?,
     onValidate: (String) -> Unit,
-    onReject: (String) -> Unit,
-    onNavigateToRecipe: (String) -> Unit
+    onReject: (String, String) -> Unit, // id, justification
+    onNavigateToRecipe: (String) -> Unit,
+    onLoadMore : () -> Unit = {},
+    isLoading : Boolean = false
 ) {
+    val listState = rememberLazyListState()
+
+    InfiniteListHandler(listState, isLoading, 1, onLoadMore = { onLoadMore() })
+
     if (recipes.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -240,14 +248,15 @@ private fun PendingRecipesTab(
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
-            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+            state = listState
         ) {
             items(recipes) { recipe ->
                 PendingRecipeCard(
                     recipe = recipe,
                     isActionInProgress = actionInProgress == recipe.id,
                     onValidate = { onValidate(recipe.id) },
-                    onReject = { onReject(recipe.id) },
+                    onReject = { justification -> onReject(recipe.id, justification) },
                     onNavigateToRecipe = { onNavigateToRecipe(recipe.id) }
                 )
             }
@@ -257,29 +266,55 @@ private fun PendingRecipesTab(
 
 @Composable
 private fun PendingRecipeCard(
-    recipe: AdminRecipeDTO,
+    recipe: SimpleRecipeDTO,
     isActionInProgress: Boolean,
     onValidate: () -> Unit,
-    onReject: () -> Unit,
+    onReject: (String) -> Unit, // Passe la justification
     onNavigateToRecipe: () -> Unit
 ) {
     var showRejectDialog by remember { mutableStateOf(false) }
+    var justification by remember { mutableStateOf("") }
+    var justificationError by remember { mutableStateOf<String?>(null) }
 
     if (showRejectDialog) {
         AlertDialog(
             onDismissRequest = { showRejectDialog = false },
             title = { Text("Rejeter la recette", fontWeight = FontWeight.Bold) },
             text = {
-                Text(
-                    text = "Voulez-vous rejeter « ${recipe.title} » ?\nL'auteur sera informé du refus.",
-                    fontSize = 14.sp
-                )
+                Column {
+                    Text(
+                        text = "Merci d'indiquer une justification pour le rejet de « ${recipe.title} ».",
+                        fontSize = 14.sp
+                    )
+                    Spacer(Modifier.height(8.dp))
+                    androidx.compose.material3.OutlinedTextField(
+                        value = justification,
+                        onValueChange = {
+                            justification = it
+                            if (it.isNotBlank()) justificationError = null
+                        },
+                        label = { Text("Justification*") },
+                        isError = justificationError != null,
+                        minLines = 2,
+                        maxLines = 4,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (justificationError != null) {
+                        Text(justificationError!!, color = Color(0xFFDC2626), fontSize = 12.sp)
+                    }
+                }
             },
             confirmButton = {
                 Button(
                     onClick = {
-                        showRejectDialog = false
-                        onReject()
+                        if (justification.isBlank()) {
+                            justificationError = "La justification ne peut pas être vide."
+                        } else {
+                            showRejectDialog = false
+                            onReject(justification.trim())
+                            justification = ""
+                            justificationError = null
+                        }
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFDC2626))
                 ) {
@@ -395,14 +430,16 @@ private fun PendingRecipeCard(
 
 @Composable
 private fun PublishedRecipesTab(
-    recipes: List<AdminRecipeDTO>,
-    currentPage: Int,
-    totalPages: Int,
+    recipes: List<SimpleRecipeDTO>,
     actionInProgress: String?,
-    onPageChange: (Int) -> Unit,
     onNavigateToRecipe: (String) -> Unit,
-    onUnpublish: (String) -> Unit
+    onUnpublish: (String) -> Unit,
+    onLoadMore: () -> Unit = {},
+    isLoading: Boolean = false
 ) {
+    val listState = rememberLazyListState()
+    InfiniteListHandler(listState, isLoading, 1, onLoadMore = onLoadMore)
+
     if (recipes.isEmpty()) {
         Box(
             modifier = Modifier.fillMaxSize(),
@@ -415,51 +452,19 @@ private fun PublishedRecipesTab(
             }
         }
     } else {
-        Column(modifier = Modifier.fillMaxSize()) {
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp)
-            ) {
-                items(recipes) { recipe ->
-                    PublishedRecipeCard(
-                        recipe = recipe,
-                        isActionInProgress = actionInProgress == recipe.id,
-                        onNavigateToRecipe = { onNavigateToRecipe(recipe.id) },
-                        onUnpublish = { onUnpublish(recipe.id) }
-                    )
-                }
-            }
-
-            // Pagination
-            if (totalPages > 1) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .background(Color.White)
-                        .padding(horizontal = 16.dp, vertical = 12.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    OutlinedButton(
-                        onClick = { onPageChange(currentPage - 1) },
-                        enabled = currentPage > 0
-                    ) {
-                        Text("Précédent")
-                    }
-                    Text(
-                        text = "${currentPage + 1} / $totalPages",
-                        fontSize = 13.sp,
-                        color = Color(0xFF6B7280),
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    OutlinedButton(
-                        onClick = { onPageChange(currentPage + 1) },
-                        enabled = currentPage < totalPages - 1
-                    ) {
-                        Text("Suivant")
-                    }
-                }
+        LazyColumn(
+            modifier = Modifier.fillMaxSize(),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = androidx.compose.foundation.layout.PaddingValues(16.dp),
+            state = listState
+        ) {
+            items(recipes) { recipe ->
+                PublishedRecipeCard(
+                    recipe = recipe,
+                    isActionInProgress = actionInProgress == recipe.id,
+                    onNavigateToRecipe = { onNavigateToRecipe(recipe.id) },
+                    onUnpublish = { onUnpublish(recipe.id) }
+                )
             }
         }
     }
@@ -467,7 +472,7 @@ private fun PublishedRecipesTab(
 
 @Composable
 private fun PublishedRecipeCard(
-    recipe: AdminRecipeDTO,
+    recipe: SimpleRecipeDTO,
     isActionInProgress: Boolean,
     onNavigateToRecipe: () -> Unit,
     onUnpublish: () -> Unit

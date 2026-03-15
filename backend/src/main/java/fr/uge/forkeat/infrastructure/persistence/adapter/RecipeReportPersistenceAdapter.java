@@ -59,6 +59,12 @@ public final class RecipeReportPersistenceAdapter implements RecipeReportPersist
     }
 
     @Override
+    public boolean existsById(UUID recipeReportId) {
+        Objects.requireNonNull(recipeReportId);
+        return recipeReportRepository.existsById(recipeReportId);
+    }
+
+    @Override
     public boolean existsByRecipeIdAndReporterId(UUID recipeId, UUID reporterId) {
         Objects.requireNonNull(recipeId);
         Objects.requireNonNull(reporterId);

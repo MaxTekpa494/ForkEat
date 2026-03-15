@@ -44,5 +44,8 @@ public interface WalletRepository extends JpaRepository<WalletEntity, UUID> {
     @Query("UPDATE WalletEntity w SET w.balance = w.balance + :amount WHERE w.id = :id")
     void incrementBalanceById(@Param("id") UUID id, @Param("amount") Long amount);
 
+    @Modifying
+    @Query("UPDATE WalletEntity w SET w.balance = w.balance - :amount WHERE w.id = :id")
+    void decrementBalanceById(@Param("id") UUID id, @Param("amount") Long amount);
 
 }

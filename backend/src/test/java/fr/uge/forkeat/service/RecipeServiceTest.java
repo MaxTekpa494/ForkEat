@@ -7,9 +7,15 @@ import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.*;
+import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
+import fr.uge.forkeat.service.model.superlike.SuperLikeConfig;
 import fr.uge.forkeat.service.model.wallet.Wallet;
+import fr.uge.forkeat.service.persistence.PlatformWalletPersistence;
+import fr.uge.forkeat.service.persistence.PromotionPersistence;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.port.EventPublisherPort;
+import fr.uge.forkeat.service.persistence.SuperLikeConfigPersistence;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.StoragePort;
@@ -21,8 +27,13 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -35,7 +46,10 @@ class RecipeServiceTest {
     private RecipePersistence recipePersistence;
     @Mock
     private WalletPersistence walletPersistence;
-
+    @Mock
+    private SuperLikeConfigPersistence superLikeConfigPersistence;
+    @Mock
+    private PromotionPersistence promotionPersistence;
     @Mock
     private StoragePort storageService;
     @Mock
@@ -44,13 +58,17 @@ class RecipeServiceTest {
     private AuthenticationPort authPort;
     @Mock
     private UserIdentityPort userIdentityPort;
+    @Mock
+    private PlatformWalletPersistence platformWalletPersistence;
 
     private RecipeService recipeService;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeService = new RecipeService(recipePersistence, storageService, walletPersistence, authPort, eventPublisherPort, userIdentityPort);
+        recipeService = new RecipeService(recipePersistence, storageService, walletPersistence,
+                authPort, superLikeConfigPersistence, promotionPersistence, platformWalletPersistence,
+                eventPublisherPort, userIdentityPort);
         now = Instant.now();
     }
 
@@ -329,6 +347,26 @@ class RecipeServiceTest {
     }
 
     @Nested
+    class UpdateRecipeByStatus {
+        @Test
+        void shouldUpdateRecipeStatus() {
+            var recipeId = UUID.randomUUID();
+            var recipe = createRecipe(recipeId, "test", RecipeStatus.PUBLISHED);
+            when(recipePersistence.updateStatus(recipeId, RecipeStatus.PUBLISHED)).thenReturn(recipe);
+
+            assertEquals(RecipeStatus.PUBLISHED, recipeService.updateStatus(recipeId, RecipeStatus.PUBLISHED).status());
+        }
+
+        @Test
+        void shouldThrowWhenRecipeNotFound() {
+            var recipeId = UUID.randomUUID();
+            when(recipePersistence.updateStatus(recipeId, RecipeStatus.PUBLISHED)).thenThrow(RecipeNotFoundException.class);
+
+            assertThrows(RecipeNotFoundException.class, () -> recipeService.updateStatus(recipeId, RecipeStatus.PUBLISHED));
+        }
+    }
+
+    @Nested
     class DeleteById {
 
         @Test
@@ -479,27 +517,31 @@ class RecipeServiceTest {
     }
 
     @Nested
-    class SuperLikeRecipe{
+    class SuperLikeRecipe {
+
         @Test
-        void SuperLikeShouldBeOk(){
+        void SuperLikeShouldBeOk() {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
+            var config = new SuperLikeConfig(UUID.randomUUID(), 100L, new BigDecimal("0.40"), Instant.now());
 
             when(recipePersistence.hasSuperLikedRecipe(userId, recipeId)).thenReturn(false);
-            when(walletPersistence.findByUserId(userId)).thenReturn(Optional.of(createWallet()));
-            when(walletPersistence.getEarningsWallet()).thenReturn(createWallet());
             when(walletPersistence.saveTransaction(any())).thenReturn(null);
-            when(walletPersistence.getRedistributionWallet()).thenReturn(createWallet());
-            doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong());
+            doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean());
             doNothing().when(walletPersistence).incrementBalanceById(any(), anyLong());
+            when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.of(createWallet(200L)));
+            when(superLikeConfigPersistence.get()).thenReturn(config);
+            when(promotionPersistence.findActiveAt(any())).thenReturn(Optional.empty());
+            when(walletPersistence.getEarningsWallet()).thenReturn(createWallet(0L));
+            when(walletPersistence.getRedistributionWallet()).thenReturn(createWallet(0L));
 
             recipeService.superLikeRecipe(userId, recipeId);
 
-            verify(recipePersistence).superLikeRecipe(eq(userId), eq(recipeId), anyLong());
+            verify(recipePersistence).superLikeRecipe(eq(userId), eq(recipeId), eq(100L), isNull(), eq(false));
         }
 
         @Test
-        void ShouldNotSuperLikeWhenItAlreadySuperLiked(){
+        void ShouldNotSuperLikeWhenItAlreadySuperLiked() {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
 
@@ -507,7 +549,8 @@ class RecipeServiceTest {
 
             recipeService.superLikeRecipe(userId, recipeId);
 
-            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong());
+            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean());
+            verify(walletPersistence, never()).loadWalletWithLock(any());
             verify(walletPersistence, never()).incrementBalanceById(any(), anyLong());
             verify(walletPersistence, never()).getRedistributionWallet();
             verify(walletPersistence, never()).getEarningsWallet();
@@ -515,16 +558,20 @@ class RecipeServiceTest {
         }
 
         @Test
-        void shouldThrowInsufficientFundsExceptionWhenBalanceTooLow(){
+        void shouldThrowInsufficientFundsExceptionWhenBalanceTooLow() {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
+            var config = new SuperLikeConfig(UUID.randomUUID(), 100L, new BigDecimal("0.40"), Instant.now());
 
             when(recipePersistence.hasSuperLikedRecipe(userId, recipeId)).thenReturn(false);
+            when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.of(createWallet(50L)));
+            when(superLikeConfigPersistence.get()).thenReturn(config);
+            when(promotionPersistence.findActiveAt(any())).thenReturn(Optional.empty());
 
             assertThrows(InsufficientFundsException.class,
                     () -> recipeService.superLikeRecipe(userId, recipeId));
 
-            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong());
+            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean());
             verify(walletPersistence, never()).incrementBalanceById(any(), anyLong());
             verify(walletPersistence, never()).getEarningsWallet();
             verify(walletPersistence, never()).getRedistributionWallet();
@@ -630,10 +677,14 @@ class RecipeServiceTest {
     }
 
     private Wallet createWallet() {
+        return createWallet(1000L);
+    }
+
+    private Wallet createWallet(long balance) {
         return new Wallet(
                 UUID.randomUUID(),
                 UUID.randomUUID(),
-                1000,
+                balance,
                 Instant.now()
         );
     }

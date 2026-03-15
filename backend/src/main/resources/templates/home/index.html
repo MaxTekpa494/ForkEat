@@ -36,14 +36,14 @@
 
                     <div class="flex flex-col sm:flex-row gap-4 justify-center md:justify-start">
                         <a th:unless="${isAuthenticated}"
-                           th:href="@{/login}"
+                           th:href="@{/auth/login}"
                            class="bg-primary-500 text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-primary-400 transition shadow-xl hover:shadow-2xl transform hover:-translate-y-1 text-center">
                             <i class="fas fa-rocket mr-2"></i>
                             Commencer
                         </a>
 
                         <a th:if="${isAuthenticated}"
-                           th:href="@{/dashboard}"
+                           th:href="@{/profile}"
                            class="bg-primary-500 text-white px-8 py-4 rounded-full font-semibold text-lg hover:bg-primary-400 transition shadow-xl hover:shadow-2xl transform hover:-translate-y-1 text-center">
                             <i class="fas fa-user-circle mr-2"></i>
                             Mon Espace
