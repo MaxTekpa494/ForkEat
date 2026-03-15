@@ -6,8 +6,8 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.DietaryEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.SuperLikeEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
-import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
@@ -19,6 +19,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -36,7 +37,6 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     private final DietaryRepository dietaryRepository;
     private final EntityManager entityManager;
     private final SuperLikeRepository superLikeRepository;
-    private final WalletRepository walletRepository;
 
     public RecipePersistenceAdapter(RecipeRepository recipeRepository, UserRepository userRepository,
                                     AllergenRepository allergenRepository, IngredientRepository ingredientRepository,
@@ -45,7 +45,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                                     RecipeIngredientRepository recipeIngredientRepository,
                                     RecipeDietaryRepository recipeDietaryRepository,
                                     DietaryRepository dietaryRepository, EntityManager entityManager,
-                                    SuperLikeRepository superLikeRepository, WalletRepository walletRepository) {
+                                    SuperLikeRepository superLikeRepository) {
         this.recipeRepository = recipeRepository;
         this.userRepository = userRepository;
         this.allergenRepository = allergenRepository;
@@ -57,7 +57,6 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         this.entityManager = entityManager;
         this.dietaryRepository = dietaryRepository;
         this.superLikeRepository = superLikeRepository;
-        this.walletRepository = walletRepository;
     }
 
     @Override
@@ -248,6 +247,23 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
+    public List<RecipeSummary> findSummariesByIds(List<UUID> ids) {
+        Objects.requireNonNull(ids);
+        if (ids.isEmpty()) {
+            return List.of();
+        }
+        var viewMap = recipeRepository.findSummariesByIds(ids).stream()
+                .collect(Collectors.toMap(
+                        RecipeSummaryView::getId,
+                        v -> new RecipeSummary(v.getId(), v.getTitle(), v.getSummary(), v.getImageUrl(), v.getPreparationMinutes(), v.getCreatedAt(), v.getAuthorUsername())
+                ));
+        return ids.stream()
+                .map(viewMap::get)
+                .filter(Objects::nonNull) // Normalement c'est pas sensé être null car les deux tables sont synchros
+                .toList();
+    }
+
+    @Override
     public PageResult<RecipeSummary> findUserRecipeSummaries(String username, RecipeStatus status, int size, int page) {
         Objects.requireNonNull(username);
         Objects.requireNonNull(status);
@@ -285,7 +301,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         return neo4jRecipeRepository.findCountsByRecipeIds(recipeIdStrings).stream()
                 .collect(Collectors.toMap(
                         r -> UUID.fromString(r.recipeId()),
-                        r -> new RecipeCounts(r.likeCount(), r.superLikeCount())
+                        r -> new RecipeCounts(r.likeCount(), r.superLikeCount(), r.followCount())
                 ));
     }
 
@@ -308,7 +324,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         return neo4jRecipeRepository.findUserInteractionsByRecipeIds(recipeIdStrings, currentUsername).stream()
                 .collect(Collectors.toMap(
                         r -> UUID.fromString(r.recipeId()),
-                        r -> new RecipeUserInteraction(r.likedByCurrentUser(), r.superLikedByCurrentUser())
+                        r -> new RecipeUserInteraction(r.likedByCurrentUser(), r.superLikedByCurrentUser(), r.followedByCurrentUser())
                 ));
     }
 
@@ -333,9 +349,22 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public void superLikeRecipe(UUID userId, UUID recipeId, long amount){
-        var superLike = new SuperLikeEntity(userId, recipeId, amount);
-        walletRepository.decrementBalanceByUserId(userId, amount);
+    public void followRecipe(UUID userId, UUID recipeId) {
+        Objects.requireNonNull(userId);
+        Objects.requireNonNull(recipeId);
+        neo4jRecipeRepository.followRecipe(userId, recipeId, Instant.now());
+    }
+
+    @Override
+    public void unfollowRecipe(UUID userId, UUID recipeId) {
+        Objects.requireNonNull(userId);
+        Objects.requireNonNull(recipeId);
+        neo4jRecipeRepository.unfollowRecipe(userId, recipeId);
+    }
+
+    @Override
+    public void superLikeRecipe(UUID userId, UUID recipeId, long amount, UUID promotionId, boolean isBonusFree){
+        var superLike = new SuperLikeEntity(userId, recipeId, amount, promotionId, isBonusFree);
         superLikeRepository.save(superLike);
     }
 

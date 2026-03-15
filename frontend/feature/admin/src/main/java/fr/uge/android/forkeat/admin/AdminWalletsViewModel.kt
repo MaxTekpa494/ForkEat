@@ -2,8 +2,8 @@ package fr.uge.android.forkeat.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import fr.uge.android.forkeat.network.ForkEatApi
-import fr.uge.android.forkeat.network.dto.admin.PlatformWalletDTO
+import fr.uge.android.forkeat.admin.data.api.AdminApi
+import fr.uge.android.forkeat.admin.data.dto.PlatformWalletDTO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -19,6 +19,8 @@ data class AdminWalletsUiState(
 
 class AdminWalletsViewModel : ViewModel() {
 
+    private val adminService = AdminApi.service
+
     private val _uiState = MutableStateFlow(AdminWalletsUiState())
     val uiState: StateFlow<AdminWalletsUiState> = _uiState.asStateFlow()
 
@@ -30,8 +32,8 @@ class AdminWalletsViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val benefitsDeferred       = async { ForkEatApi.adminService.getBenefitsWallet() }
-                val redistributionDeferred = async { ForkEatApi.adminService.getRedistributionWallet() }
+                val benefitsDeferred       = async { adminService.getBenefitsWallet() }
+                val redistributionDeferred = async { adminService.getRedistributionWallet() }
 
                 val benefits       = benefitsDeferred.await()
                 val redistribution = redistributionDeferred.await()

@@ -11,6 +11,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,6 +27,9 @@ import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.recipes.EmailNotVerifiedDialog
 import fr.uge.android.forkeat.recipes.InsufficientFundsDialog
 import fr.uge.android.forkeat.recipes.RecipeCard
+import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
+import kotlin.collections.isNotEmpty
+import fr.uge.android.forkeat.recipes.ReportUserDialog
 
 @Composable
 fun UserProfileScreen(
@@ -71,6 +75,48 @@ fun UserProfileScreen(
         )
     }
 
+    // ── Dialogue de signalement ──────────────────────────────────────────────
+    if (uiState.showReportDialog) {
+        ReportUserDialog(
+            onDismiss = { viewModel.dismissReportDialog() },
+            onConfirm = { type, justification -> viewModel.reportUser(type, justification) }
+        )
+    }
+
+    if (uiState.reportSuccess) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissReportSuccess() },
+            title = { Text("Signalement envoyé", fontWeight = FontWeight.Bold, color = Secondary900) },
+            text = { Text("Votre signalement a bien été enregistré. Notre équipe va l'examiner.", color = Gray500) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.dismissReportSuccess() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary500),
+                    shape = RoundedCornerShape(50)
+                ) { Text("OK", fontWeight = FontWeight.Bold) }
+            },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Color.White
+        )
+    }
+
+    if (uiState.reportAlreadyDone) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissReportAlreadyDone() },
+            title = { Text("Déjà signalé", fontWeight = FontWeight.Bold, color = Secondary900) },
+            text = { Text("Vous avez déjà signalé cet utilisateur.", color = Gray500) },
+            confirmButton = {
+                Button(
+                    onClick = { viewModel.dismissReportAlreadyDone() },
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary500),
+                    shape = RoundedCornerShape(50)
+                ) { Text("OK", fontWeight = FontWeight.Bold) }
+            },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Color.White
+        )
+    }
+
     LazyColumn(
         state = listState,
         modifier = Modifier
@@ -78,7 +124,13 @@ fun UserProfileScreen(
             .background(SurfaceCream)
     ) {
         item {
-            UserProfileHeader(uiState = uiState, onNavigateBack = onNavigateBack)
+            UserProfileHeader(
+                uiState = uiState,
+                onNavigateBack = onNavigateBack,
+                onFollow = { viewModel.follow() },
+                onUnfollow = { viewModel.unfollow() },
+                onReport = { viewModel.showReportDialog() }
+            )
         }
 
         if (uiState.isLoading && uiState.recipes.isEmpty()) {
@@ -123,7 +175,9 @@ fun UserProfileScreen(
                     onNavigateToLogin = onNavigateToLogin,
                     onLike = { viewModel.likeRecipe(it) },
                     onUnlike = { viewModel.unlikeRecipe(it) },
-                    onSuperLike = { viewModel.superLikeRecipe(it) }
+                    onSuperLike = { viewModel.superLikeRecipe(it) },
+                    onFollow = { viewModel.followRecipe(it) },
+                    onUnfollow = { viewModel.unfollowRecipe(it) }
                 )
             }
             if (uiState.isLoading) {
@@ -144,7 +198,13 @@ fun UserProfileScreen(
 }
 
 @Composable
-private fun UserProfileHeader(uiState: UserProfileUiState, onNavigateBack: () -> Unit) {
+private fun UserProfileHeader(
+    uiState: UserProfileUiState,
+    onNavigateBack: () -> Unit,
+    onFollow: () -> Unit,
+    onUnfollow: () -> Unit,
+    onReport: () -> Unit
+) {
     val currentUsername = remember { ForkEatApi.getCurrentUsername() }
     val isOwnProfile = uiState.username == currentUsername
     val isLoggedIn = ForkEatApi.isLoggedIn()
@@ -163,7 +223,7 @@ private fun UserProfileHeader(uiState: UserProfileUiState, onNavigateBack: () ->
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(top = 8.dp, start = 8.dp),
+                    .padding(top = 8.dp, start = 8.dp, end = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 IconButton(onClick = onNavigateBack) {
@@ -172,6 +232,16 @@ private fun UserProfileHeader(uiState: UserProfileUiState, onNavigateBack: () ->
                         contentDescription = "Retour",
                         tint = Color.White
                     )
+                }
+                Spacer(Modifier.weight(1f))
+                if (isLoggedIn && !isOwnProfile) {
+                    IconButton(onClick = onReport) {
+                        Icon(
+                            imageVector = Icons.Default.Flag,
+                            contentDescription = "Signaler cet utilisateur",
+                            tint = Color.White.copy(alpha = 0.4f)
+                        )
+                    }
                 }
             }
 
@@ -217,7 +287,7 @@ private fun UserProfileHeader(uiState: UserProfileUiState, onNavigateBack: () ->
                     Spacer(Modifier.height(20.dp))
                     if (uiState.followedByCurrentUser) {
                         OutlinedButton(
-                            onClick = { /* Pas d'effet pour l'instant */ },
+                            onClick = onUnfollow,
                             shape = RoundedCornerShape(50),
                             border = BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)),
                             colors = ButtonDefaults.outlinedButtonColors(contentColor = Color.White),
@@ -227,7 +297,7 @@ private fun UserProfileHeader(uiState: UserProfileUiState, onNavigateBack: () ->
                         }
                     } else {
                         Button(
-                            onClick = { /* Pas d'effet pour l'instant */ },
+                            onClick = onFollow,
                             shape = RoundedCornerShape(50),
                             colors = ButtonDefaults.buttonColors(containerColor = Primary500, contentColor = Color.White),
                             modifier = Modifier.height(38.dp)

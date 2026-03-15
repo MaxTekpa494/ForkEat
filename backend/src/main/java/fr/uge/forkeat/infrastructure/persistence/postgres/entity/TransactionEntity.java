@@ -1,7 +1,7 @@
 package fr.uge.forkeat.infrastructure.persistence.postgres.entity;
 
-import fr.uge.forkeat.service.model.TransactionStatus; // Import TransactionStatus
-import fr.uge.forkeat.service.model.TransactionType;
+import fr.uge.forkeat.service.model.transaction.TransactionStatus; // Import TransactionStatus
+import fr.uge.forkeat.service.model.transaction.TransactionType;
 import jakarta.persistence.*;
 import org.hibernate.annotations.JdbcTypeCode;
 import org.hibernate.type.SqlTypes;

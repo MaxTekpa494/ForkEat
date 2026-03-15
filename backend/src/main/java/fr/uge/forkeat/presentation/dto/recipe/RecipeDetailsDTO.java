@@ -23,7 +23,9 @@ public record RecipeDetailsDTO(
         long nbLike,
         boolean hasLiked,
         long nbSuperLike,
-        boolean hasSuperLiked
+        boolean hasSuperLiked,
+        long nbFollow,
+        boolean hasFollowed
 ) {
 
     public RecipeDTO toRecipeDTO(){

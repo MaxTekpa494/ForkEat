@@ -13,3 +13,7 @@ data/
 
 # Debezium offsets
 *.dat
+ollama/*
+scripts 21.10.55/*
+.metals/*
+.vscode

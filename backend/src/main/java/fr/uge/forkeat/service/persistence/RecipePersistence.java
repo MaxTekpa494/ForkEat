@@ -44,6 +44,10 @@ public interface RecipePersistence {
 
   long countByStatus(RecipeStatus status);
 
+  // Alors ici on ne fait pas Page<RecipeSummary> parce qu'on
+  // n'est pas sensé renvoyer plein de recette quand c'est du RAG...
+  List<RecipeSummary> findSummariesByIds(List<UUID> ids);
+
   PageResult<RecipeSummary> findUserRecipeSummaries(String username, RecipeStatus status, int size, int page);
 
   RecipeCounts findRecipeCounts(UUID recipeId);
@@ -60,7 +64,11 @@ public interface RecipePersistence {
 
   void unlikeRecipe(UUID userId, UUID recipeId);
 
-  void superLikeRecipe(UUID userId, UUID recipeId, long amount);
+  void followRecipe(UUID userId, UUID recipeId);
+
+  void unfollowRecipe(UUID userId, UUID recipeId);
+
+  void superLikeRecipe(UUID userId, UUID recipeId, long amount, UUID promotionId, boolean isBonusFree);
 
   boolean hasSuperLikedRecipe(UUID userId, UUID recipeId);
 }

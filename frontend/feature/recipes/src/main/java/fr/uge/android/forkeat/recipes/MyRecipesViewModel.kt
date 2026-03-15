@@ -3,6 +3,7 @@ package fr.uge.android.forkeat.recipes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
+import fr.uge.android.forkeat.recipes.data.api.RecipeApi
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import kotlinx.coroutines.channels.Channel
@@ -26,7 +27,7 @@ data class MyRecipesUiState(
 
 class MyRecipesViewModel : ViewModel() {
 
-    private val api: RecipeApiService = ForkEatApi.recipeService
+    private val api: RecipeApiService = RecipeApi.service
 
     private val _uiState = MutableStateFlow(MyRecipesUiState())
     val uiState: StateFlow<MyRecipesUiState> = _uiState

@@ -147,25 +147,12 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
              testRights(get("/api/admin/stats/recipes"), AuthorizationTest.ADMIN);
          }
 
-         @Test
-         void testGetPendingRecipes() throws Exception {
-             testRights(get("/api/admin/recipes/pending"), AuthorizationTest.ADMIN);
-         }
 
          @Test
          void testGetPublishedRecipes() throws Exception {
              testRights(get("/api/admin/recipes/published"), AuthorizationTest.ADMIN);
          }
 
-         @Test
-         void testValidateRecipe() throws Exception {
-             testRights(post("/api/admin/recipes/{id}/validate", UUID.randomUUID()), AuthorizationTest.ADMIN);
-         }
-
-         @Test
-         void testRejectRecipe() throws Exception {
-             testRights(post("/api/admin/recipes/{id}/reject", UUID.randomUUID()), AuthorizationTest.ADMIN);
-         }
 
          @Test
          void testGetBenefitsWallet() throws Exception {
@@ -222,16 +209,6 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
         @Test
         void testPendingRecipes() throws Exception {
             testRightsMVCNoRedirect(get("/admin/recipes/pending"), AuthorizationTest.ADMIN);
-        }
-
-        @Test
-        void testValidateRecipe() throws Exception {
-            testRightsMVC(post("/admin/recipes/{id}/validate", UUID.randomUUID()), AuthorizationTest.ADMIN);
-        }
-
-        @Test
-        void testRejectRecipe() throws Exception {
-            testRightsMVC(post("/admin/recipes/{id}/reject", UUID.randomUUID()), AuthorizationTest.ADMIN);
         }
     }
 

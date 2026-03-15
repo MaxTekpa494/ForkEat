@@ -15,6 +15,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -27,6 +28,7 @@ import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.uge.android.forkeat.designsystem.theme.*
+import fr.uge.android.forkeat.network.ForkEatApi
 
 @Composable
 fun ProfileScreen(
@@ -34,8 +36,20 @@ fun ProfileScreen(
     onNavigateToMyRecipes: () -> Unit = {},
     onNavigateToCreateRecipe: () -> Unit = {},
     onNavigateToWallet: () -> Unit = {},
-    onNavigateToAccount: () -> Unit = {}
+    onNavigateToAccount: () -> Unit = {},
+    onNavigateToLogin: () -> Unit = {},
+    onNavigateToRegister: () -> Unit = {}
 ) {
+    val isLoggedIn = remember { ForkEatApi.isLoggedIn() }
+
+    if (!isLoggedIn) {
+        ProfileGuestScreen(
+            onNavigateToLogin = onNavigateToLogin,
+            onNavigateToRegister = onNavigateToRegister
+        )
+        return
+    }
+
     val uiState by profileViewModel.uiState.collectAsState()
 
     Column(

@@ -2,7 +2,7 @@ package fr.uge.android.forkeat.profile
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import fr.uge.android.forkeat.network.ForkEatApi
+import fr.uge.android.forkeat.profile.data.api.ProfileApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -24,6 +24,8 @@ data class ProfileUiState(
 
 class ProfileViewModel : ViewModel() {
 
+    private val profileService = ProfileApi.service
+
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
@@ -35,7 +37,7 @@ class ProfileViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.profileService.getMyProfile()
+                val response = profileService.getMyProfile()
                 if (response.isSuccessful) {
                     val resource = response.body()?.resource
                     if (resource != null) {

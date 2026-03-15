@@ -3,13 +3,15 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.presentation.dto.user.UserProfileDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.ProfileService;
+import fr.uge.forkeat.service.UserReportService;
+import fr.uge.forkeat.service.model.user.CreateUserReport;
+import fr.uge.forkeat.service.model.user.UserReportType;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.user.UserService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 @Controller
 @RequestMapping("/profile")
@@ -17,10 +19,15 @@ public class ProfileWebController {
 
     private final AuthenticationPort authPort;
     private final ProfileService profileService;
+    private final UserService userService;
+    private final UserReportService userReportService;
 
-    ProfileWebController(AuthenticationPort authPort, ProfileService profileService) {
+    ProfileWebController(AuthenticationPort authPort, ProfileService profileService,
+                         UserService userService, UserReportService userReportService) {
         this.authPort = authPort;
         this.profileService = profileService;
+        this.userService = userService;
+        this.userReportService = userReportService;
     }
 
     @GetMapping
@@ -55,5 +62,30 @@ public class ProfileWebController {
         );
         model.addAttribute("vm", dto);
         return "profile/user";
+    }
+
+    @PostMapping("/{username}/follow")
+    public String follow(@PathVariable String username, RedirectAttributes redirectAttributes) {
+        userService.follow(authPort.extractUsername(), username);
+        redirectAttributes.addFlashAttribute("success", "Vous suivez maintenant " + username);
+        return "redirect:/profile/" + username;
+    }
+
+    @PostMapping("/{username}/unfollow")
+    public String unfollow(@PathVariable String username, RedirectAttributes redirectAttributes) {
+        userService.unfollow(authPort.extractUsername(), username);
+        redirectAttributes.addFlashAttribute("success", "Vous ne suivez plus " + username);
+        return "redirect:/profile/" + username;
+    }
+
+    @PostMapping("/{username}/report")
+    public String reportUser(@PathVariable String username,
+                             @RequestParam("reportType") UserReportType reportType,
+                             @RequestParam("justification") String justification,
+                             RedirectAttributes redirectAttributes) {
+        var command = new CreateUserReport(username, authPort.extractUsername(), reportType, justification);
+        userReportService.reportUser(command);
+        redirectAttributes.addFlashAttribute("reportSuccess", "Votre signalement a bien été enregistré.");
+        return "redirect:/profile/" + username;
     }
 }

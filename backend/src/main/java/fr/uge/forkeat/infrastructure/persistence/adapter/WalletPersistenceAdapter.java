@@ -12,9 +12,8 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserReposit
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
-import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.WalletType;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
+import fr.uge.forkeat.service.model.transaction.Transaction;
 import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import org.springframework.stereotype.Component;
@@ -136,7 +135,6 @@ public class WalletPersistenceAdapter implements WalletPersistence {
         TransactionEntity existingEntity = transactionRepository.findById(transaction.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Transaction not found with id: " + transaction.id()));
 
-        // Update fields that can change
         existingEntity.setStripeTransactionID(transaction.stripeTransactionID());
         existingEntity.setStatus(transaction.status());
 
@@ -156,18 +154,24 @@ public class WalletPersistenceAdapter implements WalletPersistence {
     }
 
     public Wallet getEarningsWallet(){
-        var platformWallet =platformWalletRepository.findByType(PlatformWalletType.EARNINGS).orElseThrow(()-> new AssertionError("Should have a earningWallet"));
+        var platformWallet = platformWalletRepository.findByType(PlatformWalletType.EARNINGS)
+                .orElseThrow(() -> new ResourceNotFoundException("Platform wallet EARNINGS not found"));
         var wallet = platformWallet.getWallet();
         return WalletEntityMapper.toDomain(wallet);
     }
 
     public Wallet getRedistributionWallet(){
-        var platformWallet =platformWalletRepository.findByType(PlatformWalletType.REDISTRIBUTION).orElseThrow(()-> new AssertionError("Should have a earningWallet"));
+        var platformWallet = platformWalletRepository.findByType(PlatformWalletType.REDISTRIBUTION)
+                .orElseThrow(() -> new ResourceNotFoundException("Platform wallet REDISTRIBUTION not found"));
         var wallet = platformWallet.getWallet();
         return WalletEntityMapper.toDomain(wallet);
     }
 
     public void incrementBalanceById(UUID id, long amount){
         this.walletRepository.incrementBalanceById(id, amount);
+    }
+
+    public void decrementBalanceById(UUID id, long amount){
+        this.walletRepository.decrementBalanceById(id, amount);
     }
 }

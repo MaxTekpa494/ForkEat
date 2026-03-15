@@ -15,6 +15,27 @@
     <section class="py-12 bg-surface">
         <div class="container mx-auto px-4 max-w-4xl">
 
+            <!-- Bouton retour -->
+            <div class="mb-4">
+                <button onclick="history.back()"
+                        class="inline-flex items-center gap-2 text-sm text-secondary-500 hover:text-secondary-800 transition-colors">
+                    <i class="fas fa-arrow-left text-xs"></i>
+                    Retour
+                </button>
+            </div>
+
+            <!-- Flash messages signalement -->
+            <div th:if="${reportSuccess != null}"
+                 class="mb-4 flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm font-medium">
+                <i class="fas fa-check-circle text-green-500"></i>
+                <span th:text="${reportSuccess}"></span>
+            </div>
+            <div th:if="${reportError != null}"
+                 class="mb-4 flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-3 text-sm font-medium">
+                <i class="fas fa-exclamation-circle text-red-500"></i>
+                <span th:text="${reportError}"></span>
+            </div>
+
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!-- BANNIÈRE VARIANTE + TOGGLE (visible uniquement si variante)    -->
             <!-- ═══════════════════════════════════════════════════════════════ -->
@@ -180,85 +201,10 @@
                         </form>
 
                         <!-- Modale de confirmation Super Like -->
-                        <div id="super-like-modal"
-                             class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm"
-                             onclick="closeSuperLikeModal(event)">
-                            <div class="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4 transform transition-all duration-200 scale-95 opacity-0"
-                                 id="super-like-modal-content">
-                                <div class="flex flex-col items-center text-center gap-4">
-                                    <div class="w-14 h-14 rounded-full bg-yellow-50 flex items-center justify-center">
-                                        <svg width="64px" height="64px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <defs>
-                                                <linearGradient id="goldGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                                                    <stop offset="0%" style="stop-color:#FFED8B;stop-opacity:1" />
-                                                    <stop offset="50%" style="stop-color:#FFC837;stop-opacity:1" />
-                                                    <stop offset="100%" style="stop-color:#DAA520;stop-opacity:1" />
-                                                </linearGradient>
-
-                                                <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
-                                                    <feDropShadow dx="0" dy="2" stdDeviation="1" flood-color="#B8860B" flood-opacity="0.3"/>
-                                                </filter>
-                                            </defs>
-
-                                            <g filter="url(#shadow)">
-                                                <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z"
-                                                      fill="url(#goldGradient)"
-                                                      stroke="#B8860B"/>
-
-                                                <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z"
-                                                      fill="url(#goldGradient)"
-                                                      stroke="#B8860B"/>
-                                            </g>
-
-                                            <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z" fill="#FFED8B" stroke="#B8860B"/>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 class="text-gray-800 font-semibold text-lg">Super Like cette recette ?</h3>
-                                        <p class="text-gray-500 text-sm mt-1">Vous allez mettre en avant cette recette avec un Super Like.</p>
-                                    </div>
-                                    <div class="flex gap-3 w-full mt-2">
-                                        <button onclick="closeSuperLikeModal()"
-                                                class="flex-1 px-4 py-2 rounded-full border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors duration-150">
-                                            Annuler
-                                        </button>
-                                        <button onclick="confirmSuperLike()"
-                                                class="flex-1 px-4 py-2 rounded-full bg-yellow-400 hover:bg-yellow-500 text-white text-sm font-semibold transition-colors duration-150">
-                                            Confirmer
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <div th:replace="~{fragments/modals :: superLikeModal('super-like-modal', 'super-like-modal-content', 'confirmSuperLike()', 'closeSuperLikeModal()', 'closeSuperLikeModal(event)')}"></div>
 
                         <!-- Modale fonds insuffisants -->
-                        <div id="insufficient-funds-modal"
-                             class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
-                            <div class="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4 transform transition-all duration-200 scale-95 opacity-0"
-                                 id="insufficient-funds-modal-content">
-                                <div class="flex flex-col items-center text-center gap-4">
-                                    <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
-                                        <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8 text-red-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                                            <path stroke-linecap="round" stroke-linejoin="round" d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
-                                        </svg>
-                                    </div>
-                                    <div>
-                                        <h3 class="text-gray-800 font-semibold text-lg">Solde insuffisant</h3>
-                                        <p class="text-gray-500 text-sm mt-1">Vous n'avez pas assez de fonds pour effectuer un Super Like. Rechargez votre wallet pour continuer.</p>
-                                    </div>
-                                    <div class="flex gap-3 w-full mt-2">
-                                        <button onclick="closeInsufficientFundsModal()"
-                                                class="flex-1 px-4 py-2 rounded-full border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors duration-150">
-                                            Annuler
-                                        </button>
-                                        <a href="/wallet"
-                                           class="flex-1 px-4 py-2 rounded-full bg-primary-500 hover:bg-primary-600 text-white text-sm font-semibold text-center transition-colors duration-150">
-                                            Recharger mon wallet
-                                        </a>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+                        <div th:replace="~{fragments/modals :: insufficientFundsModal('insufficient-funds-modal', 'insufficient-funds-modal-content', 'closeInsufficientFundsModal()')}"></div>
 
                         <form id="super-like-form" th:action="@{/recipes/{id}/super-like(id=${recipe.id})}" method="post">
                             <button type="button"
@@ -266,6 +212,7 @@
                                     th:classappend="${recipe.hasSuperLiked} ? ' border-yellow-500 text-yellow-500 bg-yellow-50' : ''"
                                     th:data-recipe-id="${recipe.id}"
                                     th:data-liked="${recipe.hasSuperLiked}"
+                                    th:data-auth="${isAuthenticated}"
                                     onclick="handleSuperLike(this)"
                                     aria-label="Super like cette recette">
                                 <svg width="18px" height="18px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -278,6 +225,20 @@
                                 <span th:text="${recipe.nbSuperLike}">0</span>
                             </button>
                         </form>
+
+                        <!-- Follow / Unfollow -->
+                        <form th:if="${isAuthenticated}" id="follow-form" th:action="@{/recipes/{id}/follow(id=${recipe.id})}" method="post" class="hidden"></form>
+                        <button type="button"
+                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 text-sm font-semibold cursor-pointer transition-all duration-200 hover:border-primary-400 hover:text-primary-500 hover:bg-primary-50"
+                                th:classappend="${recipe.hasFollowed} ? ' border-primary-500 text-primary-500 bg-primary-50' : ''"
+                                th:data-recipe-id="${recipe.id}"
+                                th:data-followed="${recipe.hasFollowed}"
+                                th:data-auth="${isAuthenticated}"
+                                onclick="handleFollow(this)"
+                                aria-label="Suivre cette recette">
+                            <i th:class="${recipe.hasFollowed} ? 'fas fa-bookmark' : 'far fa-bookmark'"></i>
+                            <span th:text="${recipe.nbFollow}">0</span>
+                        </button>
                     </div>
 
                     <!-- Description / Summary -->
@@ -571,11 +532,99 @@
                         </ol>
                     </div>
 
+                    <!-- Lien de signalement discret -->
+                    <div th:if="${isAuthenticated and !isOwner}" class="mt-10 flex justify-end">
+                        <button onclick="openReportModal()"
+                                class="flex items-center gap-1.5 text-xs text-gray-300 hover:text-red-400 transition-colors duration-200">
+                            <i class="fas fa-flag text-[10px]"></i>
+                            Signaler cette recette
+                        </button>
+                    </div>
+
                 </div>
             </div>
 
         </div>
     </section>
+
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <!-- MODALE DE SIGNALEMENT                                          -->
+    <!-- ═══════════════════════════════════════════════════════════════ -->
+    <div th:if="${isAuthenticated and !isOwner}"
+         id="report-modal"
+         class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm"
+         onclick="closeReportModal(event)">
+        <div id="report-modal-content"
+             class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4 transform transition-all duration-200 scale-95 opacity-0">
+
+            <!-- Étape 1 : Avertissement -->
+            <div id="report-step-1">
+                <div class="flex flex-col items-center text-center gap-4 mb-5">
+                    <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+                        <i class="fas fa-exclamation-triangle text-red-500 text-2xl"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-gray-800 font-semibold text-lg">Signaler cette recette</h3>
+                        <p class="text-gray-500 text-sm mt-2 leading-relaxed">
+                            Les signalements sont examinés par notre équipe de modération.
+                            Merci de n'utiliser cette fonctionnalité que pour des recettes présentant
+                            <strong class="text-gray-700">réellement un problème</strong>.
+                            Un signalement abusif ou de mauvaise foi peut entraîner des sanctions sur votre compte.
+                        </p>
+                    </div>
+                </div>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeReportModal()"
+                            class="flex-1 px-4 py-2 rounded-full border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors duration-150">
+                        Annuler
+                    </button>
+                    <button type="button" onclick="showReportForm()"
+                            class="flex-1 px-4 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors duration-150">
+                        Je comprends, continuer
+                    </button>
+                </div>
+            </div>
+
+            <!-- Étape 2 : Formulaire -->
+            <div id="report-step-2" class="hidden">
+                <h3 class="text-gray-800 font-semibold text-lg mb-4">
+                    <i class="fas fa-flag text-red-500 mr-2"></i>Motif du signalement
+                </h3>
+                <form th:action="@{/recipes/{id}/report(id=${recipe.id})}" method="post" class="space-y-4">
+                    <div>
+                        <label for="reportType" class="block text-sm font-medium text-gray-700 mb-1">Motif</label>
+                        <select id="reportType" name="reportType" required
+                                class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-red-400">
+                            <option value="" disabled selected>Choisir un motif</option>
+                            <option value="DANGEROUS">Contenu dangereux</option>
+                            <option value="INAPPROPRIATE">Contenu inapproprié</option>
+                            <option value="ALLERGENS">Erreur d'allergènes</option>
+                            <option value="COPYRIGHT">Violation de copyright</option>
+                            <option value="SPAM">Spam</option>
+                            <option value="OTHER">Autre</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="justification" class="block text-sm font-medium text-gray-700 mb-1">Justification</label>
+                        <textarea id="justification" name="justification" rows="3" required
+                                  placeholder="Expliquez brièvement la raison de votre signalement…"
+                                  class="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm resize-none focus:outline-none focus:ring-2 focus:ring-red-400"></textarea>
+                    </div>
+                    <div class="flex gap-3 mt-2">
+                        <button type="button" onclick="showReportWarning()"
+                                class="flex-1 px-4 py-2 rounded-full border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors duration-150">
+                            Retour
+                        </button>
+                        <button type="submit"
+                                class="flex-1 px-4 py-2 rounded-full bg-red-600 hover:bg-red-700 text-white text-sm font-semibold transition-colors duration-150">
+                            Envoyer le signalement
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+        </div>
+    </div>
 
 </div>
 
@@ -659,6 +708,7 @@
         let _superLikeBtn = null;
 
         function handleSuperLike(btn) {
+            if (btn.dataset.auth !== 'true') { window.location.href = '/auth/login'; return; }
             const alreadyLiked = btn.dataset.liked === 'true';
             if (alreadyLiked) {
                 // Si déjà liké, soumettre directement (toggle off)
@@ -758,6 +808,86 @@
         document.addEventListener('keydown', e => {
             if (e.key === 'Escape') closeImageModal();
         });
+
+        // ── Follow / Unfollow sans navigation ────────────────────────────────
+        async function handleFollow(button) {
+            if (button.dataset.auth !== 'true') { window.location.href = '/auth/login'; return; }
+            if (button.disabled) return;
+            button.disabled = true;
+
+            const recipeId = button.dataset.recipeId;
+            const isFollowed = button.dataset.followed === 'true';
+            const action = isFollowed ? 'unfollow' : 'follow';
+
+            const form = document.getElementById('follow-form');
+            form.action = '/recipes/' + recipeId + '/' + action;
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    body: new FormData(form)
+                });
+
+                if (response.url.includes('/login')) {
+                    window.location.href = response.url;
+                    return;
+                }
+
+                if (response.ok) {
+                    const icon = button.querySelector('i');
+                    const span = button.querySelector('span');
+                    const count = parseInt(span.textContent);
+                    if (isFollowed) {
+                        span.textContent = count - 1;
+                        icon.className = 'far fa-bookmark';
+                        button.classList.remove('border-primary-500', 'text-primary-500', 'bg-primary-50');
+                        button.dataset.followed = 'false';
+                    } else {
+                        span.textContent = count + 1;
+                        icon.className = 'fas fa-bookmark';
+                        button.classList.add('border-primary-500', 'text-primary-500', 'bg-primary-50');
+                        button.dataset.followed = 'true';
+                    }
+                }
+            } finally {
+                button.disabled = false;
+            }
+        }
+
+        // ── Modale de signalement ────────────────────────────────────────────
+        function openReportModal() {
+            showReportWarning();
+            const modal = document.getElementById('report-modal');
+            const content = document.getElementById('report-modal-content');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            });
+        }
+
+        function closeReportModal(event) {
+            if (event && event.target !== document.getElementById('report-modal')) return;
+            const modal = document.getElementById('report-modal');
+            const content = document.getElementById('report-modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }, 200);
+        }
+
+        function showReportWarning() {
+            document.getElementById('report-step-1').classList.remove('hidden');
+            document.getElementById('report-step-2').classList.add('hidden');
+        }
+
+        function showReportForm() {
+            document.getElementById('report-step-1').classList.add('hidden');
+            document.getElementById('report-step-2').classList.remove('hidden');
+        }
 
         // ── Confirmation de suppression ──────────────────────────────────────
         function confirmDelete() {

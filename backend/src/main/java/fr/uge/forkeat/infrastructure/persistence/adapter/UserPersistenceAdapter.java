@@ -23,6 +23,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -160,10 +161,30 @@ public class UserPersistenceAdapter implements UserPersistence {
 	}
 
 	@Override
+	public Optional<UUID> findIdByUsername(String username) {
+		Objects.requireNonNull(username);
+		return userRepository.findIdByUsername(username);
+	}
+
+	@Override
 	public boolean isFollowing(String followerUsername, String followedUsername) {
 		Objects.requireNonNull(followerUsername);
 		Objects.requireNonNull(followedUsername);
 		return neo4jUserRepository.isFollowing(followerUsername, followedUsername);
+	}
+
+	@Override
+	public void follow(UUID followerId, UUID followedId) {
+		Objects.requireNonNull(followerId);
+		Objects.requireNonNull(followedId);
+		neo4jUserRepository.follow(followerId, followedId, Instant.now());
+	}
+
+	@Override
+	public void unfollow(UUID followerId, UUID followedId) {
+		Objects.requireNonNull(followerId);
+		Objects.requireNonNull(followedId);
+		neo4jUserRepository.unfollow(followerId, followedId);
 	}
 
 	@Override
@@ -192,5 +213,12 @@ public class UserPersistenceAdapter implements UserPersistence {
 		);
 	}
 
+	@Override
+	public List<String> findAllActiveMemberEmails() {
+		return userRepository.findEmailsByStatusAndRole(
+				fr.uge.forkeat.service.model.user.UserStatus.ACTIVE,
+				UserRole.MEMBER
+		);
+	}
 
 }

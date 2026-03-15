@@ -2,11 +2,17 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.dto.user.PasswordChangeDTO;
 import fr.uge.forkeat.presentation.dto.user.UserUpdateProfileDTO;
+import fr.uge.forkeat.service.model.PasswordValidator;
 import fr.uge.forkeat.service.ProfileService;
+import fr.uge.forkeat.service.exception.RegisterFailureException;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.port.PasswordHasherPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserUpdateService;
+import jakarta.servlet.http.HttpSession;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;

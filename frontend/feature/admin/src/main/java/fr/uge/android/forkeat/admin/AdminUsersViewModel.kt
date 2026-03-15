@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.dto.UserResource
+import fr.uge.android.forkeat.admin.data.api.AdminApi
 
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -21,6 +22,8 @@ data class AdminUsersUiState(
 
 class AdminUsersViewModel : ViewModel() {
 
+    private val adminService = AdminApi.service
+
     private val _uiState = MutableStateFlow(AdminUsersUiState())
     val uiState: StateFlow<AdminUsersUiState> = _uiState.asStateFlow()
 
@@ -32,9 +35,9 @@ class AdminUsersViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val membersDeferred    = async { ForkEatApi.adminService.getMembers() }
-                val moderatorsDeferred = async { ForkEatApi.adminService.getModerators() }
-                val adminsDeferred     = async { ForkEatApi.adminService.getAdmins() }
+                val membersDeferred    = async { adminService.getMembers() }
+                val moderatorsDeferred = async { adminService.getModerators() }
+                val adminsDeferred     = async { adminService.getAdmins() }
 
                 val membersResponse    = membersDeferred.await()
                 val moderatorsResponse = moderatorsDeferred.await()

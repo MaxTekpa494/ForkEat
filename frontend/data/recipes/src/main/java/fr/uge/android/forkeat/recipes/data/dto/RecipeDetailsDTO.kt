@@ -14,12 +14,14 @@ data class RecipeDetailsDTO(
     val status: String,
     val steps: List<RecipeStepDTO>,
     val ingredients: List<RecipeIngredientDTO>,
-    val allergens: List<AllergenDTO>,
+    val allergens: List<RecipeAllergenDTO>,
     val dietaries: List<String>,
     val createdAt: Instant,
     val updatedAt: Instant,
     val nbLike: Long,
     val hasLiked: Boolean,
     val nbSuperLike: Long,
-    val hasSuperLiked: Boolean
+    val hasSuperLiked: Boolean,
+    val nbFollow: Long = 0,
+    val hasFollowed: Boolean = false
 )

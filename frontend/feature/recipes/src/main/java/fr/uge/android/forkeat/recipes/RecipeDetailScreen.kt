@@ -26,8 +26,10 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Bookmark
 import androidx.compose.material.icons.filled.Favorite
 import androidx.compose.material.icons.filled.Star
+import androidx.compose.material.icons.outlined.BookmarkBorder
 import androidx.compose.material.icons.outlined.FavoriteBorder
 import androidx.compose.material.icons.outlined.StarBorder
 import androidx.compose.material3.AlertDialog
@@ -63,7 +65,7 @@ import androidx.compose.ui.unit.sp
 import coil.compose.rememberAsyncImagePainter
 import fr.uge.android.forkeat.designsystem.theme.*
 import fr.uge.android.forkeat.network.ForkEatApi
-import fr.uge.android.forkeat.recipes.data.dto.AllergenDTO
+import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDiffDTO
@@ -88,17 +90,24 @@ fun RecipeDetailScreen(
     onLike: (UUID) -> Unit = {},
     onUnlike: (UUID) -> Unit = {},
     onSuperLike: (UUID) -> Unit = {},
+    onFollow: (UUID) -> Unit = {},
+    onUnfollow: (UUID) -> Unit = {},
     insufficientFunds: Boolean = false,
     onDismissInsufficientFunds: () -> Unit = {},
     emailNotVerified: Boolean = false,
     onDismissEmailNotVerified: () -> Unit = {},
     onNavigateToAccount: () -> Unit = {},
     onNavigateToWallet: () -> Unit = {},
-    onNavigateToLogin: () -> Unit = {}
+    onNavigateToLogin: () -> Unit = {},
+    onReport: (UUID, String, String) -> Unit = { id, type, justification -> },    reportSuccess: Boolean = false,
+    onDismissReportSuccess: () -> Unit = {},
+    reportAlreadyReported: Boolean = false,
+    onDismissReportAlreadyReported: () -> Unit = {},
 ) {
     var diffModeActive by remember { mutableStateOf(false) }
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showSuperLikeConfirm by remember { mutableStateOf(false) }
+    var showReportDialog by remember { mutableStateOf(false) }
     val currentUsername = remember { ForkEatApi.getCurrentUsername() }
 
     if (insufficientFunds) {
@@ -122,9 +131,9 @@ fun RecipeDetailScreen(
             text = { Text("Voulez-vous vraiment supprimer « ${recipe.title} » ?\nCette action est irréversible.", color = Gray500) },
             confirmButton = {
                 Button(
-                    onClick = { 
+                    onClick = {
                         showDeleteDialog = false
-                        onDelete() 
+                        onDelete()
                     },
                     colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFEF4444)),
                     shape = RoundedCornerShape(50)
@@ -147,6 +156,50 @@ fun RecipeDetailScreen(
                 showSuperLikeConfirm = false
                 onSuperLike(recipe.id)
             }
+        )
+    }
+
+    if (showReportDialog) {
+        ReportRecipeDialog(
+            onDismiss = { showReportDialog = false },
+            onConfirm = { type, justification ->
+                showReportDialog = false
+                onReport(recipe.id, type, justification)
+            }
+        )
+    }
+
+    if (reportSuccess) {
+        AlertDialog(
+            onDismissRequest = onDismissReportSuccess,
+            title = { Text("Signalement envoyé", fontWeight = FontWeight.Bold, color = Secondary900) },
+            text = { Text("Votre signalement a bien été enregistré. Notre équipe va l'examiner.", color = Gray500) },
+            confirmButton = {
+                Button(
+                    onClick = onDismissReportSuccess,
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary500),
+                    shape = RoundedCornerShape(50)
+                ) { Text("OK", fontWeight = FontWeight.Bold) }
+            },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Color.White
+        )
+    }
+
+    if (reportAlreadyReported) {
+        AlertDialog(
+            onDismissRequest = onDismissReportAlreadyReported,
+            title = { Text("Déjà signalée", fontWeight = FontWeight.Bold, color = Secondary900) },
+            text = { Text("Vous avez déjà signalé cette recette.", color = Gray500) },
+            confirmButton = {
+                Button(
+                    onClick = onDismissReportAlreadyReported,
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary500),
+                    shape = RoundedCornerShape(50)
+                ) { Text("OK", fontWeight = FontWeight.Bold) }
+            },
+            shape = RoundedCornerShape(24.dp),
+            containerColor = Color.White
         )
     }
 
@@ -271,13 +324,22 @@ fun RecipeDetailScreen(
                 SuperLikeButton(
                     initialCount = recipe.nbSuperLike.toInt(),
                     isSuperLiked = recipe.hasSuperLiked,
-                    onSuperLikeClick = { 
+                    onSuperLikeClick = {
                         if (isAuthenticated) {
-                            showSuperLikeConfirm = true 
+                            showSuperLikeConfirm = true
                         } else {
                             onNavigateToLogin()
                         }
                     }
+                )
+                FollowButton(
+                    initialCount = recipe.nbFollow.toInt(),
+                    isFollowed = recipe.hasFollowed,
+                    recipeId = recipe.id,
+                    isAuthenticated = isAuthenticated,
+                    onFollow = onFollow,
+                    onUnfollow = onUnfollow,
+                    onNavigateToLogin = onNavigateToLogin
                 )
             }
             Spacer(Modifier.height(8.dp))
@@ -400,6 +462,25 @@ fun RecipeDetailScreen(
                 recipe.steps.forEach { StepCard(it) }
             }
 
+            if (isAuthenticated && !isOwner) {
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    TextButton(
+                        onClick = { showReportDialog = true },
+                        contentPadding = PaddingValues(horizontal = 4.dp, vertical = 0.dp)
+                    ) {
+                        Text(
+                            "Signaler cette recette",
+                            color = Gray500.copy(alpha = 0.5f),
+                            style = Typography.labelSmall
+                        )
+                    }
+                }
+            }
+
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -495,7 +576,7 @@ private fun DiffBadge(type: RecipeDiffDTO.DiffType) {
 }
 
 @Composable
-fun AllergenBadges(allergens: List<AllergenDTO>) {
+fun AllergenBadges(allergens: List<RecipeAllergenDTO>) {
     Row(
         Modifier
             .padding(vertical = 4.dp)
@@ -1007,6 +1088,78 @@ fun SuperLikeButton(
     }
 }
 
+@Composable
+fun FollowButton(
+    initialCount: Int = 0,
+    isFollowed: Boolean = false,
+    recipeId: UUID,
+    modifier: Modifier = Modifier,
+    isAuthenticated: Boolean = false,
+    onFollow: (UUID) -> Unit = {},
+    onUnfollow: (UUID) -> Unit = {},
+    onNavigateToLogin: () -> Unit = {}
+) {
+    var isFollowing by remember { mutableStateOf(isFollowed) }
+    var count by remember { mutableIntStateOf(initialCount) }
+
+    LaunchedEffect(isFollowed) { isFollowing = isFollowed }
+    LaunchedEffect(initialCount) { count = initialCount }
+
+    val bookmarkColor by animateColorAsState(
+        targetValue = if (isFollowing) Primary500 else Color(0xFF9E9E9E),
+        animationSpec = tween(durationMillis = 300),
+        label = "bookmarkColor"
+    )
+    val borderColor by animateColorAsState(
+        targetValue = if (isFollowing) Primary500 else Color(0xFFE0E0E0),
+        animationSpec = tween(durationMillis = 300),
+        label = "borderColor"
+    )
+    val backgroundColor by animateColorAsState(
+        targetValue = if (isFollowing) Primary500.copy(alpha = 0.1f) else Color.White,
+        animationSpec = tween(durationMillis = 300),
+        label = "backgroundColor"
+    )
+
+    Surface(
+        onClick = {
+            if (!isAuthenticated) {
+                onNavigateToLogin()
+                return@Surface
+            }
+            val targetFollowed = !isFollowing
+            isFollowing = targetFollowed
+            count = if (targetFollowed) count + 1 else count - 1
+            if (targetFollowed) onFollow(recipeId)
+            else onUnfollow(recipeId)
+        },
+        modifier = modifier,
+        shape = RoundedCornerShape(50),
+        color = backgroundColor,
+        border = BorderStroke(1.dp, borderColor),
+        shadowElevation = if (isFollowing) 1.dp else 0.dp
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Icon(
+                imageVector = if (isFollowing) Icons.Filled.Bookmark else Icons.Outlined.BookmarkBorder,
+                contentDescription = if (isFollowing) "Ne plus suivre" else "Suivre",
+                tint = bookmarkColor,
+                modifier = Modifier.size(22.dp)
+            )
+            Text(
+                text = formatCount(count),
+                color = if (isFollowing) Primary500 else Color(0xFF616161),
+                fontSize = 14.sp,
+                fontWeight = if (isFollowing) FontWeight.Bold else FontWeight.Normal
+            )
+        }
+    }
+}
+
 private fun formatQty(qty: Double): String =
     if (qty == qty.toLong().toDouble()) qty.toLong().toString() else qty.toString()
 
@@ -1037,8 +1190,8 @@ fun PreviewRecipeDetailScreen() {
             RecipeIngredientDTO("Beurre doux froid", 125.0, "g")
         ),
         allergens = listOf(
-            AllergenDTO("1", "Gluten", "élevé"),
-            AllergenDTO("2", "Lait", "moyen")
+            RecipeAllergenDTO("1", "Gluten", "élevé"),
+            RecipeAllergenDTO("2", "Lait", "moyen")
         ),
         dietaries = listOf("vegetarian"),
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
@@ -1069,8 +1222,6 @@ fun PreviewRecipeDetailScreenWithDiff() {
         dietaries = emptyList(),
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
         updatedAt = Instant.parse("2026-02-10T12:00:00Z"),
-        nbLike = 5,
-        hasLiked = false
     )
     val diff = RecipeDiffDTO(
         titleChanged = true,
@@ -1107,7 +1258,7 @@ fun PreviewRecipeDetailScreenWithDiff() {
         status = "PUBLISHED",
         steps = listOf(RecipeStepDTO(1, "Préparez la pâte."), RecipeStepDTO(2, "Ajoutez la cannelle.")),
         ingredients = listOf(RecipeIngredientDTO("Farine", 250.0, "g")),
-        allergens = listOf(AllergenDTO("1", "Gluten", "élevé")),
+        allergens = listOf(RecipeAllergenDTO("1", "Gluten", "élevé")),
         dietaries = listOf("vegetarian"),
         createdAt = Instant.parse("2026-02-10T12:00:00Z"),
         updatedAt = Instant.parse("2026-02-10T12:00:00Z"),

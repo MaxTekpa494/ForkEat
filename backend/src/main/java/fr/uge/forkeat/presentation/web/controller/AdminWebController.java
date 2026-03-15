@@ -1,9 +1,16 @@
 package fr.uge.forkeat.presentation.web.controller;
 
+import fr.uge.forkeat.service.port.PromotionSchedulingPort;
 import fr.uge.forkeat.service.PlatformWalletService;
+import fr.uge.forkeat.service.RecipeModerationActionService;
+import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
+import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
+import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.superlike.Promotion;
+import fr.uge.forkeat.service.model.SortOrder;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.model.user.UserRegister;
 import fr.uge.forkeat.service.model.user.UserRole;
@@ -12,12 +19,17 @@ import fr.uge.forkeat.service.user.UserRegistrationService;
 import fr.uge.forkeat.service.user.UserService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
+import fr.uge.forkeat.presentation.dto.superlike.PromotionFormDTO;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -32,17 +44,26 @@ public class AdminWebController {
     private final PlatformWalletService platformWalletService;
     private final AuthenticationPort authPort;
     private final UserRegistrationService userRegistrationService;
+    private final RecipeModerationActionService recipeModerationActionService;
+    private final PromotionService promotionService;
+    private final PromotionSchedulingPort schedulingService;
 
     public AdminWebController(UserService userQueryService,
                               RecipeService recipeService,
                               PlatformWalletService platformWalletService,
                               AuthenticationPort authPort,
-                              UserRegistrationService userRegistrationService) {
+                              UserRegistrationService userRegistrationService,
+                              RecipeModerationActionService recipeModerationActionService,
+                              PromotionService promotionService,
+                              PromotionSchedulingPort schedulingService) {
         this.userQueryService = Objects.requireNonNull(userQueryService);
         this.recipeService = Objects.requireNonNull(recipeService);
         this.platformWalletService = Objects.requireNonNull(platformWalletService);
         this.authPort = Objects.requireNonNull(authPort);
         this.userRegistrationService = Objects.requireNonNull(userRegistrationService);
+        this.recipeModerationActionService = Objects.requireNonNull(recipeModerationActionService);
+        this.promotionService = Objects.requireNonNull(promotionService);
+        this.schedulingService = Objects.requireNonNull(schedulingService);
     }
 
     @GetMapping
@@ -58,6 +79,9 @@ public class AdminWebController {
         var benefitsWallet = platformWalletService.getWallet(PlatformWalletType.EARNINGS);
         var redistributionWallet = platformWalletService.getWallet(PlatformWalletType.REDISTRIBUTION);
 
+        var superLikeConfig = promotionService.getConfig();
+        var activePromotion = promotionService.findActive();
+
         model.addAttribute("admin", admin);
         model.addAttribute("memberCount", memberCount);
         model.addAttribute("moderatorCount", moderatorCount);
@@ -65,6 +89,8 @@ public class AdminWebController {
         model.addAttribute("pendingCount", pendingCount);
         model.addAttribute("benefitsWallet", benefitsWallet);
         model.addAttribute("redistributionWallet", redistributionWallet);
+        model.addAttribute("superLikeConfig", superLikeConfig);
+        model.addAttribute("activePromotion", activePromotion.orElse(null));
         model.addAttribute("pageTitle", "Administration - ForkEat");
 
         return "admin/dashboard";
@@ -109,8 +135,10 @@ public class AdminWebController {
     public String wallets(Model model) {
         var benefitsWallet = platformWalletService.getWallet(PlatformWalletType.EARNINGS);
         var redistributionWallet = platformWalletService.getWallet(PlatformWalletType.REDISTRIBUTION);
+        var transactions = platformWalletService.getTransactionHistory(SortOrder.DESC);
         model.addAttribute("benefitsWallet", benefitsWallet);
         model.addAttribute("redistributionWallet", redistributionWallet);
+        model.addAttribute("walletTransactions", transactions);
         model.addAttribute("pageTitle", "Porte-monnaies - Administration");
         return "admin/wallets";
     }
@@ -138,13 +166,79 @@ public class AdminWebController {
 
     @PostMapping("/recipes/{id}/validate")
     public String validateRecipe(@PathVariable UUID id) {
-        recipeService.updateStatus(id, RecipeStatus.PUBLISHED);
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.APPROVED, "", null));
         return "redirect:/admin/recipes/pending";
     }
 
     @PostMapping("/recipes/{id}/reject")
-    public String rejectRecipe(@PathVariable UUID id) {
-        recipeService.updateStatus(id, RecipeStatus.REJECTED);
+    public String rejectRecipe(@PathVariable UUID id, @RequestParam("justification") String justification) {
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(id, authPort.extractUsername(), RecipeModerationActionType.REJECTED, justification, null));
         return "redirect:/admin/recipes/pending";
+    }
+
+    @GetMapping("/super-like")
+    public String superLikePage(Model model) {
+        model.addAttribute("config", promotionService.getConfig());
+        model.addAttribute("promotions", promotionService.findAll());
+        model.addAttribute("pageTitle", "Super-likes & Promotions - Administration");
+        return "admin/super-like";
+    }
+
+    @PostMapping("/super-like/config")
+    public String updateConfig(@RequestParam long priceCents,
+                               @RequestParam BigDecimal earningsRatio) {
+        promotionService.updateConfig(priceCents, earningsRatio);
+        return "redirect:/admin/super-like?configSuccess=true";
+    }
+
+    @GetMapping("/promotions/create")
+    public String createPromotionForm(Model model) {
+        addConfigAttributes(model);
+        model.addAttribute("promotion", (Promotion) null);
+        model.addAttribute("pageTitle", "Créer une promotion - Administration");
+        return "admin/promotion-form";
+    }
+
+    @PostMapping("/promotions/create")
+    public String createPromotion(@ModelAttribute PromotionFormDTO form) {
+        var zone = ZoneId.systemDefault();
+        var starts = LocalDateTime.parse(form.startsAt()).atZone(zone).toInstant();
+        var ends = LocalDateTime.parse(form.endsAt()).atZone(zone).toInstant();
+        var created = promotionService.create(form.name(), starts, ends, form.priceCents(), form.bonusEveryN());
+        schedulingService.onCreated(created);
+        return "redirect:/admin/super-like?promoSuccess=true";
+    }
+
+    @GetMapping("/promotions/{id}/edit")
+    public String editPromotionForm(@PathVariable UUID id, Model model) {
+        addConfigAttributes(model);
+        model.addAttribute("promotion", promotionService.findById(id));
+        model.addAttribute("pageTitle", "Modifier la promotion - Administration");
+        return "admin/promotion-form";
+    }
+
+    @PostMapping("/promotions/{id}/edit")
+    public String editPromotion(@PathVariable UUID id, @ModelAttribute PromotionFormDTO form) {
+        var zone = ZoneId.systemDefault();
+        var starts = LocalDateTime.parse(form.startsAt()).atZone(zone).toInstant();
+        var ends = LocalDateTime.parse(form.endsAt()).atZone(zone).toInstant();
+        var updated = promotionService.update(id, form.name(), starts, ends, form.priceCents(), form.bonusEveryN());
+        schedulingService.onUpdated(id, updated);
+        return "redirect:/admin/super-like?promoSuccess=true";
+    }
+
+    @PostMapping("/promotions/{id}/cancel")
+    public String cancelPromotion(@PathVariable UUID id) {
+        promotionService.cancel(id);
+        schedulingService.onCancelled(id);
+        return "redirect:/admin/super-like?promoCancelled=true";
+    }
+
+    private void addConfigAttributes(Model model) {
+        var config = promotionService.getConfig();
+        double ratio = config.earningsRatio().doubleValue();
+        int minBonusEveryN = (int) Math.floor((1.0 - ratio) / ratio) + 1;
+        model.addAttribute("config", config);
+        model.addAttribute("minBonusEveryN", minBonusEveryN);
     }
 }

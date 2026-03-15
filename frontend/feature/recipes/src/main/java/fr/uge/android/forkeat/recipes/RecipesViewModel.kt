@@ -5,12 +5,14 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.TokenManager
+import fr.uge.android.forkeat.recipes.data.api.RecipeApi
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
-import fr.uge.android.forkeat.recipes.data.dto.AllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
+import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDiffDTO
+import fr.uge.android.forkeat.recipes.data.dto.RecipeReportRequestDTO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,7 +21,10 @@ import java.util.UUID
 
 class RecipesViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val api: RecipeApiService = ForkEatApi.recipeService
+    private val api: RecipeApiService = RecipeApi.service
+
+
+
     private val tokenManager = TokenManager(application)
 
     private val _recipes = MutableStateFlow<List<PersonalizedRecipeSummaryDTO>>(emptyList())
@@ -49,6 +54,16 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
 
     fun dismissInsufficientFunds() { _insufficientFunds.value = false }
 
+    private val _reportSuccess = MutableStateFlow(false)
+    val reportSuccess: StateFlow<Boolean> = _reportSuccess.asStateFlow()
+
+    fun dismissReportSuccess() { _reportSuccess.value = false }
+
+    private val _reportAlreadyReported = MutableStateFlow(false)
+    val reportAlreadyReported: StateFlow<Boolean> = _reportAlreadyReported.asStateFlow()
+
+    fun dismissReportAlreadyReported() { _reportAlreadyReported.value = false }
+
     private val _currentPage = MutableStateFlow(0)
 
     private val _errorMessage = MutableStateFlow<String?>(null)
@@ -62,8 +77,8 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     private val _selectedAllergens = MutableStateFlow<Set<String>>(emptySet())
     val selectedAllergens: StateFlow<Set<String>> = _selectedAllergens.asStateFlow()
 
-    private val _availableAllergens = MutableStateFlow<List<AllergenDTO>>(emptyList())
-    val availableAllergens: StateFlow<List<AllergenDTO>> = _availableAllergens.asStateFlow()
+    private val _availableAllergens = MutableStateFlow<List<RecipeAllergenDTO>>(emptyList())
+    val availableAllergens: StateFlow<List<RecipeAllergenDTO>> = _availableAllergens.asStateFlow()
 
     private val _isLoading = MutableStateFlow(false)
     val isLoading: StateFlow<Boolean> = _isLoading.asStateFlow()
@@ -133,7 +148,6 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     }
 
     private fun updateRecipeStates(recipeId: UUID, liked: Boolean) {
-        // Update main list
         _recipes.value = _recipes.value.map { recipe ->
             if (recipe.id == recipeId) {
                 if (recipe.likedByCurrentUser != liked) {
@@ -144,13 +158,65 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
                 } else recipe
             } else recipe
         }
-        
-        // Update current details if open
+
         _currentRecipe.value?.let { current ->
             if (current.id == recipeId && current.hasLiked != liked) {
                 _currentRecipe.value = current.copy(
                     hasLiked = liked,
                     nbLike = if (liked) current.nbLike + 1 else current.nbLike - 1
+                )
+            }
+        }
+    }
+
+    fun followRecipe(recipeId: UUID) {
+        viewModelScope.launch {
+            updateFollowStates(recipeId, followed = true)
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = api.followRecipe(token = token, id = recipeId)
+                if (!response.isSuccessful) {
+                    updateFollowStates(recipeId, followed = false)
+                    handleError(response.code())
+                }
+            } catch (e: Exception) {
+                updateFollowStates(recipeId, followed = false)
+                _errorMessage.value = "Erreur réseau : ${e.message}"
+            }
+        }
+    }
+
+    fun unfollowRecipe(recipeId: UUID) {
+        viewModelScope.launch {
+            updateFollowStates(recipeId, followed = false)
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = api.unfollowRecipe(token = token, id = recipeId)
+                if (!response.isSuccessful) {
+                    updateFollowStates(recipeId, followed = true)
+                    handleError(response.code())
+                }
+            } catch (e: Exception) {
+                updateFollowStates(recipeId, followed = true)
+                _errorMessage.value = "Erreur réseau : ${e.message}"
+            }
+        }
+    }
+
+    private fun updateFollowStates(recipeId: UUID, followed: Boolean) {
+        _recipes.value = _recipes.value.map { recipe ->
+            if (recipe.id == recipeId && recipe.followedByCurrentUser != followed) {
+                recipe.copy(
+                    followedByCurrentUser = followed,
+                    followCount = if (followed) recipe.followCount + 1 else recipe.followCount - 1
+                )
+            } else recipe
+        }
+        _currentRecipe.value?.let { current ->
+            if (current.id == recipeId && current.hasFollowed != followed) {
+                _currentRecipe.value = current.copy(
+                    hasFollowed = followed,
+                    nbFollow = if (followed) current.nbFollow + 1 else current.nbFollow - 1
                 )
             }
         }
@@ -185,6 +251,26 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
                 }
             } catch (e: Exception) {
                 _errorMessage.value = "Le serveur est indisponible, veuillez réessayer plus tard."
+            }
+        }
+    }
+
+    fun reportRecipe(recipeId: UUID, reportType: String, justification: String) {
+        viewModelScope.launch {
+            try {
+                val token = tokenManager.getToken() ?: return@launch
+                val response = api.reportRecipe(
+                    token = token,
+                    id = recipeId,
+                    request = RecipeReportRequestDTO(reportType, justification)
+                )
+                when {
+                    response.isSuccessful -> _reportSuccess.value = true
+                    response.code() == 409 -> _reportAlreadyReported.value = true
+                    else -> _errorMessage.value = "Erreur lors du signalement (${response.code()})"
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Erreur réseau : ${e.message}"
             }
         }
     }
@@ -259,7 +345,7 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
                     _currentParent.value = data?.parent
                     _currentDiff.value = data?.diff
                     _errorMessage.value = null
-                    
+
                     // Synchronize local state in main list
                     data?.recipe?.let { recipe ->
                         updateRecipeStates(recipe.id, recipe.hasLiked)

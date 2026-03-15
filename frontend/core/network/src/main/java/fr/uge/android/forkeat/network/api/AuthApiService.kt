@@ -5,7 +5,6 @@ import fr.uge.android.forkeat.network.dto.ForgottenPasswordRequest
 import fr.uge.android.forkeat.network.dto.GoogleLoginRequest
 import fr.uge.android.forkeat.network.dto.LoginRequest
 import fr.uge.android.forkeat.network.dto.LoginResponse
-import fr.uge.android.forkeat.network.dto.NewPasswordRequest
 import fr.uge.android.forkeat.network.dto.RegisterRequest
 import fr.uge.android.forkeat.network.dto.UserDTO
 import retrofit2.Response

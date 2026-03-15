@@ -73,9 +73,6 @@ class RecipePersistenceAdapterTest {
 
 
     @Mock
-    private WalletRepository walletRepository;
-
-    @Mock
     private SuperLikeRepository superLikeRepository;
 
     @Mock
@@ -93,7 +90,7 @@ class RecipePersistenceAdapterTest {
                 allergenRepository, ingredientRepository,
                 neo4jRecipeRepository,
                 recipeAllergenRepository, recipeIngredientRepository,
-                recipeDietaryRepository, dietaryRepository, entityManager,superLikeRepository, walletRepository);
+                recipeDietaryRepository, dietaryRepository, entityManager, superLikeRepository);
         now = Instant.now();
 
         author = new UserEntity();
@@ -574,7 +571,7 @@ class RecipePersistenceAdapterTest {
         @Test
         void shouldReturnInteractionsForUser() {
             var recipeId = UUID.randomUUID();
-            var projection = new RecipeUserInteractionProjection(recipeId.toString(), true, false);
+            var projection = new RecipeUserInteractionProjection(recipeId.toString(), true, false, true);
             when(neo4jRecipeRepository.findUserInteractionsByRecipeIds(List.of(recipeId.toString()), "viewer"))
                     .thenReturn(List.of(projection));
 
@@ -585,6 +582,7 @@ class RecipePersistenceAdapterTest {
             assertNotNull(interaction);
             assertTrue(interaction.likedByCurrentUser());
             assertFalse(interaction.superLikedByCurrentUser());
+            assertTrue(interaction.followedByCurrentUser());
         }
 
         @Test
@@ -822,15 +820,14 @@ class RecipePersistenceAdapterTest {
     class SuperLike {
 
         @Test
-        void shouldSaveSuperLikeAndDecrementWallet() {
+        void shouldSaveSuperLike() {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
             long amount = 100L;
 
-            adapter.superLikeRecipe(userId, recipeId, amount);
+            adapter.superLikeRecipe(userId, recipeId, amount, null, false);
 
             verify(superLikeRepository).save(any(SuperLikeEntity.class));
-            verify(walletRepository).decrementBalanceByUserId(userId, amount);
         }
 
         @Test

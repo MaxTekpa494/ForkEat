@@ -200,6 +200,35 @@ class AuthenticationAdapterTest {
     }
 
     @Nested
+    class IsModeratorTests {
+
+        @Test
+        void shouldReturnTrueWhenUserHasModeratorRole() {
+            var auth = new UsernamePasswordAuthenticationToken("moderator", null,
+                    List.of(new SimpleGrantedAuthority("ROLE_MODERATOR")));
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            assertTrue(adapter.isModerator());
+        }
+
+        @Test
+        void shouldReturnFalseWhenUserHasMemberRole() {
+            var auth = new UsernamePasswordAuthenticationToken("user", null,
+                    List.of(new SimpleGrantedAuthority("ROLE_MEMBER")));
+            SecurityContextHolder.getContext().setAuthentication(auth);
+
+            assertFalse(adapter.isModerator());
+        }
+
+        @Test
+        void shouldReturnFalseWhenContextIsEmpty() {
+            SecurityContextHolder.clearContext();
+
+            assertFalse(adapter.isModerator());
+        }
+    }
+
+    @Nested
     class RefreshAuthenticationTests {
 
         @Test

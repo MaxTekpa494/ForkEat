@@ -1,12 +1,13 @@
 package fr.uge.android.forkeat.account
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import fr.uge.android.forkeat.network.ForkEatApi
-import fr.uge.android.forkeat.network.dto.PasswordChangeRequest
-import fr.uge.android.forkeat.network.dto.RequestEmailChangeRequest
-import fr.uge.android.forkeat.network.dto.SetPasswordRequest
-import fr.uge.android.forkeat.network.dto.UpdateProfileRequest
+import fr.uge.android.forkeat.profile.data.api.AccountApi
+import fr.uge.android.forkeat.profile.data.dto.PasswordChangeRequest
+import fr.uge.android.forkeat.profile.data.dto.RequestEmailChangeRequest
+import fr.uge.android.forkeat.profile.data.dto.SetPasswordRequest
+import fr.uge.android.forkeat.profile.data.dto.UpdateProfileRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +33,8 @@ data class AccountUiState(
 )
 
 class AccountViewModel : ViewModel() {
+
+    private val accountService = AccountApi.service
 
     private val _uiState = MutableStateFlow(AccountUiState())
     val uiState: StateFlow<AccountUiState> = _uiState.asStateFlow()
@@ -64,7 +67,7 @@ class AccountViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true)
             try {
-                val response = ForkEatApi.accountService.getAccount()
+                val response = accountService.getAccount()
                 if (response.isSuccessful) {
                     val user = response.body()?.resource
                     if (user != null) {
@@ -78,6 +81,7 @@ class AccountViewModel : ViewModel() {
                             emailVerified = user.emailVerified,
                             isLoading = false
                         )
+                    } else {
                     }
                 } else {
                     _uiState.value = _uiState.value.copy(
@@ -127,7 +131,7 @@ class AccountViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.accountService.updateProfile(
+                val response = accountService.updateProfile(
                     UpdateProfileRequest(
                         firstName = _uiState.value.firstName,
                         lastName = _uiState.value.lastName,
@@ -185,7 +189,7 @@ class AccountViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.accountService.requestEmailChange(
+                val response = accountService.requestEmailChange(
                     if (isGoogleUser) {
                         RequestEmailChangeRequest(
                             newEmail = _newEmail.value,
@@ -228,7 +232,7 @@ class AccountViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.accountService.confirmEmailChange(code)
+                val response = accountService.confirmEmailChange(code)
                 if (response.isSuccessful) {
                     val user = response.body()?.resource
                     if (user != null) {
@@ -291,7 +295,7 @@ class AccountViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.accountService.requestPasswordChange(
+                val response = accountService.requestPasswordChange(
                     PasswordChangeRequest(
                         currentPassword = _currentPassword.value,
                         newPassword = _newPassword.value,
@@ -324,7 +328,7 @@ class AccountViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.accountService.confirmPasswordChange(code)
+                val response = accountService.confirmPasswordChange(code)
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -366,7 +370,7 @@ class AccountViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.accountService.setPassword(
+                val response = accountService.setPassword(
                     SetPasswordRequest(
                         newPassword = _newPassword.value,
                         confirmPassword = _confirmNewPassword.value
@@ -397,7 +401,7 @@ class AccountViewModel : ViewModel() {
     fun resendConfirmation() {
         viewModelScope.launch {
             try {
-                val response = ForkEatApi.accountService.resendConfirmation()
+                val response = accountService.resendConfirmation()
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(resendMessage = "Email de confirmation envoyé !")
                 } else {

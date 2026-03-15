@@ -212,10 +212,6 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
             testRights(post("/api/recipes/{id}/like", RECIPE_ID), AuthorizationTest.EMAIL_VERIFIED);
         }
 
-        @Test
-        void testSuperLikeRecipe() throws Exception {
-            testRights(post("/api/recipes/{id}/super-like", RECIPE_ID), AuthorizationTest.EMAIL_VERIFIED);
-        }
 
         @Test
         void testUnlikeRecipe() throws Exception {
@@ -225,11 +221,6 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
     @Nested
     class RecipeWebControllerSecurityTest {
-
-        @Test
-        void testPageCreateRecipe() throws Exception {
-            testRights(get("/recipes/create"), AuthorizationTest.UNAUTHENTICATED);
-        }
 
         @Test
         void testCreateRecipe() throws Exception {

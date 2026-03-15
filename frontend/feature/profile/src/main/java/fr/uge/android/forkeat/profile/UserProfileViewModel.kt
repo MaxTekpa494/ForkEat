@@ -3,8 +3,10 @@ package fr.uge.android.forkeat.profile
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.TokenManager
+import fr.uge.android.forkeat.profile.data.api.ProfileApi
+import fr.uge.android.forkeat.recipes.data.api.RecipeApi
+import fr.uge.android.forkeat.profile.data.dto.UserReportRequestDTO
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -27,10 +29,16 @@ data class UserProfileUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val insufficientFunds: Boolean = false,
-    val emailNotVerified: Boolean = false
+    val emailNotVerified: Boolean = false,
+    val showReportDialog: Boolean = false,
+    val reportSuccess: Boolean = false,
+    val reportAlreadyDone: Boolean = false
 )
 
 class UserProfileViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val profileService = ProfileApi.service
+    private val recipeService = RecipeApi.service
 
     private val _uiState = MutableStateFlow(UserProfileUiState())
     val uiState: StateFlow<UserProfileUiState> = _uiState.asStateFlow()
@@ -46,12 +54,48 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
         _uiState.value = _uiState.value.copy(emailNotVerified = false)
     }
 
+    fun showReportDialog() {
+        _uiState.value = _uiState.value.copy(showReportDialog = true)
+    }
+
+    fun dismissReportDialog() {
+        _uiState.value = _uiState.value.copy(showReportDialog = false)
+    }
+
+    fun dismissReportSuccess() {
+        _uiState.value = _uiState.value.copy(reportSuccess = false)
+    }
+
+    fun dismissReportAlreadyDone() {
+        _uiState.value = _uiState.value.copy(reportAlreadyDone = false)
+    }
+
+    fun reportUser(reportType: String, justification: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(showReportDialog = false)
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = profileService.reportUser(
+                    token = token,
+                    username = targetUsername,
+                    request = UserReportRequestDTO(reportType, justification)
+                )
+                when {
+                    response.isSuccessful -> _uiState.value = _uiState.value.copy(reportSuccess = true)
+                    response.code() == 409 -> _uiState.value = _uiState.value.copy(reportAlreadyDone = true)
+                }
+            } catch (e: Exception) {
+                // Silently fail
+            }
+        }
+    }
+
     fun loadProfile(username: String, page: Int = 0) {
         targetUsername = username
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.profileService.getUserProfile(username, page)
+                val response = profileService.getUserProfile(username, page)
                 if (response.isSuccessful) {
                     val r = response.body()?.resource ?: return@launch
                     val newRecipes = if (page == 0) r.recipes else _uiState.value.recipes + r.recipes
@@ -90,7 +134,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
             updateRecipeInList(recipeId, liked = true)
             try {
                 val token = tokenManager.getToken() ?: ""
-                val response = ForkEatApi.recipeService.likeRecipe(token = token, id = recipeId)
+                val response = recipeService.likeRecipe(token = token, id = recipeId)
                 if (!response.isSuccessful) {
                     updateRecipeInList(recipeId, liked = false)
                     handleError(response.code())
@@ -106,7 +150,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
             updateRecipeInList(recipeId, liked = false)
             try {
                 val token = tokenManager.getToken() ?: ""
-                val response = ForkEatApi.recipeService.unlikeRecipe(token = token, id = recipeId)
+                val response = recipeService.unlikeRecipe(token = token, id = recipeId)
                 if (!response.isSuccessful) {
                     updateRecipeInList(recipeId, liked = true)
                     handleError(response.code())
@@ -121,7 +165,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             try {
                 val token = tokenManager.getToken() ?: ""
-                val response = ForkEatApi.recipeService.superLikeRecipe(token = token, id = recipeId)
+                val response = recipeService.superLikeRecipe(token = token, id = recipeId)
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         recipes = _uiState.value.recipes.map { recipe ->
@@ -142,6 +186,51 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
         }
     }
 
+    fun followRecipe(recipeId: UUID) {
+        viewModelScope.launch {
+            updateFollowStates(recipeId, followed = true)
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = recipeService.followRecipe(token = token, id = recipeId)
+                if (!response.isSuccessful) {
+                    updateFollowStates(recipeId, followed = false)
+                    handleError(response.code())
+                }
+            } catch (e: Exception) {
+                updateFollowStates(recipeId, followed = false)
+            }
+        }
+    }
+
+    fun unfollowRecipe(recipeId: UUID) {
+        viewModelScope.launch {
+            updateFollowStates(recipeId, followed = false)
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = recipeService.unfollowRecipe(token = token, id = recipeId)
+                if (!response.isSuccessful) {
+                    updateFollowStates(recipeId, followed = true)
+                    handleError(response.code())
+                }
+            } catch (e: Exception) {
+                updateFollowStates(recipeId, followed = true)
+            }
+        }
+    }
+
+    private fun updateFollowStates(recipeId: UUID, followed: Boolean) {
+        _uiState.value = _uiState.value.copy(
+            recipes = _uiState.value.recipes.map { recipe ->
+                if (recipe.id == recipeId && recipe.followedByCurrentUser != followed) {
+                    recipe.copy(
+                        followedByCurrentUser = followed,
+                        followCount = if (followed) recipe.followCount + 1 else recipe.followCount - 1
+                    )
+                } else recipe
+            }
+        )
+    }
+
     private fun updateRecipeInList(recipeId: UUID, liked: Boolean) {
         _uiState.value = _uiState.value.copy(
             recipes = _uiState.value.recipes.map { recipe ->
@@ -155,6 +244,54 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
                 } else recipe
             }
         )
+    }
+
+    fun follow() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                followedByCurrentUser = true,
+                followerCount = _uiState.value.followerCount + 1
+            )
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = profileService.followUser(token, targetUsername)
+                if (!response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(
+                        followedByCurrentUser = false,
+                        followerCount = _uiState.value.followerCount - 1
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    followedByCurrentUser = false,
+                    followerCount = _uiState.value.followerCount - 1
+                )
+            }
+        }
+    }
+
+    fun unfollow() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(
+                followedByCurrentUser = false,
+                followerCount = _uiState.value.followerCount - 1
+            )
+            try {
+                val token = tokenManager.getToken() ?: ""
+                val response = profileService.unfollowUser(token, targetUsername)
+                if (!response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(
+                        followedByCurrentUser = true,
+                        followerCount = _uiState.value.followerCount + 1
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    followedByCurrentUser = true,
+                    followerCount = _uiState.value.followerCount + 1
+                )
+            }
+        }
     }
 
     private fun handleError(code: Int) {

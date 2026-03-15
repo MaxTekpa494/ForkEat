@@ -9,18 +9,17 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserReposit
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
 
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.Transaction;
-import fr.uge.forkeat.service.model.TransactionType;
+import fr.uge.forkeat.service.model.transaction.Transaction;
+import fr.uge.forkeat.service.model.transaction.TransactionType;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.model.wallet.Wallet;
-import fr.uge.forkeat.service.model.TransactionStatus; // New import
+import fr.uge.forkeat.service.model.transaction.TransactionStatus;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-// import org.springframework.transaction.TransactionStatus; // Removed, conflicting with domain model
 
 import java.time.Instant;
 import java.util.Optional;
@@ -73,7 +72,6 @@ class WalletPersistenceAdapterTest {
         return wallet;
     }
 
-    // Updated helper method
     private TransactionEntity createTransactionEntity(UUID id, String stripeId, TransactionStatus status) {
         var entity = new TransactionEntity();
         entity.setId(id);
@@ -262,12 +260,12 @@ class WalletPersistenceAdapterTest {
                 TransactionType.REDISTRIBUTION,
                 Instant.now(),
                 "stripe_123",
-                TransactionStatus.PENDING // New argument
+                TransactionStatus.PENDING
         );
 
         var sourceWallet = createWalletEntity(sourceWalletId, sourceUserId, 5000L);
         var destWallet = createWalletEntity(destWalletId, destUserId, 2000L);
-        var savedEntity = createTransactionEntity(transactionId, "stripe_123", TransactionStatus.PENDING); // Updated call
+        var savedEntity = createTransactionEntity(transactionId, "stripe_123", TransactionStatus.PENDING);
 
         when(walletRepository.getReferenceById(sourceWalletId)).thenReturn(sourceWallet);
         when(walletRepository.getReferenceById(destWalletId)).thenReturn(destWallet);
@@ -300,10 +298,10 @@ class WalletPersistenceAdapterTest {
                 TransactionType.RECHARGE,
                 Instant.now(),
                 "stripe_456",
-                TransactionStatus.PENDING // New argument
+                TransactionStatus.PENDING
         );
 
-        var savedEntity = createTransactionEntity(transactionId, "stripe_456", TransactionStatus.PENDING); // Updated call
+        var savedEntity = createTransactionEntity(transactionId, "stripe_456", TransactionStatus.PENDING);
 
         when(transactionRepository.save(any(TransactionEntity.class))).thenReturn(savedEntity);
 
@@ -334,11 +332,11 @@ class WalletPersistenceAdapterTest {
                 TransactionType.REDISTRIBUTION,
                 Instant.now(),
                 "stripe_789",
-                TransactionStatus.PENDING // New argument
+                TransactionStatus.PENDING
         );
 
         var destWallet = createWalletEntity(destWalletId, destUserId, 2000L);
-        var savedEntity = createTransactionEntity(transactionId, "stripe_789", TransactionStatus.PENDING); // Updated call
+        var savedEntity = createTransactionEntity(transactionId, "stripe_789", TransactionStatus.PENDING);
 
         when(walletRepository.getReferenceById(destWalletId)).thenReturn(destWallet);
         when(transactionRepository.save(any(TransactionEntity.class))).thenReturn(savedEntity);
