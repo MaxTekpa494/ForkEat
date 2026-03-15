@@ -31,6 +31,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
@@ -92,6 +93,26 @@ public class ProfileControllerSecurityTest extends AbstractIntegrationTest {
             );
         }
     }
+    @Nested
+    class ProfileWebControllerSecurityTest {
+
+        @Test
+        void testProfile() throws Exception {
+            testRightsMVCNoRedirect(get("/profile"), AuthorizationTest.MEMBER);
+        }
+
+        @Test
+        void testUserProfile() throws Exception {
+            testRightsMVCNoRedirect(get("/profile/{username}", "MaximusPrime"), AuthorizationTest.MEMBER);
+        }
+
+        @Test
+        void testUserProfileWithPagination() throws Exception {
+            testRightsMVCNoRedirect(get("/profile/{username}", "MaximusPrime")
+                    .param("page", "0")
+                    .param("size", "12"), AuthorizationTest.MEMBER);
+        }
+    }
 
 
     private void testRights(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
@@ -145,5 +166,39 @@ public class ProfileControllerSecurityTest extends AbstractIntegrationTest {
         var recipes = new PageResult<PersonalizedRecipeSummary>(List.of(), 0L);
         var profileWithRecipes = new UserProfileWithRecipes(profile, recipes);
         return new PersonalizedUserProfile(profileWithRecipes, followed);
+    }
+
+
+    private void testRightsMVCNoRedirect(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
+        var expected = status().is3xxRedirection();
+
+        var expectedForUnauthenticated = authorization.equals(AuthorizationTest.UNAUTHENTICATED) ? status().is2xxSuccessful() : status().is3xxRedirection();
+        mockMvc.perform(requestBuilders).andExpect(expectedForUnauthenticated);
+
+        if(authorization.equals(AuthorizationTest.MEMBER) || authorization.equals(AuthorizationTest.UNAUTHENTICATED)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))).andExpect(expected);
+
+        if(authorization.equals(AuthorizationTest.EMAIL_VERIFIED)) {
+            expected = status().is2xxSuccessful();
+        }
+
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
+
+
+        if(authorization.equals(AuthorizationTest.MODERATOR)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
+
+        if(authorization.equals(AuthorizationTest.ADMIN)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
     }
 }

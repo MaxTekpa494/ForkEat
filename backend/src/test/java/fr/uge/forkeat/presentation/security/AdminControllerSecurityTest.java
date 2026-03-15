@@ -14,6 +14,7 @@ import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.model.wallet.PlatformWallet;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import fr.uge.forkeat.service.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -40,6 +41,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -61,6 +63,8 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
     private RecipeService recipeService;
     @MockitoBean
     private PlatformWalletService platformWalletService;
+    @MockitoBean
+    private AuthenticationPort authPort;
 
     @BeforeEach
     void setup() {
@@ -93,6 +97,9 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
 
         when(platformWalletService.getWallet(PlatformWalletType.EARNINGS)).thenReturn(mockEarningsWallet);
         when(platformWalletService.getWallet(PlatformWalletType.REDISTRIBUTION)).thenReturn(mockRedistributionWallet);
+
+        when(authPort.extractUsername()).thenReturn("PaxGPT");
+        when(userService.getUserByUsername("PaxGPT")).thenReturn(mockUser);
     }
 
 
@@ -170,6 +177,136 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
              testRights(get("/api/admin/wallets/redistribution"), AuthorizationTest.ADMIN);
          }
      }
+
+    @Nested
+    class AdminWebControllerSecurityTest {
+
+        @Test
+        void testDashboard() throws Exception {
+            testRightsMVCNoRedirect(get("/admin"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testUsers() throws Exception {
+            testRightsMVCNoRedirect(get("/admin/users")
+                    .param("role", "MEMBER"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testCreateAdminForm() throws Exception {
+            testRightsMVCNoRedirect(get("/admin/create-admin"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testCreateAdmin() throws Exception {
+            testRightsMVC(post("/admin/create-admin")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .param("username", "newadmin")
+                    .param("firstName", "John")
+                    .param("lastName", "Doe")
+                    .param("email", "newadmin@forkeat.com")
+                    .param("password", "password123"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testWallets() throws Exception {
+            testRightsMVCNoRedirect(get("/admin/wallets"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testPublishedRecipes() throws Exception {
+            testRightsMVCNoRedirect(get("/admin/recipes")
+                    .param("page", "0"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testPendingRecipes() throws Exception {
+            testRightsMVCNoRedirect(get("/admin/recipes/pending"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testValidateRecipe() throws Exception {
+            testRightsMVC(post("/admin/recipes/{id}/validate", UUID.randomUUID()), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testRejectRecipe() throws Exception {
+            testRightsMVC(post("/admin/recipes/{id}/reject", UUID.randomUUID()), AuthorizationTest.ADMIN);
+        }
+    }
+
+
+
+
+
+
+    private void testRightsMVC(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
+        var expectedBlocked = status().is3xxRedirection();
+        var expectedSuccess = status().is3xxRedirection(); // POST redirige vers /account en cas de succès
+
+        // Non authentifié → toujours redirigé (vers /login ou succès si UNAUTHENTICATED)
+        mockMvc.perform(requestBuilders)
+                .andExpect(expectedBlocked);
+
+        var expected = authorization.equals(AuthorizationTest.MEMBER) || authorization.equals(AuthorizationTest.UNAUTHENTICATED)
+                ? expectedSuccess : expectedBlocked;
+
+        mockMvc.perform(requestBuilders.with(user("PAX").roles("MEMBER")))
+                .andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.EMAIL_VERIFIED)) {
+            expected = expectedSuccess;
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                        .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
+                .andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.MODERATOR)) {
+            expected = expectedSuccess;
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                        .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
+                .andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.ADMIN)) {
+            expected = expectedSuccess;
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                        .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
+                .andExpect(expected);
+    }
+    private void testRightsMVCNoRedirect(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
+        var expected = status().is3xxRedirection();
+
+        var expectedForUnauthenticated = authorization.equals(AuthorizationTest.UNAUTHENTICATED) ? status().is2xxSuccessful() : status().is3xxRedirection();
+        mockMvc.perform(requestBuilders).andExpect(expectedForUnauthenticated);
+
+        if(authorization.equals(AuthorizationTest.MEMBER) || authorization.equals(AuthorizationTest.UNAUTHENTICATED)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))).andExpect(expected);
+
+        if(authorization.equals(AuthorizationTest.EMAIL_VERIFIED)) {
+            expected = status().is2xxSuccessful();
+        }
+
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
+
+
+        if(authorization.equals(AuthorizationTest.MODERATOR)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
+
+        if(authorization.equals(AuthorizationTest.ADMIN)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
+    }
 
     private User createUser(UUID id) {
         return new User(id, "PaxGPT", "Pax", "Pekpa", "a@gmail.com",

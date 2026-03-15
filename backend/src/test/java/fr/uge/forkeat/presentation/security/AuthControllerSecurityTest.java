@@ -32,6 +32,7 @@ import java.util.UUID;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 
@@ -72,6 +73,7 @@ public class AuthControllerSecurityTest extends AbstractIntegrationTest {
     RateLimitFilter rateLimitingFilter;
 
 
+
     @BeforeEach
     void setup() {
 
@@ -96,6 +98,13 @@ public class AuthControllerSecurityTest extends AbstractIntegrationTest {
 
         doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any());
         doNothing().when(userUpdateService).confirmForgotPasswordChange(any(), any(), any(), any());
+
+        when(userService.findByEmail(any())).thenReturn(java.util.Optional.of(createUser(UUID.randomUUID())));
+        doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any());
+        doNothing().when(userUpdateService).confirmForgotPasswordChange(any(), any(), any(), any());
+        when(userRegistrationService.registerUser(any())).thenReturn(createUser(UUID.randomUUID()));
+        doNothing().when(emailVerificationService).sendEmailConfirmation(any(), any());
+        doNothing().when(emailVerificationService).confirmEmail(any());
     }
 
     @Nested
@@ -151,6 +160,75 @@ public class AuthControllerSecurityTest extends AbstractIntegrationTest {
         }
     }
 
+    @Nested
+    class AuthWebControllerSecurityTest {
+
+        @Test
+        void testLoginPage() throws Exception {
+            testRightsMVCNoRedirect(get("/auth/login"), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testForgotPassword() throws Exception {
+            testRightsMVCNoRedirect(get("/auth/forgot-password"), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testForgotPasswordCode() throws Exception {
+            testRightsMVCNoRedirect(post("/auth/forgot-password-code")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .param("email", "test@forkeat.com"), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testForgotPasswordVerifyCode() throws Exception {
+            testRightsMVCNoRedirect(post("/auth/forgot-password-verify-code")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .param("email", "test@forkeat.com")
+                    .param("verificationCode", "123456")
+                    .param("password", "newpass123")
+                    .param("confirmPassword", "newpass123"), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testRegisterPage() throws Exception {
+            testRightsMVCNoRedirect(get("/auth/register"), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testRegister() throws Exception {
+            testRightsMVCNoRedirect(post("/auth/register")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .param("username", "newuser")
+                    .param("firstName", "John")
+                    .param("lastName", "Doe")
+                    .param("email", "newuser@forkeat.com")
+                    .param("password", "password123")
+                    .param("confirmPassword", "password123"), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testEmailSentPage() throws Exception {
+            testRightsMVCNoRedirect(get("/auth/email-sent"), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testEmailVerificationRequired() throws Exception {
+            testRightsMVCNoRedirect(get("/auth/email-verification-required"), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testResendVerification() throws Exception {
+            testRightsMVCNoRedirect(post("/auth/resend-verification"), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testConfirmEmail() throws Exception {
+            testRightsMVCNoRedirect(get("/auth/confirm-email")
+                    .param("token", "some-token"), AuthorizationTest.UNAUTHENTICATED);
+        }
+    }
+
 
     private void testRights(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
         var expected = status().isForbidden();
@@ -187,5 +265,39 @@ public class AuthControllerSecurityTest extends AbstractIntegrationTest {
     private User createUser(UUID id) {
         return new User(id, "PaxGPT", "Pax", "Pekpa", "a@gmail.com",
                 UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
+    }
+
+
+    private void testRightsMVCNoRedirect(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
+        var expected = status().is3xxRedirection();
+
+        var expectedForUnauthenticated = authorization.equals(AuthorizationTest.UNAUTHENTICATED) ? status().is2xxSuccessful() : status().is3xxRedirection();
+        mockMvc.perform(requestBuilders).andExpect(expectedForUnauthenticated);
+
+        if(authorization.equals(AuthorizationTest.MEMBER) || authorization.equals(AuthorizationTest.UNAUTHENTICATED)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))).andExpect(expected);
+
+        if(authorization.equals(AuthorizationTest.EMAIL_VERIFIED)) {
+            expected = status().is2xxSuccessful();
+        }
+
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
+
+
+        if(authorization.equals(AuthorizationTest.MODERATOR)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
+
+        if(authorization.equals(AuthorizationTest.ADMIN)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
     }
 }
