@@ -109,6 +109,7 @@ fun RecipeDetailScreen(
     var showSuperLikeConfirm by remember { mutableStateOf(false) }
     var showReportDialog by remember { mutableStateOf(false) }
     val currentUsername = remember { ForkEatApi.getCurrentUsername() }
+    val isPublished = recipe.status == "PUBLISHED"
 
     if (insufficientFunds) {
         InsufficientFundsDialog(
@@ -280,7 +281,28 @@ fun RecipeDetailScreen(
                     horizontalAlignment = Alignment.End,
                     verticalArrangement = Arrangement.spacedBy(6.dp)
                 ) {
-                    if (isAuthenticated) {
+                    if (isOwner) {
+                        val (statusLabel, statusColor) = when (recipe.status) {
+                            "PUBLISHED" -> "Publiée" to Color(0xFF16A34A)
+                            "DRAFT" -> "Brouillon" to Color(0xFF6B7280)
+                            "PENDING_REVIEW" -> "En attente" to Color(0xFFD97706)
+                            "REJECTED" -> "Rejetée" to Color(0xFFDC2626)
+                            else -> recipe.status to Color(0xFF6B7280)
+                        }
+                        Surface(
+                            shape = RoundedCornerShape(12.dp),
+                            color = statusColor.copy(alpha = 0.1f),
+                            border = BorderStroke(1.dp, statusColor.copy(alpha = 0.3f))
+                        ) {
+                            Text(
+                                text = statusLabel,
+                                style = Typography.labelSmall,
+                                color = statusColor,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
+                    if (isAuthenticated && isPublished) {
                         OutlinedButton(
                             onClick = onCreateVariant,
                             shape = RoundedCornerShape(50),
@@ -316,19 +338,18 @@ fun RecipeDetailScreen(
                     initialCount = recipe.nbLike.toInt(),
                     isLike = recipe.hasLiked,
                     recipeId = recipe.id,
-                    isAuthenticated = isAuthenticated,
+                    isAuthenticated = isAuthenticated && isPublished,
                     onLike = onLike,
                     onUnlike = onUnlike,
-                    onNavigateToLogin = onNavigateToLogin
+                    onNavigateToLogin = if (isPublished) onNavigateToLogin else ({})
                 )
                 SuperLikeButton(
                     initialCount = recipe.nbSuperLike.toInt(),
                     isSuperLiked = recipe.hasSuperLiked,
                     onSuperLikeClick = {
-                        if (isAuthenticated) {
-                            showSuperLikeConfirm = true
-                        } else {
-                            onNavigateToLogin()
+                        if (isPublished) {
+                            if (isAuthenticated) showSuperLikeConfirm = true
+                            else onNavigateToLogin()
                         }
                     }
                 )
@@ -336,10 +357,10 @@ fun RecipeDetailScreen(
                     initialCount = recipe.nbFollow.toInt(),
                     isFollowed = recipe.hasFollowed,
                     recipeId = recipe.id,
-                    isAuthenticated = isAuthenticated,
+                    isAuthenticated = isAuthenticated && isPublished,
                     onFollow = onFollow,
                     onUnfollow = onUnfollow,
-                    onNavigateToLogin = onNavigateToLogin
+                    onNavigateToLogin = if (isPublished) onNavigateToLogin else ({})
                 )
             }
             Spacer(Modifier.height(8.dp))
