@@ -3,6 +3,7 @@ package fr.uge.forkeat.service;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.event.RecipePublishedEvent;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.exception.RecipeOwnershipException;
 import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
@@ -97,6 +98,10 @@ public class RecipeService {
   @Transactional
   public Recipe updateRecipe(UUID id, Recipe updatedRecipe, ImageUpload image) {
     var existingRecipe = findById(id);
+    var currentUsername = authPort.extractUsername();
+    if (!existingRecipe.usernameAuthor().equals(currentUsername)) {
+      throw new RecipeOwnershipException(id, currentUsername);
+    }
 
     var imageUrl = existingRecipe.imageUrl();
     if (image != null) {
@@ -132,6 +137,10 @@ public class RecipeService {
   @Transactional
   public void deleteById(UUID id) {
     var recipe = findById(id);
+    var currentUsername = authPort.extractUsername();
+    if (!recipe.usernameAuthor().equals(currentUsername)) {
+      throw new RecipeOwnershipException(id, currentUsername);
+    }
     if(recipe.imageUrl() != null){
       storageService.deleteImage(recipe.imageUrl());
       logger.info("Image deleted for recipe {}", id);
