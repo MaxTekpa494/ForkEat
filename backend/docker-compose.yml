@@ -75,7 +75,6 @@ services:
     entrypoint: ["/bin/sh", "-c"]
     command: >
       "ollama pull bge-m3 &&
-       ollama pull mistral &&
        ollama pull llama-guard3:1b &&
        echo 'Tous les modèles Ollama sont prêts.'"
     networks:

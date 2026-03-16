@@ -15,6 +15,14 @@ import java.util.Map;
 @ControllerAdvice(basePackages = "fr.uge.forkeat.presentation.web")
 public class GlobalWebExceptionHandler {
 
+	@ExceptionHandler(RecipeOwnershipException.class)
+	@ResponseStatus(HttpStatus.FORBIDDEN)
+	public String handleRecipeOwnership(RecipeOwnershipException ex, Model model) {
+		model.addAttribute("errorMessage", ex.getMessage());
+		model.addAttribute("pageTitle", "Accès interdit");
+		return "error/403";
+	}
+
 	@ExceptionHandler(RecipeNotFoundException.class)
 	@ResponseStatus(HttpStatus.NOT_FOUND)
 	public String handleRecipeNotFound(RecipeNotFoundException ex, Model model) {
