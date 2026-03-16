@@ -570,18 +570,19 @@ class RecipeRestControllerTest {
             var recipeId = UUID.randomUUID();
             var existing = createRecipe(recipeId, "Recette à supprimer", null, RecipeStatus.PUBLISHED);
 
-            when(authPort.extractUsername()).thenReturn("chef_test");
-            when(recipeService.findById(recipeId)).thenReturn(existing);
+            //when(authPort.extractUsername()).thenReturn("chef_test");
+            //when(recipeService.findById(recipeId)).thenReturn(existing);
             doNothing().when(recipeService).deleteById(recipeId);
 
             var response = recipeController.deleteRecipe(recipeId);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertInstanceOf(NotContentResponse.class, response.getBody());
-            verify(recipeService).findById(recipeId);
             verify(recipeService).deleteById(recipeId);
         }
 
+        /*
+        // Security in the controller has to be remove
         @Test
         void shouldThrowWhenUserIsNotOwner() {
             var recipeId = UUID.randomUUID();
@@ -594,6 +595,7 @@ class RecipeRestControllerTest {
             verify(recipeService, never()).deleteById(any());
         }
 
+        The existence is checked in the security
         @Test
         void shouldPropagateExceptionWhenRecipeNotFound() {
             var recipeId = UUID.randomUUID();
@@ -603,7 +605,8 @@ class RecipeRestControllerTest {
 
             assertThrows(RecipeNotFoundException.class, () -> recipeController.deleteRecipe(recipeId));
             verify(recipeService, never()).deleteById(any());
-        }
+        }*/
+
     }
 
     // ========== MyRecipes ==========

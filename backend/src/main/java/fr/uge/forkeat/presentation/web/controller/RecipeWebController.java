@@ -23,6 +23,7 @@ import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import jakarta.servlet.http.HttpSession;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -162,14 +163,8 @@ public class RecipeWebController {
     }
 
     @PostMapping("/{id}/delete")
+    @PreAuthorize("@securityService.canDeleteRecipe(#id)")
     public String deleteRecipe(@PathVariable UUID id) {
-        var currentUser = authPort.extractUsername();
-        var recipe = recipeService.findById(id);
-
-        if (!currentUser.equals(recipe.usernameAuthor())) {
-            throw new IllegalStateException("Vous ne pouvez pas supprimer une recette qui ne vous appartient pas");
-        }
-
         recipeService.deleteById(id);
         return "redirect:/recipes/my-recipes";
     }
@@ -208,17 +203,12 @@ public class RecipeWebController {
     }
 
     @PostMapping("/{id}/edit")
+    @PreAuthorize("@securityService.canUpdateRecipe(#id)")
     public String updateRecipe(@PathVariable UUID id,
                                @ModelAttribute RecipeDTO recipeDTO,
                                @RequestPart(value = "image", required = false) MultipartFile image,
                                Model model) {
         var currentUser = authPort.extractUsername();
-        var existingRecipe = recipeService.findById(id);
-
-        if (!currentUser.equals(existingRecipe.usernameAuthor())) {
-            throw new IllegalStateException("Vous ne pouvez pas modifier une recette qui ne vous appartient pas");
-        }
-
         logger.info("Updating recipe {}", id);
         var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, currentUser));
         var updatedRecipe = recipeService.updateRecipe(id, recipe, ImageMapper.toImageUpload(image));

@@ -103,6 +103,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         lenient().when(authPort.extractUsername()).thenReturn("testuser");
         lenient().when(authPort.isAdmin()).thenReturn(false);
         lenient().when(userService.getUserByUsername(any())).thenReturn(createUser(UUID.randomUUID()));
+        lenient().when(securityService.canDeleteRecipe(any())).thenReturn(true);
         // Par défaut : l'utilisateur peut modifier sa recette
         lenient().when(securityService.canUpdateRecipe(any())).thenReturn(true);
     }

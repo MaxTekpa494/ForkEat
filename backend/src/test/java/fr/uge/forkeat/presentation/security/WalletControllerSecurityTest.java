@@ -47,7 +47,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc(addFilters = true)
 @ActiveProfiles("test")
 @Transactional
-public class WalletRestControllerSecueirtyTest extends AbstractIntegrationTest {
+public class WalletControllerSecurityTest extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
@@ -113,7 +113,7 @@ public class WalletRestControllerSecueirtyTest extends AbstractIntegrationTest {
 
 
     @Nested
-    class WalletnRestControllerSecurityTest{
+    class WalletRestControllerSecurityTest{
 
 
 

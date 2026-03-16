@@ -24,10 +24,18 @@ public class SecurityService {
         this.recipeService = recipeService;
     }
 
-    public boolean canUpdateRecipe(UUID recipeId){
+    private boolean canAlterRecipe(UUID recipeId){
         var username = authPort.extractUsername();
-        var recipeToUpdate = recipeService.findById(recipeId);
-        return recipeToUpdate.usernameAuthor().equals(username);
+        var recipeToAlter = recipeService.findById(recipeId);
+        return recipeToAlter.usernameAuthor().equals(username);
+    }
+
+    public boolean canUpdateRecipe(UUID recipeId){
+        return canAlterRecipe(recipeId);
+    }
+
+    public boolean canDeleteRecipe(UUID recipeId){
+        return canAlterRecipe(recipeId);
     }
 
 }

@@ -130,13 +130,9 @@ public class RecipeRestController {
   }
 
   @PostMapping("/{id}/delete")
+  @PreAuthorize("@securityService.canDeleteRecipe(#id)")
   public ResponseEntity<HttpResponse<Void>> deleteRecipe(@PathVariable UUID id) {
     Objects.requireNonNull(id);
-    var username = authPort.extractUsername();
-    var recipe = recipeService.findById(id);
-    if (!recipe.usernameAuthor().equals(username)) {
-      throw new IllegalStateException("Vous ne pouvez pas supprimer une recette qui ne vous appartient pas");
-    }
     recipeService.deleteById(id);
     return ResponseEntity.ok(new NotContentResponse());
   }
