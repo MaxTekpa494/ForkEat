@@ -61,11 +61,9 @@ class RecipeModerationActionServiceTest {
             var expected = createModerationAction(recipeId, moderatorId, RecipeModerationActionType.REJECTED, "Justification");
 
             when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
-
             when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
             when(moderationActionPersistence.save(any())).thenReturn(expected);
-            var recipe = createRecipe(recipeId, "joe");
-            when(recipeService.findById(recipeId)).thenReturn(recipe);
+            when(recipeService.isAuthor(recipeId, "mod")).thenReturn(false);
 
             var result = recipeModerationActionService.moderateRecipe(command);
 
@@ -101,8 +99,7 @@ class RecipeModerationActionServiceTest {
 
             when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
             when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
-            var recipe = createRecipe(recipeId, "mod");
-            when(recipeService.findById(recipeId)).thenReturn(recipe);
+            when(recipeService.isAuthor(recipeId, "mod")).thenReturn(true);
 
             assertThrows(ModeratorIsAuthorException.class, () -> recipeModerationActionService.moderateRecipe(command));
             verify(moderationActionPersistence, never()).save(any());
