@@ -167,6 +167,14 @@ public class RecipeService {
     return recipePersistence.findByStatus(status, size, page);
   }
 
+  public PageResult<Recipe> getRecipesToModerate(String authorUsername, int size, int page) {
+    Objects.requireNonNull(authorUsername);
+    if (size <= 0 || page < 0) {
+      throw new IllegalArgumentException("Invalid page or size");
+    }
+    return recipePersistence.getRecipesToModerate(authorUsername, size, page);
+  }
+
   public PageResult<PersonalizedRecipeSummary> searchRecipes(RecipeSearchCriteria criteria) {
     Objects.requireNonNull(criteria);
     var currentUsername = authPort.extractUsername();

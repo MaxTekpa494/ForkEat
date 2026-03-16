@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.service.exception.ModeratorIsAuthorException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.exception.RecipeReportNotFoundException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
@@ -47,6 +48,12 @@ public class RecipeModerationActionService {
             throw new RecipeReportNotFoundException(command.relatedReportId());
         }
         var moderatorId = userIdentityPort.findIdByUsernameOrThrow(command.moderatorUsername());
+
+        var recipe = recipeService.findById(command.recipeId());
+        if (recipe.usernameAuthor().equals(command.moderatorUsername())) {
+            throw new ModeratorIsAuthorException();
+        }
+
         var moderationAction = new RecipeModerationAction(
                 UUID.randomUUID(),
                 command.recipeId(),
@@ -84,4 +91,3 @@ public class RecipeModerationActionService {
         return moderationActionPersistence.findByRecipeId(recipeId);
     }
 }
-

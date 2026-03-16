@@ -14,7 +14,6 @@ import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import jakarta.persistence.EntityManager;
-import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
@@ -84,6 +83,17 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         Objects.requireNonNull(status);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         var pageResult = recipeRepository.findByStatus(status, pageable);
+        var recipes = pageResult.getContent().stream()
+                .map(RecipeEntityMapper::toDomain)
+                .toList();
+        return new PageResult<>(recipes, pageResult.getTotalElements());
+    }
+
+    @Override
+    public PageResult<Recipe> getRecipesToModerate(String authorUsername, int size, int page) {
+        Objects.requireNonNull(authorUsername);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        var pageResult = recipeRepository.findByStatusAndAuthorUsernameNot(RecipeStatus.PENDING_REVIEW, authorUsername, pageable);
         var recipes = pageResult.getContent().stream()
                 .map(RecipeEntityMapper::toDomain)
                 .toList();

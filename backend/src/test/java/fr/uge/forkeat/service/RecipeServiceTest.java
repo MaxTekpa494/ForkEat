@@ -6,18 +6,13 @@ import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
-import fr.uge.forkeat.service.model.recipe.projection.*;
-import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.model.superlike.SuperLikeConfig;
 import fr.uge.forkeat.service.model.wallet.Wallet;
-import fr.uge.forkeat.service.persistence.PlatformWalletPersistence;
-import fr.uge.forkeat.service.persistence.PromotionPersistence;
-import fr.uge.forkeat.service.persistence.RecipePersistence;
-import fr.uge.forkeat.service.port.EventPublisherPort;
-import fr.uge.forkeat.service.persistence.SuperLikeConfigPersistence;
-import fr.uge.forkeat.service.persistence.WalletPersistence;
+import fr.uge.forkeat.service.persistence.*;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.port.EventPublisherPort;
 import fr.uge.forkeat.service.port.StoragePort;
 import fr.uge.forkeat.service.port.UserIdentityPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -29,11 +24,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -193,6 +184,48 @@ class RecipeServiceTest {
 
             assertEquals(1, result.size());
             assertEquals(RecipeStatus.DRAFT, result.getFirst().status());
+        }
+    }
+
+    @Nested
+    class GetRecipesToModerate {
+        @Test
+        void shouldReturnRecipesToModerate() {
+            var moderator = "moderator1";
+            var recipe1 = createRecipe(UUID.randomUUID(), "Recette 1", RecipeStatus.PENDING_REVIEW);
+            var recipe2 = createRecipe(UUID.randomUUID(), "Recette 2", RecipeStatus.PENDING_REVIEW);
+            var page = new PageResult<>(List.of(recipe1, recipe2), 2L);
+            when(recipePersistence.getRecipesToModerate(moderator, 10, 0)).thenReturn(page);
+
+            var result = recipeService.getRecipesToModerate(moderator, 10, 0);
+
+            assertEquals(2, result.items().size());
+            assertEquals(2L, result.total());
+            assertTrue(result.items().stream().allMatch(r -> r.status() == RecipeStatus.PENDING_REVIEW));
+            verify(recipePersistence).getRecipesToModerate(moderator, 10, 0);
+        }
+
+        @Test
+        void shouldReturnEmptyIfNoRecipesToModerate() {
+            var moderator = "moderator1";
+            var page = new PageResult<Recipe>(List.of(), 0L);
+            when(recipePersistence.getRecipesToModerate(moderator, 10, 0)).thenReturn(page);
+
+            var result = recipeService.getRecipesToModerate(moderator, 10, 0);
+
+            assertTrue(result.items().isEmpty());
+            assertEquals(0L, result.total());
+        }
+
+        @Test
+        void shouldThrowWhenModeratorIsNull() {
+            assertThrows(NullPointerException.class, () -> recipeService.getRecipesToModerate(null, 10, 0));
+        }
+
+        @Test
+        void shouldThrowWhenPageOrSizeInvalid() {
+            assertThrows(IllegalArgumentException.class, () -> recipeService.getRecipesToModerate("moderator1", 0, 0));
+            assertThrows(IllegalArgumentException.class, () -> recipeService.getRecipesToModerate("moderator1", 10, -1));
         }
     }
 

@@ -12,7 +12,6 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.UUID;
 
 @Repository
@@ -21,6 +20,8 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
     List<RecipeEntity> findByStatus(RecipeStatus status);
 
     Page<RecipeEntity> findByStatus(RecipeStatus status, Pageable pageable);
+
+    Page<RecipeEntity> findByStatusAndAuthorUsernameNot(RecipeStatus status, String usernameAuthor, Pageable pageable);
 
     List<RecipeEntity> findByAuthorId(UUID authorId);
 

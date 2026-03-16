@@ -1,10 +1,8 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.service.exception.ModeratorIsAuthorException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
-import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
-import fr.uge.forkeat.service.model.recipe.RecipeModerationAction;
-import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.persistence.RecipeModerationActionPersistence;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.persistence.RecipeReportPersistence;
@@ -52,6 +50,7 @@ class RecipeModerationActionServiceTest {
         );
     }
 
+
     @Nested
     class ModerateRecipe {
         @Test
@@ -62,8 +61,11 @@ class RecipeModerationActionServiceTest {
             var expected = createModerationAction(recipeId, moderatorId, RecipeModerationActionType.REJECTED, "Justification");
 
             when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
+
             when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
             when(moderationActionPersistence.save(any())).thenReturn(expected);
+            var recipe = createRecipe(recipeId, "joe");
+            when(recipeService.findById(recipeId)).thenReturn(recipe);
 
             var result = recipeModerationActionService.moderateRecipe(command);
 
@@ -89,6 +91,21 @@ class RecipeModerationActionServiceTest {
         void shouldThrowNullPointerException_WhenCommandIsNull() {
             assertThrows(NullPointerException.class, () -> recipeModerationActionService.moderateRecipe(null));
             verifyNoInteractions(moderationActionPersistence, recipePersistence, userIdentityPort);
+        }
+
+        @Test
+        void shouldThrowIllegalStateException_WhenModeratorIsAuthor() {
+            var recipeId = UUID.randomUUID();
+            var moderatorId = UUID.randomUUID();
+            var command = new CreateRecipeModerationAction(recipeId, "mod", RecipeModerationActionType.REJECTED, "Justification", null);
+
+            when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
+            when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
+            var recipe = createRecipe(recipeId, "mod");
+            when(recipeService.findById(recipeId)).thenReturn(recipe);
+
+            assertThrows(ModeratorIsAuthorException.class, () -> recipeModerationActionService.moderateRecipe(command));
+            verify(moderationActionPersistence, never()).save(any());
         }
     }
 
@@ -158,5 +175,23 @@ class RecipeModerationActionServiceTest {
             verifyNoInteractions(moderationActionPersistence, recipePersistence);
         }
     }
-}
 
+    private Recipe createRecipe(UUID id, String usernameAuthor) {
+        return new Recipe(
+                id,
+                "Titre test",
+                "Résumé test",
+                null,
+                usernameAuthor,
+                30,
+                "",
+                RecipeStatus.PENDING_REVIEW,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+}

@@ -20,6 +20,8 @@ public interface RecipePersistence {
 
   PageResult<Recipe> findByStatus(RecipeStatus status, int size, int page);
 
+  PageResult<Recipe> getRecipesToModerate(String authorUsername, int size, int page);
+
   PageResult<RecipeSummary> searchRecipes(RecipeSearchCriteria criteria);
 
   List<Recipe> findByAuthorId(UUID authorId);
