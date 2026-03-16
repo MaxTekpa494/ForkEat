@@ -420,6 +420,13 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
         return new UserRecipeStats(published, draft, pendingReview, rejected);
     }
 
+    @Override
+    public boolean isAuthor(UUID recipeId, UUID authorId) {
+        Objects.requireNonNull(recipeId);
+        Objects.requireNonNull(authorId);
+        return recipeRepository.existsByIdAndAuthorId(recipeId, authorId);
+    }
+
     /**
      * Récupère les ingrédients existants et crée/persiste les nouveaux si nécessaire.
      * Pour eviter le fait que ça plante quand on rajoute de nouveaux à la creation/modification d'une

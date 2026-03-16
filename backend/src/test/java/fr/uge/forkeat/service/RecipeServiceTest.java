@@ -712,6 +712,35 @@ class RecipeServiceTest {
         }
     }
 
+    @Nested
+    class IsAuthor {
+        @Test
+        void shouldReturnTrueIfUserIsAuthor() {
+            var recipeId = UUID.randomUUID();
+            var username = "chef_test";
+            var authorId = UUID.randomUUID();
+            when(userIdentityPort.findIdByUsernameOrThrow(username)).thenReturn(authorId);
+            when(recipePersistence.isAuthor(recipeId, authorId)).thenReturn(true);
+            assertTrue(recipeService.isAuthor(recipeId, username));
+            verify(recipePersistence).isAuthor(recipeId, authorId);
+        }
+        @Test
+        void shouldReturnFalseIfUserIsNotAuthor() {
+            var recipeId = UUID.randomUUID();
+            var username = "other_user";
+            var authorId = UUID.randomUUID();
+            when(userIdentityPort.findIdByUsernameOrThrow(username)).thenReturn(authorId);
+            when(recipePersistence.isAuthor(recipeId, authorId)).thenReturn(false);
+            assertFalse(recipeService.isAuthor(recipeId, username));
+            verify(recipePersistence).isAuthor(recipeId, authorId);
+        }
+        @Test
+        void shouldThrowIfNullArguments() {
+            assertThrows(NullPointerException.class, () -> recipeService.isAuthor(null, "user"));
+            assertThrows(NullPointerException.class, () -> recipeService.isAuthor(UUID.randomUUID(), null));
+        }
+    }
+
     private Recipe createRecipe(UUID id, String title, RecipeStatus status) {
         return new Recipe(
                 id,

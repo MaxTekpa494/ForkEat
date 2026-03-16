@@ -1064,6 +1064,31 @@ class RecipePersistenceAdapterTest {
         }
     }
 
+    @Nested
+    class IsAuthor {
+        @Test
+        void shouldReturnTrueIfUserIsAuthor() {
+            var recipeId = UUID.randomUUID();
+            var authorId = UUID.randomUUID();
+            when(recipeRepository.existsByIdAndAuthorId(recipeId, authorId)).thenReturn(true);
+            assertTrue(adapter.isAuthor(recipeId, authorId));
+            verify(recipeRepository).existsByIdAndAuthorId(recipeId, authorId);
+        }
+        @Test
+        void shouldReturnFalseIfUserIsNotAuthor() {
+            var recipeId = UUID.randomUUID();
+            var authorId = UUID.randomUUID();
+            when(recipeRepository.existsByIdAndAuthorId(recipeId, authorId)).thenReturn(false);
+            assertFalse(adapter.isAuthor(recipeId, authorId));
+            verify(recipeRepository).existsByIdAndAuthorId(recipeId, authorId);
+        }
+        @Test
+        void shouldThrowIfNullArguments() {
+            assertThrows(NullPointerException.class, () -> adapter.isAuthor(null, UUID.randomUUID()));
+            assertThrows(NullPointerException.class, () -> adapter.isAuthor(UUID.randomUUID(), null));
+        }
+    }
+
     private RecipeEntity createRecipeEntity(UUID id, String title, RecipeStatus status) {
         var entity = new RecipeEntity();
         entity.setId(id);

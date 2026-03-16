@@ -176,6 +176,13 @@ public class RecipeService {
     return recipePersistence.getRecipesToModerate(authorId, size, page);
   }
 
+  public boolean isAuthor(UUID recipeId, String username) {
+    Objects.requireNonNull(recipeId);
+    Objects.requireNonNull(username);
+    var authorId = userIdentityPort.findIdByUsernameOrThrow(username);
+    return recipePersistence.isAuthor(recipeId, authorId);
+  }
+
   public PageResult<PersonalizedRecipeSummary> searchRecipes(RecipeSearchCriteria criteria) {
     Objects.requireNonNull(criteria);
     var currentUsername = authPort.extractUsername();
