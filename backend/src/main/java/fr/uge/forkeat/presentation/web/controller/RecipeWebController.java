@@ -163,7 +163,6 @@ public class RecipeWebController {
     }
 
     @PostMapping("/{id}/delete")
-    @PreAuthorize("@securityService.canDeleteRecipe(#id)")
     public String deleteRecipe(@PathVariable UUID id) {
         recipeService.deleteById(id);
         return "redirect:/recipes/my-recipes";
@@ -203,7 +202,6 @@ public class RecipeWebController {
     }
 
     @PostMapping("/{id}/edit")
-    @PreAuthorize("@securityService.canUpdateRecipe(#id)")
     public String updateRecipe(@PathVariable UUID id,
                                @ModelAttribute RecipeDTO recipeDTO,
                                @RequestPart(value = "image", required = false) MultipartFile image,

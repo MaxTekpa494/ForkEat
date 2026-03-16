@@ -120,7 +120,6 @@ public class RecipeRestController {
   }
 
   @PostMapping(value = "/{id}/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  @PreAuthorize("@securityService.canUpdateRecipe(#id)")
   public ResponseEntity<HttpResponse<RecipeDTO>> updateRecipe(@PathVariable UUID id, @RequestPart("recipe") RecipeDTO recipeDTO, @RequestPart(value = "image", required = false) MultipartFile image) {
     Objects.requireNonNull(recipeDTO);
     var username = authPort.extractUsername();
@@ -130,7 +129,6 @@ public class RecipeRestController {
   }
 
   @PostMapping("/{id}/delete")
-  @PreAuthorize("@securityService.canDeleteRecipe(#id)")
   public ResponseEntity<HttpResponse<Void>> deleteRecipe(@PathVariable UUID id) {
     Objects.requireNonNull(id);
     recipeService.deleteById(id);
