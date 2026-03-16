@@ -161,7 +161,6 @@ class RecipePersistenceAdapterTest {
         private final PageRequest pageRequest = PageRequest.of(0, 10, sort);
         @Test
         void shouldReturnPendingRecipesExcludingModeratorOnes() {
-            var moderator = "moderator1";
             var entity1 = createRecipeEntity(UUID.randomUUID(), "Recette 1", RecipeStatus.PENDING_REVIEW);
             var entity2 = createRecipeEntity(UUID.randomUUID(), "Recette 2", RecipeStatus.PENDING_REVIEW);
             var entity3 = createRecipeEntity(UUID.randomUUID(), "Recette 3", RecipeStatus.PENDING_REVIEW);
@@ -170,35 +169,37 @@ class RecipePersistenceAdapterTest {
             otherAuthor.setId(UUID.randomUUID());
             otherAuthor.setUsername("user2");
             entity2.setAuthor(otherAuthor);
+            var moderatorId = UUID.randomUUID();
+            var moderatorName = "moderator1";
             var moderatorAuthor = new UserEntity();
             moderatorAuthor.setId(UUID.randomUUID());
-            moderatorAuthor.setUsername(moderator);
+            moderatorAuthor.setUsername(moderatorName);
             entity3.setAuthor(moderatorAuthor);
             var page = new PageImpl<>(List.of(entity1, entity2), pageRequest, 2);
-            when(recipeRepository.findByStatusAndAuthorUsernameNot(RecipeStatus.PENDING_REVIEW, moderator, pageRequest))
+            when(recipeRepository.findByStatusAndAuthorIdNot(RecipeStatus.PENDING_REVIEW, moderatorId, pageRequest))
                     .thenReturn(page);
 
-            var result = adapter.getRecipesToModerate(moderator, 10, 0);
+            var result = adapter.getRecipesToModerate(moderatorId, 10, 0);
 
             assertEquals(2, result.items().size());
-            assertTrue(result.items().stream().noneMatch(r -> r.usernameAuthor().equals(moderator)));
+            assertTrue(result.items().stream().noneMatch(r -> r.usernameAuthor().equals(moderatorName)));
             assertEquals(2, result.total());
-            verify(recipeRepository).findByStatusAndAuthorUsernameNot(RecipeStatus.PENDING_REVIEW, moderator, pageRequest);
+            verify(recipeRepository).findByStatusAndAuthorIdNot(RecipeStatus.PENDING_REVIEW, moderatorId, pageRequest);
         }
 
         @Test
         void shouldReturnEmptyIfAllPendingAreFromModerator() {
-            var moderator = "moderator1";
+            var moderatorId = UUID.randomUUID();
             var moderatorAuthor = new UserEntity();
-            moderatorAuthor.setId(UUID.randomUUID());
-            moderatorAuthor.setUsername(moderator);
+            moderatorAuthor.setId(moderatorId);
+            moderatorAuthor.setUsername("moderator");
             var entity = createRecipeEntity(UUID.randomUUID(), "Recette du modérateur", RecipeStatus.PENDING_REVIEW);
             entity.setAuthor(moderatorAuthor);
             Page<RecipeEntity> page = new PageImpl<>(java.util.Collections.emptyList(), pageRequest, 0);
-            when(recipeRepository.findByStatusAndAuthorUsernameNot(RecipeStatus.PENDING_REVIEW, moderator, pageRequest))
+            when(recipeRepository.findByStatusAndAuthorIdNot(RecipeStatus.PENDING_REVIEW, moderatorId, pageRequest))
                 .thenReturn(page);
 
-            var result = adapter.getRecipesToModerate(moderator, 10, 0);
+            var result = adapter.getRecipesToModerate(moderatorId, 10, 0);
 
             assertTrue(result.items().isEmpty());
             assertEquals(0, result.total());
@@ -206,7 +207,11 @@ class RecipePersistenceAdapterTest {
 
         @Test
         void shouldReturnAllIfNoPendingFromModerator() {
-            var moderator = "moderator1";
+            var moderatorId = UUID.randomUUID();
+            var moderatorUsername = "moderator";
+            var moderator = new UserEntity();
+            moderator.setId(moderatorId);
+            moderator.setUsername(moderatorUsername);
             var entity1 = createRecipeEntity(UUID.randomUUID(), "Recette 1", RecipeStatus.PENDING_REVIEW);
             var entity2 = createRecipeEntity(UUID.randomUUID(), "Recette 2", RecipeStatus.PENDING_REVIEW);
             entity1.setAuthor(author);
@@ -215,13 +220,13 @@ class RecipePersistenceAdapterTest {
             otherAuthor.setUsername("user2");
             entity2.setAuthor(otherAuthor);
             var page = new PageImpl<>(List.of(entity1, entity2), pageRequest, 2);
-            when(recipeRepository.findByStatusAndAuthorUsernameNot(RecipeStatus.PENDING_REVIEW, moderator, pageRequest))
+            when(recipeRepository.findByStatusAndAuthorIdNot(RecipeStatus.PENDING_REVIEW, moderatorId, pageRequest))
                     .thenReturn(page);
 
-            var result = adapter.getRecipesToModerate(moderator, 10, 0);
+            var result = adapter.getRecipesToModerate(moderatorId, 10, 0);
 
             assertEquals(2, result.items().size());
-            assertTrue(result.items().stream().noneMatch(r -> r.usernameAuthor().equals(moderator)));
+            assertTrue(result.items().stream().noneMatch(r -> r.usernameAuthor().equals(moderatorUsername)));
         }
 
         @Test

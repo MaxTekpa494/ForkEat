@@ -90,10 +90,10 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public PageResult<Recipe> getRecipesToModerate(String authorUsername, int size, int page) {
-        Objects.requireNonNull(authorUsername);
+    public PageResult<Recipe> getRecipesToModerate(UUID authorId, int size, int page) {
+        Objects.requireNonNull(authorId);
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
-        var pageResult = recipeRepository.findByStatusAndAuthorUsernameNot(RecipeStatus.PENDING_REVIEW, authorUsername, pageable);
+        var pageResult = recipeRepository.findByStatusAndAuthorIdNot(RecipeStatus.PENDING_REVIEW, authorId, pageable);
         var recipes = pageResult.getContent().stream()
                 .map(RecipeEntityMapper::toDomain)
                 .toList();

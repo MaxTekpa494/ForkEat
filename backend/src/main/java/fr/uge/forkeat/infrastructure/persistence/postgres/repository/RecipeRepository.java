@@ -21,7 +21,7 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
 
     Page<RecipeEntity> findByStatus(RecipeStatus status, Pageable pageable);
 
-    Page<RecipeEntity> findByStatusAndAuthorUsernameNot(RecipeStatus status, String usernameAuthor, Pageable pageable);
+    Page<RecipeEntity> findByStatusAndAuthorIdNot(RecipeStatus status, UUID authorId, Pageable pageable);
 
     List<RecipeEntity> findByAuthorId(UUID authorId);
 

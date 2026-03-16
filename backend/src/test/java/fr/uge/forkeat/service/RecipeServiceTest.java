@@ -1,8 +1,10 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.service.event.RecipePublishedEvent;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
@@ -191,30 +193,48 @@ class RecipeServiceTest {
     class GetRecipesToModerate {
         @Test
         void shouldReturnRecipesToModerate() {
-            var moderator = "moderator1";
+            var moderatorId = UUID.randomUUID();
+            var moderatorName = "moderator";
+            var moderator = new UserEntity();
+            moderator.setId(moderatorId);
+            moderator.setUsername(moderatorName);
             var recipe1 = createRecipe(UUID.randomUUID(), "Recette 1", RecipeStatus.PENDING_REVIEW);
             var recipe2 = createRecipe(UUID.randomUUID(), "Recette 2", RecipeStatus.PENDING_REVIEW);
             var page = new PageResult<>(List.of(recipe1, recipe2), 2L);
-            when(recipePersistence.getRecipesToModerate(moderator, 10, 0)).thenReturn(page);
+            when(recipePersistence.getRecipesToModerate(moderatorId, 10, 0)).thenReturn(page);
+            when(userIdentityPort.findIdByUsernameOrThrow(moderatorName)).thenReturn(moderatorId);
 
-            var result = recipeService.getRecipesToModerate(moderator, 10, 0);
+            var result = recipeService.getRecipesToModerate(moderatorName, 10, 0);
 
             assertEquals(2, result.items().size());
             assertEquals(2L, result.total());
             assertTrue(result.items().stream().allMatch(r -> r.status() == RecipeStatus.PENDING_REVIEW));
-            verify(recipePersistence).getRecipesToModerate(moderator, 10, 0);
+            verify(recipePersistence).getRecipesToModerate(moderatorId, 10, 0);
         }
 
         @Test
         void shouldReturnEmptyIfNoRecipesToModerate() {
-            var moderator = "moderator1";
+            var moderatorId = UUID.randomUUID();
+            var moderatorName = "moderator";
+            var moderator = new UserEntity();
+            moderator.setId(moderatorId);
+            moderator.setUsername(moderatorName);
             var page = new PageResult<Recipe>(List.of(), 0L);
-            when(recipePersistence.getRecipesToModerate(moderator, 10, 0)).thenReturn(page);
+            when(recipePersistence.getRecipesToModerate(moderatorId, 10, 0)).thenReturn(page);
+            when(userIdentityPort.findIdByUsernameOrThrow(moderatorName)).thenReturn(moderatorId);
 
-            var result = recipeService.getRecipesToModerate(moderator, 10, 0);
+            var result = recipeService.getRecipesToModerate(moderatorName, 10, 0);
 
             assertTrue(result.items().isEmpty());
             assertEquals(0L, result.total());
+        }
+
+        @Test
+        void shouldThrowWhenModeratorNameIsUnknown() {
+            var moderator = "mod";
+            when(userIdentityPort.findIdByUsernameOrThrow(moderator))
+                    .thenThrow(new ResourceNotFoundException("User not found: " + moderator));
+            assertThrows(ResourceNotFoundException.class, () -> recipeService.getRecipesToModerate(moderator, 10, 0));
         }
 
         @Test

@@ -172,7 +172,8 @@ public class RecipeService {
     if (size <= 0 || page < 0) {
       throw new IllegalArgumentException("Invalid page or size");
     }
-    return recipePersistence.getRecipesToModerate(authorUsername, size, page);
+    var authorId = userIdentityPort.findIdByUsernameOrThrow(authorUsername);
+    return recipePersistence.getRecipesToModerate(authorId, size, page);
   }
 
   public PageResult<PersonalizedRecipeSummary> searchRecipes(RecipeSearchCriteria criteria) {
