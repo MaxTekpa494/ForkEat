@@ -1,5 +1,6 @@
 package fr.uge.forkeat.presentation.web.controller;
 
+import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.WithdrawalException;
 import fr.uge.forkeat.service.port.AuthenticationPort;
@@ -21,17 +22,20 @@ public class WalletWebController {
     private final WalletService walletService;
     private final BankInfoService bankInfoService;
     private final AuthenticationPort authPort;
+    private final PromotionService promotionService;
 
     public WalletWebController(
             UserService userService,
             WalletService walletService,
             BankInfoService bankInfoService,
-            AuthenticationPort authPort
+            AuthenticationPort authPort,
+            PromotionService promotionService
     ) {
         this.userService = Objects.requireNonNull(userService);
         this.walletService = Objects.requireNonNull(walletService);
         this.bankInfoService = Objects.requireNonNull(bankInfoService);
         this.authPort = Objects.requireNonNull(authPort);
+        this.promotionService = Objects.requireNonNull(promotionService);
     }
 
     @GetMapping("/wallet")
@@ -44,11 +48,13 @@ public class WalletWebController {
         var balance = walletService.getBalance(user.id());
         var transactions = walletService.getTransactionHistory(user.id());
         var bankInfo = bankInfoService.getBankInfoByUserId(user.id()).orElse(null);
+        var superLikeHistory = promotionService.findSuperLikeHistory(user.id());
 
         model.addAttribute("user", user);
         model.addAttribute("balance", balance);
         model.addAttribute("transactions", transactions);
         model.addAttribute("bankInfo", bankInfo);
+        model.addAttribute("superLikeHistory", superLikeHistory);
         model.addAttribute("pageTitle", "Mon Wallet - ForkEat");
 
         if ("success".equals(payment)) {

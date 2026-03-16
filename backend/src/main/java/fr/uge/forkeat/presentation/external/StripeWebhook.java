@@ -124,7 +124,6 @@ public class StripeWebhook {
 
 		try {
 			if (pendingTxIdStr != null) {
-				// New path: look up by UUID (no race condition)
 				var pendingTxId = UUID.fromString(pendingTxIdStr);
 				walletService.linkAndConfirmPayout(transferId, pendingTxId);
 			} else {

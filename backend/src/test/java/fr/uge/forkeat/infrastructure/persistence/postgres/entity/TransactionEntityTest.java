@@ -55,7 +55,6 @@ class TransactionEntityTest extends AbstractIntegrationTest {
 
     @Test
     void shouldCreateTransaction() {
-        // Updated TransactionEntity constructor call
         var tx = new TransactionEntity(null, wallet, 1000L, "stripe_123", TransactionType.RECHARGE, TransactionStatus.PENDING, Instant.now());
 
         entityManager.persist(tx);
@@ -66,34 +65,30 @@ class TransactionEntityTest extends AbstractIntegrationTest {
         assertEquals(1000L, tx.getAmount());
         assertEquals("stripe_123", tx.getStripeTransactionID());
         assertEquals(TransactionType.RECHARGE, tx.getTransactionType());
-        assertEquals(TransactionStatus.PENDING, tx.getStatus()); // New assertion
+        assertEquals(TransactionStatus.PENDING, tx.getStatus());
     }
 
     @Test
     void shouldThrowOnNegativeAmount() {
-        // This test remains valid as it tests the setter logic, not constructor directly
         var tx = new TransactionEntity();
         assertThrows(IllegalArgumentException.class, () -> tx.setAmount(-100L));
     }
 
     @Test
-    void shouldSetIdAndCreatedAtOnPrePersist() { // Updated test name
-        // Updated TransactionEntity constructor call
+    void shouldSetIdAndCreatedAtOnPrePersist() {
         var tx = new TransactionEntity(null, wallet, 500L, "stripe_456", TransactionType.RECHARGE, TransactionStatus.PENDING, Instant.now());
 
         assertNull(tx.getId());
-        // assertNull(tx.getCreatedAt()); // Removed as it's set in constructor
 
         entityManager.persist(tx);
         entityManager.flush();
 
         assertNotNull(tx.getId());
-        assertNotNull(tx.getCreatedAt()); // Should be set by @PrePersist
+        assertNotNull(tx.getCreatedAt());
     }
 
     @Test
     void shouldTestEqualsByIdOnly() {
-        // Updated TransactionEntity constructor call
         var tx1 = new TransactionEntity(null, wallet, 100L, "stripe_eq", TransactionType.RECHARGE, TransactionStatus.PENDING, Instant.now());
         entityManager.persist(tx1);
         entityManager.flush();

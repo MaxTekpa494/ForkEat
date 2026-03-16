@@ -2,10 +2,10 @@ package fr.uge.android.forkeat.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import fr.uge.android.forkeat.network.ForkEatApi
-import fr.uge.android.forkeat.network.dto.admin.AdminRecipeStatsDTO
-import fr.uge.android.forkeat.network.dto.admin.AdminUserStatsDTO
-import fr.uge.android.forkeat.network.dto.admin.PlatformWalletDTO
+import fr.uge.android.forkeat.admin.data.api.AdminApi
+import fr.uge.android.forkeat.admin.data.dto.AdminRecipeStatsDTO
+import fr.uge.android.forkeat.admin.data.dto.AdminUserStatsDTO
+import fr.uge.android.forkeat.admin.data.dto.PlatformWalletDTO
 import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -23,6 +23,8 @@ data class AdminDashboardUiState(
 
 class AdminDashboardViewModel : ViewModel() {
 
+    private val adminService = AdminApi.service
+
     private val _uiState = MutableStateFlow(AdminDashboardUiState())
     val uiState: StateFlow<AdminDashboardUiState> = _uiState.asStateFlow()
 
@@ -34,10 +36,10 @@ class AdminDashboardViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val userStatsDeferred        = async { ForkEatApi.adminService.getUserStats() }
-                val recipeStatsDeferred      = async { ForkEatApi.adminService.getRecipeStats() }
-                val benefitsDeferred         = async { ForkEatApi.adminService.getBenefitsWallet() }
-                val redistributionDeferred   = async { ForkEatApi.adminService.getRedistributionWallet() }
+                val userStatsDeferred        = async { adminService.getUserStats() }
+                val recipeStatsDeferred      = async { adminService.getRecipeStats() }
+                val benefitsDeferred         = async { adminService.getBenefitsWallet() }
+                val redistributionDeferred   = async { adminService.getRedistributionWallet() }
 
                 val userStats      = userStatsDeferred.await()
                 val recipeStats    = recipeStatsDeferred.await()

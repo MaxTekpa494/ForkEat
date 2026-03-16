@@ -203,7 +203,7 @@ class RecipeWebControllerIntegrationTest extends AbstractIntegrationTest {
             mockMvc.perform(get("/recipes/my-recipes"))
                     .andExpect(status().isOk())
                     .andExpect(view().name("recipes/my-recipes"))
-                    .andExpect(model().attributeExists("recipes"));
+                    .andExpect(model().attributeExists("vm"));
         }
     }
 

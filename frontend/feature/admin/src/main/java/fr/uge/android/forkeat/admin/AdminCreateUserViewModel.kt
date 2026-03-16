@@ -2,8 +2,8 @@ package fr.uge.android.forkeat.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import fr.uge.android.forkeat.network.ForkEatApi
-import fr.uge.android.forkeat.network.dto.admin.AdminCreateUserRequest
+import fr.uge.android.forkeat.admin.data.api.AdminApi
+import fr.uge.android.forkeat.admin.data.dto.AdminCreateUserRequest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -19,6 +19,8 @@ data class AdminCreateUserUiState(
 )
 
 class AdminCreateUserViewModel : ViewModel() {
+
+    private val adminService = AdminApi.service
 
     private val _uiState = MutableStateFlow(AdminCreateUserUiState())
     val uiState: StateFlow<AdminCreateUserUiState> = _uiState.asStateFlow()
@@ -47,8 +49,8 @@ class AdminCreateUserViewModel : ViewModel() {
             try {
                 val request = AdminCreateUserRequest(username, firstName, lastName, email, password)
                 val response = when (role) {
-                    AdminCreateRole.MODERATOR -> ForkEatApi.adminService.createModerator(request)
-                    AdminCreateRole.ADMIN     -> ForkEatApi.adminService.createAdmin(request)
+                    AdminCreateRole.MODERATOR -> adminService.createModerator(request)
+                    AdminCreateRole.ADMIN     -> adminService.createAdmin(request)
                 }
                 if (response.isSuccessful) {
                     val roleLabel = if (role == AdminCreateRole.MODERATOR) "modérateur" else "administrateur"

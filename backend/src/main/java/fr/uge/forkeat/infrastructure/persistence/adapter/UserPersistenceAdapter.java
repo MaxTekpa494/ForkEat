@@ -213,5 +213,12 @@ public class UserPersistenceAdapter implements UserPersistence {
 		);
 	}
 
+	@Override
+	public List<String> findAllActiveMemberEmails() {
+		return userRepository.findEmailsByStatusAndRole(
+				fr.uge.forkeat.service.model.user.UserStatus.ACTIVE,
+				UserRole.MEMBER
+		);
+	}
 
 }

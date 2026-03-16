@@ -156,6 +156,26 @@ class RecipeReportPersistenceAdapterTest {
     }
 
     @Nested
+    class ExistsById{
+
+        @Test
+        void shouldReturnTrue_WhenReportExists() {
+            when(recipeReportRepository.existsById(recipe.getId()))
+                    .thenReturn(true);
+
+            assertTrue(adapter.existsById(recipe.getId()));
+        }
+
+        @Test
+        void shouldReturnFalse_WhenReportDoesNotExist() {
+            when(recipeReportRepository.existsById(recipe.getId()))
+                    .thenReturn(false);
+
+            assertFalse(adapter.existsById(recipe.getId()));
+        }
+    }
+
+    @Nested
     class ExistsByRecipeIdAndReporterId {
 
         @Test

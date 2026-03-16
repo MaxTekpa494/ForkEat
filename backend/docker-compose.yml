@@ -45,7 +45,11 @@ services:
       timeout: 5s
       retries: 5
   ollama:
-    image: ollama/ollama:latest
+    image: forkeat/ollama:latest
+    build:
+      dockerfile_inline: |
+        FROM ollama/ollama:latest
+        RUN apt-get update && apt-get install -y curl && rm -rf /var/lib/apt/lists/*
     container_name: forkeat-ollama
     ports:
       - "11435:11434"
@@ -54,7 +58,7 @@ services:
     networks:
       - forkeat-network
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:11435/api/tags"]
+      test: [ "CMD", "curl", "-f", "http://localhost:11434/api/tags" ]
       interval: 10s
       timeout: 5s
       retries: 5

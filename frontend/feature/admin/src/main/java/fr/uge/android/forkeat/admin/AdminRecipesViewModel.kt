@@ -2,18 +2,22 @@ package fr.uge.android.forkeat.admin
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import fr.uge.android.forkeat.network.ForkEatApi
-import fr.uge.android.forkeat.network.dto.admin.AdminRecipeDTO
+import fr.uge.android.forkeat.admin.data.api.AdminApi
+import fr.uge.android.forkeat.moderator.data.api.ModeratorApi
+import fr.uge.android.forkeat.moderator.data.api.RejectRecipeRequest
+import fr.uge.android.forkeat.recipes.data.dto.SimpleRecipeDTO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 data class AdminRecipesUiState(
-    val pendingRecipes: List<AdminRecipeDTO> = emptyList(),
-    val publishedRecipes: List<AdminRecipeDTO> = emptyList(),
-    val publishedTotal: Long = 0,
-    val publishedPage: Int = 0,
+    val pendingRecipes: List<SimpleRecipeDTO> = emptyList(),
+    val currentPendingRecipesPage : Int = 0,
+    val pendingTotal : Int = 0,
+    val publishedRecipes: List<SimpleRecipeDTO> = emptyList(),
+    val currentPublishedRecipesPage : Int = 0,
+    val publishedTotal: Int = 0,
     val isLoading: Boolean = false,
     val actionInProgress: String? = null,   // recipeId en cours d'action
     val error: String? = null,
@@ -21,6 +25,9 @@ data class AdminRecipesUiState(
 )
 
 class AdminRecipesViewModel : ViewModel() {
+
+    private val adminService = AdminApi.service
+    private val moderatorService = ModeratorApi.service
 
     private val _uiState = MutableStateFlow(AdminRecipesUiState())
     val uiState: StateFlow<AdminRecipesUiState> = _uiState.asStateFlow()
@@ -30,68 +37,107 @@ class AdminRecipesViewModel : ViewModel() {
         loadPublished()
     }
 
-    fun loadPending() {
+    fun loadPending(page : Int = 0, size: Int = 10, append : Boolean = false){
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.adminService.getPendingRecipes()
+                val response = moderatorService.getPendingRecipes(page, size)
                 if (response.isSuccessful) {
                     val body = response.body()
+                    val current = if (append) _uiState.value.pendingRecipes else emptyList()
+                    val allRecipes = current + (body?.resources ?: emptyList())
                     _uiState.value = _uiState.value.copy(
-                        pendingRecipes = body?.resources ?: emptyList(),
-                        isLoading = false
+                        pendingRecipes = allRecipes,
+                        pendingTotal = body?.total ?: 0,
+                        currentPendingRecipesPage = page,
+                        isLoading = false,
+                        error = null
                     )
                 } else {
+                    val code = response.code()
+                    val error = when {
+                        code >= 500 -> "Le serveur est indisponible, veuillez réessayer plus tard."
+                        code in 400..499 -> "Une erreur est survenue, veuillez réessayer."
+                        else -> "Une erreur inconnue est survenue."
+                    }
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = "Erreur ${response.code()}"
+                        error = error
                     )
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
+                val error = "Le serveur est indisponible, veuillez réessayer plus tard."
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Erreur de chargement : ${e.message}"
+                    error = error
                 )
             }
         }
     }
 
-    fun loadPublished(page: Int = 0) {
+    fun loadMorePendingRecipes() {
+        val uiState = _uiState.value
+        if(uiState.isLoading || uiState.pendingRecipes.size >= uiState.pendingTotal) return
+
+        val nextPage = uiState.currentPendingRecipesPage + 1
+        loadPending(nextPage, append = true)
+    }
+
+    fun loadPublished(page: Int = 0, append : Boolean = false) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.adminService.getPublishedRecipes(page)
+                val response = adminService.getPublishedRecipes(page)
                 if (response.isSuccessful) {
                     val body = response.body()
+                    val current = if (append) _uiState.value.publishedRecipes else emptyList()
+                    val allRecipes = current + (body?.resources ?: emptyList())
                     _uiState.value = _uiState.value.copy(
-                        publishedRecipes = body?.resources ?: emptyList(),
+                        publishedRecipes = allRecipes,
                         publishedTotal = body?.total ?: 0,
-                        publishedPage = page,
-                        isLoading = false
+                        currentPublishedRecipesPage = page,
+                        isLoading = false,
+                        error = null
                     )
                 } else {
+                    val code = response.code()
+                    val error = when {
+                        code >= 500 -> "Le serveur est indisponible, veuillez réessayer plus tard."
+                        code in 400..499 -> "Une erreur est survenue, veuillez réessayer."
+                        else -> "Une erreur inconnue est survenue."
+                    }
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        error = "Erreur ${response.code()}"
+                        error = error
                     )
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
+                val error = "Le serveur est indisponible, veuillez réessayer plus tard."
                 _uiState.value = _uiState.value.copy(
                     isLoading = false,
-                    error = "Erreur de chargement : ${e.message}"
+                    error = error
                 )
             }
         }
+    }
+
+    fun loadMorePublishedRecipes() {
+        val uiState = _uiState.value
+        if(uiState.isLoading || uiState.publishedRecipes.size >= uiState.publishedTotal) return
+
+        val nextPage = uiState.currentPublishedRecipesPage + 1
+        loadPublished(nextPage, append = true)
     }
 
     fun validateRecipe(id: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = id, error = null)
             try {
-                val response = ForkEatApi.adminService.validateRecipe(id)
+                val response = moderatorService.validateRecipe(id)
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         actionInProgress = null,
+                        pendingRecipes = _uiState.value.pendingRecipes.filter { it.id != id },
                         successMessage = "Recette publiée avec succès"
                     )
                     loadPending()
@@ -110,14 +156,15 @@ class AdminRecipesViewModel : ViewModel() {
         }
     }
 
-    fun rejectRecipe(id: String) {
+    fun rejectRecipe(id: String, justification: String) {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = id, error = null)
             try {
-                val response = ForkEatApi.adminService.rejectRecipe(id)
+                val response = moderatorService.rejectRecipe(id, RejectRecipeRequest(justification))
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         actionInProgress = null,
+                        pendingRecipes = _uiState.value.pendingRecipes.filter { it.id != id },
                         successMessage = "Recette rejetée"
                     )
                     loadPending()
@@ -140,13 +187,13 @@ class AdminRecipesViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(actionInProgress = id, error = null)
             try {
-                val response = ForkEatApi.adminService.rejectRecipe(id)
+                val response = moderatorService.rejectRecipe(id, RejectRecipeRequest("Dépublication par un administrateur"))
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         actionInProgress = null,
+                        publishedRecipes = _uiState.value.publishedRecipes.filter { it.id != id },
                         successMessage = "Recette dépubliée"
                     )
-                    loadPublished(_uiState.value.publishedPage)
                 } else {
                     _uiState.value = _uiState.value.copy(
                         actionInProgress = null,

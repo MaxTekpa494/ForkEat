@@ -6,7 +6,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.WalletEntity;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.transaction.TransactionType;
-import fr.uge.forkeat.service.model.transaction.TransactionStatus; // New import
+import fr.uge.forkeat.service.model.transaction.TransactionStatus;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -17,7 +17,7 @@ import org.springframework.boot.jdbc.test.autoconfigure.AutoConfigureTestDatabas
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.Instant; // New import
+import java.time.Instant;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -61,7 +61,6 @@ class TransactionRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void shouldReturnTrueWhenStripeTransactionExists() {
-        // Updated TransactionEntity constructor call
         var tx = new TransactionEntity(null, savedWallet, 1000L, "stripe_unique_123",
                 TransactionType.RECHARGE, TransactionStatus.SUCCEEDED, Instant.now());
         transactionRepository.save(tx);
@@ -76,21 +75,17 @@ class TransactionRepositoryTest extends AbstractIntegrationTest {
 
     @Test
     void shouldSaveAndRetrieveTransaction() {
-        // Updated TransactionEntity constructor call
         var tx = new TransactionEntity(null, savedWallet, 2000L, "stripe_save_test",
                 TransactionType.RECHARGE, TransactionStatus.SUCCEEDED, Instant.now());
         var saved = transactionRepository.save(tx);
 
         assertNotNull(saved.getId());
-        // TransactionRepository declares JpaRepository<TransactionEntity, String>
-        // but the actual ID is UUID — use existsByStripeTransactionID instead
         assertTrue(transactionRepository.existsByStripeTransactionID("stripe_save_test"));
-        assertEquals(TransactionStatus.SUCCEEDED, saved.getStatus()); // New assertion
+        assertEquals(TransactionStatus.SUCCEEDED, saved.getStatus());
     }
 
     @Test
     void shouldPersistAllFields() {
-        // Updated TransactionEntity constructor call
         var tx = new TransactionEntity(null, savedWallet, 3000L, "stripe_fields",
                 TransactionType.RECHARGE, TransactionStatus.SUCCEEDED, Instant.now());
         var saved = transactionRepository.save(tx);
@@ -99,7 +94,7 @@ class TransactionRepositoryTest extends AbstractIntegrationTest {
         assertEquals("stripe_fields", saved.getStripeTransactionID());
         assertEquals(TransactionType.RECHARGE, saved.getTransactionType());
         assertNotNull(saved.getDestinationWallet());
-        assertEquals(TransactionStatus.SUCCEEDED, saved.getStatus()); // New assertion
+        assertEquals(TransactionStatus.SUCCEEDED, saved.getStatus());
     }
     
     // Test for findByStripeTransactionID

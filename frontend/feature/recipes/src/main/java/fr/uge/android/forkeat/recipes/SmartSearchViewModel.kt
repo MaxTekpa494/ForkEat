@@ -4,6 +4,7 @@ import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
+import fr.uge.android.forkeat.recipes.data.api.RecipeApi
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import fr.uge.android.forkeat.recipes.data.dto.SmartSearchRequestDTO
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -14,7 +15,7 @@ import java.util.UUID
 
 class SmartSearchViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val recipeApi = ForkEatApi.recipeService
+    private val recipeApi = RecipeApi.service
     private val walletApi = ForkEatApi.walletService
 
     // Session-like persistence : la requête et les résultats survivent à la navigation

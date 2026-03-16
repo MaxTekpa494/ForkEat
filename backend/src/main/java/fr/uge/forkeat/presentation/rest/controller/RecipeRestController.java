@@ -1,6 +1,7 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.presentation.dto.recipe.*;
+import fr.uge.forkeat.service.model.recipe.projection.AuthorRecipesPage;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.response.*;
@@ -147,10 +148,10 @@ public final class RecipeRestController {
   }
 
   @GetMapping("my-recipes")
-  public ResponseEntity<HttpResponse<RecipeDTO>> myRecipes() {
+  public ResponseEntity<HttpResponse<AuthorRecipesPage>> myRecipes(RecipePaginationDTO pagination) {
     var username = authPort.extractUsername();
-    var recipes = recipeService.findByAuthorUsername(username);
-    return ResponseEntity.ok(new ListResponse<>(recipes.stream().map(RecipeDTOMapper::toDTO).toList(), recipes.size()));
+    var result = recipeService.findRecipesByAuthor(username, RecipeStatus.valueOf(pagination.getStatus()), pagination.getPage(), pagination.getSize());
+    return ResponseEntity.ok(new ItemResponse<>(result));
   }
 
   @PostMapping(value = "create-variant", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -174,14 +175,6 @@ public final class RecipeRestController {
     recipeService.likeRecipe(user.id(), id);
     return ResponseEntity.ok().build();
   }
-
-    @PostMapping("/{id}/super-like")
-    public ResponseEntity<?> superLikeRecipe(@PathVariable UUID id) {
-        var user = this.userService.getUserByUsername(authPort.extractUsername());
-        this.recipeService.superLikeRecipe(user.id(), id);
-        return ResponseEntity.ok().build();
-    }
-
 
   @DeleteMapping("/{id}/like")
   public ResponseEntity<?> unlikeRecipe(@PathVariable UUID id) {

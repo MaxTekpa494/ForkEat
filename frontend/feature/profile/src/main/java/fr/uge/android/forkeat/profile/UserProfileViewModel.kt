@@ -3,9 +3,10 @@ package fr.uge.android.forkeat.profile
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.TokenManager
-import fr.uge.android.forkeat.network.dto.UserReportRequestDTO
+import fr.uge.android.forkeat.profile.data.api.ProfileApi
+import fr.uge.android.forkeat.recipes.data.api.RecipeApi
+import fr.uge.android.forkeat.profile.data.dto.UserReportRequestDTO
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -35,6 +36,9 @@ data class UserProfileUiState(
 )
 
 class UserProfileViewModel(application: Application) : AndroidViewModel(application) {
+
+    private val profileService = ProfileApi.service
+    private val recipeService = RecipeApi.service
 
     private val _uiState = MutableStateFlow(UserProfileUiState())
     val uiState: StateFlow<UserProfileUiState> = _uiState.asStateFlow()
@@ -71,7 +75,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
             _uiState.value = _uiState.value.copy(showReportDialog = false)
             try {
                 val token = tokenManager.getToken() ?: ""
-                val response = ForkEatApi.profileService.reportUser(
+                val response = profileService.reportUser(
                     token = token,
                     username = targetUsername,
                     request = UserReportRequestDTO(reportType, justification)
@@ -91,7 +95,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = ForkEatApi.profileService.getUserProfile(username, page)
+                val response = profileService.getUserProfile(username, page)
                 if (response.isSuccessful) {
                     val r = response.body()?.resource ?: return@launch
                     val newRecipes = if (page == 0) r.recipes else _uiState.value.recipes + r.recipes
@@ -130,7 +134,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
             updateRecipeInList(recipeId, liked = true)
             try {
                 val token = tokenManager.getToken() ?: ""
-                val response = ForkEatApi.recipeService.likeRecipe(token = token, id = recipeId)
+                val response = recipeService.likeRecipe(token = token, id = recipeId)
                 if (!response.isSuccessful) {
                     updateRecipeInList(recipeId, liked = false)
                     handleError(response.code())
@@ -146,7 +150,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
             updateRecipeInList(recipeId, liked = false)
             try {
                 val token = tokenManager.getToken() ?: ""
-                val response = ForkEatApi.recipeService.unlikeRecipe(token = token, id = recipeId)
+                val response = recipeService.unlikeRecipe(token = token, id = recipeId)
                 if (!response.isSuccessful) {
                     updateRecipeInList(recipeId, liked = true)
                     handleError(response.code())
@@ -161,7 +165,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             try {
                 val token = tokenManager.getToken() ?: ""
-                val response = ForkEatApi.recipeService.superLikeRecipe(token = token, id = recipeId)
+                val response = recipeService.superLikeRecipe(token = token, id = recipeId)
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         recipes = _uiState.value.recipes.map { recipe ->
@@ -187,7 +191,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
             updateFollowStates(recipeId, followed = true)
             try {
                 val token = tokenManager.getToken() ?: ""
-                val response = ForkEatApi.recipeService.followRecipe(token = token, id = recipeId)
+                val response = recipeService.followRecipe(token = token, id = recipeId)
                 if (!response.isSuccessful) {
                     updateFollowStates(recipeId, followed = false)
                     handleError(response.code())
@@ -203,7 +207,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
             updateFollowStates(recipeId, followed = false)
             try {
                 val token = tokenManager.getToken() ?: ""
-                val response = ForkEatApi.recipeService.unfollowRecipe(token = token, id = recipeId)
+                val response = recipeService.unfollowRecipe(token = token, id = recipeId)
                 if (!response.isSuccessful) {
                     updateFollowStates(recipeId, followed = true)
                     handleError(response.code())
@@ -250,7 +254,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
             )
             try {
                 val token = tokenManager.getToken() ?: ""
-                val response = ForkEatApi.profileService.followUser(token, targetUsername)
+                val response = profileService.followUser(token, targetUsername)
                 if (!response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         followedByCurrentUser = false,
@@ -274,7 +278,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
             )
             try {
                 val token = tokenManager.getToken() ?: ""
-                val response = ForkEatApi.profileService.unfollowUser(token, targetUsername)
+                val response = profileService.unfollowUser(token, targetUsername)
                 if (!response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         followedByCurrentUser = true,
