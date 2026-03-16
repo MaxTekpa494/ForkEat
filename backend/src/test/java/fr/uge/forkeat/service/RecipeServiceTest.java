@@ -8,8 +8,10 @@ import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.recipe.projection.AuthorRecipeSummary;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
+import fr.uge.forkeat.service.model.recipe.projection.UserRecipeStats;
 import fr.uge.forkeat.service.model.superlike.SuperLikeConfig;
 import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.*;
@@ -628,6 +630,85 @@ class RecipeServiceTest {
             verify(walletPersistence, never()).incrementBalanceById(any(), anyLong());
             verify(walletPersistence, never()).getEarningsWallet();
             verify(walletPersistence, never()).getRedistributionWallet();
+        }
+    }
+
+    @Nested
+    class FindRecipesByAuthor {
+
+        private final UUID authorId = UUID.randomUUID();
+
+        @Test
+        void shouldReturnAuthorRecipesPage() {
+            var summary = createRecipeSummary(UUID.randomUUID(), "Ma recette");
+            var authorSummary = new AuthorRecipeSummary(summary, RecipeStatus.PUBLISHED, null);
+            var stats = new UserRecipeStats(1, 0, 0, 0);
+            var page = new PageResult<>(List.of(authorSummary), 1L);
+
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(authorId);
+            when(recipePersistence.countRecipesByAuthorGroupedByStatus(authorId)).thenReturn(stats);
+            when(recipePersistence.findRecipesByAuthor(authorId, RecipeStatus.PUBLISHED, 0, 10)).thenReturn(page);
+
+            var result = recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, 10);
+
+            assertNotNull(result);
+            assertEquals(1, result.recipes().items().size());
+            assertEquals(1L, result.recipes().total());
+            assertEquals(stats, result.stats());
+        }
+
+        @Test
+        void shouldResolveUsernameToAuthorId() {
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(authorId);
+            when(recipePersistence.countRecipesByAuthorGroupedByStatus(authorId)).thenReturn(UserRecipeStats.ZERO);
+            when(recipePersistence.findRecipesByAuthor(authorId, RecipeStatus.PUBLISHED, 0, 10)).thenReturn(new PageResult<>(List.of(), 0L));
+
+            recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, 10);
+
+            verify(userIdentityPort).findIdByUsernameOrThrow("chef_test");
+            verify(recipePersistence).countRecipesByAuthorGroupedByStatus(authorId);
+            verify(recipePersistence).findRecipesByAuthor(authorId, RecipeStatus.PUBLISHED, 0, 10);
+        }
+
+        @Test
+        void shouldForwardStatusPageAndSize() {
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(authorId);
+            when(recipePersistence.countRecipesByAuthorGroupedByStatus(authorId)).thenReturn(UserRecipeStats.ZERO);
+            when(recipePersistence.findRecipesByAuthor(authorId, RecipeStatus.DRAFT, 2, 5)).thenReturn(new PageResult<>(List.of(), 0L));
+
+            recipeService.findRecipesByAuthor("chef_test", RecipeStatus.DRAFT, 2, 5);
+
+            verify(recipePersistence).findRecipesByAuthor(authorId, RecipeStatus.DRAFT, 2, 5);
+        }
+
+        @Test
+        void shouldThrowWhenUsernameIsNull() {
+            assertThrows(NullPointerException.class,
+                    () -> recipeService.findRecipesByAuthor(null, RecipeStatus.PUBLISHED, 0, 10));
+            verifyNoInteractions(recipePersistence);
+        }
+
+        @Test
+        void shouldThrowWhenStatusIsNull() {
+            assertThrows(NullPointerException.class,
+                    () -> recipeService.findRecipesByAuthor("chef_test", null, 0, 10));
+            verifyNoInteractions(recipePersistence);
+        }
+
+        @Test
+        void shouldThrowWhenSizeIsZeroOrNegative() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, 0));
+            assertThrows(IllegalArgumentException.class,
+                    () -> recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, -1));
+            verifyNoInteractions(recipePersistence);
+        }
+
+        @Test
+        void shouldThrowWhenPageIsNegative() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, -1, 10));
+            verifyNoInteractions(recipePersistence);
         }
     }
 

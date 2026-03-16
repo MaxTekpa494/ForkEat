@@ -9,14 +9,12 @@ import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeAlreadyReportedException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.presentation.web.viewmodel.AuthorRecipesViewModel;
 import fr.uge.forkeat.service.model.recipe.RecipeReportType;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
-import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
-import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
-import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
-import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
+import fr.uge.forkeat.service.model.recipe.projection.*;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
@@ -27,7 +25,6 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -35,9 +32,9 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.time.Instant;
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -351,6 +348,97 @@ class RecipeWebControllerTest {
             doThrow(new InsufficientFundsException(50L, 100L)).when(recipeService).superLikeRecipe(any(), any());
             mockMvc.perform(post("/recipes/{id}/super-like", id))
                     .andExpect(status().isPaymentRequired());
+        }
+    }
+
+    @Nested
+    class MyRecipes {
+
+        private AuthorRecipesPage buildPage(RecipeStatus status, int count) {
+            var summaries = java.util.stream.IntStream.range(0, count)
+                    .mapToObj(i -> {
+                        var s = new RecipeSummary(UUID.randomUUID(), "Recipe " + i, "desc", null, 30, java.time.Instant.now(), "chef_test");
+                        return new AuthorRecipeSummary(s, status, null);
+                    })
+                    .toList();
+            var stats = new UserRecipeStats(count, 0, 0, 0);
+            return new AuthorRecipesPage(stats, new PageResult<>(summaries, count));
+        }
+
+        @Test
+        @WithMockUser
+        void shouldReturnMyRecipesView() throws Exception {
+            var page = buildPage(RecipeStatus.PUBLISHED, 2);
+            when(authenticationPort.extractUsername()).thenReturn("chef_test");
+            when(recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, 12)).thenReturn(page);
+
+            mockMvc.perform(get("/recipes/my-recipes"))
+                    .andExpect(status().isOk())
+                    .andExpect(view().name("recipes/my-recipes"))
+                    .andExpect(model().attributeExists("vm"));
+        }
+
+        @Test
+        @WithMockUser
+        void shouldForwardStatusParamToService() throws Exception {
+            var page = buildPage(RecipeStatus.DRAFT, 1);
+            when(authenticationPort.extractUsername()).thenReturn("chef_test");
+            when(recipeService.findRecipesByAuthor("chef_test", RecipeStatus.DRAFT, 0, 12)).thenReturn(page);
+
+            mockMvc.perform(get("/recipes/my-recipes").param("status", "DRAFT"))
+                    .andExpect(status().isOk());
+
+            verify(recipeService).findRecipesByAuthor("chef_test", RecipeStatus.DRAFT, 0, 12);
+        }
+
+        @Test
+        @WithMockUser
+        void shouldForwardPaginationParamsToService() throws Exception {
+            var page = buildPage(RecipeStatus.PUBLISHED, 0);
+            when(authenticationPort.extractUsername()).thenReturn("chef_test");
+            when(recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 2, 5)).thenReturn(page);
+
+            mockMvc.perform(get("/recipes/my-recipes").param("page", "2").param("size", "5"))
+                    .andExpect(status().isOk());
+
+            verify(recipeService).findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 2, 5);
+        }
+
+        @Test
+        @WithMockUser
+        void shouldBuildViewModelWithCorrectStats() throws Exception {
+            var stats = new UserRecipeStats(3, 1, 0, 2);
+            var recipes = new PageResult<AuthorRecipeSummary>(List.of(), 6L);
+            var page = new AuthorRecipesPage(stats, recipes);
+            when(authenticationPort.extractUsername()).thenReturn("chef_test");
+            when(recipeService.findRecipesByAuthor(any(), any(), anyInt(), anyInt())).thenReturn(page);
+
+            var result = mockMvc.perform(get("/recipes/my-recipes"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            var vm = (AuthorRecipesViewModel) result.getModelAndView().getModel().get("vm");
+            assertEquals(3L, vm.stats().published());
+            assertEquals(1L, vm.stats().draft());
+            assertEquals(2L, vm.stats().rejected());
+            assertEquals(6L, vm.totalRecipes());
+        }
+
+        @Test
+        @WithMockUser
+        void shouldCalculateTotalPagesFromResult() throws Exception {
+            var stats = UserRecipeStats.ZERO;
+            var recipes = new PageResult<AuthorRecipeSummary>(List.of(), 25L);
+            var page = new AuthorRecipesPage(stats, recipes);
+            when(authenticationPort.extractUsername()).thenReturn("chef_test");
+            when(recipeService.findRecipesByAuthor(any(), any(), anyInt(), anyInt())).thenReturn(page);
+
+            var result = mockMvc.perform(get("/recipes/my-recipes").param("size", "10"))
+                    .andExpect(status().isOk())
+                    .andReturn();
+
+            var vm = (AuthorRecipesViewModel) result.getModelAndView().getModel().get("vm");
+            assertEquals(3, vm.totalPages());
         }
     }
 

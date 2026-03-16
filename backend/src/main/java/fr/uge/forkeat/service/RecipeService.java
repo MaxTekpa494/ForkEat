@@ -223,6 +223,18 @@ public class RecipeService {
     return recipePersistence.findByAuthorUsername(authorUsername);
   }
 
+  public AuthorRecipesPage findRecipesByAuthor(String username, RecipeStatus status, int page, int size) {
+    Objects.requireNonNull(username);
+    Objects.requireNonNull(status);
+    if (size <= 0 || page < 0) {
+      throw new IllegalArgumentException("Invalid page or size");
+    }
+    var authorId = userIdentityPort.findIdByUsernameOrThrow(username);
+    var stats = recipePersistence.countRecipesByAuthorGroupedByStatus(authorId);
+    var recipes = recipePersistence.findRecipesByAuthor(authorId, status, page, size);
+    return new AuthorRecipesPage(stats, recipes);
+  }
+
   @Transactional
   public void likeRecipe(UUID userId, UUID recipeId) {
     Objects.requireNonNull(userId);

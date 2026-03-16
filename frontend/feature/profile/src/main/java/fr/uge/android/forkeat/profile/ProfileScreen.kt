@@ -89,7 +89,7 @@ private fun ProfileDashboardHeader(uiState: ProfileUiState) {
                     colors = listOf(Secondary800, Secondary900)
                 )
             )
-            .padding(bottom = 32.dp)
+            .padding(bottom = 40.dp)
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
             Spacer(Modifier.height(48.dp))
@@ -118,35 +118,7 @@ private fun ProfileDashboardHeader(uiState: ProfileUiState) {
                 style = MaterialTheme.typography.bodyLarge,
                 color = Secondary100
             )
-            Spacer(Modifier.height(24.dp))
-            Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ProfileStat(label = "Recettes", value = uiState.recipeCount.toString())
-                Box(modifier = Modifier.width(1.dp).height(30.dp).background(Secondary700))
-                ProfileStat(label = "Abonnés", value = uiState.followers.toString())
-                Box(modifier = Modifier.width(1.dp).height(30.dp).background(Secondary700))
-                ProfileStat(label = "Abonnements", value = uiState.following.toString())
-            }
         }
-    }
-}
-
-@Composable
-private fun ProfileStat(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-            color = Color.White
-        )
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = Secondary300
-        )
     }
 }
 
@@ -169,7 +141,7 @@ private fun ProfileStatsCard(uiState: ProfileUiState) {
             StatisticItem(
                 icon = Icons.Default.Book,
                 iconTint = Secondary700,
-                label = "Recettes publiées",
+                label = "Recettes",
                 value = uiState.recipeCount.toString()
             )
             StatisticItem(

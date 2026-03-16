@@ -3,11 +3,14 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RecipeUserInteractionProjection;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.*;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.AuthorRecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeBaseSummaryView;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeStatusCount;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.recipe.projection.UserRecipeStats;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import jakarta.persistence.EntityManager;
@@ -882,6 +885,137 @@ class RecipePersistenceAdapterTest {
 
             assertNotNull(result);
             assertEquals(3, result.stepByStepInstructions().size());
+        }
+    }
+
+    @Nested
+    class FindRecipesByAuthor {
+
+        private AuthorRecipeSummaryView createAuthorView(UUID id, String title, String status, String justification) {
+            var view = mock(AuthorRecipeSummaryView.class);
+            when(view.getId()).thenReturn(id);
+            when(view.getTitle()).thenReturn(title);
+            when(view.getSummary()).thenReturn("Summary for " + title);
+            when(view.getPreparationMinutes()).thenReturn(30);
+            when(view.getCreatedAt()).thenReturn(now);
+            when(view.getAuthorUsername()).thenReturn("chef_test");
+            when(view.getStatus()).thenReturn(status);
+            when(view.getJustification()).thenReturn(justification);
+            if (justification != null) {
+                when(view.getRejectedAt()).thenReturn(now);
+            }
+            return view;
+        }
+
+        @Test
+        void shouldReturnMappedSummaries() {
+            var id = UUID.randomUUID();
+            var view = createAuthorView(id, "Tarte aux pommes", "PUBLISHED", null);
+            var page = new PageImpl<>(List.of(view), PageRequest.of(0, 12), 1);
+            when(recipeRepository.findRecipeSummariesByAuthorIdAndStatus(author.getId(), "PUBLISHED", PageRequest.of(0, 12))).thenReturn(page);
+
+            var result = adapter.findRecipesByAuthor(author.getId(), RecipeStatus.PUBLISHED, 0, 12);
+
+            assertEquals(1, result.items().size());
+            assertEquals(1L, result.total());
+            var summary = result.items().getFirst();
+            assertEquals("Tarte aux pommes", summary.summary().title());
+            assertEquals(RecipeStatus.PUBLISHED, summary.status());
+            assertNull(summary.rejectionInfo());
+        }
+
+        @Test
+        void shouldIncludeRejectionInfoWhenJustificationPresent() {
+            var id = UUID.randomUUID();
+            var view = createAuthorView(id, "Recette rejetée", "REJECTED", "Contenu inapproprié");
+            var page = new PageImpl<>(List.of(view), PageRequest.of(0, 12), 1);
+            when(recipeRepository.findRecipeSummariesByAuthorIdAndStatus(author.getId(), "REJECTED", PageRequest.of(0, 12))).thenReturn(page);
+
+            var result = adapter.findRecipesByAuthor(author.getId(), RecipeStatus.REJECTED, 0, 12);
+
+            var summary = result.items().getFirst();
+            assertNotNull(summary.rejectionInfo());
+            assertEquals("Contenu inapproprié", summary.rejectionInfo().justification());
+        }
+
+        @Test
+        void shouldReturnEmptyWhenNoRecipes() {
+            var page = new PageImpl<AuthorRecipeSummaryView>(List.of(), PageRequest.of(0, 12), 0);
+            when(recipeRepository.findRecipeSummariesByAuthorIdAndStatus(author.getId(), "DRAFT", PageRequest.of(0, 12))).thenReturn(page);
+
+            var result = adapter.findRecipesByAuthor(author.getId(), RecipeStatus.DRAFT, 0, 12);
+
+            assertTrue(result.items().isEmpty());
+            assertEquals(0L, result.total());
+        }
+
+        @Test
+        void shouldThrowWhenAuthorIdIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.findRecipesByAuthor(null, RecipeStatus.PUBLISHED, 0, 12));
+        }
+
+        @Test
+        void shouldThrowWhenStatusIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.findRecipesByAuthor(author.getId(), null, 0, 12));
+        }
+    }
+
+    @Nested
+    class CountRecipesByAuthorGroupedByStatus {
+
+        private RecipeStatusCount createCount(String status, long count) {
+            var row = mock(RecipeStatusCount.class);
+            when(row.getStatus()).thenReturn(status);
+            when(row.getCount()).thenReturn(count);
+            return row;
+        }
+
+        @Test
+        void shouldAggregateCountsByStatus() {
+            var rows = List.of(
+                    createCount("PUBLISHED", 3),
+                    createCount("DRAFT", 2),
+                    createCount("PENDING_REVIEW", 1),
+                    createCount("REJECTED", 4)
+            );
+            when(recipeRepository.countByAuthorIdGroupByStatus(author.getId())).thenReturn(rows);
+
+            UserRecipeStats stats = adapter.countRecipesByAuthorGroupedByStatus(author.getId());
+
+            assertEquals(3L, stats.published());
+            assertEquals(2L, stats.draft());
+            assertEquals(1L, stats.pendingReview());
+            assertEquals(4L, stats.rejected());
+        }
+
+        @Test
+        void shouldReturnZerosWhenNoRecipes() {
+            when(recipeRepository.countByAuthorIdGroupByStatus(author.getId())).thenReturn(List.of());
+
+            UserRecipeStats stats = adapter.countRecipesByAuthorGroupedByStatus(author.getId());
+
+            assertEquals(0L, stats.published());
+            assertEquals(0L, stats.draft());
+            assertEquals(0L, stats.pendingReview());
+            assertEquals(0L, stats.rejected());
+        }
+
+        @Test
+        void shouldHandlePartialStatuses() {
+            var rows = List.of(createCount("PUBLISHED", 5));
+            when(recipeRepository.countByAuthorIdGroupByStatus(author.getId())).thenReturn(rows);
+
+            UserRecipeStats stats = adapter.countRecipesByAuthorGroupedByStatus(author.getId());
+
+            assertEquals(5L, stats.published());
+            assertEquals(0L, stats.draft());
+            assertEquals(0L, stats.pendingReview());
+            assertEquals(0L, stats.rejected());
+        }
+
+        @Test
+        void shouldThrowWhenAuthorIdIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.countRecipesByAuthorGroupedByStatus(null));
         }
     }
 

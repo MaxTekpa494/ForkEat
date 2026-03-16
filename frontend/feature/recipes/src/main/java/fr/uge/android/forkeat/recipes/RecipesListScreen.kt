@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.width
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -83,18 +84,6 @@ fun RecipesListScreen(
 ) {
     val listState = rememberLazyListState()
     val currentUsername = remember(isLoggedIn) { if (isLoggedIn) ForkEatApi.getCurrentUsername() else null }
-
-    val shouldLoadMore by remember {
-        derivedStateOf {
-            val lastVisibleItem = listState.layoutInfo.visibleItemsInfo.lastOrNull()
-            lastVisibleItem != null && lastVisibleItem.index >= listState.layoutInfo.totalItemsCount - 1
-        }
-    }
-    LaunchedEffect(shouldLoadMore, recipes.size, totalCount) {
-        if (shouldLoadMore && recipes.size < totalCount) {
-            onLoadMore()
-        }
-    }
 
     // ── Dialogue fonds insuffisants ──────────────────────────────────────────
     if (insufficientFunds) {
@@ -171,7 +160,7 @@ fun RecipesListScreen(
                 modifier = Modifier.weight(1f),
                 state = listState
             ) {
-                items(recipes) { recipe ->
+                itemsIndexed(recipes) { index, recipe ->
                     RecipeCard(
                         recipe = if (!isLoggedIn) recipe.copy(likedByCurrentUser = false, superLikedByCurrentUser = false, followedByCurrentUser = false) else recipe,
                         onRecipeClick = { onRecipeClick(recipe.id.toString()) },
@@ -192,6 +181,11 @@ fun RecipesListScreen(
                         onFollow = onFollowRecipe,
                         onUnfollow = onUnfollowRecipe,
                     )
+                    if (index == recipes.lastIndex) {
+                        LaunchedEffect(recipes.size) {
+                            onLoadMore()
+                        }
+                    }
                 }
                 if (isLoading) {
                     item {
