@@ -313,6 +313,7 @@ class RecipeServiceTest {
             var existingRecipe = createRecipe(recipeId, "Old Title", RecipeStatus.DRAFT);
             var updatedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PUBLISHED);
 
+            when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(existingRecipe));
             when(recipePersistence.update(eq(recipeId), any(Recipe.class))).thenReturn(updatedRecipe);
 
@@ -334,6 +335,7 @@ class RecipeServiceTest {
             var updatedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PUBLISHED);
             var newImage = new ImageUpload(new byte[]{1, 2, 3}, "image/jpeg", "new.jpg");
 
+            when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(existingRecipe));
             when(storageService.uploadImage(newImage, "recipes")).thenReturn("https://new.image.url");
             when(recipePersistence.update(eq(recipeId), any(Recipe.class))).thenReturn(updatedRecipe);
@@ -373,6 +375,7 @@ class RecipeServiceTest {
         void shouldDeleteRecipeWithoutImage() {
             var recipeId = UUID.randomUUID();
             var recipe = createRecipe(recipeId, "Tarte", RecipeStatus.PUBLISHED);
+            when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
 
             recipeService.deleteById(recipeId);
@@ -389,6 +392,7 @@ class RecipeServiceTest {
                     "https://cdn.example.com/recipes/img.jpg", RecipeStatus.PUBLISHED,
                     List.of(), List.of(), List.of(), List.of(), now, now
             );
+            when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
 
             recipeService.deleteById(recipeId);

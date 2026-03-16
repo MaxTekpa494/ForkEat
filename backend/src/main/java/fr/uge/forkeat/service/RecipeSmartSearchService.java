@@ -16,6 +16,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+
 @Service
 @Transactional(readOnly = true)
 public class RecipeSmartSearchService {
@@ -24,19 +25,24 @@ public class RecipeSmartSearchService {
   private final RagSearchPort ragSearchPort;
   private final RecipePersistence recipePersistence;
   private final AuthenticationPort authPort;
+  private final WalletService walletService;
 
   @Value("${app.rag.top-k:10}")
   private int topK;
 
   public RecipeSmartSearchService(RagModerationPort moderationPort, RagSearchPort ragSearchPort,
-                                  RecipePersistence recipePersistence, AuthenticationPort authPort) {
+                                  RecipePersistence recipePersistence, AuthenticationPort authPort,
+                                  WalletService walletService) {
     this.moderationPort = moderationPort;
     this.ragSearchPort = ragSearchPort;
     this.recipePersistence = recipePersistence;
     this.authPort = authPort;
+    this.walletService = walletService;
   }
 
-  public List<PersonalizedRecipeSummary> search(String userQuery) {
+  @Transactional
+  public List<PersonalizedRecipeSummary> search(UUID userId, String userQuery) {
+    walletService.debitForSmartSearch(userId);
     moderationPort.assertSafe(userQuery);
     var recipeIds = ragSearchPort.findSimilarRecipeIds(userQuery, topK);
     var summaries = recipePersistence.findSummariesByIds(recipeIds);

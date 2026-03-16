@@ -188,9 +188,8 @@ public final class RecipeRestController {
           @RequestBody SmartSearchRequestDTO request) {
 
     var user = userService.getUserByUsername(authPort.extractUsername());
-    walletService.debitForSmartSearch(user.id());
 
-    var recipes = smartSearchService.search(request.query());
+    var recipes = smartSearchService.search(user.id(), request.query());
 
     var dtos = recipes.stream()
             .map(RecipeDTOMapper::toSummaryDTO)

@@ -163,13 +163,6 @@ public class RecipeWebController {
 
     @PostMapping("/{id}/delete")
     public String deleteRecipe(@PathVariable UUID id) {
-        var currentUser = authPort.extractUsername();
-        var recipe = recipeService.findById(id);
-
-        if (!currentUser.equals(recipe.usernameAuthor())) {
-            throw new IllegalStateException("Vous ne pouvez pas supprimer une recette qui ne vous appartient pas");
-        }
-
         recipeService.deleteById(id);
         return "redirect:/recipes/my-recipes";
     }
@@ -179,11 +172,6 @@ public class RecipeWebController {
         var currentUser = authPort.extractUsername();
         var recipe = recipeService.findById(id);
         logger.info("Editing recipe {}", recipe);
-        if (!currentUser.equals(recipe.usernameAuthor())) {
-            model.addAttribute("errorMessage", "Vous ne pouvez pas modifier une recette qui ne vous appartient pas");
-            model.addAttribute("pageTitle", "Accès non autorisé");
-            return "error/404";
-        }
 
         var recipeDTO = RecipeDTOMapper.toDTO(recipe);
         var allAllergens = recipeService.findAllAllergens().stream()
@@ -213,12 +201,6 @@ public class RecipeWebController {
                                @RequestPart(value = "image", required = false) MultipartFile image,
                                Model model) {
         var currentUser = authPort.extractUsername();
-        var existingRecipe = recipeService.findById(id);
-
-        if (!currentUser.equals(existingRecipe.usernameAuthor())) {
-            throw new IllegalStateException("Vous ne pouvez pas modifier une recette qui ne vous appartient pas");
-        }
-
         logger.info("Updating recipe {}", id);
         var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, currentUser));
         var updatedRecipe = recipeService.updateRecipe(id, recipe, ImageMapper.toImageUpload(image));
@@ -294,11 +276,9 @@ public class RecipeWebController {
                               RedirectAttributes redirectAttrs) {
         var user = userService.getUserByUsername(authPort.extractUsername());
         try {
-            walletService.debitForSmartSearch(user.id());
-            var dtos = smartSearchService.search(query).stream()
+            var dtos = smartSearchService.search(user.id(), query).stream()
                     .map(RecipeDTOMapper::toSummaryDTO)
                     .toList();
-
             session.setAttribute("smartSearchQuery",   query);
             session.setAttribute("smartSearchResults", dtos);
         } catch (InsufficientFundsException e) {
@@ -306,15 +286,7 @@ public class RecipeWebController {
                     "Solde insuffisant pour la recherche intelligente (requis : " + e.getRequired()
                     + " crédits, disponible : " + e.getAvailable() + " crédits).");
             redirectAttrs.addFlashAttribute("query", query);
-            return "redirect:/recipes/smart-search";
         }
-
-        var dtos = smartSearchService.search(query).stream()
-                .map(RecipeDTOMapper::toSummaryDTO)
-                .toList();
-
-        session.setAttribute("smartSearchQuery",   query);
-        session.setAttribute("smartSearchResults", dtos);
         return "redirect:/recipes/smart-search";
     }
 
