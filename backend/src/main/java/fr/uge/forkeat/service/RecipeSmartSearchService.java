@@ -10,6 +10,7 @@ import fr.uge.forkeat.service.port.RagModerationPort;
 import fr.uge.forkeat.service.port.RagSearchPort;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
@@ -40,7 +41,7 @@ public class RecipeSmartSearchService {
     this.walletService = walletService;
   }
 
-  @Transactional
+  @Transactional(isolation = Isolation.REPEATABLE_READ)
   public List<PersonalizedRecipeSummary> search(UUID userId, String userQuery) {
     walletService.debitForSmartSearch(userId);
     moderationPort.assertSafe(userQuery);
