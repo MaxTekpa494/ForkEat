@@ -63,7 +63,7 @@ class RecipeModerationActionServiceTest {
             when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
             when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
             when(moderationActionPersistence.save(any())).thenReturn(expected);
-            when(recipeService.isAuthor(recipeId, "mod")).thenReturn(false);
+            when(recipePersistence.isAuthor(recipeId, moderatorId)).thenReturn(false);
 
             var result = recipeModerationActionService.moderateRecipe(command);
 
@@ -99,7 +99,7 @@ class RecipeModerationActionServiceTest {
 
             when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
             when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
-            when(recipeService.isAuthor(recipeId, "mod")).thenReturn(true);
+            when(recipePersistence.isAuthor(recipeId, moderatorId)).thenReturn(true);
 
             assertThrows(ModeratorIsAuthorException.class, () -> recipeModerationActionService.moderateRecipe(command));
             verify(moderationActionPersistence, never()).save(any());

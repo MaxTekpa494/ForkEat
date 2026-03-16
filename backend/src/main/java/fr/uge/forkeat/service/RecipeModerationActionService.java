@@ -49,7 +49,8 @@ public class RecipeModerationActionService {
         }
         var moderatorId = userIdentityPort.findIdByUsernameOrThrow(command.moderatorUsername());
 
-        if (recipeService.isAuthor(command.recipeId(), command.moderatorUsername())) {
+        var authorId = userIdentityPort.findIdByUsernameOrThrow(command.moderatorUsername());
+        if (recipePersistence.isAuthor(command.recipeId(), authorId)) {
             throw new ModeratorIsAuthorException();
         }
 
