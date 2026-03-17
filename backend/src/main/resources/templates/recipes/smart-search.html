@@ -62,6 +62,16 @@
         </div>
     </section>
 
+    <!-- Modale fonds insuffisants (ouverte via JS si flash présent) -->
+    <th:block th:with="fundsMsg='Fonds insuffisants pour la recherche intelligente. Rechargez votre wallet pour continuer.'">
+        <div th:replace="~{fragments/modals :: insufficientFundsModal(
+            'smart-search-funds-modal',
+            'smart-search-funds-modal-content',
+            'closeSmartSearchFundsModal()',
+            ${fundsMsg}
+        )}"></div>
+    </th:block>
+
     <!-- Contenu principal -->
     <section class="py-12 bg-surface">
         <div class="container mx-auto px-4">
@@ -196,6 +206,34 @@
             <p class="text-sm text-secondary-400 text-center">Notre IA recherche les recettes les plus pertinentes pour vous.</p>
         </div>
     </div>
+
+    <script>
+        function openSmartSearchFundsModal() {
+            const modal = document.getElementById('smart-search-funds-modal');
+            const content = document.getElementById('smart-search-funds-modal-content');
+            modal.classList.remove('hidden');
+            modal.classList.add('flex');
+            requestAnimationFrame(() => {
+                content.classList.remove('scale-95', 'opacity-0');
+                content.classList.add('scale-100', 'opacity-100');
+            });
+        }
+
+        function closeSmartSearchFundsModal() {
+            const modal = document.getElementById('smart-search-funds-modal');
+            const content = document.getElementById('smart-search-funds-modal-content');
+            content.classList.remove('scale-100', 'opacity-100');
+            content.classList.add('scale-95', 'opacity-0');
+            setTimeout(() => {
+                modal.classList.remove('flex');
+                modal.classList.add('hidden');
+            }, 200);
+        }
+
+    </script>
+    <script th:if="${insufficientFundsError != null}">
+        document.addEventListener('DOMContentLoaded', openSmartSearchFundsModal);
+    </script>
 
     <script>
         document.getElementById('smartSearchForm').addEventListener('submit', function () {

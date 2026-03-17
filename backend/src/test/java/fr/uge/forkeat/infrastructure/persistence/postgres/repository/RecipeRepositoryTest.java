@@ -17,7 +17,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -186,5 +185,87 @@ class RecipeRepositoryTest extends AbstractIntegrationTest {
       recipeRepository.save(createRecipe("Recipe 1", "internal", null, RecipeStatus.PUBLISHED));
       recipeRepository.save(createRecipe("Recipe 2", "internal", null, RecipeStatus.DRAFT));
       assertEquals(2, recipeRepository.findByAuthorUsername(savedAuthor.getUsername()).size());
+  }
+
+  @Test
+  void shouldFindRecipeSummariesByAuthorIdAndStatusByStatusAndAuthor() {
+      recipeRepository.save(createRecipe("Tarte aux pommes", "internal", null, RecipeStatus.PUBLISHED));
+      recipeRepository.save(createRecipe("Quiche Lorraine", "internal", null, RecipeStatus.PUBLISHED));
+      recipeRepository.save(createRecipe("Brouillon", "internal", null, RecipeStatus.DRAFT));
+
+      var pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+      var published = recipeRepository.findRecipeSummariesByAuthorIdAndStatus(savedAuthor.getId(), "PUBLISHED", pageable);
+      var drafts = recipeRepository.findRecipeSummariesByAuthorIdAndStatus(savedAuthor.getId(), "DRAFT", pageable);
+
+      assertEquals(2, published.getTotalElements());
+      assertEquals(1, drafts.getTotalElements());
+  }
+
+  @Test
+  void shouldFindRecipeSummariesByAuthorIdAndStatusReturnsOnlyCurrentAuthor() {
+      var otherAuthor = new UserEntity();
+      otherAuthor.setUsername("other_chef");
+      otherAuthor.setEmail("other@example.com");
+      otherAuthor.setFirstName("Other");
+      otherAuthor.setLastName("Chef");
+      otherAuthor.setPassword("password");
+      otherAuthor.setRole(UserRole.MEMBER);
+      otherAuthor.setStatus(UserStatus.ACTIVE);
+      otherAuthor.setAuthMode(AuthMode.LOCAL);
+      var savedOther = userRepository.save(otherAuthor);
+
+      recipeRepository.save(createRecipe("Ma recette", "internal", null, RecipeStatus.PUBLISHED));
+
+      var recipeOther = new RecipeEntity();
+      recipeOther.setTitle("Recette autre");
+      recipeOther.setSummary("Summary");
+      recipeOther.setStatus(RecipeStatus.PUBLISHED);
+      recipeOther.setAuthor(savedOther);
+      recipeOther.setStepByStepInstructions(List.of(new RecipeStep(1, "Step")));
+      recipeRepository.save(recipeOther);
+
+      var pageable = org.springframework.data.domain.PageRequest.of(0, 10);
+      var result = recipeRepository.findRecipeSummariesByAuthorIdAndStatus(savedAuthor.getId(), "PUBLISHED", pageable);
+
+      assertEquals(1, result.getTotalElements());
+      assertEquals("Ma recette", result.getContent().getFirst().getTitle());
+  }
+
+  @Test
+  void shouldFindRecipeSummariesByAuthorIdAndStatusRespectPagination() {
+      for (int i = 1; i <= 5; i++) {
+          recipeRepository.save(createRecipe("Recette " + i, "internal", null, RecipeStatus.PUBLISHED));
+      }
+
+      var firstPage = recipeRepository.findRecipeSummariesByAuthorIdAndStatus(savedAuthor.getId(), "PUBLISHED", org.springframework.data.domain.PageRequest.of(0, 3));
+      var secondPage = recipeRepository.findRecipeSummariesByAuthorIdAndStatus(savedAuthor.getId(), "PUBLISHED", org.springframework.data.domain.PageRequest.of(1, 3));
+
+      assertEquals(5, firstPage.getTotalElements());
+      assertEquals(3, firstPage.getContent().size());
+      assertEquals(2, secondPage.getContent().size());
+  }
+
+  @Test
+  void shouldCountByAuthorIdGroupByStatus() {
+      recipeRepository.save(createRecipe("Published 1", "internal", null, RecipeStatus.PUBLISHED));
+      recipeRepository.save(createRecipe("Published 2", "internal", null, RecipeStatus.PUBLISHED));
+      recipeRepository.save(createRecipe("Draft 1", "internal", null, RecipeStatus.DRAFT));
+
+      var counts = recipeRepository.countByAuthorIdGroupByStatus(savedAuthor.getId());
+
+      var countMap = counts.stream().collect(java.util.stream.Collectors.toMap(
+              fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeStatusCount::getStatus,
+              fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeStatusCount::getCount
+      ));
+      assertEquals(2L, countMap.get("PUBLISHED"));
+      assertEquals(1L, countMap.get("DRAFT"));
+      assertNull(countMap.get("REJECTED"));
+  }
+
+  @Test
+  void shouldCountByAuthorIdGroupByStatusReturnsEmpty() {
+      var counts = recipeRepository.countByAuthorIdGroupByStatus(java.util.UUID.randomUUID());
+
+      assertTrue(counts.isEmpty());
   }
 }

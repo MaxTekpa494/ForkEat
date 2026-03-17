@@ -5,13 +5,16 @@ import fr.uge.forkeat.presentation.dto.recipe.PersonalizedRecipeSummaryDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
+import fr.uge.forkeat.presentation.dto.recipe.RecipePaginationDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
+import fr.uge.forkeat.presentation.web.viewmodel.AuthorRecipesViewModel;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.WalletService;
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.ModerationRagException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
@@ -97,15 +100,12 @@ public class RecipeWebController {
 
 
     @GetMapping("/my-recipes")
-    public String myRecipes(Model model) {
+    public String myRecipes(RecipePaginationDTO pagination, Model model) {
         var username = authPort.extractUsername();
-        var myRecipes = recipeService.findByAuthorUsername(username);
-        var recipesDTO = myRecipes.stream()
-                .map(RecipeDTOMapper::toDTO)
-                .toList();
-
-        model.addAttribute("recipes", recipesDTO);
-        model.addAttribute("username", username);
+        var result = recipeService.findRecipesByAuthor(username, RecipeStatus.valueOf(pagination.getStatus()), pagination.getPage(), pagination.getSize());
+        var totalPages = (int) Math.ceil((double) result.recipes().total() / pagination.getSize());
+        var vm = new AuthorRecipesViewModel(result.stats(), result.recipes().items(), pagination.getPage(), totalPages, result.recipes().total(), pagination.getStatus());
+        model.addAttribute("vm", vm);
         return "recipes/my-recipes";
     }
 
@@ -173,11 +173,6 @@ public class RecipeWebController {
         var currentUser = authPort.extractUsername();
         var recipe = recipeService.findById(id);
         logger.info("Editing recipe {}", recipe);
-        if (!currentUser.equals(recipe.usernameAuthor())) {
-            model.addAttribute("errorMessage", "Vous ne pouvez pas modifier une recette qui ne vous appartient pas");
-            model.addAttribute("pageTitle", "Accès non autorisé");
-            return "error/404";
-        }
 
         var recipeDTO = RecipeDTOMapper.toDTO(recipe);
         var allAllergens = recipeService.findAllAllergens().stream()
@@ -278,15 +273,21 @@ public class RecipeWebController {
     }
 
     @PostMapping("/smart-search")
-    public String smartSearch(@RequestParam("query") String query, HttpSession session) {
-        var username = authPort.extractUsername();
-
-        var dtos = smartSearchService.search(query).stream()
-                .map(RecipeDTOMapper::toSummaryDTO)
-                .toList();
-
-        session.setAttribute("smartSearchQuery",   query);
-        session.setAttribute("smartSearchResults", dtos);
+    public String smartSearch(@RequestParam("query") String query, HttpSession session,
+                              RedirectAttributes redirectAttrs) {
+        var user = userService.getUserByUsername(authPort.extractUsername());
+        try {
+            var dtos = smartSearchService.search(user.id(), query).stream()
+                    .map(RecipeDTOMapper::toSummaryDTO)
+                    .toList();
+            session.setAttribute("smartSearchQuery",   query);
+            session.setAttribute("smartSearchResults", dtos);
+        } catch (InsufficientFundsException e) {
+            redirectAttrs.addFlashAttribute("insufficientFundsError",
+                    "Solde insuffisant pour la recherche intelligente (requis : " + e.getRequired()
+                    + " crédits, disponible : " + e.getAvailable() + " crédits).");
+            redirectAttrs.addFlashAttribute("query", query);
+        }
         return "redirect:/recipes/smart-search";
     }
 

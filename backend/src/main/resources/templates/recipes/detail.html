@@ -124,8 +124,29 @@
                     <!-- Titre + Boutons d'action -->
                     <div class="flex items-start justify-between mb-2">
                         <div class="flex-1">
-                            <h1 class="font-display font-bold text-3xl md:text-4xl text-secondary-900"
-                                th:text="${recipe.title}">Titre de la recette</h1>
+                            <div class="flex items-center gap-3 mb-1">
+                                <h1 class="font-display font-bold text-3xl md:text-4xl text-secondary-900"
+                                    th:text="${recipe.title}">Titre de la recette</h1>
+                                <!-- Badge statut (visible uniquement par le propriétaire) -->
+                                <th:block th:if="${isOwner}">
+                                    <span th:if="${recipe.status == 'PUBLISHED'}"
+                                          class="inline-flex items-center gap-1 bg-green-100 text-green-700 text-xs font-bold px-2.5 py-1 rounded-full border border-green-200">
+                                        <i class="fas fa-check-circle"></i> Publiée
+                                    </span>
+                                    <span th:if="${recipe.status == 'PENDING_REVIEW'}"
+                                          class="inline-flex items-center gap-1 bg-yellow-100 text-yellow-700 text-xs font-bold px-2.5 py-1 rounded-full border border-yellow-200">
+                                        <i class="fas fa-clock"></i> En attente de modération
+                                    </span>
+                                    <span th:if="${recipe.status == 'REJECTED'}"
+                                          class="inline-flex items-center gap-1 bg-red-100 text-red-700 text-xs font-bold px-2.5 py-1 rounded-full border border-red-200">
+                                        <i class="fas fa-times-circle"></i> Refusée
+                                    </span>
+                                    <span th:if="${recipe.status == 'DRAFT'}"
+                                          class="inline-flex items-center gap-1 bg-gray-100 text-gray-600 text-xs font-bold px-2.5 py-1 rounded-full border border-gray-200">
+                                        <i class="fas fa-pencil-alt"></i> Brouillon
+                                    </span>
+                                </th:block>
+                            </div>
                             <!-- Note titre modifié -->
                             <div th:if="${diff != null and diff.titleChanged}"
                                  class="mt-2 inline-flex items-center gap-2 text-xs font-medium text-amber-600 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
@@ -135,7 +156,7 @@
                             </div>
                         </div>
                         <div class="flex items-center gap-2 flex-shrink-0">
-                            <a th:if="${isAuthenticated}"
+                            <a th:if="${isAuthenticated and recipe.status == 'PUBLISHED'}"
                                th:href="@{/recipes/create-variant(id=${recipe.id},title=${recipe.title},username=${recipe.username})}"
                                class="flex items-center space-x-2 bg-primary-50 hover:bg-primary-100 text-primary-600 px-4 py-2 rounded-lg font-medium transition text-sm border border-primary-200">
                                 <i class="fas fa-code-branch"></i>
@@ -184,11 +205,12 @@
                         </div>
                         <form id="like-form" th:action="@{/recipes/{id}/like(id=${recipe.id})}" method="post">
                             <button type="button"
-                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 text-sm font-semibold cursor-pointer transition-all duration-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50"
+                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 text-sm font-semibold transition-all duration-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50 disabled:pointer-events-none disabled:opacity-50"
                                     th:classappend="${recipe.hasLiked} ? ' border-red-500 text-red-500 bg-red-50' : ''"
+                                    th:disabled="${recipe.status != 'PUBLISHED'}"
+                                    th:attr="onclick=${recipe.status == 'PUBLISHED'} ? 'handleLike(this)' : null"
                                     th:data-recipe-id="${recipe.id}"
                                     th:data-liked="${recipe.hasLiked}"
-                                    onclick="handleLike(this)"
                                     aria-label="J'aime cette recette">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18"
                                      viewBox="0 0 24 24" fill="currentColor" stroke="currentColor"
@@ -204,16 +226,19 @@
                         <div th:replace="~{fragments/modals :: superLikeModal('super-like-modal', 'super-like-modal-content', 'confirmSuperLike()', 'closeSuperLikeModal()', 'closeSuperLikeModal(event)')}"></div>
 
                         <!-- Modale fonds insuffisants -->
-                        <div th:replace="~{fragments/modals :: insufficientFundsModal('insufficient-funds-modal', 'insufficient-funds-modal-content', 'closeInsufficientFundsModal()')}"></div>
+                        <th:block th:with="fundsMsg='Fonds insuffisants pour effectuer un Super Like. Rechargez votre wallet pour continuer.'">
+                            <div th:replace="~{fragments/modals :: insufficientFundsModal('insufficient-funds-modal', 'insufficient-funds-modal-content', 'closeInsufficientFundsModal()', ${fundsMsg})}"></div>
+                        </th:block>
 
                         <form id="super-like-form" th:action="@{/recipes/{id}/super-like(id=${recipe.id})}" method="post">
                             <button type="button"
-                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-400 text-sm font-semibold cursor-pointer transition-all duration-200 hover:border-yellow-500 hover:text-yellow-500 hover:bg-yellow-50"
+                                    class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-400 text-sm font-semibold transition-all duration-200 hover:border-yellow-500 hover:text-yellow-500 hover:bg-yellow-50 disabled:pointer-events-none disabled:opacity-50"
                                     th:classappend="${recipe.hasSuperLiked} ? ' border-yellow-500 text-yellow-500 bg-yellow-50' : ''"
+                                    th:disabled="${recipe.status != 'PUBLISHED'}"
+                                    th:attr="onclick=${recipe.status == 'PUBLISHED'} ? 'handleSuperLike(this)' : null"
                                     th:data-recipe-id="${recipe.id}"
                                     th:data-liked="${recipe.hasSuperLiked}"
                                     th:data-auth="${isAuthenticated}"
-                                    onclick="handleSuperLike(this)"
                                     aria-label="Super like cette recette">
                                 <svg width="18px" height="18px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                                     <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z"
@@ -229,12 +254,13 @@
                         <!-- Follow / Unfollow -->
                         <form th:if="${isAuthenticated}" id="follow-form" th:action="@{/recipes/{id}/follow(id=${recipe.id})}" method="post" class="hidden"></form>
                         <button type="button"
-                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 text-sm font-semibold cursor-pointer transition-all duration-200 hover:border-primary-400 hover:text-primary-500 hover:bg-primary-50"
+                                class="flex items-center gap-1.5 px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 text-sm font-semibold transition-all duration-200 hover:border-primary-400 hover:text-primary-500 hover:bg-primary-50 disabled:pointer-events-none disabled:opacity-50"
                                 th:classappend="${recipe.hasFollowed} ? ' border-primary-500 text-primary-500 bg-primary-50' : ''"
+                                th:disabled="${recipe.status != 'PUBLISHED'}"
+                                th:attr="onclick=${recipe.status == 'PUBLISHED'} ? 'handleFollow(this)' : null"
                                 th:data-recipe-id="${recipe.id}"
                                 th:data-followed="${recipe.hasFollowed}"
                                 th:data-auth="${isAuthenticated}"
-                                onclick="handleFollow(this)"
                                 aria-label="Suivre cette recette">
                             <i th:class="${recipe.hasFollowed} ? 'fas fa-bookmark' : 'far fa-bookmark'"></i>
                             <span th:text="${recipe.nbFollow}">0</span>

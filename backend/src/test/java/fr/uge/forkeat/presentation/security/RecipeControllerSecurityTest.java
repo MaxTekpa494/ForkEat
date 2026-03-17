@@ -14,9 +14,7 @@ import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Recipe;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.recipe.RecipeUserInteraction;
-import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
-import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
-import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
+import fr.uge.forkeat.service.model.recipe.projection.*;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
@@ -52,6 +50,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import org.mockito.MockedStatic;
@@ -104,6 +103,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         lenient().when(authPort.isAdmin()).thenReturn(false);
         lenient().when(userService.getUserByUsername(any())).thenReturn(createUser(UUID.randomUUID()));
         lenient().when(securityService.canDeleteRecipe(any())).thenReturn(true);
+        lenient().when(recipeService.findRecipesByAuthor(any(), any(), anyInt(), anyInt())).thenReturn(new AuthorRecipesPage(new UserRecipeStats(0, 0, 0, 0), new PageResult<AuthorRecipeSummary>(List.of(),0)));
         // Par défaut : l'utilisateur peut modifier sa recette
         lenient().when(securityService.canUpdateRecipe(any())).thenReturn(true);
     }

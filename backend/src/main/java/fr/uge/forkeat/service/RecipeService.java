@@ -3,6 +3,7 @@ package fr.uge.forkeat.service;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.event.RecipePublishedEvent;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.exception.RecipeOwnershipException;
 import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
@@ -102,7 +103,7 @@ public class RecipeService {
     var existingRecipe = findById(id);
     if(!securityService.canUpdateRecipe(existingRecipe)){
         //Forbidden Exception de MAX
-        throw new IllegalStateException("");
+        throw new RecipeOwnershipException(id, authPort.extractUsername());
     }
 
     var imageUrl = existingRecipe.imageUrl();
@@ -141,7 +142,7 @@ public class RecipeService {
     var recipe = findById(id);
       if(!securityService.canDeleteRecipe(recipe)){
           //Forbidden Exception de MAX
-          throw new IllegalStateException("");
+          throw new RecipeOwnershipException(id, authPort.extractUsername());
       }
     if(recipe.imageUrl() != null){
       storageService.deleteImage(recipe.imageUrl());
@@ -176,6 +177,15 @@ public class RecipeService {
       throw new IllegalArgumentException("Invalid page or size");
     }
     return recipePersistence.findByStatus(status, size, page);
+  }
+
+  public PageResult<Recipe> getRecipesToModerate(String authorUsername, int size, int page) {
+    Objects.requireNonNull(authorUsername);
+    if (size <= 0 || page < 0) {
+      throw new IllegalArgumentException("Invalid page or size");
+    }
+    var authorId = userIdentityPort.findIdByUsernameOrThrow(authorUsername);
+    return recipePersistence.getRecipesToModerate(authorId, size, page);
   }
 
   public PageResult<PersonalizedRecipeSummary> searchRecipes(RecipeSearchCriteria criteria) {
@@ -223,6 +233,18 @@ public class RecipeService {
 
   public List<Recipe> findByAuthorUsername(String authorUsername) {
     return recipePersistence.findByAuthorUsername(authorUsername);
+  }
+
+  public AuthorRecipesPage findRecipesByAuthor(String username, RecipeStatus status, int page, int size) {
+    Objects.requireNonNull(username);
+    Objects.requireNonNull(status);
+    if (size <= 0 || page < 0) {
+      throw new IllegalArgumentException("Invalid page or size");
+    }
+    var authorId = userIdentityPort.findIdByUsernameOrThrow(username);
+    var stats = recipePersistence.countRecipesByAuthorGroupedByStatus(authorId);
+    var recipes = recipePersistence.findRecipesByAuthor(authorId, status, page, size);
+    return new AuthorRecipesPage(stats, recipes);
   }
 
   @Transactional

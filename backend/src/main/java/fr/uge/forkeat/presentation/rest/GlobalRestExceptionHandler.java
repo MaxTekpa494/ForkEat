@@ -13,6 +13,12 @@ import java.util.Map;
 @RestControllerAdvice(basePackages = {"fr.uge.forkeat.presentation.rest", "fr.uge.forkeat.presentation.external"})
 public class GlobalRestExceptionHandler {
 
+    @ExceptionHandler(RecipeOwnershipException.class)
+    public ResponseEntity<Map<String, Object>> handleRecipeOwnership(RecipeOwnershipException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(Map.of("error", "Forbidden", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+    }
+
     @ExceptionHandler(RecipeNotFoundException.class)
     public ResponseEntity<Map<String, Object>> handleRecipeNotFound(RecipeNotFoundException e) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND)

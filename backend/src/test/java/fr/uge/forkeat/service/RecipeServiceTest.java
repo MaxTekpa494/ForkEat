@@ -1,23 +1,22 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.service.event.RecipePublishedEvent;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
-import fr.uge.forkeat.service.model.recipe.projection.*;
-import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
+import fr.uge.forkeat.service.model.recipe.projection.AuthorRecipeSummary;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
+import fr.uge.forkeat.service.model.recipe.projection.UserRecipeStats;
 import fr.uge.forkeat.service.model.superlike.SuperLikeConfig;
 import fr.uge.forkeat.service.model.wallet.Wallet;
-import fr.uge.forkeat.service.persistence.PlatformWalletPersistence;
-import fr.uge.forkeat.service.persistence.PromotionPersistence;
-import fr.uge.forkeat.service.persistence.RecipePersistence;
-import fr.uge.forkeat.service.port.EventPublisherPort;
-import fr.uge.forkeat.service.persistence.SuperLikeConfigPersistence;
-import fr.uge.forkeat.service.persistence.WalletPersistence;
+import fr.uge.forkeat.service.persistence.*;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.port.EventPublisherPort;
 import fr.uge.forkeat.service.port.StoragePort;
 import fr.uge.forkeat.service.port.UserIdentityPort;
 import fr.uge.forkeat.service.security.SecurityService;
@@ -30,11 +29,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-import java.util.UUID;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -200,6 +195,66 @@ class RecipeServiceTest {
     }
 
     @Nested
+    class GetRecipesToModerate {
+        @Test
+        void shouldReturnRecipesToModerate() {
+            var moderatorId = UUID.randomUUID();
+            var moderatorName = "moderator";
+            var moderator = new UserEntity();
+            moderator.setId(moderatorId);
+            moderator.setUsername(moderatorName);
+            var recipe1 = createRecipe(UUID.randomUUID(), "Recette 1", RecipeStatus.PENDING_REVIEW);
+            var recipe2 = createRecipe(UUID.randomUUID(), "Recette 2", RecipeStatus.PENDING_REVIEW);
+            var page = new PageResult<>(List.of(recipe1, recipe2), 2L);
+            when(recipePersistence.getRecipesToModerate(moderatorId, 10, 0)).thenReturn(page);
+            when(userIdentityPort.findIdByUsernameOrThrow(moderatorName)).thenReturn(moderatorId);
+
+            var result = recipeService.getRecipesToModerate(moderatorName, 10, 0);
+
+            assertEquals(2, result.items().size());
+            assertEquals(2L, result.total());
+            assertTrue(result.items().stream().allMatch(r -> r.status() == RecipeStatus.PENDING_REVIEW));
+            verify(recipePersistence).getRecipesToModerate(moderatorId, 10, 0);
+        }
+
+        @Test
+        void shouldReturnEmptyIfNoRecipesToModerate() {
+            var moderatorId = UUID.randomUUID();
+            var moderatorName = "moderator";
+            var moderator = new UserEntity();
+            moderator.setId(moderatorId);
+            moderator.setUsername(moderatorName);
+            var page = new PageResult<Recipe>(List.of(), 0L);
+            when(recipePersistence.getRecipesToModerate(moderatorId, 10, 0)).thenReturn(page);
+            when(userIdentityPort.findIdByUsernameOrThrow(moderatorName)).thenReturn(moderatorId);
+
+            var result = recipeService.getRecipesToModerate(moderatorName, 10, 0);
+
+            assertTrue(result.items().isEmpty());
+            assertEquals(0L, result.total());
+        }
+
+        @Test
+        void shouldThrowWhenModeratorNameIsUnknown() {
+            var moderator = "mod";
+            when(userIdentityPort.findIdByUsernameOrThrow(moderator))
+                    .thenThrow(new ResourceNotFoundException("User not found: " + moderator));
+            assertThrows(ResourceNotFoundException.class, () -> recipeService.getRecipesToModerate(moderator, 10, 0));
+        }
+
+        @Test
+        void shouldThrowWhenModeratorIsNull() {
+            assertThrows(NullPointerException.class, () -> recipeService.getRecipesToModerate(null, 10, 0));
+        }
+
+        @Test
+        void shouldThrowWhenPageOrSizeInvalid() {
+            assertThrows(IllegalArgumentException.class, () -> recipeService.getRecipesToModerate("moderator1", 0, 0));
+            assertThrows(IllegalArgumentException.class, () -> recipeService.getRecipesToModerate("moderator1", 10, -1));
+        }
+    }
+
+    @Nested
     class SearchRecipes {
 
         @Test
@@ -316,6 +371,7 @@ class RecipeServiceTest {
             var existingRecipe = createRecipe(recipeId, "Old Title", RecipeStatus.DRAFT);
             var updatedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PUBLISHED);
 
+            //when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(existingRecipe));
             when(recipePersistence.update(eq(recipeId), any(Recipe.class))).thenReturn(updatedRecipe);
             when(securityService.canUpdateRecipe(any())).thenReturn(true);
@@ -338,6 +394,7 @@ class RecipeServiceTest {
             var updatedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PUBLISHED);
             var newImage = new ImageUpload(new byte[]{1, 2, 3}, "image/jpeg", "new.jpg");
 
+            //when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(existingRecipe));
             when(storageService.uploadImage(newImage, "recipes")).thenReturn("https://new.image.url");
             when(recipePersistence.update(eq(recipeId), any(Recipe.class))).thenReturn(updatedRecipe);
@@ -378,6 +435,7 @@ class RecipeServiceTest {
         void shouldDeleteRecipeWithoutImage() {
             var recipeId = UUID.randomUUID();
             var recipe = createRecipe(recipeId, "Tarte", RecipeStatus.PUBLISHED);
+            //when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
             when(securityService.canDeleteRecipe(any())).thenReturn(true);
 
@@ -395,6 +453,7 @@ class RecipeServiceTest {
                     "https://cdn.example.com/recipes/img.jpg", RecipeStatus.PUBLISHED,
                     List.of(), List.of(), List.of(), List.of(), now, now
             );
+          //  when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
             when(securityService.canDeleteRecipe(any())).thenReturn(true);
 
@@ -582,6 +641,85 @@ class RecipeServiceTest {
             verify(walletPersistence, never()).incrementBalanceById(any(), anyLong());
             verify(walletPersistence, never()).getEarningsWallet();
             verify(walletPersistence, never()).getRedistributionWallet();
+        }
+    }
+
+    @Nested
+    class FindRecipesByAuthor {
+
+        private final UUID authorId = UUID.randomUUID();
+
+        @Test
+        void shouldReturnAuthorRecipesPage() {
+            var summary = createRecipeSummary(UUID.randomUUID(), "Ma recette");
+            var authorSummary = new AuthorRecipeSummary(summary, RecipeStatus.PUBLISHED, null);
+            var stats = new UserRecipeStats(1, 0, 0, 0);
+            var page = new PageResult<>(List.of(authorSummary), 1L);
+
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(authorId);
+            when(recipePersistence.countRecipesByAuthorGroupedByStatus(authorId)).thenReturn(stats);
+            when(recipePersistence.findRecipesByAuthor(authorId, RecipeStatus.PUBLISHED, 0, 10)).thenReturn(page);
+
+            var result = recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, 10);
+
+            assertNotNull(result);
+            assertEquals(1, result.recipes().items().size());
+            assertEquals(1L, result.recipes().total());
+            assertEquals(stats, result.stats());
+        }
+
+        @Test
+        void shouldResolveUsernameToAuthorId() {
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(authorId);
+            when(recipePersistence.countRecipesByAuthorGroupedByStatus(authorId)).thenReturn(UserRecipeStats.ZERO);
+            when(recipePersistence.findRecipesByAuthor(authorId, RecipeStatus.PUBLISHED, 0, 10)).thenReturn(new PageResult<>(List.of(), 0L));
+
+            recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, 10);
+
+            verify(userIdentityPort).findIdByUsernameOrThrow("chef_test");
+            verify(recipePersistence).countRecipesByAuthorGroupedByStatus(authorId);
+            verify(recipePersistence).findRecipesByAuthor(authorId, RecipeStatus.PUBLISHED, 0, 10);
+        }
+
+        @Test
+        void shouldForwardStatusPageAndSize() {
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(authorId);
+            when(recipePersistence.countRecipesByAuthorGroupedByStatus(authorId)).thenReturn(UserRecipeStats.ZERO);
+            when(recipePersistence.findRecipesByAuthor(authorId, RecipeStatus.DRAFT, 2, 5)).thenReturn(new PageResult<>(List.of(), 0L));
+
+            recipeService.findRecipesByAuthor("chef_test", RecipeStatus.DRAFT, 2, 5);
+
+            verify(recipePersistence).findRecipesByAuthor(authorId, RecipeStatus.DRAFT, 2, 5);
+        }
+
+        @Test
+        void shouldThrowWhenUsernameIsNull() {
+            assertThrows(NullPointerException.class,
+                    () -> recipeService.findRecipesByAuthor(null, RecipeStatus.PUBLISHED, 0, 10));
+            verifyNoInteractions(recipePersistence);
+        }
+
+        @Test
+        void shouldThrowWhenStatusIsNull() {
+            assertThrows(NullPointerException.class,
+                    () -> recipeService.findRecipesByAuthor("chef_test", null, 0, 10));
+            verifyNoInteractions(recipePersistence);
+        }
+
+        @Test
+        void shouldThrowWhenSizeIsZeroOrNegative() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, 0));
+            assertThrows(IllegalArgumentException.class,
+                    () -> recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, -1));
+            verifyNoInteractions(recipePersistence);
+        }
+
+        @Test
+        void shouldThrowWhenPageIsNegative() {
+            assertThrows(IllegalArgumentException.class,
+                    () -> recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, -1, 10));
+            verifyNoInteractions(recipePersistence);
         }
     }
 

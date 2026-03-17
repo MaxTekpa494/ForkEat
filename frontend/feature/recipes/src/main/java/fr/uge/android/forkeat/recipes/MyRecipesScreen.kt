@@ -1,5 +1,6 @@
 package fr.uge.android.forkeat.recipes
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -7,12 +8,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.AltRoute
+import androidx.compose.material.icons.filled.ErrorOutline
 import androidx.compose.material3.*
 import androidx.compose.material3.CardDefaults.cardColors
 import androidx.compose.material3.CardDefaults.cardElevation
@@ -21,14 +24,16 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontStyle
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import fr.uge.android.forkeat.designsystem.theme.*
-import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
+import fr.uge.android.forkeat.recipes.data.dto.AuthorRecipeSummaryDTO
+import fr.uge.android.forkeat.recipes.data.dto.UserRecipeStatsDTO
 
-// Fonction utilitaire pour convertir un timestamp en une chaîne de temps relatif
 fun Long.toRelativeTime(): String {
     val now = System.currentTimeMillis()
     val diff = now - this
@@ -43,79 +48,11 @@ fun Long.toRelativeTime(): String {
     }
 }
 
-@Composable
-fun RecipeCard(recipe: RecipeDTO, onClick: () -> Unit = {}) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = 4.dp)
-            .clickable {
-                onClick()
-            },
-        shape = RoundedCornerShape(24.dp),
-        colors = cardColors(containerColor = Color.White),
-        elevation = cardElevation(defaultElevation = 1.dp),
-        border = BorderStroke(1.dp, Gray100)
-    ) {
-        val timeLabel = remember(recipe.createdAt) {
-            recipe.createdAt.toEpochMilliseconds().toRelativeTime()
-        }
-
-        Row(modifier = Modifier.padding(8.dp)) {
-            // Image
-            Image(
-                painter = rememberAsyncImagePainter(recipe.imageUrl),
-                contentDescription = null,
-                contentScale = ContentScale.Crop,
-                modifier = Modifier
-                    .size(80.dp)
-                    .aspectRatio(1f)
-            )
-            Spacer(Modifier.width(12.dp))
-            Column(modifier = Modifier.weight(1f)) {
-                // Titre
-                Text(
-                    recipe.title,
-                    style = MaterialTheme.typography.titleLarge,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    color = Secondary700
-                )
-                // Description
-                Text(
-                    recipe.summary,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                    color = Gray500
-                )
-                Spacer(Modifier.height(4.dp))
-                Text(
-                    "Créée $timeLabel",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Gray500
-                )
-                // Auteur
-                Text(
-                    "Par ${recipe.username}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = Secondary700
-                )
-                // Temps de préparation en bas à droite
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End
-                ) {
-                    Text(
-                        "${recipe.preparationMinutes} min",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Primary500
-                    )
-                }
-            }
-        }
-    }
-}
+private data class StatusTab(
+    val status: String,
+    val label: String,
+    val count: Long
+)
 
 @Composable
 fun MyRecipesScreen(
@@ -129,6 +66,7 @@ fun MyRecipesScreen(
     onBack: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val listState = rememberLazyListState()
 
     LaunchedEffect(Unit) {
         viewModel.navigationEvent.collect { event ->
@@ -141,6 +79,29 @@ fun MyRecipesScreen(
         }
     }
 
+    // Détection de la fin de liste pour la pagination
+    val shouldLoadNextPage by remember {
+        derivedStateOf {
+            val layoutInfo = listState.layoutInfo
+            val totalItemsNumber = layoutInfo.totalItemsCount
+            val lastVisibleItemIndex = (layoutInfo.visibleItemsInfo.lastOrNull()?.index ?: 0) + 1
+            lastVisibleItemIndex > (totalItemsNumber - 5) && totalItemsNumber > 0
+        }
+    }
+
+    LaunchedEffect(shouldLoadNextPage) {
+        if (shouldLoadNextPage) {
+            viewModel.loadNextPage()
+        }
+    }
+
+    val tabs = listOf(
+        StatusTab("PUBLISHED", "Publiées", uiState.stats.published),
+        StatusTab("DRAFT", "Brouillons", uiState.stats.draft),
+        StatusTab("PENDING_REVIEW", "En attente", uiState.stats.pendingReview),
+        StatusTab("REJECTED", "Rejetées", uiState.stats.rejected)
+    )
+
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -149,10 +110,48 @@ fun MyRecipesScreen(
                 .padding(16.dp)
         ) {
             Text(
-                text = "Mes recettes (${uiState.recipes.size})",
+                text = "Mes recettes",
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(bottom = 8.dp)
+                modifier = Modifier.padding(bottom = 12.dp)
             )
+
+            // Onglets de statut
+            ScrollableTabRow(
+                selectedTabIndex = tabs.indexOfFirst { it.status == uiState.selectedStatus }.coerceAtLeast(0),
+                containerColor = Color.White,
+                contentColor = Primary500,
+                edgePadding = 0.dp,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
+            ) {
+                tabs.forEach { tab ->
+                    val selected = tab.status == uiState.selectedStatus
+                    Tab(
+                        selected = selected,
+                        onClick = { viewModel.onStatusChange(tab.status) },
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                Text(
+                                    tab.label,
+                                    style = MaterialTheme.typography.labelMedium
+                                )
+                                if (tab.count > 0) {
+                                    Badge(
+                                        containerColor = if (selected) Primary500 else Gray100,
+                                        contentColor = if (selected) Color.White else Gray500
+                                    ) {
+                                        Text("${tab.count}", style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+                            }
+                        }
+                    )
+                }
+            }
 
             uiState.errorMessage?.let { msg ->
                 Text(
@@ -163,22 +162,40 @@ fun MyRecipesScreen(
                 )
             }
 
-            if (uiState.isLoading) {
+            if (uiState.isLoading && uiState.recipes.isEmpty()) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator()
                 }
             } else if (uiState.recipes.isEmpty()) {
-                EmptyMyRecipes(onNavigateToCreateRecipe = onNavigateToCreateRecipe)
+                EmptyMyRecipes(
+                    status = uiState.selectedStatus,
+                    onNavigateToCreateRecipe = onNavigateToCreateRecipe
+                )
             } else {
-                LazyColumn(modifier = Modifier.weight(1f)) {
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    state = listState
+                ) {
                     items(uiState.recipes) { recipe ->
                         MyRecipeCard(
                             recipe = recipe,
-                            onViewDetail = { onNavigateToDetail(recipe.id) },
+                            onViewDetail = { onNavigateToDetail(recipe.summary.id) },
                             onEdit = { viewModel.onEditRecipe(recipe) },
                             onCreateVariant = { viewModel.onCreateVariant(recipe) },
                             onDelete = { viewModel.requestDelete(recipe) }
                         )
+                    }
+                    if (uiState.isLoadingMore) {
+                        item {
+                            Box(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                CircularProgressIndicator(modifier = Modifier.size(24.dp))
+                            }
+                        }
                     }
                 }
             }
@@ -200,7 +217,7 @@ fun MyRecipesScreen(
         AlertDialog(
             onDismissRequest = viewModel::cancelDelete,
             title = { Text("Supprimer la recette") },
-            text = { Text("Voulez-vous vraiment supprimer « ${recipe.title} » ? Cette action est irréversible.") },
+            text = { Text("Voulez-vous vraiment supprimer « ${recipe.summary.title} » ? Cette action est irréversible.") },
             confirmButton = {
                 Button(
                     onClick = viewModel::confirmDelete,
@@ -219,24 +236,32 @@ fun MyRecipesScreen(
 }
 
 @Composable
-private fun EmptyMyRecipes(onNavigateToCreateRecipe: () -> Unit) {
+private fun EmptyMyRecipes(status: String, onNavigateToCreateRecipe: () -> Unit) {
+    val message = when (status) {
+        "DRAFT" -> "Aucun brouillon."
+        "PENDING_REVIEW" -> "Aucune recette en attente de validation."
+        "REJECTED" -> "Aucune recette rejetée."
+        else -> "Vous n'avez pas encore de recettes publiées."
+    }
     Box(
         modifier = Modifier.fillMaxSize(),
         contentAlignment = Alignment.Center
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
-                text = "Vous n'avez pas encore de recettes.",
+                text = message,
                 style = MaterialTheme.typography.bodyLarge,
                 color = Color.Gray
             )
-            Spacer(modifier = Modifier.height(16.dp))
-            Button(
-                onClick = onNavigateToCreateRecipe,
-                colors = ButtonDefaults.buttonColors(containerColor = Primary500)
-            ) {
-                Icon(Icons.Default.Add, contentDescription = null)
-                Text("Créer ma première recette", modifier = Modifier.padding(start = 4.dp))
+            if (status == "PUBLISHED" || status == "DRAFT") {
+                Spacer(modifier = Modifier.height(16.dp))
+                Button(
+                    onClick = onNavigateToCreateRecipe,
+                    colors = ButtonDefaults.buttonColors(containerColor = Primary500)
+                ) {
+                    Icon(Icons.Default.Add, contentDescription = null)
+                    Text("Créer ma première recette", modifier = Modifier.padding(start = 4.dp))
+                }
             }
         }
     }
@@ -244,45 +269,153 @@ private fun EmptyMyRecipes(onNavigateToCreateRecipe: () -> Unit) {
 
 @Composable
 private fun MyRecipeCard(
-    recipe: RecipeDTO,
+    recipe: AuthorRecipeSummaryDTO,
     onViewDetail: () -> Unit,
     onEdit: () -> Unit,
     onCreateVariant: () -> Unit,
     onDelete: () -> Unit
 ) {
+    val isPublished = recipe.status == "PUBLISHED"
+    val isRejected = recipe.status == "REJECTED"
+    var showJustification by remember { mutableStateOf(false) }
+
     Column(modifier = Modifier.padding(vertical = 2.dp)) {
-        RecipeCard(recipe = recipe, onClick = onViewDetail)
-        Row(
+        Card(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 8.dp),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically
+                .padding(vertical = 4.dp)
+                .clickable { onViewDetail() },
+            shape = RoundedCornerShape(24.dp),
+            colors = cardColors(containerColor = Color.White),
+            elevation = cardElevation(defaultElevation = 1.dp),
+            border = BorderStroke(1.dp, if (isRejected) Color(0xFFFEE2E2) else Gray100)
         ) {
-            IconButton(onClick = onCreateVariant) {
-                Icon(
-                    imageVector = Icons.Default.AltRoute,
-                    contentDescription = "Créer une variante",
-                    tint = Color(0xFF6B7280),
-                    modifier = Modifier.size(22.dp)
-                )
+            val timeLabel = remember(recipe.summary.createdAt) {
+                recipe.summary.createdAt.toEpochMilliseconds().toRelativeTime()
             }
-            IconButton(onClick = onEdit) {
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = "Modifier",
-                    tint = Primary500,
-                    modifier = Modifier.size(22.dp)
-                )
-            }
-            IconButton(onClick = onDelete) {
-                Icon(
-                    imageVector = Icons.Default.Delete,
-                    contentDescription = "Supprimer",
-                    tint = Color(0xFFEF4444),
-                    modifier = Modifier.size(22.dp)
-                )
+            Column {
+                Row(modifier = Modifier.padding(8.dp)) {
+                    Image(
+                        painter = rememberAsyncImagePainter(recipe.summary.imageUrl),
+                        contentDescription = null,
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier
+                            .size(80.dp)
+                            .aspectRatio(1f)
+                    )
+                    Spacer(Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                recipe.summary.title,
+                                style = MaterialTheme.typography.titleLarge,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                color = Secondary700,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            StatusBadge(status = recipe.status)
+                        }
+                        Text(
+                            recipe.summary.summary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                            color = Gray500
+                        )
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            "Créée $timeLabel",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Gray500
+                        )
+                    }
+                }
+
+                val rejectionInfo = recipe.rejectionInfo
+                if (isRejected && rejectionInfo != null) {
+                    Divider(color = Color(0xFFFEE2E2), modifier = Modifier.padding(horizontal = 16.dp))
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .background(Color(0xFFFEF2F2))
+                            .clickable { showJustification = !showJustification }
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Icon(
+                                Icons.Default.ErrorOutline,
+                                contentDescription = null,
+                                tint = Color(0xFFEF4444),
+                                modifier = Modifier.size(16.dp)
+                            )
+                            Spacer(Modifier.width(8.dp))
+                            Text(
+                                text = "Voir la justification du rejet",
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Color(0xFFB91C1C)
+                            )
+                        }
+                        AnimatedVisibility(visible = showJustification) {
+                            Text(
+                                text = rejectionInfo.justification,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = Color(0xFF991B1B),
+                                modifier = Modifier.padding(top = 4.dp, start = 24.dp)
+                            )
+                        }
+                    }
+                }
+                
+                Divider(color = Gray100, modifier = Modifier.padding(horizontal = 16.dp))
+                
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
+                    horizontalArrangement = Arrangement.End
+                ) {
+                    if (isPublished) {
+                        IconButton(onClick = onCreateVariant) {
+                            Icon(Icons.Default.AltRoute, contentDescription = "Créer une variante", tint = Primary500)
+                        }
+                    }
+                    IconButton(onClick = onEdit) {
+                        Icon(Icons.Default.Edit, contentDescription = "Modifier", tint = Primary500)
+                    }
+                    IconButton(onClick = onDelete) {
+                        Icon(Icons.Default.Delete, contentDescription = "Supprimer", tint = Color.Red)
+                    }
+                }
             }
         }
+    }
+}
+
+@Composable
+fun StatusBadge(status: String) {
+    val (text, color) = when (status) {
+        "PUBLISHED" -> "Publié" to Color(0xFF10B981)
+        "DRAFT" -> "Brouillon" to Color(0xFF6B7280)
+        "PENDING_REVIEW" -> "En attente" to Color(0xFFF59E0B)
+        "REJECTED" -> "Rejeté" to Color(0xFFEF4444)
+        else -> status to Color.Gray
+    }
+    Surface(
+        color = color.copy(alpha = 0.1f),
+        shape = RoundedCornerShape(16.dp),
+        border = BorderStroke(1.dp, color.copy(alpha = 0.5f))
+    ) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = color,
+            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
+        )
     }
 }
