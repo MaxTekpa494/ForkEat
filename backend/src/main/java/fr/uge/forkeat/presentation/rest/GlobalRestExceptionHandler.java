@@ -99,6 +99,13 @@ public class GlobalRestExceptionHandler {
                 ));
     }
 
+    @ExceptionHandler(AuthenticationTokenException.class)
+    public ResponseEntity<Map<String, Object>> authenticationException(AuthenticationTokenException e) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                .body(Map.of("error", "Unauthorized", "message", e.getMessage(), "timestamp", Instant.now().toString()));
+    }
+
+
     @ExceptionHandler(RecipeAlreadyReportedException.class)
     public ResponseEntity<Map<String, String>> handleRecipeAlreadyReported(RecipeAlreadyReportedException e) {
         return ResponseEntity.status(HttpStatus.CONFLICT)

@@ -403,10 +403,8 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
                 objectMapper.writeValueAsBytes(dto));
-
-        org.junit.jupiter.api.Assertions.assertThrows(Exception.class, () ->
-                mockMvc.perform(multipart("/api/recipes/{id}/update", recipe.getId())
-                        .file(recipePart)).andReturn());
+        mockMvc.perform(multipart("/api/recipes/{id}/update", recipe.getId())
+                        .file(recipePart)).andExpect(status().isForbidden());
     }
 
     @Test
@@ -446,8 +444,7 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
         // IllegalStateException non gérée dans GlobalRestExceptionHandler → Spring relance l'exception via MockMvc
         var recipe = createAndSaveRecipe("Recette protégée", RecipeStatus.PUBLISHED, null);
 
-        org.junit.jupiter.api.Assertions.assertThrows(Exception.class, () ->
-                mockMvc.perform(post("/api/recipes/{id}/delete", recipe.getId())).andReturn());
+        mockMvc.perform(post("/api/recipes/{id}/delete", recipe.getId())).andExpect(status().isForbidden());;
     }
 
     @Test

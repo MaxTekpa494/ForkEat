@@ -19,6 +19,7 @@ import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.EventPublisherPort;
 import fr.uge.forkeat.service.port.StoragePort;
 import fr.uge.forkeat.service.port.UserIdentityPort;
+import fr.uge.forkeat.service.security.SecurityService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -55,6 +56,8 @@ class RecipeServiceTest {
     private UserIdentityPort userIdentityPort;
     @Mock
     private PlatformWalletPersistence platformWalletPersistence;
+    @Mock
+    private SecurityService securityService;
 
     private RecipeService recipeService;
     private Instant now;
@@ -63,7 +66,7 @@ class RecipeServiceTest {
     void setUp() {
         recipeService = new RecipeService(recipePersistence, storageService, walletPersistence,
                 authPort, superLikeConfigPersistence, promotionPersistence, platformWalletPersistence,
-                eventPublisherPort, userIdentityPort);
+                eventPublisherPort, userIdentityPort, securityService);
         now = Instant.now();
     }
 
@@ -368,9 +371,10 @@ class RecipeServiceTest {
             var existingRecipe = createRecipe(recipeId, "Old Title", RecipeStatus.DRAFT);
             var updatedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PUBLISHED);
 
-            when(authPort.extractUsername()).thenReturn("chef_test");
+            //when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(existingRecipe));
             when(recipePersistence.update(eq(recipeId), any(Recipe.class))).thenReturn(updatedRecipe);
+            when(securityService.canUpdateRecipe(any())).thenReturn(true);
 
             var result = recipeService.updateRecipe(recipeId, updatedRecipe, null);
 
@@ -390,10 +394,11 @@ class RecipeServiceTest {
             var updatedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PUBLISHED);
             var newImage = new ImageUpload(new byte[]{1, 2, 3}, "image/jpeg", "new.jpg");
 
-            when(authPort.extractUsername()).thenReturn("chef_test");
+            //when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(existingRecipe));
             when(storageService.uploadImage(newImage, "recipes")).thenReturn("https://new.image.url");
             when(recipePersistence.update(eq(recipeId), any(Recipe.class))).thenReturn(updatedRecipe);
+            when(securityService.canUpdateRecipe(any())).thenReturn(true);
 
             recipeService.updateRecipe(recipeId, updatedRecipe, newImage);
 
@@ -430,8 +435,9 @@ class RecipeServiceTest {
         void shouldDeleteRecipeWithoutImage() {
             var recipeId = UUID.randomUUID();
             var recipe = createRecipe(recipeId, "Tarte", RecipeStatus.PUBLISHED);
-            when(authPort.extractUsername()).thenReturn("chef_test");
+            //when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
+            when(securityService.canDeleteRecipe(any())).thenReturn(true);
 
             recipeService.deleteById(recipeId);
 
@@ -447,8 +453,9 @@ class RecipeServiceTest {
                     "https://cdn.example.com/recipes/img.jpg", RecipeStatus.PUBLISHED,
                     List.of(), List.of(), List.of(), List.of(), now, now
             );
-            when(authPort.extractUsername()).thenReturn("chef_test");
+          //  when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
+            when(securityService.canDeleteRecipe(any())).thenReturn(true);
 
             recipeService.deleteById(recipeId);
 

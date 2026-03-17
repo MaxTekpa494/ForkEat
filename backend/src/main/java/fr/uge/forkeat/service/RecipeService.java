@@ -24,6 +24,7 @@ import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.UserIdentityPort;
 import fr.uge.forkeat.service.port.StoragePort;
+import fr.uge.forkeat.service.security.SecurityService;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -34,7 +35,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
-
 @Service
 @Transactional(readOnly = true)
 public class RecipeService {
@@ -46,6 +46,7 @@ public class RecipeService {
   private final UserIdentityPort userIdentityPort;
   private final SuperLikeConfigPersistence superLikeConfigPersistence;
   private final PromotionPersistence promotionPersistence;
+  private final SecurityService securityService;
   private final PlatformWalletPersistence platformWalletPersistence;
   private final Logger logger = LoggerFactory.getLogger(RecipeService.class);
   private static final String FOLDER_STORAGE = "recipes";
@@ -56,7 +57,8 @@ public class RecipeService {
                        SuperLikeConfigPersistence superLikeConfigPersistence,
                        PromotionPersistence promotionPersistence,
                        PlatformWalletPersistence platformWalletPersistence,
-                       EventPublisherPort<RecipePublishedEvent> eventPublisher, UserIdentityPort userIdentityPort) {
+                       EventPublisherPort<RecipePublishedEvent> eventPublisher, UserIdentityPort userIdentityPort,
+                       SecurityService securityService) {
     this.recipePersistence = recipePersistence;
     this.storageService = storageService;
     this.eventPublisher = eventPublisher;
@@ -66,6 +68,7 @@ public class RecipeService {
     this.platformWalletPersistence = platformWalletPersistence;
     this.authPort = authPort;
     this.userIdentityPort = userIdentityPort;
+    this.securityService = securityService;
   }
 
   @Transactional
@@ -98,9 +101,9 @@ public class RecipeService {
   @Transactional
   public Recipe updateRecipe(UUID id, Recipe updatedRecipe, ImageUpload image) {
     var existingRecipe = findById(id);
-    var currentUsername = authPort.extractUsername();
-    if (!existingRecipe.usernameAuthor().equals(currentUsername)) {
-      throw new RecipeOwnershipException(id, currentUsername);
+    if(!securityService.canUpdateRecipe(existingRecipe)){
+        //Forbidden Exception de MAX
+        throw new RecipeOwnershipException(id, authPort.extractUsername());
     }
 
     var imageUrl = existingRecipe.imageUrl();
@@ -137,10 +140,10 @@ public class RecipeService {
   @Transactional
   public void deleteById(UUID id) {
     var recipe = findById(id);
-    var currentUsername = authPort.extractUsername();
-    if (!recipe.usernameAuthor().equals(currentUsername)) {
-      throw new RecipeOwnershipException(id, currentUsername);
-    }
+      if(!securityService.canDeleteRecipe(recipe)){
+          //Forbidden Exception de MAX
+          throw new RecipeOwnershipException(id, authPort.extractUsername());
+      }
     if(recipe.imageUrl() != null){
       storageService.deleteImage(recipe.imageUrl());
       logger.info("Image deleted for recipe {}", id);

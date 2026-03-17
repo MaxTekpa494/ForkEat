@@ -12,10 +12,8 @@ import fr.uge.forkeat.presentation.response.NotContentResponse;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.WalletService;
-import fr.uge.forkeat.service.exception.InsufficientFundsException;
+import fr.uge.forkeat.service.exception.*;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
-import fr.uge.forkeat.service.exception.RecipeAlreadyReportedException;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.*;
@@ -27,8 +25,8 @@ import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.security.SecurityService;
 import fr.uge.forkeat.service.user.UserService;
-import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Recipe;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
@@ -77,6 +75,9 @@ class RecipeRestControllerTest {
 
     @MockitoBean
     private RecipeSmartSearchService recipeSmartSearchService;
+
+    @MockitoBean
+    private SecurityService securityService;
 
     @MockitoBean
     private WalletService walletService;
@@ -524,7 +525,6 @@ class RecipeRestControllerTest {
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertInstanceOf(ItemResponse.class, response.getBody());
-            verify(recipeService).findById(recipeId);
             verify(recipeService).updateRecipe(eq(recipeId), any(), isNull());
         }
 
@@ -536,10 +536,9 @@ class RecipeRestControllerTest {
                     null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
 
             when(authPort.extractUsername()).thenReturn("intruder");
-            when(recipeService.findById(recipeId)).thenReturn(existing);
+            when(recipeService.updateRecipe(any(), any(), any())).thenThrow(new RecipeOwnershipException(UUID.randomUUID(), "a"));
 
-            assertThrows(IllegalStateException.class, () -> recipeController.updateRecipe(recipeId, dto, null));
-            verify(recipeService, never()).updateRecipe(any(), any(), any());
+            assertThrows(RecipeOwnershipException.class, () -> recipeController.updateRecipe(recipeId, dto, null));
         }
 
         @Test
@@ -549,10 +548,9 @@ class RecipeRestControllerTest {
                     null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
 
             when(authPort.extractUsername()).thenReturn("chef_test");
-            when(recipeService.findById(recipeId)).thenThrow(new RecipeNotFoundException(recipeId));
+            when(recipeService.updateRecipe(any(), any(), any())).thenThrow(new RecipeNotFoundException(recipeId));
 
             assertThrows(RecipeNotFoundException.class, () -> recipeController.updateRecipe(recipeId, dto, null));
-            verify(recipeService, never()).updateRecipe(any(), any(), any());
         }
 
         @Test
@@ -598,7 +596,6 @@ class RecipeRestControllerTest {
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertInstanceOf(NotContentResponse.class, response.getBody());
-            verify(recipeService).findById(recipeId);
             verify(recipeService).deleteById(recipeId);
         }
 
@@ -608,10 +605,9 @@ class RecipeRestControllerTest {
             var existing = createRecipe(recipeId, "Recette de chef_test", null, RecipeStatus.PUBLISHED);
 
             when(authPort.extractUsername()).thenReturn("intruder");
-            when(recipeService.findById(recipeId)).thenReturn(existing);
+            doThrow(new RecipeOwnershipException(UUID.randomUUID(), "a")).when(recipeService).deleteById(recipeId);
 
-            assertThrows(IllegalStateException.class, () -> recipeController.deleteRecipe(recipeId));
-            verify(recipeService, never()).deleteById(any());
+            assertThrows(RecipeOwnershipException.class, () -> recipeController.deleteRecipe(recipeId));
         }
 
         @Test
@@ -619,10 +615,9 @@ class RecipeRestControllerTest {
             var recipeId = UUID.randomUUID();
 
             when(authPort.extractUsername()).thenReturn("chef_test");
-            when(recipeService.findById(recipeId)).thenThrow(new RecipeNotFoundException(recipeId));
+            doThrow(new RecipeNotFoundException(recipeId)).when(recipeService).deleteById(any());
 
             assertThrows(RecipeNotFoundException.class, () -> recipeController.deleteRecipe(recipeId));
-            verify(recipeService, never()).deleteById(any());
         }
     }
 
