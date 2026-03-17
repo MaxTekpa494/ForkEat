@@ -1,14 +1,19 @@
 package fr.uge.forkeat.infrastructure.config;
 
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.service.exception.AuthenticationTokenException;
 import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.SignatureException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.jspecify.annotations.NonNull;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.AuthenticationException;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
@@ -41,15 +46,24 @@ public class JwtFilter extends OncePerRequestFilter {
                 response.setHeader("X-Token-Expired", "true");
                 filterChain.doFilter(request, response);
                 return;
+            }catch(SignatureException e){
+                throw new AuthenticationTokenException(e.getMessage());
             }
         }
 
         // We recup the userDetails
         if(username != null && SecurityContextHolder.getContext().getAuthentication() == null){
+            //We recup the userDetails with the username (for the AuthenticationToken)
             var userDetails = customUserDetailsService.loadUserByUsername(username);
 
+            // We construct the userDetails with the email or the username depending the one given (for the validation of JWT token)
+            var userDetailsForValidationToken = User.withUsername(username)
+                    .password(userDetails.getPassword())
+                    .authorities(userDetails.getAuthorities())
+                    .build();
+
             //We authenticate the user
-            if(jwtUtils.validateToken(tokenBody, userDetails)) {
+            if(jwtUtils.validateToken(tokenBody, userDetailsForValidationToken)) {
                 UsernamePasswordAuthenticationToken authenticationToken = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
                 authenticationToken.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
                 SecurityContextHolder.getContext().setAuthentication(authenticationToken);

@@ -21,7 +21,7 @@ public abstract class AbstractIntegrationTest {
             .withUsername("test")
             .withPassword("test")
             // la réplication logique pour debezium
-            .withCommand("postgres", "-c", "wal_level=logical");
+            .withCommand("postgres -c wal_level=logical -c max_connections=200");
 
     static final Neo4jContainer<?> neo4j = new Neo4jContainer<>(DockerImageName.parse("neo4j:5"))
             .withAdminPassword("password");

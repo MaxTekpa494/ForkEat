@@ -12,6 +12,7 @@ import org.springframework.security.access.hierarchicalroles.RoleHierarchy;
 import org.springframework.security.access.hierarchicalroles.RoleHierarchyImpl;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.config.annotation.authentication.builders.AuthenticationManagerBuilder;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
@@ -23,6 +24,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @PropertySource("classpath:bucket4j.properties")
 @EnableConfigurationProperties(RateLimitProperties.class)
 public class SecurityConfig {
@@ -67,7 +69,7 @@ public class SecurityConfig {
 						}))
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/auth/me").authenticated()
-                        .requestMatchers("/api/recipes/*/like").authenticated()
+                        .requestMatchers("/api/recipes/*/like").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/auth/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
 						.requestMatchers("/api/recipes/**").hasAuthority("EMAIL_VERIFIED")
