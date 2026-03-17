@@ -69,7 +69,7 @@ public interface RecipePersistence {
 
   void unfollowRecipe(UUID userId, UUID recipeId);
 
-  void superLikeRecipe(UUID userId, UUID recipeId, long amount, UUID promotionId, boolean isBonusFree);
+  void superLikeRecipe(UUID userId, UUID recipeId, long amount, UUID promotionId, boolean isBonusFree, long redistAmountCents);
 
   boolean hasSuperLikedRecipe(UUID userId, UUID recipeId);
 

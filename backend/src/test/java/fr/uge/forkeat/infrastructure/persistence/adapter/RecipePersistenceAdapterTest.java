@@ -957,7 +957,7 @@ class RecipePersistenceAdapterTest {
             var recipeId = UUID.randomUUID();
             long amount = 100L;
 
-            adapter.superLikeRecipe(userId, recipeId, amount, null, false);
+            adapter.superLikeRecipe(userId, recipeId, amount, null, false, 60L);
 
             verify(superLikeRepository).save(any(SuperLikeEntity.class));
         }

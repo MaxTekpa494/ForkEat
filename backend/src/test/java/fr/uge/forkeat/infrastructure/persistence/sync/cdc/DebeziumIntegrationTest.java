@@ -306,7 +306,7 @@ class DebeziumIntegrationTest extends AbstractIntegrationTest {
             TestTransaction.end();
 
             await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-                var isDeleted = neo4jClient.query("MATCH (r:Recipe {title: $title}) RETURN r.deleted")
+                var isDeleted = neo4jClient.query("MATCH (r:Recipe {title: $title}) RETURN r.deleted_at IS NOT NULL")
                         .bind(recipe.getTitle()).to("title")
                         .fetchAs(Boolean.class).one().orElse(false);
                 assertThat(isDeleted).as("Recipe should be marked deleted").isTrue();

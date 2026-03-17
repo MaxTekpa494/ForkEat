@@ -365,8 +365,8 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public void superLikeRecipe(UUID userId, UUID recipeId, long amount, UUID promotionId, boolean isBonusFree){
-        var superLike = new SuperLikeEntity(userId, recipeId, amount, promotionId, isBonusFree);
+    public void superLikeRecipe(UUID userId, UUID recipeId, long amount, UUID promotionId, boolean isBonusFree, long redistAmountCents){
+        var superLike = new SuperLikeEntity(userId, recipeId, amount, promotionId, isBonusFree, redistAmountCents);
         superLikeRepository.save(superLike);
     }
 
