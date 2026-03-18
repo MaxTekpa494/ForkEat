@@ -1,15 +1,19 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.presentation.dto.recipe.RejectRecipeRequest;
+import fr.uge.forkeat.presentation.dto.recipe.ValidateReportRequest;
+import fr.uge.forkeat.presentation.dto.recipe.DismissReportRequest;
 import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.service.RecipeModerationActionService;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationAction;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Recipe;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeReportDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -25,6 +29,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.verify;
 
 @ExtendWith(MockitoExtension.class)
 public class ModeratorRestControllerTest {
@@ -35,13 +40,15 @@ public class ModeratorRestControllerTest {
   private AuthenticationPort authPort;
   @Mock
   private RecipeModerationActionService recipeModerationActionService;
+  @Mock
+  private RecipeReportService recipeReportService;
 
   private ModeratorRestController moderatorController;
   private Instant now;
 
   @BeforeEach
   void setUp() {
-    moderatorController = new ModeratorRestController(authPort, recipeService, recipeModerationActionService);
+    moderatorController = new ModeratorRestController(authPort, recipeService, recipeModerationActionService, recipeReportService);
     now = Instant.now();
   }
 
@@ -140,6 +147,68 @@ public class ModeratorRestControllerTest {
       assertThrows(IllegalArgumentException.class, () ->
               moderatorController.rejectRecipe(recipeId, new RejectRecipeRequest(""))
       );
+    }
+  }
+
+  @Nested
+  class GetReportedRecipes {
+    @Test
+    void shouldReturnReportedRecipes() {
+      var details = new RecipeReportDetails(
+        UUID.randomUUID(), UUID.randomUUID(), "Tarte aux pommes", "img.jpg",
+        "user1", "SPAM", "Justification", now
+      );
+      var pageResult = new PageResult<>(List.of(details), 1);
+      when(authPort.extractUsername()).thenReturn("moderatorTest");
+      when(recipeReportService.getReportsToModerate("moderatorTest", 10, 0)).thenReturn(pageResult);
+      var response = moderatorController.getReportedRecipes(10, 0);
+      assertEquals(HttpStatus.OK, response.getStatusCode());
+      var listResponse = (ListResponse<?>) response.getBody();
+      assertEquals(1, listResponse.resources().size());
+      assertEquals(1, listResponse.total());
+      assertEquals("Tarte aux pommes", ((RecipeReportDetails) listResponse.resources().getFirst()).recipeTitle());
+      verify(recipeReportService).getReportsToModerate("moderatorTest", 10, 0);
+    }
+
+    @Test
+    void shouldReturnEmpty_WhenNoReports() {
+      when(authPort.extractUsername()).thenReturn("moderatorTest");
+      when(recipeReportService.getReportsToModerate("moderatorTest", 10, 0)).thenReturn(new PageResult<>(List.of(), 0));
+      var response = moderatorController.getReportedRecipes(10, 0);
+      assertEquals(HttpStatus.OK, response.getStatusCode());
+      var listResponse = (ListResponse<?>) response.getBody();
+      assertTrue(listResponse.resources().isEmpty());
+      assertEquals(0, listResponse.total());
+    }
+  }
+
+  @Nested
+  class ValidateReport {
+    @Test
+    void shouldValidateReport() {
+      var reportId = UUID.randomUUID();
+      var recipeId = UUID.randomUUID();
+      when(authPort.extractUsername()).thenReturn("moderatorTest");
+      when(recipeModerationActionService.moderateRecipe(any())).thenReturn(null);
+      var request = new ValidateReportRequest(recipeId);
+      var response = moderatorController.validateReport(reportId, request);
+      assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+      verify(recipeModerationActionService).moderateRecipe(any());
+    }
+  }
+
+  @Nested
+  class DismissReport {
+    @Test
+    void shouldDismissReport() {
+      var reportId = UUID.randomUUID();
+      var recipeId = UUID.randomUUID();
+      when(authPort.extractUsername()).thenReturn("moderatorTest");
+      when(recipeModerationActionService.moderateRecipe(any())).thenReturn(null);
+      var request = new DismissReportRequest(recipeId, "Justification de rejet");
+      var response = moderatorController.dismissReport(reportId, request);
+      assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+      verify(recipeModerationActionService).moderateRecipe(any());
     }
   }
 

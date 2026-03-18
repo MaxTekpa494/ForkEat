@@ -3,10 +3,8 @@ package fr.uge.forkeat.service;
 import fr.uge.forkeat.service.exception.ModeratorIsAuthorException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.exception.RecipeReportNotFoundException;
-import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
-import fr.uge.forkeat.service.model.recipe.RecipeModerationAction;
-import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.ReportStatus;
+import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.persistence.RecipeModerationActionPersistence;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.persistence.RecipeReportPersistence;
@@ -44,7 +42,7 @@ public class RecipeModerationActionService {
         if (!recipePersistence.existRecipe(command.recipeId())) {
             throw new RecipeNotFoundException(command.recipeId());
         }
-        if(command.relatedReportId() != null && !recipeReportPersistence.existsById(command.recipeId())) {
+        if(command.relatedReportId() != null && !recipeReportPersistence.existsById(command.relatedReportId())) {
             throw new RecipeReportNotFoundException(command.relatedReportId());
         }
         var moderatorId = userIdentityPort.findIdByUsernameOrThrow(command.moderatorUsername());
@@ -71,10 +69,12 @@ public class RecipeModerationActionService {
         if(command.relatedReportId() == null) {
             recipeStatus = command.moderationActionType() == RecipeModerationActionType.APPROVED ? RecipeStatus.PUBLISHED : RecipeStatus.REJECTED;
         } else {
+            var reportStatus = command.moderationActionType() == RecipeModerationActionType.APPROVED ? ReportStatus.VALIDATED : ReportStatus.DISMISSED;
+            recipeReportPersistence.updateStatus(command.relatedReportId(), moderatorId, reportStatus);
+
             recipeStatus = command.moderationActionType() == RecipeModerationActionType.APPROVED ? RecipeStatus.REJECTED : RecipeStatus.PUBLISHED;
         }
-        recipeService.updateStatus(command.recipeId(), recipeStatus);
-
+        recipePersistence.updateStatus(command.recipeId(), recipeStatus);
         return moderationActionRow;
     }
 

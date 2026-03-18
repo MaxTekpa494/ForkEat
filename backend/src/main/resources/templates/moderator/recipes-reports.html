@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title th:text="${pageTitle}">Signalements de recettes - Modération</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <!-- En-tête -->
+    <section class="bg-gradient-to-br from-orange-500 to-orange-700 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between mt-1">
+                <div>
+                    <h1 class="font-display font-bold text-3xl">
+                        Signalements de <span class="text-orange-200">recettes</span>
+                    </h1>
+                    <p class="text-orange-100 mt-1">
+                        <span th:text="${totalCount}">0</span> signalement(s) en attente de traitement
+                    </p>
+                </div>
+                <!-- Pagination en haut -->
+                <div th:if="${totalPages > 1}" class="text-orange-200 font-semibold text-lg">
+                    Page <span th:text="${currentPage + 1}">1</span>/<span th:text="${totalPages}">1</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- File vide -->
+    <section th:if="${reports.isEmpty()}" class="py-20 bg-surface">
+        <div class="container mx-auto px-4">
+            <div class="bg-white rounded-2xl p-16 text-center border border-gray-100 shadow-sm max-w-lg mx-auto">
+                <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-check-double text-3xl text-green-400"></i>
+                </div>
+                <h2 class="font-display font-bold text-2xl text-secondary-900 mb-2">Aucun signalement !</h2>
+                <p class="text-gray-400">Il n'y a aucun signalement de recette à traiter pour le moment.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Liste des signalements -->
+    <section th:unless="${reports.isEmpty()}" class="py-10 bg-surface">
+        <div class="container mx-auto px-4 space-y-6">
+
+            <div th:each="report : ${reports}"
+                 class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition">
+
+                <div class="p-6">
+                    <!-- Titre, type et date -->
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <div class="flex items-center gap-4 mb-2">
+                                <img th:src="${report.recipeImageUrl()}" alt="Image de la recette" class="w-20 h-20 object-cover rounded-xl border border-gray-200 shadow-sm" style="min-width:5rem;min-height:5rem;"/>
+                                <div>
+                                    <h2 class="font-display font-bold text-xl text-secondary-900"
+                                        th:text="${report.recipeTitle()}">Titre de la recette</h2>
+                                    <div class="flex items-center gap-2 mt-1">
+                                        <span class="inline-flex items-center gap-1.5 text-xs bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full font-semibold">
+                                            <i class="fas fa-flag"></i>
+                                            <span th:text="${report.reportType()}">Type</span>
+                                        </span>
+                                        <span class="text-xs text-gray-500 ml-2">
+                                            Signalé le <span th:text="${#temporals.format(report.createdAt(), 'dd/MM/yyyy à HH:mm')}">date</span>
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Détails du signalement -->
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                        <p class="font-semibold text-gray-800">Motif du signalement :</p>
+                        <p class="text-gray-600" th:text="${report.justification()}">Justification du signalement.</p>
+                        <p class="text-xs text-gray-500 mt-2">
+                            Signalé par :
+                            <span th:text="${report.reporterUsername()}">utilisateur</span>
+                        </p>
+                    </div>
+
+                    <!-- Actions -->
+                    <div class="flex flex-wrap items-center gap-3 mt-5 pt-5 border-t border-gray-100">
+                        <a th:href="@{/recipes/{id}(id=${report.recipeId()})}" target="_blank"
+                           class="inline-flex items-center gap-2 px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-xl font-medium text-sm transition">
+                            <i class="fas fa-eye"></i> Voir la recette
+                        </a>
+
+                        <!-- Valider le signalement (rejeter la recette) -->
+                        <form th:action="@{'/moderator/reports/' + ${report.id()} + '/validate'}" method="post" class="inline">
+                            <input type="hidden" name="recipeId" th:value="${report.recipeId()}" />
+                            <button type="submit"
+                                    class="inline-flex items-center gap-2 px-5 py-2 bg-red-500 hover:bg-red-400 text-white rounded-xl font-semibold text-sm transition shadow-md shadow-red-500/30">
+                                <i class="fas fa-check"></i> Valider le signalement
+                            </button>
+                        </form>
+
+                        <!-- Rejeter le signalement (approuver la recette) -->
+                        <button type="button"
+                                class="inline-flex items-center gap-2 px-5 py-2 bg-green-50 hover:bg-green-100 text-green-600 border border-green-200 hover:border-green-300 rounded-xl font-semibold text-sm transition"
+                                th:attr="data-report-id=${report.id()}, data-recipe-id=${report.recipeId()}"
+                                onclick="openDismissModal(this)">
+                            <i class="fas fa-times"></i> Rejeter le signalement
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Pagination en bas -->
+    <div th:if="${totalPages > 1}" class="container mx-auto px-4 py-6 flex items-center justify-between bg-gray-50 rounded-b-2xl border-t border-gray-100 mt-0">
+        <a th:if="${currentPage > 0}"
+           th:href="@{/moderator/recipes/reports(page=${currentPage - 1})}"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium transition">
+            <i class="fas fa-chevron-left"></i> Précédente
+        </a>
+        <span th:unless="${currentPage > 0}" class="px-4 py-2 text-gray-300 text-sm">
+            <i class="fas fa-chevron-left"></i> Précédente
+        </span>
+
+        <a th:if="${currentPage + 1 < totalPages}"
+           th:href="@{/moderator/recipes/reports(page=${currentPage + 1})}"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium transition">
+            Suivante <i class="fas fa-chevron-right"></i>
+        </a>
+        <span th:unless="${currentPage + 1 < totalPages}" class="px-4 py-2 text-gray-300 text-sm">
+            Suivante <i class="fas fa-chevron-right"></i>
+        </span>
+    </div>
+
+    <div th:replace="~{fragments/modals :: ModerationRejectModal('dismissReportModal', 'dismissReportForm')}"></div>
+
+    <!-- Bloc scripts -->
+    <th:block layout:fragment="scripts">
+        <script>
+            function openModal(modalId, formId, actionUrl, recipeId) {
+                const modal = document.getElementById(modalId);
+                const form = document.getElementById(formId);
+                form.action = actionUrl;
+                const recipeInput = form.querySelector('input[name="recipeId"]');
+                if (recipeInput) {
+                    recipeInput.value = recipeId;
+                }
+                modal.classList.remove('hidden');
+            }
+
+            function closeModal(modalId) {
+                const modal = document.getElementById(modalId);
+                modal.classList.add('hidden');
+            }
+
+            function openDismissModal(btn) {
+                const reportId = btn.getAttribute('data-report-id');
+                const recipeId = btn.getAttribute('data-recipe-id');
+                const actionUrl = `/moderator/reports/${reportId}/dismiss`;
+                openModal('dismissReportModal', 'dismissReportForm', actionUrl, recipeId);
+            }
+        </script>
+    </th:block>
+</div>
+</body>
+</html>
+
+
+

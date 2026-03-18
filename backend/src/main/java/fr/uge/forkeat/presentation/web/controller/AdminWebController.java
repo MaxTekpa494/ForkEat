@@ -32,12 +32,15 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.Objects;
 import java.util.UUID;
+import fr.uge.forkeat.service.RecipeReportService;
+import fr.uge.forkeat.service.model.ReportStatus;
 
 @Controller
 @RequestMapping("/admin")
 public class AdminWebController {
 
     private static final int RECIPES_PAGE_SIZE = 20;
+    private static final int RECIPESREPORTS_PAGE_SIZE = 10;
 
     private final UserService userQueryService;
     private final RecipeService recipeService;
@@ -47,6 +50,7 @@ public class AdminWebController {
     private final RecipeModerationActionService recipeModerationActionService;
     private final PromotionService promotionService;
     private final PromotionSchedulingPort schedulingService;
+    private final RecipeReportService recipeReportService;
 
     public AdminWebController(UserService userQueryService,
                               RecipeService recipeService,
@@ -55,7 +59,8 @@ public class AdminWebController {
                               UserRegistrationService userRegistrationService,
                               RecipeModerationActionService recipeModerationActionService,
                               PromotionService promotionService,
-                              PromotionSchedulingPort schedulingService) {
+                              PromotionSchedulingPort schedulingService,
+                              RecipeReportService recipeReportService) {
         this.userQueryService = Objects.requireNonNull(userQueryService);
         this.recipeService = Objects.requireNonNull(recipeService);
         this.platformWalletService = Objects.requireNonNull(platformWalletService);
@@ -64,6 +69,7 @@ public class AdminWebController {
         this.recipeModerationActionService = Objects.requireNonNull(recipeModerationActionService);
         this.promotionService = Objects.requireNonNull(promotionService);
         this.schedulingService = Objects.requireNonNull(schedulingService);
+        this.recipeReportService = Objects.requireNonNull(recipeReportService);
     }
 
     @GetMapping
@@ -232,6 +238,30 @@ public class AdminWebController {
         promotionService.cancel(id);
         schedulingService.onCancelled(id);
         return "redirect:/admin/super-like?promoCancelled=true";
+    }
+
+    @GetMapping("/recipes/reports")
+    public String getPendingReports(@RequestParam(defaultValue = "0") int page, Model model) {
+        var result = recipeReportService.getReportsToModerate(authPort.extractUsername(), RECIPESREPORTS_PAGE_SIZE, page);
+        var totalPages = (int) Math.ceil((double) result.total() / RECIPESREPORTS_PAGE_SIZE);
+        model.addAttribute("reports", result.items());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("totalCount", result.total());
+        model.addAttribute("pageTitle", "Signalements de recettes - Administration");
+        return "admin/recipes-reports";
+    }
+
+    @PostMapping("/reports/{reportId}/validate")
+    public String validateRecipeReport(@PathVariable UUID reportId, @RequestParam("recipeId") UUID recipeId) {
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(recipeId, authPort.extractUsername(), RecipeModerationActionType.APPROVED, "", reportId));
+        return "redirect:/admin/recipes/reports";
+    }
+
+    @PostMapping("/reports/{reportId}/dismiss")
+    public String rejectRecipeReport(@PathVariable UUID reportId, @RequestParam("recipeId") UUID recipeId, @RequestParam("justification") String justification) {
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(recipeId, authPort.extractUsername(), RecipeModerationActionType.REJECTED, justification, reportId));
+        return "redirect:/admin/recipes/reports";
     }
 
     private void addConfigAttributes(Model model) {

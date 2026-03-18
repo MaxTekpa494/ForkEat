@@ -2,9 +2,11 @@ package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.RecipeAlreadyReportedException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
+import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeReport;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeReportDetails;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.persistence.RecipeReportPersistence;
 import fr.uge.forkeat.service.port.UserIdentityPort;
@@ -66,5 +68,14 @@ public class RecipeReportService {
             throw new RecipeNotFoundException(recipeId);
         }
         return recipeReportPersistence.findByRecipeId(recipeId);
+    }
+
+    public PageResult<RecipeReportDetails> getReportsToModerate(String reporterUsername, int size, int page) {
+        Objects.requireNonNull(reporterUsername);
+        var reporterId = userIdentityPort.findIdByUsernameOrThrow(reporterUsername);
+        if (size <= 0 || page < 0) {
+            throw new IllegalArgumentException("Invalid page or size");
+        }
+        return recipeReportPersistence.getReportsToModerateWithRecipeAndReporter(reporterId, size, page);
     }
 }
