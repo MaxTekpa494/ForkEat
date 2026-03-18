@@ -5,6 +5,7 @@ import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Objects;
 
 @Component
@@ -131,7 +132,7 @@ public class RecipeNodeClient {
         var cypher = "MATCH (r:Recipe {id: $recipeId}) SET r.deleted_at = $deletedAt";
         neo4jClient.query(cypher)
             .bind(recipeId).to("recipeId")
-            .bind(deletedAt.toString()).to("deletedAt")
+            .bind(deletedAt.atOffset(ZoneOffset.UTC)).to("deletedAt")
             .run();
     }
 }

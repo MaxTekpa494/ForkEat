@@ -213,7 +213,7 @@ class Neo4jSyncServiceTest {
         after.put("amount", "100");
         after.put("redist_amount_cents", "60");
         neo4jSyncService.handleSuperLikeChange("c", payload);
-        verify(userNodeClient).addSuperLike("user-123", "recipeId", 100, 60);
+        verify(userNodeClient).addSuperLike("id", "user-123", "recipeId", 100, 60);
     }
 
     @Test
@@ -226,6 +226,6 @@ class Neo4jSyncServiceTest {
         after.put("amount", "100");
         after.put("redist_amount_cents", "60");
         neo4jSyncService.handleSuperLikeChange("r", payload);
-        verify(userNodeClient).addSuperLike("user-123", "recipeId", 100, 60);
+        verify(userNodeClient).addSuperLike("id", "user-123", "recipeId", 100, 60);
     }
 }

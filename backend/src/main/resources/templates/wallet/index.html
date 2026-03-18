@@ -217,9 +217,9 @@
                                 </div>
                                 <!-- Montant -->
                                 <div class="font-bold text-lg"
-                                     th:classappend="${transaction.type.name() == 'RECHARGE'} ? 'text-green-600' :
+                                     th:classappend="${transaction.type.name() == 'RECHARGE' or transaction.type.name() == 'REDISTRIBUTION'} ? 'text-green-600' :
                                                      (${transaction.type.name() == 'WITHDRAWAL'} ? 'text-blue-600' : 'text-red-600')"
-                                     th:text="${(transaction.type.name() == 'RECHARGE' ? '+' : '-') + #numbers.formatDecimal(transaction.amount / 100.0, 1, 2) + ' €'}">
+                                     th:text="${(transaction.type.name() == 'RECHARGE' or transaction.type.name() == 'REDISTRIBUTION' ? '+' : '-') + #numbers.formatDecimal(transaction.amount / 100.0, 1, 2) + ' €'}">
                                     +10.00 &euro;
                                 </div>
                             </div>
