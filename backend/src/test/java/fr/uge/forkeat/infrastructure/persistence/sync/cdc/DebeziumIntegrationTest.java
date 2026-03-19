@@ -53,10 +53,15 @@ class DebeziumIntegrationTest extends AbstractIntegrationTest {
         neo4jClient.query("MATCH (n) DETACH DELETE n").run();
 
         // Nettoyage PostgreSQL via psql dans le conteneur
+        // Suppression ciblée pour préserver les wallets système (platform_wallets référence wallets via FK)
         postgres.execInContainer("psql",
                 "-U", postgres.getUsername(),
                 "-d", postgres.getDatabaseName(),
-                "-c", "TRUNCATE TABLE recipe_allergens, recipe_ingredients, recipes, platform_wallets, wallets, user_systems, \"users\" CASCADE");
+                "-c", """
+                    TRUNCATE TABLE recipe_allergens, recipe_ingredients, recipes CASCADE;
+                    DELETE FROM wallets WHERE user_id IN (SELECT id FROM "users" WHERE username LIKE 'cdc_%');
+                    DELETE FROM "users" WHERE username LIKE 'cdc_%';
+                    """);
     }
 
     @Nested
