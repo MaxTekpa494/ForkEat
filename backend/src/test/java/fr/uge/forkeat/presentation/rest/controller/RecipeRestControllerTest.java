@@ -93,7 +93,7 @@ class RecipeRestControllerTest {
     @BeforeEach
     void setUp() {
         recipeController = new RecipeRestController(recipeService, recipeReportService, authPort, userService,
-                recipeSmartSearchService, walletService);
+                recipeSmartSearchService);
         now = Instant.now();
     }
 
