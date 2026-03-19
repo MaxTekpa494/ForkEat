@@ -26,11 +26,14 @@
     )}"></div>
 
     <!-- Modale fonds insuffisants -->
-    <div th:replace="~{fragments/modals :: insufficientFundsModal(
-        |card-funds-modal-${recipe.id}|,
-        |card-funds-modal-content-${recipe.id}|,
-        |closeCardFundsModal('${recipe.id}')|
-    )}"></div>
+    <th:block th:with="fundsMsg='Fonds insuffisants pour effectuer un Super Like. Rechargez votre wallet pour continuer.'">
+        <div th:replace="~{fragments/modals :: insufficientFundsModal(
+            |card-funds-modal-${recipe.id}|,
+            |card-funds-modal-content-${recipe.id}|,
+            |closeCardFundsModal('${recipe.id}')|,
+            ${fundsMsg}
+        )}"></div>
+    </th:block>
 
     <div class="bg-white rounded-2xl shadow-sm group-hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 h-full flex flex-col">
 

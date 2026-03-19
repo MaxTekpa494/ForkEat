@@ -1,25 +1,16 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RecipeUserInteractionProjection;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.*;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.AllergenEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.*;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.AuthorRecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeBaseSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeStatusCount;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
-import fr.uge.forkeat.service.model.recipe.projection.UserRecipeStats;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.recipe.Allergen;
-import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
-import fr.uge.forkeat.service.model.recipe.Recipe;
-import fr.uge.forkeat.service.model.recipe.RecipeIngredient;
-import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.recipe.projection.UserRecipeStats;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import jakarta.persistence.EntityManager;
@@ -29,10 +20,10 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
 import java.util.List;
@@ -84,7 +75,7 @@ class RecipePersistenceAdapterTest {
     private Instant now;
 
 
-  @BeforeEach
+    @BeforeEach
     void setUp() {
         adapter = new RecipePersistenceAdapter(
                 recipeRepository, userRepository,
@@ -164,6 +155,86 @@ class RecipePersistenceAdapterTest {
 
             assertTrue(result.isEmpty());
             verify(recipeRepository).findByStatus(RecipeStatus.DRAFT);
+        }
+    }
+
+    @Nested
+    class GetRecipesToModerate {
+        private final Sort sort = Sort.by(Sort.Direction.DESC, "createdAt");
+        private final PageRequest pageRequest = PageRequest.of(0, 10, sort);
+        @Test
+        void shouldReturnPendingRecipesExcludingModeratorOnes() {
+            var entity1 = createRecipeEntity(UUID.randomUUID(), "Recette 1", RecipeStatus.PENDING_REVIEW);
+            var entity2 = createRecipeEntity(UUID.randomUUID(), "Recette 2", RecipeStatus.PENDING_REVIEW);
+            var entity3 = createRecipeEntity(UUID.randomUUID(), "Recette 3", RecipeStatus.PENDING_REVIEW);
+            entity1.setAuthor(author);
+            var otherAuthor = new UserEntity();
+            otherAuthor.setId(UUID.randomUUID());
+            otherAuthor.setUsername("user2");
+            entity2.setAuthor(otherAuthor);
+            var moderatorId = UUID.randomUUID();
+            var moderatorName = "moderator1";
+            var moderatorAuthor = new UserEntity();
+            moderatorAuthor.setId(UUID.randomUUID());
+            moderatorAuthor.setUsername(moderatorName);
+            entity3.setAuthor(moderatorAuthor);
+            var page = new PageImpl<>(List.of(entity1, entity2), pageRequest, 2);
+            when(recipeRepository.findByStatusAndAuthorIdNot(RecipeStatus.PENDING_REVIEW, moderatorId, pageRequest))
+                    .thenReturn(page);
+
+            var result = adapter.getRecipesToModerate(moderatorId, 10, 0);
+
+            assertEquals(2, result.items().size());
+            assertTrue(result.items().stream().noneMatch(r -> r.usernameAuthor().equals(moderatorName)));
+            assertEquals(2, result.total());
+            verify(recipeRepository).findByStatusAndAuthorIdNot(RecipeStatus.PENDING_REVIEW, moderatorId, pageRequest);
+        }
+
+        @Test
+        void shouldReturnEmptyIfAllPendingAreFromModerator() {
+            var moderatorId = UUID.randomUUID();
+            var moderatorAuthor = new UserEntity();
+            moderatorAuthor.setId(moderatorId);
+            moderatorAuthor.setUsername("moderator");
+            var entity = createRecipeEntity(UUID.randomUUID(), "Recette du modérateur", RecipeStatus.PENDING_REVIEW);
+            entity.setAuthor(moderatorAuthor);
+            Page<RecipeEntity> page = new PageImpl<>(java.util.Collections.emptyList(), pageRequest, 0);
+            when(recipeRepository.findByStatusAndAuthorIdNot(RecipeStatus.PENDING_REVIEW, moderatorId, pageRequest))
+                .thenReturn(page);
+
+            var result = adapter.getRecipesToModerate(moderatorId, 10, 0);
+
+            assertTrue(result.items().isEmpty());
+            assertEquals(0, result.total());
+        }
+
+        @Test
+        void shouldReturnAllIfNoPendingFromModerator() {
+            var moderatorId = UUID.randomUUID();
+            var moderatorUsername = "moderator";
+            var moderator = new UserEntity();
+            moderator.setId(moderatorId);
+            moderator.setUsername(moderatorUsername);
+            var entity1 = createRecipeEntity(UUID.randomUUID(), "Recette 1", RecipeStatus.PENDING_REVIEW);
+            var entity2 = createRecipeEntity(UUID.randomUUID(), "Recette 2", RecipeStatus.PENDING_REVIEW);
+            entity1.setAuthor(author);
+            var otherAuthor = new UserEntity();
+            otherAuthor.setId(UUID.randomUUID());
+            otherAuthor.setUsername("user2");
+            entity2.setAuthor(otherAuthor);
+            var page = new PageImpl<>(List.of(entity1, entity2), pageRequest, 2);
+            when(recipeRepository.findByStatusAndAuthorIdNot(RecipeStatus.PENDING_REVIEW, moderatorId, pageRequest))
+                    .thenReturn(page);
+
+            var result = adapter.getRecipesToModerate(moderatorId, 10, 0);
+
+            assertEquals(2, result.items().size());
+            assertTrue(result.items().stream().noneMatch(r -> r.usernameAuthor().equals(moderatorUsername)));
+        }
+
+        @Test
+        void shouldThrowWhenModeratorIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.getRecipesToModerate(null, 10, 0));
         }
     }
 
@@ -993,6 +1064,31 @@ class RecipePersistenceAdapterTest {
         }
     }
 
+    @Nested
+    class IsAuthor {
+        @Test
+        void shouldReturnTrueIfUserIsAuthor() {
+            var recipeId = UUID.randomUUID();
+            var authorId = UUID.randomUUID();
+            when(recipeRepository.existsByIdAndAuthorId(recipeId, authorId)).thenReturn(true);
+            assertTrue(adapter.isAuthor(recipeId, authorId));
+            verify(recipeRepository).existsByIdAndAuthorId(recipeId, authorId);
+        }
+        @Test
+        void shouldReturnFalseIfUserIsNotAuthor() {
+            var recipeId = UUID.randomUUID();
+            var authorId = UUID.randomUUID();
+            when(recipeRepository.existsByIdAndAuthorId(recipeId, authorId)).thenReturn(false);
+            assertFalse(adapter.isAuthor(recipeId, authorId));
+            verify(recipeRepository).existsByIdAndAuthorId(recipeId, authorId);
+        }
+        @Test
+        void shouldThrowIfNullArguments() {
+            assertThrows(NullPointerException.class, () -> adapter.isAuthor(null, UUID.randomUUID()));
+            assertThrows(NullPointerException.class, () -> adapter.isAuthor(UUID.randomUUID(), null));
+        }
+    }
+
     private RecipeEntity createRecipeEntity(UUID id, String title, RecipeStatus status) {
         var entity = new RecipeEntity();
         entity.setId(id);
@@ -1013,4 +1109,5 @@ class RecipePersistenceAdapterTest {
                 30, null, status, List.of(), List.of(), List.of(), List.of(), now, now
         );
     }
+
 }

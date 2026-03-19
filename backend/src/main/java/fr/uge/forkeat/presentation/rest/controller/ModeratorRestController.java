@@ -9,7 +9,6 @@ import fr.uge.forkeat.service.RecipeModerationActionService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -38,9 +37,7 @@ public class ModeratorRestController {
 
   @GetMapping("/recipes/pending")
   public ResponseEntity<HttpResponse<RecipeDTO>> getPendingRecipes(int size, int page) {
-    var pageResult = recipeService.findByStatus(RecipeStatus.PENDING_REVIEW, size, page);
-
-    logger.debug("Liste recettes pending : {}", pageResult);
+    var pageResult = recipeService.getRecipesToModerate(authPort.extractUsername(), size, page);
     var dtos = pageResult.items().stream().map(RecipeDTOMapper::toDTO).toList();
     return ResponseEntity.ok(new ListResponse<>(dtos, pageResult.total()));
   }

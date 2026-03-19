@@ -8,6 +8,7 @@ import fr.uge.forkeat.presentation.response.*;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
+import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
@@ -19,6 +20,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -29,24 +31,26 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("api/recipes")
-public final class RecipeRestController {
+public class RecipeRestController {
 
   private final RecipeService recipeService;
   private final RecipeReportService recipeReportService;
   private final AuthenticationPort authPort;
   private final UserService userService;
   private final RecipeSmartSearchService smartSearchService;
+  private final WalletService walletService;
 
     private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
   public RecipeRestController(RecipeService recipeService, RecipeReportService recipeReportService,
                               AuthenticationPort authPort, UserService userService,
-                              RecipeSmartSearchService smartSearchService) {
+                              RecipeSmartSearchService smartSearchService, WalletService walletService) {
     this.recipeService = recipeService;
     this.recipeReportService = recipeReportService;
     this.authPort = authPort;
     this.userService = userService;
     this.smartSearchService = smartSearchService;
+    this.walletService = walletService;
   }
 
   public record AllergensIngredients(List<AllergenDTO> allergens, List<String> ingredients, List<String> dietaries) {
@@ -123,10 +127,6 @@ public final class RecipeRestController {
   public ResponseEntity<HttpResponse<RecipeDTO>> updateRecipe(@PathVariable UUID id, @RequestPart("recipe") RecipeDTO recipeDTO, @RequestPart(value = "image", required = false) MultipartFile image) {
     Objects.requireNonNull(recipeDTO);
     var username = authPort.extractUsername();
-    var recipeToUpdate = recipeService.findById(id);
-    if (!recipeToUpdate.usernameAuthor().equals(username)) {
-      throw new IllegalStateException("Vous ne pouvez pas modifier une recette qui ne vous appartient pas");
-    }
     var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
     var updatedRecipe = recipeService.updateRecipe(id, recipe, ImageMapper.toImageUpload(image));
     return ResponseEntity.ok(new ItemResponse<>(RecipeDTOMapper.toDTO(updatedRecipe)));
@@ -135,11 +135,6 @@ public final class RecipeRestController {
   @PostMapping("/{id}/delete")
   public ResponseEntity<HttpResponse<Void>> deleteRecipe(@PathVariable UUID id) {
     Objects.requireNonNull(id);
-    var username = authPort.extractUsername();
-    var recipe = recipeService.findById(id);
-    if (!recipe.usernameAuthor().equals(username)) {
-      throw new IllegalStateException("Vous ne pouvez pas supprimer une recette qui ne vous appartient pas");
-    }
     recipeService.deleteById(id);
     return ResponseEntity.ok(new NotContentResponse());
   }
@@ -186,7 +181,7 @@ public final class RecipeRestController {
 
     var user = userService.getUserByUsername(authPort.extractUsername());
 
-    var recipes = smartSearchService.search(request.query());
+    var recipes = smartSearchService.search(user.id(), request.query());
 
     var dtos = recipes.stream()
             .map(RecipeDTOMapper::toSummaryDTO)

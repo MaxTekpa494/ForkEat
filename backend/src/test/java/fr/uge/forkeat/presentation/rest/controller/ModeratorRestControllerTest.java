@@ -53,7 +53,7 @@ public class ModeratorRestControllerTest {
       var pendingRecipe = createRecipe(UUID.randomUUID(), "En attente", RecipeStatus.PENDING_REVIEW);
       var pageResult = new PageResult<>(List.of(pendingRecipe), 1);
 
-      when(recipeService.findByStatus(RecipeStatus.PENDING_REVIEW, 12, 0)).thenReturn(pageResult);
+      when(recipeService.getRecipesToModerate(authPort.extractUsername(), 12, 0)).thenReturn(pageResult);
 
       var response = moderatorController.getPendingRecipes(12, 0);
 

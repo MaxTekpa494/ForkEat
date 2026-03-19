@@ -93,6 +93,17 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
+    public PageResult<Recipe> getRecipesToModerate(UUID authorId, int size, int page) {
+        Objects.requireNonNull(authorId);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        var pageResult = recipeRepository.findByStatusAndAuthorIdNot(RecipeStatus.PENDING_REVIEW, authorId, pageable);
+        var recipes = pageResult.getContent().stream()
+                .map(RecipeEntityMapper::toDomain)
+                .toList();
+        return new PageResult<>(recipes, pageResult.getTotalElements());
+    }
+
+    @Override
     public PageResult<RecipeSummary> searchRecipes(RecipeSearchCriteria criteria) {
         Objects.requireNonNull(criteria);
         var pageable = PageRequest.of(criteria.page(), criteria.size());
@@ -407,6 +418,13 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
             }
         }
         return new UserRecipeStats(published, draft, pendingReview, rejected);
+    }
+
+    @Override
+    public boolean isAuthor(UUID recipeId, UUID authorId) {
+        Objects.requireNonNull(recipeId);
+        Objects.requireNonNull(authorId);
+        return recipeRepository.existsByIdAndAuthorId(recipeId, authorId);
     }
 
     /**

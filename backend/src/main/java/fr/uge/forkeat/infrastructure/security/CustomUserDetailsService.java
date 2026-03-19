@@ -32,7 +32,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         var user = userPersistence.findByUsername(username)
                 .or(() -> userPersistence.findByEmail(username))
                 .orElseThrow(() -> new UsernameNotFoundException("User not found: " + username));
-
+        logger.debug("Loading user by username: {}", username);
         // Un user Google sans password local → on met un placeholder vide
         // qui ne matchera jamais avec BCrypt, donc le form login échouera proprement.
         var password = userPersistence.findPasswordHashByUsername(user.username());

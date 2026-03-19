@@ -14,6 +14,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
@@ -27,6 +30,9 @@ public final class RagModerationAdapter implements RagModerationPort {
 
   @Value("${app.rag.moderation.max-length:500}")
   private int maxLength;
+
+  @Value("${app.rag.moderation.llm-timeout-seconds:15}")
+  private int llmTimeoutSeconds;
 
 
   // Tentatives de prompt injection
@@ -98,12 +104,13 @@ public final class RagModerationAdapter implements RagModerationPort {
 
   private void applyLlmModeration(String input){
     try {
-      var options = ChatOptions.builder().model("llama-guard3:1b").build();
       // UserMessage implements Message mais et Prompt prend Message en parametre
       // Je ne comprends donc pas pourquoi il n'accepte pas mon UserMessage
       // Par consequent je cast...
       var message = (Message)new UserMessage(input);
-      var response = chatModel.call(new Prompt(message, options));
+      var future = CompletableFuture.supplyAsync(() -> chatModel.call(new Prompt(message)));
+      var response = future.get(llmTimeoutSeconds, TimeUnit.SECONDS);
+
       var result = response.getResult().getOutput().getText().trim().toLowerCase();
       log.debug("[MODERATION] llama-guard3 response: '{}'", result);
 
@@ -115,7 +122,10 @@ public final class RagModerationAdapter implements RagModerationPort {
       }
     }catch (ModerationRagException e){
       throw e;
-    }catch (Exception e){
+    } catch (TimeoutException e){
+      log.warn("[MODERATION] llama-guard3 timeout ({}s), modération LLM ignorée", llmTimeoutSeconds);
+    }
+    catch (Exception e){ // fail-open
       log.warn("[MODERATION] llama-guard3 indisponible, modération LLM ignorée : {}", e.getMessage());
     }
   }

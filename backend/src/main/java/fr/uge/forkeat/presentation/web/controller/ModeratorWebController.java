@@ -4,13 +4,11 @@ import fr.uge.forkeat.service.RecipeModerationActionService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
-import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Objects;
 import java.util.UUID;
 
 @Controller
@@ -38,7 +36,7 @@ public class ModeratorWebController {
 
     @GetMapping("/recipes")
     public String pendingRecipes(@RequestParam(defaultValue = "0") int page, Model model) {
-        var result = recipeService.findByStatus(RecipeStatus.PENDING_REVIEW, RECIPES_PAGE_SIZE, page);
+        var result = recipeService.getRecipesToModerate(authPort.extractUsername(), RECIPES_PAGE_SIZE, page);
         var totalPages = (int) Math.ceil((double) result.total() / RECIPES_PAGE_SIZE);
 
         model.addAttribute("recipes", result.items());
