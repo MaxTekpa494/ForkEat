@@ -263,6 +263,22 @@ class UserModerationActionServiceTest {
             verify(userPersistence, never()).banUser(any());
             verify(userPersistence, never()).suspendUser(any(), any());
         }
+
+        @Test
+        void shouldThrowModeratorIsAuthorException_WhenModeratorIsReportedUser() {
+            var userId = UUID.randomUUID();
+            var reportId = UUID.randomUUID();
+            var command = createCommand(userId, "mod", UserModerationActionType.WARNING, null, reportId);
+            // Le modérateur est aussi l'utilisateur signalé
+            when(userPersistence.existsById(userId)).thenReturn(true);
+            when(userReportPersistence.existsById(reportId)).thenReturn(true);
+            when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(userId);
+            // isAuthor doit retourner false pour ne pas court-circuiter le test
+            when(userReportPersistence.isAuthor(reportId, userId)).thenReturn(false);
+
+            assertThrows(ModeratorIsAuthorException.class, () -> service.moderateUser(command));
+            verify(moderationActionPersistence, never()).save(any());
+        }
     }
 
     @Nested

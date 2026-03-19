@@ -48,7 +48,10 @@ public class UserModerationActionService {
         }
         var moderatorId = userIdentityPort.findIdByUsernameOrThrow(command.moderatorUsername());
 
-        if (userReportPersistence.isAuthor(command.relatedReportId(), moderatorId)) {
+        if (userReportPersistence.isAuthor(command.relatedReportId(), moderatorId)) { // Moderator created the report
+            throw new ModeratorIsAuthorException();
+        }
+        if(moderatorId.equals(command.userId())) { // Moderator is the signaled user
             throw new ModeratorIsAuthorException();
         }
 

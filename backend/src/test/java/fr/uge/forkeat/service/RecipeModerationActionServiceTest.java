@@ -93,7 +93,7 @@ class RecipeModerationActionServiceTest {
         }
 
         @Test
-        void shouldThrowIllegalStateException_WhenModeratorIsAuthor() {
+        void shouldThrowModeratorIsAuthorException_WhenModeratorIsRecipeAuthor() {
             var recipeId = UUID.randomUUID();
             var moderatorId = UUID.randomUUID();
             var command = new CreateRecipeModerationAction(recipeId, "mod", RecipeModerationActionType.REJECTED, "Justification", null);
@@ -104,6 +104,22 @@ class RecipeModerationActionServiceTest {
 
             assertThrows(ModeratorIsAuthorException.class, () -> recipeModerationActionService.moderateRecipe(command));
             verify(moderationActionPersistence, never()).save(any());
+        }
+
+        @Test
+        void shouldThrowModeratorIsAuthorException_WhenModeratorIsReporterOfRecipe() {
+            var recipeId = UUID.randomUUID();
+            var moderatorId = UUID.randomUUID();
+            var command = new CreateRecipeModerationAction(recipeId, "mod", RecipeModerationActionType.REJECTED, "Justification", null);
+
+            when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
+            when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
+            when(recipePersistence.isAuthor(recipeId, moderatorId)).thenReturn(false);
+            when(recipeReportPersistence.existsByRecipeIdAndReporterId(recipeId, moderatorId)).thenReturn(true);
+
+            assertThrows(ModeratorIsAuthorException.class, () -> recipeModerationActionService.moderateRecipe(command));
+            verify(moderationActionPersistence, never()).save(any());
+            verify(recipePersistence, never()).updateStatus(any(), any());
         }
 
         @Test

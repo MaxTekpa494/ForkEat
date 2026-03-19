@@ -49,7 +49,9 @@ public class RecipeModerationActionService {
         if (recipePersistence.isAuthor(command.recipeId(), moderatorId)) {
             throw new ModeratorIsAuthorException();
         }
-
+        if (recipeReportPersistence.existsByRecipeIdAndReporterId(command.recipeId(), moderatorId)) {
+            throw new ModeratorIsAuthorException();
+        }
         var moderationAction = new RecipeModerationAction(
                 UUID.randomUUID(),
                 command.recipeId(),
