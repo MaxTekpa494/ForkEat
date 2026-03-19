@@ -1,6 +1,7 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.DuplicateTransactionException;
+import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.WithdrawalException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.external.PaymentGateway;
@@ -13,6 +14,7 @@ import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.external.PayoutGateway;
 import fr.uge.forkeat.service.user.BankInfoService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -27,6 +29,9 @@ import java.util.UUID;
 
 @Service
 public class WalletService {
+
+	@Value("${app.rag.smart-search-cost:10}")
+	private long smartSearchCost;
 
 	private final PaymentGateway paymentGateway;
 	private final PayoutGateway payoutGateway;

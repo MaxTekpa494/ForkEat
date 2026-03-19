@@ -53,8 +53,8 @@
 </div>
 
 <!-- Fragment : modale fonds insuffisants
-     Paramètres : modalId, contentId, onCancel -->
-<div th:fragment="insufficientFundsModal(modalId, contentId, onCancel)"
+     Paramètres : modalId, contentId, onCancel, message -->
+<div th:fragment="insufficientFundsModal(modalId, contentId, onCancel, message)"
      th:id="${modalId}"
      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
     <div th:id="${contentId}"
@@ -67,7 +67,7 @@
             </div>
             <div>
                 <h3 class="text-gray-800 font-semibold text-lg">Solde insuffisant</h3>
-                <p class="text-gray-500 text-sm mt-1">Vous n'avez pas assez de fonds pour effectuer un Super Like. Rechargez votre wallet pour continuer.</p>
+                <p class="text-gray-500 text-sm mt-1" th:text="${message}"></p>
             </div>
             <div class="flex gap-3 w-full mt-2">
                 <button th:attr="onclick=${onCancel}"
