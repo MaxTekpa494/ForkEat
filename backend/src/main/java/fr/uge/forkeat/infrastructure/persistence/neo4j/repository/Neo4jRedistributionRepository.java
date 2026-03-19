@@ -2,6 +2,9 @@ package fr.uge.forkeat.infrastructure.persistence.neo4j.repository;
 
 import fr.uge.forkeat.infrastructure.persistence.neo4j.node.RecipeNode;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.ChainNodeProjection;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.EarningsRowProjection;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RedistributionChainRowProjection;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RedistributionSummaryProjection;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.UnprocessedSLProjection;
 import org.springframework.data.neo4j.repository.Neo4jRepository;
 import org.springframework.data.neo4j.repository.query.Query;
@@ -109,4 +112,42 @@ public interface Neo4jRedistributionRepository extends Neo4jRepository<RecipeNod
             RETURN coalesce(sum(r.amount_cents), 0)
             """)
     long getTotalRedistributedForMonth(@Param("batchMonth") String batchMonth);
+
+    @Query("""
+            MATCH (u:User {id: $userId})-[r:REDISTRIBUTION_RECEIVED]->(recipe:Recipe)
+            RETURN r.batch_month          AS batchMonth,
+                   r.amount_cents         AS amountCents,
+                   r.superliked_recipe_id AS sourceRecipeId,
+                   recipe.id              AS recipeId,
+                   recipe.title           AS recipeTitle
+            ORDER BY r.batch_month DESC, r.amount_cents DESC
+            """)
+    List<EarningsRowProjection> findEarningsByUser(@Param("userId") String userId);
+
+    @Query("""
+            MATCH (u:User)-[r:REDISTRIBUTION_RECEIVED]->(authorRecipe:Recipe)
+            OPTIONAL MATCH (sourceRecipe:Recipe {id: r.superliked_recipe_id})
+            RETURN r.batch_month                                       AS batchMonth,
+                   r.superliked_recipe_id                              AS sourceRecipeId,
+                   coalesce(sourceRecipe.title, 'Recette supprimée')   AS sourceRecipeTitle,
+                   sum(r.amount_cents)                                 AS totalCents
+            ORDER BY r.batch_month DESC, totalCents DESC
+            """)
+    List<RedistributionSummaryProjection> findRedistributionSummary();
+
+    @Query("""
+            MATCH (u:User)-[r:REDISTRIBUTION_RECEIVED {
+                superliked_recipe_id: $recipeId,
+                batch_month: $batchMonth
+            }]->(authorRecipe:Recipe)
+            RETURN u.id            AS authorId,
+                   u.username      AS username,
+                   authorRecipe.id AS recipeId,
+                   authorRecipe.title AS recipeTitle,
+                   r.amount_cents  AS amountCents
+            ORDER BY r.amount_cents DESC
+            """)
+    List<RedistributionChainRowProjection> findChainForRecipeAndMonth(
+            @Param("recipeId") String recipeId,
+            @Param("batchMonth") String batchMonth);
 }

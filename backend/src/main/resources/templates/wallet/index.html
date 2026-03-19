@@ -225,6 +225,44 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Gains de redistribution -->
+                    <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mt-8">
+                        <div class="p-6 border-b border-gray-100">
+                            <h2 class="font-display font-bold text-xl text-secondary-900">
+                                <i class="fas fa-exchange-alt mr-2 text-purple-500"></i>
+                                Gains de redistribution
+                            </h2>
+                        </div>
+
+                        <div th:if="${#lists.isEmpty(redistributionEarnings)}" class="p-8 text-center">
+                            <i class="fas fa-exchange-alt text-4xl text-gray-300 mb-4"></i>
+                            <p class="text-gray-500 font-medium">Aucun gain de redistribution</p>
+                            <p class="text-gray-400 text-sm mt-2">Vos gains apparaîtront lors des redistributions mensuelles</p>
+                        </div>
+
+                        <div th:unless="${#lists.isEmpty(redistributionEarnings)}"
+                             class="divide-y divide-gray-100 overflow-y-auto"
+                             style="max-height: 320px;">
+                            <div th:each="earning : ${redistributionEarnings}"
+                                 class="p-4 hover:bg-gray-50 transition flex items-center justify-between">
+                                <div class="flex items-center space-x-4">
+                                    <div class="w-10 h-10 rounded-full bg-purple-50 flex items-center justify-center">
+                                        <i class="fas fa-exchange-alt text-purple-500"></i>
+                                    </div>
+                                    <div>
+                                        <div class="font-medium text-secondary-900"
+                                             th:text="${earning.recipeTitle()}">Titre recette</div>
+                                        <div class="text-xs text-gray-400"
+                                             th:text="'Redistribution ' + ${earning.batchMonth()}">Mois</div>
+                                    </div>
+                                </div>
+                                <div class="font-bold text-lg text-green-600"
+                                     th:text="${'+' + #numbers.formatDecimal(earning.amountCents() / 100.0, 1, 2) + ' €'}">
+                                    +0.00 €
+                                </div>
+                            </div>
+                        </div>
+                    </div>
                     <!-- Historique des super-likes -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mt-8">
                         <div class="p-6 border-b border-gray-100">

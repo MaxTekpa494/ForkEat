@@ -1,11 +1,16 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.RedistributionPaymentService.AuthorPayout;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.redistribution.ChainEntry;
+import fr.uge.forkeat.service.model.redistribution.ChainNode;
+import fr.uge.forkeat.service.model.redistribution.EarningsRow;
+import fr.uge.forkeat.service.model.redistribution.RedistributionSummary;
+import fr.uge.forkeat.service.model.redistribution.UnprocessedSL;
 import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.RedistributionPersistence;
-import fr.uge.forkeat.service.persistence.RedistributionPersistence.ChainNode;
-import fr.uge.forkeat.service.persistence.RedistributionPersistence.UnprocessedSL;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
+import fr.uge.forkeat.service.port.UserIdentityPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
@@ -21,6 +26,7 @@ import java.util.Optional;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
@@ -30,6 +36,7 @@ class RedistributionServiceTest {
     @Mock RedistributionPersistence redistributionPersistence;
     @Mock WalletPersistence walletPersistence;
     @Mock RedistributionPaymentService paymentService;
+    @Mock UserIdentityPort userIdentityPort;
 
     RedistributionService service;
 
@@ -38,7 +45,8 @@ class RedistributionServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new RedistributionService(redistributionPersistence, walletPersistence, paymentService);
+        service = new RedistributionService(redistributionPersistence, walletPersistence, paymentService,
+                userIdentityPort);
 
         // Par défaut : cross-check OK (getTotalRedistributedForMonth retourne 0, ajusté par test)
         lenient().when(walletPersistence.getRedistributionWallet())
@@ -49,27 +57,27 @@ class RedistributionServiceTest {
 
     // --- Helpers ---
 
-    private UUID stubWallet(String authorId) {
+    private UUID stubWallet(UUID authorId) {
         var walletId = UUID.randomUUID();
-        lenient().when(walletPersistence.findByUserId(UUID.fromString(authorId)))
-            .thenReturn(Optional.of(new Wallet(walletId, UUID.fromString(authorId), 0L, Instant.now())));
+        lenient().when(walletPersistence.findByUserId(authorId))
+            .thenReturn(Optional.of(new Wallet(walletId, authorId, 0L, Instant.now())));
         return walletId;
     }
 
-    private UnprocessedSL sl(String recipeId, long redistAmount) {
+    private UnprocessedSL sl(UUID recipeId, long redistAmount) {
         return new UnprocessedSL(UUID.randomUUID(), recipeId, redistAmount, Instant.now());
     }
 
-    private UnprocessedSL slAt(String recipeId, long redistAmount, Instant date) {
+    private UnprocessedSL slAt(UUID recipeId, long redistAmount, Instant date) {
         return new UnprocessedSL(UUID.randomUUID(), recipeId, redistAmount, date);
     }
 
-    private ChainNode node(String authorId, String recipeId, int depth) {
+    private ChainNode node(UUID authorId, UUID recipeId, int depth) {
         return new ChainNode(authorId, recipeId, depth);
     }
 
     @SuppressWarnings("unchecked")
-    private List<AuthorPayout> capturePayouts(String recipeId) {
+    private List<AuthorPayout> capturePayouts(UUID recipeId) {
         var captor = ArgumentCaptor.forClass(List.class);
         verify(paymentService).applyPayments(captor.capture(), eq(recipeId), eq(BATCH_MONTH), eq(REDISTRIBUTION_WALLET_ID));
         return (List<AuthorPayout>) captor.getValue();
@@ -104,8 +112,8 @@ class RedistributionServiceTest {
         @Test
         @DisplayName("Recette de base, total = 60 → auteur reçoit 100%")
         void baseRecipe_fullAmountToDirectAuthor() {
-            var authorId = UUID.randomUUID().toString();
-            var recipeId = UUID.randomUUID().toString();
+            var authorId = UUID.randomUUID();
+            var recipeId = UUID.randomUUID();
             var walletId = stubWallet(authorId);
             var sl = sl(recipeId, 60L);
 
@@ -126,8 +134,8 @@ class RedistributionServiceTest {
         @Test
         @DisplayName("Total = 0 → aucun paiement, SL marqué traité, pas d'erreur")
         void zeroAmount_noPayments() {
-            var authorId = UUID.randomUUID().toString();
-            var recipeId = UUID.randomUUID().toString();
+            var authorId = UUID.randomUUID();
+            var recipeId = UUID.randomUUID();
             stubWallet(authorId);
             var sl = sl(recipeId, 0L);
 
@@ -152,10 +160,10 @@ class RedistributionServiceTest {
         @Test
         @DisplayName("Variante 1 niveau, total = 60 → 30 / 30")
         void variant1Level_evenSplit() {
-            var directId = UUID.randomUUID().toString();
-            var parentId = UUID.randomUUID().toString();
-            var recipeId = UUID.randomUUID().toString();
-            var parentRecipeId = UUID.randomUUID().toString();
+            var directId = UUID.randomUUID();
+            var parentId = UUID.randomUUID();
+            var recipeId = UUID.randomUUID();
+            var parentRecipeId = UUID.randomUUID();
             var directWallet = stubWallet(directId);
             var parentWallet = stubWallet(parentId);
 
@@ -211,12 +219,12 @@ class RedistributionServiceTest {
 
         // Construit une chaîne à 3 niveaux et exécute le batch
         private Chain3 buildChain3(long total) {
-            var directId = UUID.randomUUID().toString();
-            var parentId = UUID.randomUUID().toString();
-            var baseId = UUID.randomUUID().toString();
-            var recipeId = UUID.randomUUID().toString();
-            var parentRecipeId = UUID.randomUUID().toString();
-            var baseRecipeId = UUID.randomUUID().toString();
+            var directId = UUID.randomUUID();
+            var parentId = UUID.randomUUID();
+            var baseId = UUID.randomUUID();
+            var recipeId = UUID.randomUUID();
+            var parentRecipeId = UUID.randomUUID();
+            var baseRecipeId = UUID.randomUUID();
             var directWallet = stubWallet(directId);
             var parentWallet = stubWallet(parentId);
             var baseWallet = stubWallet(baseId);
@@ -235,7 +243,7 @@ class RedistributionServiceTest {
             return new Chain3(recipeId, directWallet, parentWallet, baseWallet);
         }
 
-        record Chain3(String recipeId, UUID directWallet, UUID parentWallet, UUID baseWallet) {}
+        record Chain3(UUID recipeId, UUID directWallet, UUID parentWallet, UUID baseWallet) {}
     }
 
     @Nested
@@ -245,14 +253,14 @@ class RedistributionServiceTest {
         @Test
         @DisplayName("Auteur sans wallet → part versée au wallet EARNINGS")
         void authorWithoutWallet_fallsBackToEarningsWallet() {
-            var directId = UUID.randomUUID().toString();
-            var systemId = UUID.randomUUID().toString(); // system_earnings, pas de wallet perso
-            var recipeId = UUID.randomUUID().toString();
-            var parentRecipeId = UUID.randomUUID().toString();
+            var directId = UUID.randomUUID();
+            var systemId = UUID.randomUUID(); // system_earnings, pas de wallet perso
+            var recipeId = UUID.randomUUID();
+            var parentRecipeId = UUID.randomUUID();
             var directWallet = stubWallet(directId);
             var earningsWalletId = UUID.randomUUID();
 
-            when(walletPersistence.findByUserId(UUID.fromString(systemId))).thenReturn(Optional.empty());
+            when(walletPersistence.findByUserId(systemId)).thenReturn(Optional.empty());
             when(walletPersistence.getEarningsWallet())
                 .thenReturn(new Wallet(earningsWalletId, UUID.randomUUID(), 0L, Instant.now()));
 
@@ -277,8 +285,8 @@ class RedistributionServiceTest {
         @Test
         @DisplayName("3 SLs, aucun ancêtre supprimé → une seule requête de chaîne")
         void multipleSls_noChainChange_singleChainQuery() {
-            var authorId = UUID.randomUUID().toString();
-            var recipeId = UUID.randomUUID().toString();
+            var authorId = UUID.randomUUID();
+            var recipeId = UUID.randomUUID();
             stubWallet(authorId);
 
             when(redistributionPersistence.findUnprocessedSuperLikes())
@@ -300,17 +308,17 @@ class RedistributionServiceTest {
         @Test
         @DisplayName("Ancêtre supprimé mid-période → traitement SL par SL, agrégation correcte")
         void chainChangedMidPeriod_slBySlProcessing_correctAggregation() {
-            var directId = UUID.randomUUID().toString();
-            var deletedId = UUID.randomUUID().toString(); // supprimé entre T1 et T3
-            var baseId = UUID.randomUUID().toString();
-            var recipeId = UUID.randomUUID().toString();
-            var deletedRecipeId = UUID.randomUUID().toString();
-            var baseRecipeId = UUID.randomUUID().toString();
+            var directId = UUID.randomUUID();
+            var deletedId = UUID.randomUUID(); // supprimé entre T1 et T3
+            var baseId = UUID.randomUUID();
+            var recipeId = UUID.randomUUID();
+            var deletedRecipeId = UUID.randomUUID();
+            var baseRecipeId = UUID.randomUUID();
 
             var directWallet = stubWallet(directId);
             var earningsWalletId = UUID.randomUUID();
             var baseWallet = stubWallet(baseId);
-            when(walletPersistence.findByUserId(UUID.fromString(deletedId))).thenReturn(Optional.empty());
+            when(walletPersistence.findByUserId(deletedId)).thenReturn(Optional.empty());
             when(walletPersistence.getEarningsWallet())
                 .thenReturn(new Wallet(earningsWalletId, UUID.randomUUID(), 0L, Instant.now()));
 
@@ -354,10 +362,10 @@ class RedistributionServiceTest {
         @Test
         @DisplayName("Invariant : sum(authorTotals) = sum(redistAmounts) après agrégation SL par SL")
         void chainChangedMidPeriod_totalIsConserved() {
-            var directId = UUID.randomUUID().toString();
-            var baseId = UUID.randomUUID().toString();
-            var recipeId = UUID.randomUUID().toString();
-            var baseRecipeId = UUID.randomUUID().toString();
+            var directId = UUID.randomUUID();
+            var baseId = UUID.randomUUID();
+            var recipeId = UUID.randomUUID();
+            var baseRecipeId = UUID.randomUUID();
             stubWallet(directId);
             stubWallet(baseId);
 
@@ -385,16 +393,16 @@ class RedistributionServiceTest {
         @Test
         @DisplayName("2 recettes sans lien → deux groupes indépendants")
         void twoIndependentRecipes_twoSeparateGroups() {
-            var authorA = UUID.randomUUID().toString();
-            var authorB = UUID.randomUUID().toString();
-            var recipeA = UUID.randomUUID().toString();
-            var recipeB = UUID.randomUUID().toString();
+            var authorA = UUID.randomUUID();
+            var authorB = UUID.randomUUID();
+            var recipeA = UUID.randomUUID();
+            var recipeB = UUID.randomUUID();
             stubWallet(authorA);
             stubWallet(authorB);
 
             when(redistributionPersistence.findUnprocessedSuperLikes())
                 .thenReturn(List.of(sl(recipeA, 60L), sl(recipeB, 40L)));
-            when(redistributionPersistence.hasChainChangedBetween(anyString(), any(), any())).thenReturn(false);
+            when(redistributionPersistence.hasChainChangedBetween(any(UUID.class), any(), any())).thenReturn(false);
             when(redistributionPersistence.getAuthorChain(eq(recipeA), any()))
                 .thenReturn(List.of(node(authorA, recipeA, 0)));
             when(redistributionPersistence.getAuthorChain(eq(recipeB), any()))
@@ -403,7 +411,7 @@ class RedistributionServiceTest {
 
             service.processAllPending(BATCH_MONTH);
 
-            verify(paymentService, times(2)).applyPayments(any(), anyString(), anyString(), any());
+            verify(paymentService, times(2)).applyPayments(any(), any(UUID.class), anyString(), any());
         }
     }
 
@@ -414,7 +422,7 @@ class RedistributionServiceTest {
         @Test
         @DisplayName("Chaîne vide → SLs marqués traités sans paiement")
         void emptyChain_slsMarkedWithoutPayment() {
-            var recipeId = UUID.randomUUID().toString();
+            var recipeId = UUID.randomUUID();
             var sl = sl(recipeId, 60L);
 
             when(redistributionPersistence.findUnprocessedSuperLikes()).thenReturn(List.of(sl));
@@ -426,6 +434,87 @@ class RedistributionServiceTest {
 
             verifyNoInteractions(paymentService);
             verify(redistributionPersistence).markSuperLikesProcessed(List.of(sl.superLikeId()), BATCH_MONTH);
+        }
+    }
+
+    @Nested
+    @DisplayName("Méthodes de consultation")
+    class QueryMethods {
+
+        @Test
+        @DisplayName("getMyEarnings → résout l'userId via UserIdentityPort et délègue à la persistance")
+        void getMyEarnings_resolvesUsernameAndDelegates() {
+            var userId = UUID.randomUUID();
+            var sourceId = UUID.randomUUID();
+            var recipeId = UUID.randomUUID();
+            var row = new EarningsRow("2026-03", 60L, sourceId, recipeId, "Ma recette");
+            when(userIdentityPort.findIdByUsernameOrThrow("alice")).thenReturn(userId);
+            when(redistributionPersistence.findEarningsByUser(userId)).thenReturn(List.of(row));
+
+            var result = service.getUserEarnings("alice");
+
+            assertThat(result).hasSize(1);
+            assertThat(result.getFirst()).isEqualTo(row);
+        }
+
+        @Test
+        @DisplayName("getMyEarnings → utilisateur inconnu lève ResourceNotFoundException")
+        void getMyEarnings_unknownUser_throws() {
+            when(userIdentityPort.findIdByUsernameOrThrow("ghost"))
+                .thenThrow(new ResourceNotFoundException("User not found: ghost"));
+
+            assertThatThrownBy(() -> service.getUserEarnings("ghost"))
+                .isInstanceOf(ResourceNotFoundException.class);
+        }
+
+        @Test
+        @DisplayName("getMyEarnings → aucun gain retourne liste vide")
+        void getMyEarnings_noEarnings_returnsEmpty() {
+            var userId = UUID.randomUUID();
+            when(userIdentityPort.findIdByUsernameOrThrow("bob")).thenReturn(userId);
+            when(redistributionPersistence.findEarningsByUser(userId)).thenReturn(List.of());
+
+            assertThat(service.getUserEarnings("bob")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("getRedistributionChain → délègue directement à la persistance")
+        void getRedistributionChain_delegates() {
+            var recipeId = UUID.randomUUID();
+            var authorId = UUID.randomUUID();
+            var entry = new ChainEntry(authorId, "alice", recipeId, "Tarte aux pommes", 30L);
+            when(redistributionPersistence.findChainForRecipeAndMonth(recipeId, "2026-03"))
+                .thenReturn(List.of(entry));
+
+            var result = service.getRedistributionChain(recipeId, "2026-03");
+
+            assertThat(result).hasSize(1);
+            assertThat(result.getFirst().username()).isEqualTo("alice");
+            assertThat(result.getFirst().amountCents()).isEqualTo(30L);
+        }
+
+        @Test
+        @DisplayName("getRedistributionChain → recette sans données retourne liste vide")
+        void getRedistributionChain_noData_returnsEmpty() {
+            var recipeId = UUID.randomUUID();
+            when(redistributionPersistence.findChainForRecipeAndMonth(recipeId, "2026-03"))
+                .thenReturn(List.of());
+
+            assertThat(service.getRedistributionChain(recipeId, "2026-03")).isEmpty();
+        }
+
+        @Test
+        @DisplayName("getRedistributionSummary → délègue à la persistance")
+        void getRedistributionSummary_delegates() {
+            var sourceId = UUID.randomUUID();
+            var summary = new RedistributionSummary("2026-03", sourceId, "Tarte aux pommes", 60L);
+            when(redistributionPersistence.findRedistributionSummary()).thenReturn(List.of(summary));
+
+            var result = service.getRedistributionSummary();
+
+            assertThat(result).hasSize(1);
+            assertThat(result.getFirst().batchMonth()).isEqualTo("2026-03");
+            assertThat(result.getFirst().totalCents()).isEqualTo(60L);
         }
     }
 

@@ -3,6 +3,8 @@ package fr.uge.forkeat.presentation.rest.controller;
 import fr.uge.forkeat.presentation.dto.admin.AdminRecipeStatsDTO;
 import fr.uge.forkeat.presentation.dto.admin.AdminUserStatsDTO;
 import fr.uge.forkeat.presentation.dto.admin.PlatformWalletDTO;
+import fr.uge.forkeat.presentation.dto.redistribution.RedistributionChainEntryDTO;
+import fr.uge.forkeat.service.RedistributionService;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.dto.user.UserDTO;
 import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
@@ -18,10 +20,13 @@ import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
 import fr.uge.forkeat.service.user.UserService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,19 +35,24 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/admin")
 public class AdminRestController {
 
+    private static final Logger logger = LoggerFactory.getLogger(AdminRestController.class);
+
     private final UserRegistrationService userRegistrationService;
     private final UserService userService;
     private final RecipeService recipeService;
     private final PlatformWalletService platformWalletService;
+    private final RedistributionService redistributionService;
 
     public AdminRestController(UserRegistrationService userRegistrationService,
                                UserService userService,
                                RecipeService recipeService,
-                               PlatformWalletService platformWalletService) {
+                               PlatformWalletService platformWalletService,
+                               RedistributionService redistributionService) {
         this.userRegistrationService = Objects.requireNonNull(userRegistrationService);
         this.userService = Objects.requireNonNull(userService);
         this.recipeService = Objects.requireNonNull(recipeService);
         this.platformWalletService = Objects.requireNonNull(platformWalletService);
+        this.redistributionService = Objects.requireNonNull(redistributionService);
     }
 
     @PostMapping("/register") // Pour une utilisation future
@@ -113,5 +123,18 @@ public class AdminRestController {
     public ResponseEntity<PlatformWalletDTO> getRedistributionWallet() {
         var wallet = platformWalletService.getWallet(PlatformWalletType.REDISTRIBUTION);
         return ResponseEntity.ok(new PlatformWalletDTO(wallet.type().name(), wallet.balance(), wallet.updatedAt()));
+    }
+
+    @GetMapping("/redistribution")
+    public ResponseEntity<List<RedistributionChainEntryDTO>> getRedistributionChain(
+            @RequestParam UUID recipeId,
+            @RequestParam String month) {
+        logger.info("GET /api/admin/redistribution called — recipeId={}, month={}", recipeId, month);
+        var chain = redistributionService.getRedistributionChain(recipeId, month).stream()
+            .map(e -> new RedistributionChainEntryDTO(e.authorId().toString(), e.username(),
+                                                      e.recipeId().toString(), e.recipeTitle(), e.amountCents()))
+            .toList();
+        logger.info("GET /api/admin/redistribution — returning {} entries", chain.size());
+        return ResponseEntity.ok(chain);
     }
 }

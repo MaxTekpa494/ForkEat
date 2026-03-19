@@ -1,11 +1,15 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.RedistributionPaymentService.AuthorPayout;
+import fr.uge.forkeat.service.model.redistribution.ChainEntry;
+import fr.uge.forkeat.service.model.redistribution.ChainNode;
+import fr.uge.forkeat.service.model.redistribution.EarningsRow;
+import fr.uge.forkeat.service.model.redistribution.RedistributionSummary;
+import fr.uge.forkeat.service.model.redistribution.UnprocessedSL;
 import fr.uge.forkeat.service.model.wallet.Wallet;
 import fr.uge.forkeat.service.persistence.RedistributionPersistence;
-import fr.uge.forkeat.service.persistence.RedistributionPersistence.ChainNode;
-import fr.uge.forkeat.service.persistence.RedistributionPersistence.UnprocessedSL;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
+import fr.uge.forkeat.service.port.UserIdentityPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -21,11 +25,16 @@ public class RedistributionService {
     private final RedistributionPersistence redistributionPersistence;
     private final WalletPersistence walletPersistence;
     private final RedistributionPaymentService paymentService;
+    private final UserIdentityPort userIdentityPort;
 
-    public RedistributionService(RedistributionPersistence redistributionPersistence, WalletPersistence walletPersistence, RedistributionPaymentService paymentService) {
+    public RedistributionService(RedistributionPersistence redistributionPersistence,
+                                 WalletPersistence walletPersistence,
+                                 RedistributionPaymentService paymentService,
+                                 UserIdentityPort userIdentityPort) {
         this.redistributionPersistence = redistributionPersistence;
         this.walletPersistence = walletPersistence;
         this.paymentService = paymentService;
+        this.userIdentityPort = userIdentityPort;
     }
 
     public void processAllPending(String batchMonth) {
@@ -83,16 +92,29 @@ public class RedistributionService {
         }
     }
 
+    public List<EarningsRow> getUserEarnings(String username) {
+        var userId = userIdentityPort.findIdByUsernameOrThrow(username);
+        return redistributionPersistence.findEarningsByUser(userId);
+    }
+
+    public List<ChainEntry> getRedistributionChain(UUID recipeId, String batchMonth) {
+        return redistributionPersistence.findChainForRecipeAndMonth(recipeId, batchMonth);
+    }
+
+    public List<RedistributionSummary> getRedistributionSummary() {
+        return redistributionPersistence.findRedistributionSummary();
+    }
+
     /**
      * Calcule les montants à verser par auteur pour un groupe de SLs sur une recette.
      * Optimisation : si la chaîne n'a pas changé entre le plus ancien et le plus récent SL,
      * on fait une seule requête de chaîne sur le total. Sinon, on traite SL par SL.
      */
-    private Map<String, AuthorPayout> computeAuthorTotals(String recipeId, List<UnprocessedSL> sls) {
+    private Map<UUID, AuthorPayout> computeAuthorTotals(UUID recipeId, List<UnprocessedSL> sls) {
         var oldest = sls.stream().map(UnprocessedSL::date).min(Comparator.naturalOrder()).orElseThrow();
         var newest = sls.stream().map(UnprocessedSL::date).max(Comparator.naturalOrder()).orElseThrow();
 
-        var totals = new LinkedHashMap<String, AuthorPayout>();
+        var totals = new LinkedHashMap<UUID, AuthorPayout>();
 
         if (!redistributionPersistence.hasChainChangedBetween(recipeId, oldest, newest)) {
             // Cas standard : une seule requête de chaîne sur le total agrégé
@@ -103,7 +125,7 @@ public class RedistributionService {
             // Cas edge (ancêtre supprimé mid-période) : traitement SL par SL
             for (var sl : sls) {
                 var chain = redistributionPersistence.getAuthorChain(recipeId, sl.date());
-                var slShare = new LinkedHashMap<String, AuthorPayout>();
+                var slShare = new LinkedHashMap<UUID, AuthorPayout>();
                 distributeToChain(chain, sl.redistAmount(), slShare);
                 slShare.forEach((authorId, payout) ->
                     totals.merge(authorId, payout, (a, b) ->
@@ -118,7 +140,7 @@ public class RedistributionService {
      * Distribue un montant total sur une chaîne d'auteurs (ceil au plus proche, reste au dernier).
      * Accumule les résultats dans la map passée en paramètre.
      */
-    private void distributeToChain(List<ChainNode> chain, long total, Map<String, AuthorPayout> accumulator) {
+    private void distributeToChain(List<ChainNode> chain, long total, Map<UUID, AuthorPayout> accumulator) {
         if (chain.isEmpty() || total == 0) return;
 
         long remaining = total;
@@ -142,8 +164,8 @@ public class RedistributionService {
      * Résout le walletId à partir de l'authorId.
      * Si l'auteur n'a pas de wallet (ex: system_earnings), utilise le wallet EARNINGS plateforme.
      */
-    private UUID resolveWalletId(String authorId) {
-        return walletPersistence.findByUserId(UUID.fromString(authorId))
+    private UUID resolveWalletId(UUID authorId) {
+        return walletPersistence.findByUserId(authorId)
             .map(Wallet::id)
             .orElseGet(() -> walletPersistence.getEarningsWallet().id());
     }

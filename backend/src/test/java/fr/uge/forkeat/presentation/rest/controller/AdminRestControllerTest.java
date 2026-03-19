@@ -6,6 +6,8 @@ import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
 import fr.uge.forkeat.service.PlatformWalletService;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.RedistributionService;
+import fr.uge.forkeat.service.model.redistribution.ChainEntry;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
@@ -54,6 +56,9 @@ class AdminRestControllerTest {
     private PlatformWalletService platformWalletService;
     @MockitoBean
     private AuthenticationPort authPort;
+
+    @MockitoBean
+    private RedistributionService redistributionService;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
@@ -187,6 +192,45 @@ class AdminRestControllerTest {
                     .andExpect(jsonPath("$.published").value(100))
                     .andExpect(jsonPath("$.pending").value(5))
                     .andExpect(jsonPath("$.draft").value(20));
+        }
+    }
+
+    // ===== Redistribution chain =====
+
+    @Nested
+    class RedistributionChainTests {
+
+        @Test
+        void shouldReturnChainForRecipeAndMonth() throws Exception {
+            var recipeId = UUID.randomUUID();
+            var authorId = UUID.randomUUID();
+            var authorRecipeId = UUID.randomUUID();
+            var entries = List.of(
+                new ChainEntry(authorId, "alice", authorRecipeId, "Tarte aux pommes", 30L),
+                new ChainEntry(UUID.randomUUID(), "bob", UUID.randomUUID(), "Pâte brisée", 15L)
+            );
+            when(redistributionService.getRedistributionChain(recipeId, "2026-03")).thenReturn(entries);
+
+            mockMvc.perform(get("/api/admin/redistribution")
+                            .param("recipeId", recipeId.toString())
+                            .param("month", "2026-03"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(2))
+                    .andExpect(jsonPath("$[0].username").value("alice"))
+                    .andExpect(jsonPath("$[0].amountCents").value(30))
+                    .andExpect(jsonPath("$[1].username").value("bob"));
+        }
+
+        @Test
+        void shouldReturnEmptyListWhenNoChainData() throws Exception {
+            var recipeId = UUID.randomUUID();
+            when(redistributionService.getRedistributionChain(recipeId, "2026-03")).thenReturn(List.of());
+
+            mockMvc.perform(get("/api/admin/redistribution")
+                            .param("recipeId", recipeId.toString())
+                            .param("month", "2026-03"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.length()").value(0));
         }
     }
 

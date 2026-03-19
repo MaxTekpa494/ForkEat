@@ -25,7 +25,7 @@ import java.util.UUID;
 public class RedistributionPaymentService {
 
     // Montants agrégés à verser par auteur pour un groupe de SLs sur une recette.
-    public record AuthorPayout(String authorId, UUID walletId, String authorRecipeId, long amount) {}
+    public record AuthorPayout(UUID authorId, UUID walletId, UUID authorRecipeId, long amount) {}
     private static final Logger logger = LoggerFactory.getLogger(RedistributionPaymentService.class);
 
     private final WalletPersistence walletPersistence;
@@ -43,7 +43,7 @@ public class RedistributionPaymentService {
      * Idempotent : les versements déjà effectués lors d'un run précédent sont ignorés.
      */
     @Transactional
-    public void applyPayments(List<AuthorPayout> payouts, String recipeId,
+    public void applyPayments(List<AuthorPayout> payouts, UUID recipeId,
                               String batchMonth, UUID redistributionWalletId) {
         platformWalletPersistence.findByTypeWithLock(PlatformWalletType.REDISTRIBUTION);
         var earningsWalletId = walletPersistence.getEarningsWallet().id();
@@ -51,7 +51,7 @@ public class RedistributionPaymentService {
             recipeId, batchMonth, redistributionWalletId, earningsWalletId, payouts.size());
 
         for (var payout : payouts) {
-            var deterministicId = deterministicPaymentId(recipeId, batchMonth, payout.walletId().toString());
+            var deterministicId = deterministicPaymentId(recipeId.toString(), batchMonth, payout.walletId().toString());
             logger.info("[applyPayments] payout author={} walletId={} amount={} deterministicId={}",
                 payout.authorId(), payout.walletId(), payout.amount(), deterministicId);
 
@@ -77,7 +77,7 @@ public class RedistributionPaymentService {
                 PlatformWalletType.REDISTRIBUTION,
                 -payout.amount(),
                 "MONTHLY_REDISTRIBUTION",
-                UUID.fromString(recipeId)
+                recipeId
             );
             if (payout.walletId().equals(earningsWalletId)) {
                 logger.info("[applyPayments] platform log EARNINGS +{} cts (fallback, recipe={})", payout.amount(), recipeId);
@@ -85,7 +85,7 @@ public class RedistributionPaymentService {
                     PlatformWalletType.EARNINGS,
                     payout.amount(),
                     "MONTHLY_REDISTRIBUTION",
-                    UUID.fromString(recipeId)
+                    recipeId
                 );
             }
         }
