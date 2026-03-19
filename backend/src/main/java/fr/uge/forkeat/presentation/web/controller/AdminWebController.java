@@ -34,6 +34,8 @@ import java.util.UUID;
 
 import fr.uge.forkeat.service.model.ReportStatus;
 
+import static fr.uge.forkeat.presentation.ComputeSuspendedUntil.computeSuspendedUntil;
+
 @Controller
 @RequestMapping("/admin")
 public class AdminWebController {
@@ -304,20 +306,5 @@ public class AdminWebController {
         int minBonusEveryN = (int) Math.floor((1.0 - ratio) / ratio) + 1;
         model.addAttribute("config", config);
         model.addAttribute("minBonusEveryN", minBonusEveryN);
-    }
-
-    private static Instant computeSuspendedUntil(UserModerationActionType action, Integer suspensionDays, Integer suspensionHours) {
-        if (action != UserModerationActionType.SUSPENDED) {
-            return null;
-        }
-        int days = suspensionDays == null ? 0 : suspensionDays;
-        int hours = suspensionHours == null ? 0 : suspensionHours;
-        if (days < 0 || hours < 0 || hours > 23) {
-            throw new IllegalArgumentException("Suspension duration is invalid");
-        }
-        if (days == 0 && hours == 0) {
-            throw new IllegalArgumentException("Suspension duration must be greater than zero");
-        }
-        return Instant.now().plus(days, ChronoUnit.DAYS).plus(hours, ChronoUnit.HOURS);
     }
 }

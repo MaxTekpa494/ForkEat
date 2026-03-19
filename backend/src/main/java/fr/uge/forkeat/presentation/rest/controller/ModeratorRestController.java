@@ -5,13 +5,12 @@ import fr.uge.forkeat.presentation.dto.recipe.RejectRecipeRequest;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
-import fr.uge.forkeat.service.RecipeModerationActionService;
-import fr.uge.forkeat.service.RecipeService;
-import fr.uge.forkeat.service.RecipeReportService;
-import fr.uge.forkeat.service.UserReportService;
+import fr.uge.forkeat.presentation.web.dto.UserModerationRequest;
+import fr.uge.forkeat.service.*;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeReportDetails;
+import fr.uge.forkeat.service.model.user.CreateUserModerationAction;
 import fr.uge.forkeat.service.model.user.projection.UserReportDetails;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
@@ -23,6 +22,8 @@ import java.util.UUID;
 import fr.uge.forkeat.presentation.dto.recipe.ValidateReportRequest;
 import fr.uge.forkeat.presentation.dto.recipe.DismissReportRequest;
 
+import static fr.uge.forkeat.presentation.ComputeSuspendedUntil.computeSuspendedUntil;
+
 @RestController
 @RequestMapping("/api/moderator")
 public class ModeratorRestController {
@@ -32,6 +33,7 @@ public class ModeratorRestController {
   private final RecipeModerationActionService recipeModerationActionService;
   private final RecipeReportService recipeReportService;
   private final UserReportService userReportService;
+  private final UserModerationActionService userModerationActionService;
 
   private final Logger logger = LoggerFactory.getLogger(ModeratorRestController.class);
 
@@ -39,12 +41,14 @@ public class ModeratorRestController {
                                  RecipeService recipeService,
                                  RecipeModerationActionService recipeModerationActionService,
                                  RecipeReportService recipeReportService,
-                                 UserReportService userReportService) {
+                                 UserReportService userReportService,
+                                 UserModerationActionService userModerationActionService) {
     this.authPort = authPort;
     this.recipeService = recipeService;
     this.recipeModerationActionService = recipeModerationActionService;
     this.recipeReportService = recipeReportService;
     this.userReportService = userReportService;
+    this.userModerationActionService = userModerationActionService;
   }
 
   @GetMapping("/recipes/pending")
@@ -79,7 +83,7 @@ public class ModeratorRestController {
   }
 
 
-  @PostMapping("/reports/{reportId}/validate")
+  @PostMapping("/recipes/reports/{reportId}/validate")
   public ResponseEntity<Void> validateReport(@PathVariable UUID reportId, @RequestBody ValidateReportRequest request) {
     recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(
       request.recipeId(),
@@ -92,7 +96,7 @@ public class ModeratorRestController {
   }
 
 
-  @PostMapping("/reports/{reportId}/dismiss")
+  @PostMapping("/recipes/reports/{reportId}/dismiss")
   public ResponseEntity<Void> dismissReport(@PathVariable UUID reportId, @RequestBody DismissReportRequest request) {
     recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(
       request.recipeId(),
@@ -101,6 +105,22 @@ public class ModeratorRestController {
       request.justification(),
       reportId
     ));
+    return ResponseEntity.noContent().build();
+  }
+
+  @PostMapping("/users/reports/{reportId}/resolve")
+  public ResponseEntity<Void> resolveUserReport(@PathVariable UUID reportId, @RequestBody UserModerationRequest request) {
+    var suspendedUntil = computeSuspendedUntil(request.action(), request.suspensionDays(), request.suspensionHours());
+    userModerationActionService.moderateUser(
+            new CreateUserModerationAction(
+                    request.userId(),
+                    authPort.extractUsername(),
+                    request.action(),
+                    request.justification(),
+                    suspendedUntil,
+                    reportId
+            )
+    );
     return ResponseEntity.noContent().build();
   }
 

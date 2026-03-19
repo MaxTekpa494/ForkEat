@@ -4,12 +4,14 @@ import fr.uge.forkeat.presentation.dto.recipe.RejectRecipeRequest;
 import fr.uge.forkeat.presentation.dto.recipe.ValidateReportRequest;
 import fr.uge.forkeat.presentation.dto.recipe.DismissReportRequest;
 import fr.uge.forkeat.presentation.response.ListResponse;
+import fr.uge.forkeat.presentation.web.dto.UserModerationRequest;
 import fr.uge.forkeat.service.RecipeModerationActionService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.UserReportService;
+import fr.uge.forkeat.service.UserModerationActionService;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationAction;
-import fr.uge.forkeat.service.model.user.User;
+import fr.uge.forkeat.service.model.user.UserModerationActionType;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
@@ -47,13 +49,15 @@ public class ModeratorRestControllerTest {
   private RecipeReportService recipeReportService;
   @Mock
   private UserReportService userReportService;
+  @Mock
+  private UserModerationActionService userModerationActionService;
 
   private ModeratorRestController moderatorController;
   private Instant now;
 
   @BeforeEach
   void setUp() {
-    moderatorController = new ModeratorRestController(authPort, recipeService, recipeModerationActionService, recipeReportService, userReportService);
+    moderatorController = new ModeratorRestController(authPort, recipeService, recipeModerationActionService, recipeReportService, userReportService, userModerationActionService);
     now = Instant.now();
   }
 
@@ -251,6 +255,127 @@ public class ModeratorRestControllerTest {
       var response = moderatorController.dismissReport(reportId, request);
       assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
       verify(recipeModerationActionService).moderateRecipe(any());
+    }
+  }
+
+  @Nested
+  class ResolveUserReport {
+    @BeforeEach
+    void setUpResolve() {
+      when(authPort.extractUsername()).thenReturn("moderatorTest");
+    }
+
+    @Test
+    void shouldSuspendUserAndValidateReport() {
+      var reportId = UUID.randomUUID();
+      var userId = UUID.randomUUID();
+      var request = new fr.uge.forkeat.presentation.web.dto.UserModerationRequest(
+        fr.uge.forkeat.service.model.user.UserModerationActionType.SUSPENDED,
+        "Justification",
+        userId,
+        2,
+        5
+      );
+      when(userModerationActionService.moderateUser(any())).thenReturn(null);
+      var response = moderatorController.resolveUserReport(reportId, request);
+      assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+      verify(userModerationActionService).moderateUser(any());
+    }
+
+    @Test
+    void shouldBanUserAndValidateReport() {
+      var reportId = UUID.randomUUID();
+      var userId = UUID.randomUUID();
+      var request = new fr.uge.forkeat.presentation.web.dto.UserModerationRequest(
+        fr.uge.forkeat.service.model.user.UserModerationActionType.BANNED,
+        "Justification",
+        userId,
+        0,
+        0
+      );
+      when(userModerationActionService.moderateUser(any())).thenReturn(null);
+      var response = moderatorController.resolveUserReport(reportId, request);
+      assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+      verify(userModerationActionService).moderateUser(any());
+    }
+
+    @Test
+    void shouldWarnUserAndValidateReport() {
+      var reportId = UUID.randomUUID();
+      var userId = UUID.randomUUID();
+      var request = new fr.uge.forkeat.presentation.web.dto.UserModerationRequest(
+        fr.uge.forkeat.service.model.user.UserModerationActionType.WARNING,
+        "Justification",
+        userId,
+        0,
+        0
+      );
+      when(userModerationActionService.moderateUser(any())).thenReturn(null);
+      var response = moderatorController.resolveUserReport(reportId, request);
+      assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+      verify(userModerationActionService).moderateUser(any());
+    }
+
+    @Test
+    void shouldDismissUserReport() {
+      var reportId = UUID.randomUUID();
+      var userId = UUID.randomUUID();
+      var request = new fr.uge.forkeat.presentation.web.dto.UserModerationRequest(
+        fr.uge.forkeat.service.model.user.UserModerationActionType.DISMISSED,
+        "Justification",
+        userId,
+        0,
+        0
+      );
+      when(userModerationActionService.moderateUser(any())).thenReturn(null);
+      var response = moderatorController.resolveUserReport(reportId, request);
+      assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
+      verify(userModerationActionService).moderateUser(any());
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundException_WhenUserNotFound() {
+      var reportId = UUID.randomUUID();
+      var userId = UUID.randomUUID();
+      var request = new fr.uge.forkeat.presentation.web.dto.UserModerationRequest(
+        fr.uge.forkeat.service.model.user.UserModerationActionType.WARNING,
+        "Justification",
+        userId,
+        0,
+        0
+      );
+      when(userModerationActionService.moderateUser(any())).thenThrow(new fr.uge.forkeat.service.exception.ResourceNotFoundException("User not found"));
+      assertThrows(fr.uge.forkeat.service.exception.ResourceNotFoundException.class, () -> moderatorController.resolveUserReport(reportId, request));
+    }
+
+    @Test
+    void shouldThrowResourceNotFoundException_WhenReportNotFound() {
+      var reportId = UUID.randomUUID();
+      var userId = UUID.randomUUID();
+      var request = new fr.uge.forkeat.presentation.web.dto.UserModerationRequest(
+        fr.uge.forkeat.service.model.user.UserModerationActionType.WARNING,
+        "Justification",
+        userId,
+        0,
+        0
+      );
+      when(userModerationActionService.moderateUser(any())).thenThrow(new fr.uge.forkeat.service.exception.ResourceNotFoundException("User report not found"));
+      assertThrows(fr.uge.forkeat.service.exception.ResourceNotFoundException.class, () -> moderatorController.resolveUserReport(reportId, request));
+    }
+
+    @Test
+    void shouldThrowModeratorIsAuthorException_WhenModeratorIsAuthor() {
+      var reportId = UUID.randomUUID();
+      var userId = UUID.randomUUID();
+      var request = new fr.uge.forkeat.presentation.web.dto.UserModerationRequest(
+        fr.uge.forkeat.service.model.user.UserModerationActionType.WARNING,
+        "Justification",
+        userId,
+        0,
+        0
+      );
+      when(userModerationActionService.moderateUser(any())).thenThrow(new fr.uge.forkeat.service.exception.ModeratorIsAuthorException());
+      assertThrows(fr.uge.forkeat.service.exception.ModeratorIsAuthorException.class, () -> moderatorController.resolveUserReport(reportId, request));
     }
   }
 

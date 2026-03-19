@@ -16,6 +16,8 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
+import static fr.uge.forkeat.presentation.ComputeSuspendedUntil.computeSuspendedUntil;
+
 @Controller
 @RequestMapping("/moderator")
 public class ModeratorWebController {
@@ -126,18 +128,4 @@ public class ModeratorWebController {
         return "redirect:/moderator/users/reports";
     }
 
-    private static Instant computeSuspendedUntil(UserModerationActionType action, Integer suspensionDays, Integer suspensionHours) {
-        if (action != UserModerationActionType.SUSPENDED) {
-            return null;
-        }
-        int days = suspensionDays == null ? 0 : suspensionDays;
-        int hours = suspensionHours == null ? 0 : suspensionHours;
-        if (days < 0 || hours < 0 || hours > 23) {
-            throw new IllegalArgumentException("Suspension duration is invalid");
-        }
-        if (days == 0 && hours == 0) {
-            throw new IllegalArgumentException("Suspension duration must be greater than zero");
-        }
-        return Instant.now().plus(days, ChronoUnit.DAYS).plus(hours, ChronoUnit.HOURS);
-    }
 }
