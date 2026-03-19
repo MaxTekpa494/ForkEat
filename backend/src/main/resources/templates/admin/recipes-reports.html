@@ -89,7 +89,7 @@
                         </a>
 
                         <!-- Valider le signalement (rejeter la recette) -->
-                        <form th:action="@{'/admin/reports/' + ${report.id()} + '/validate'}" method="post" class="inline">
+                        <form th:action="@{'/admin/recipes/reports/' + ${report.id()} + '/validate'}" method="post" class="inline">
                             <input type="hidden" name="recipeId" th:value="${report.recipeId()}" />
                             <button type="submit"
                                     class="inline-flex items-center gap-2 px-5 py-2 bg-red-500 hover:bg-red-400 text-white rounded-xl font-semibold text-sm transition shadow-md shadow-red-500/30">
@@ -155,7 +155,7 @@
             function openDismissModal(btn) {
                 const reportId = btn.getAttribute('data-report-id');
                 const recipeId = btn.getAttribute('data-recipe-id');
-                const actionUrl = `/admin/reports/${reportId}/dismiss`;
+                const actionUrl = `/admin/recipes/reports/${reportId}/dismiss`;
                 openModal('dismissReportModal', 'dismissReportForm', actionUrl, recipeId);
             }
         </script>

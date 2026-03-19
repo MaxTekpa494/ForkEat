@@ -25,6 +25,7 @@ public interface RecipeReportRepository extends JpaRepository<RecipeReportEntity
 
     long countByStatus(ReportStatus status);
 
+    // TODO : ajouter auteur recette ne peut pas modérer le signalement de sa recette
     @Query("""
         SELECT r.id AS id, rec.id AS recipeId, rec.title AS recipeTitle,
                rec.imageUrl AS recipeImageUrl,

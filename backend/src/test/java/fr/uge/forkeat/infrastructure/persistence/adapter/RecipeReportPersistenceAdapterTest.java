@@ -7,7 +7,6 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeRepor
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeReportRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
-import fr.uge.forkeat.service.exception.RecipeReportNotFoundException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.ReportStatus;
@@ -241,7 +240,7 @@ class RecipeReportPersistenceAdapterTest {
             var reviewerId = UUID.randomUUID();
             when(recipeReportRepository.findById(reportId)).thenReturn(java.util.Optional.empty());
 
-            assertThrows(RecipeReportNotFoundException.class, () -> adapter.updateStatus(reportId, reviewerId, ReportStatus.VALIDATED));
+            assertThrows(ResourceNotFoundException.class, () -> adapter.updateStatus(reportId, reviewerId, ReportStatus.VALIDATED));
         }
 
         @Test

@@ -179,6 +179,10 @@
                        class="text-orange-200 hover:text-white font-medium transition py-2 border-b-2 border-transparent hover:border-orange-400">
                         Signalements recettes
                     </a>
+                    <a th:href="@{/moderator/users/reports}"
+                       class="text-orange-200 hover:text-white font-medium transition py-2 border-b-2 border-transparent hover:border-orange-400">
+                        Signalements utilisateurs
+                    </a>
                 </div>
 
                 <!-- Moderator dropdown -->
@@ -208,6 +212,10 @@
                                    class="block px-4 py-2 text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition mx-2 rounded-lg">
                                     <i class="fas fa-flag mr-3 text-orange-400"></i> Signalements recettes
                                 </a>
+                                <a th:href="@{/moderator/users/reports}"
+                                   class="block px-4 py-2 text-gray-700 hover:bg-orange-50 hover:text-orange-700 transition mx-2 rounded-lg">
+                                    <i class="fas fa-user-shield mr-3 text-orange-400"></i> Signalements utilisateurs
+                                </a>
 
                                 <div class="border-t my-2 border-gray-100"></div>
 
@@ -234,6 +242,9 @@
                 </a>
                 <a th:href="@{/moderator/recipes/reports}" class="flex items-center text-orange-200 hover:text-white font-medium py-2">
                     <i class="fas fa-flag w-8 text-orange-400"></i> Signalements recettes
+                </a>
+                <a th:href="@{/moderator/users/reports}" class="flex items-center text-orange-200 hover:text-white font-medium py-2">
+                    <i class="fas fa-user-shield w-8 text-orange-400"></i> Signalements utilisateurs
                 </a>
                 <div class="pt-4 border-t border-orange-700">
                 <a th:href="@{/recipes}" class="flex items-center text-orange-200 hover:text-white font-medium py-2">

@@ -8,9 +8,11 @@ import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.service.RecipeModerationActionService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeReportService;
+import fr.uge.forkeat.service.UserReportService;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeReportDetails;
+import fr.uge.forkeat.service.model.user.projection.UserReportDetails;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -29,17 +31,20 @@ public class ModeratorRestController {
   private final RecipeService recipeService;
   private final RecipeModerationActionService recipeModerationActionService;
   private final RecipeReportService recipeReportService;
+  private final UserReportService userReportService;
 
   private final Logger logger = LoggerFactory.getLogger(ModeratorRestController.class);
 
   public ModeratorRestController(AuthenticationPort authPort,
                                  RecipeService recipeService,
                                  RecipeModerationActionService recipeModerationActionService,
-                                 RecipeReportService recipeReportService) {
+                                 RecipeReportService recipeReportService,
+                                 UserReportService userReportService) {
     this.authPort = authPort;
     this.recipeService = recipeService;
     this.recipeModerationActionService = recipeModerationActionService;
     this.recipeReportService = recipeReportService;
+    this.userReportService = userReportService;
   }
 
   @GetMapping("/recipes/pending")
@@ -64,6 +69,12 @@ public class ModeratorRestController {
   @GetMapping("/recipes/reports")
   public ResponseEntity<HttpResponse<RecipeReportDetails>> getReportedRecipes(@RequestParam int size, @RequestParam int page) {
     var pageResult = recipeReportService.getReportsToModerate(authPort.extractUsername(), size, page);
+    return ResponseEntity.ok(new ListResponse<>(pageResult.items(), pageResult.total()));
+  }
+
+  @GetMapping("/users/reports")
+  public ResponseEntity<HttpResponse<UserReportDetails>> getReportedUsers(@RequestParam int size, @RequestParam int page) {
+    var pageResult = userReportService.getReportsToModerate(authPort.extractUsername(), size, page);
     return ResponseEntity.ok(new ListResponse<>(pageResult.items(), pageResult.total()));
   }
 

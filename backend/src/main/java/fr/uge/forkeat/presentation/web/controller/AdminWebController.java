@@ -1,10 +1,9 @@
 package fr.uge.forkeat.presentation.web.controller;
 
+import fr.uge.forkeat.presentation.web.dto.UserModerationRequest;
+import fr.uge.forkeat.service.*;
+import fr.uge.forkeat.service.model.user.*;
 import fr.uge.forkeat.service.port.PromotionSchedulingPort;
-import fr.uge.forkeat.service.PlatformWalletService;
-import fr.uge.forkeat.service.RecipeModerationActionService;
-import fr.uge.forkeat.service.PromotionService;
-import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
@@ -12,8 +11,6 @@ import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.superlike.Promotion;
 import fr.uge.forkeat.service.model.SortOrder;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
-import fr.uge.forkeat.service.model.user.UserRegister;
-import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import fr.uge.forkeat.service.user.UserService;
@@ -28,11 +25,13 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 
 import java.math.BigDecimal;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.time.temporal.ChronoUnit;
 import java.util.Objects;
 import java.util.UUID;
-import fr.uge.forkeat.service.RecipeReportService;
+
 import fr.uge.forkeat.service.model.ReportStatus;
 
 @Controller
@@ -41,6 +40,7 @@ public class AdminWebController {
 
     private static final int RECIPES_PAGE_SIZE = 20;
     private static final int RECIPESREPORTS_PAGE_SIZE = 10;
+    private static final int USERSREPORTS_PAGE_SIZE = 10;
 
     private final UserService userQueryService;
     private final RecipeService recipeService;
@@ -51,6 +51,8 @@ public class AdminWebController {
     private final PromotionService promotionService;
     private final PromotionSchedulingPort schedulingService;
     private final RecipeReportService recipeReportService;
+    private final UserReportService userReportService;
+    private final UserModerationActionService userModerationActionService;
 
     public AdminWebController(UserService userQueryService,
                               RecipeService recipeService,
@@ -60,16 +62,20 @@ public class AdminWebController {
                               RecipeModerationActionService recipeModerationActionService,
                               PromotionService promotionService,
                               PromotionSchedulingPort schedulingService,
-                              RecipeReportService recipeReportService) {
-        this.userQueryService = Objects.requireNonNull(userQueryService);
-        this.recipeService = Objects.requireNonNull(recipeService);
-        this.platformWalletService = Objects.requireNonNull(platformWalletService);
-        this.authPort = Objects.requireNonNull(authPort);
-        this.userRegistrationService = Objects.requireNonNull(userRegistrationService);
-        this.recipeModerationActionService = Objects.requireNonNull(recipeModerationActionService);
-        this.promotionService = Objects.requireNonNull(promotionService);
-        this.schedulingService = Objects.requireNonNull(schedulingService);
-        this.recipeReportService = Objects.requireNonNull(recipeReportService);
+                              RecipeReportService recipeReportService,
+                              UserReportService userReportService,
+                              UserModerationActionService userModerationActionService) {
+        this.userQueryService = userQueryService;
+        this.recipeService = recipeService;
+        this.platformWalletService = platformWalletService;
+        this.authPort = authPort;
+        this.userRegistrationService = userRegistrationService;
+        this.recipeModerationActionService = recipeModerationActionService;
+        this.promotionService = promotionService;
+        this.schedulingService = schedulingService;
+        this.recipeReportService = recipeReportService;
+        this.userReportService = userReportService;
+        this.userModerationActionService = userModerationActionService;
     }
 
     @GetMapping
@@ -252,16 +258,44 @@ public class AdminWebController {
         return "admin/recipes-reports";
     }
 
-    @PostMapping("/reports/{reportId}/validate")
+    @GetMapping("/users/reports")
+    public String reportedUsers(@RequestParam(defaultValue = "0") int page, Model model) {
+        var result = userReportService.getReportsToModerate(authPort.extractUsername(), USERSREPORTS_PAGE_SIZE, page);
+        var totalPages = (int) Math.ceil((double) result.total() / USERSREPORTS_PAGE_SIZE);
+        model.addAttribute("reports", result.items());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("totalCount", result.total());
+        model.addAttribute("pageTitle", "Signalements d'utilisateurs - Administration");
+        return "admin/users-reports";
+    }
+
+    @PostMapping("/recipes/reports/{reportId}/validate")
     public String validateRecipeReport(@PathVariable UUID reportId, @RequestParam("recipeId") UUID recipeId) {
         recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(recipeId, authPort.extractUsername(), RecipeModerationActionType.APPROVED, "", reportId));
         return "redirect:/admin/recipes/reports";
     }
 
-    @PostMapping("/reports/{reportId}/dismiss")
+    @PostMapping("/recipes/reports/{reportId}/dismiss")
     public String rejectRecipeReport(@PathVariable UUID reportId, @RequestParam("recipeId") UUID recipeId, @RequestParam("justification") String justification) {
         recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(recipeId, authPort.extractUsername(), RecipeModerationActionType.REJECTED, justification, reportId));
         return "redirect:/admin/recipes/reports";
+    }
+
+    @PostMapping("/users/reports/{reportId}/resolve")
+    public String resolveUserReport(@PathVariable UUID reportId, @ModelAttribute UserModerationRequest request) {
+        var suspendedUntil = computeSuspendedUntil(request.action(), request.suspensionDays(), request.suspensionHours());
+        userModerationActionService.moderateUser(
+                new CreateUserModerationAction(
+                        request.userId(),
+                        authPort.extractUsername(),
+                        request.action(),
+                        request.justification(),
+                        suspendedUntil,
+                        reportId
+                )
+        );
+        return "redirect:/admin/users/reports";
     }
 
     private void addConfigAttributes(Model model) {
@@ -270,5 +304,20 @@ public class AdminWebController {
         int minBonusEveryN = (int) Math.floor((1.0 - ratio) / ratio) + 1;
         model.addAttribute("config", config);
         model.addAttribute("minBonusEveryN", minBonusEveryN);
+    }
+
+    private static Instant computeSuspendedUntil(UserModerationActionType action, Integer suspensionDays, Integer suspensionHours) {
+        if (action != UserModerationActionType.SUSPENDED) {
+            return null;
+        }
+        int days = suspensionDays == null ? 0 : suspensionDays;
+        int hours = suspensionHours == null ? 0 : suspensionHours;
+        if (days < 0 || hours < 0 || hours > 23) {
+            throw new IllegalArgumentException("Suspension duration is invalid");
+        }
+        if (days == 0 && hours == 0) {
+            throw new IllegalArgumentException("Suspension duration must be greater than zero");
+        }
+        return Instant.now().plus(days, ChronoUnit.DAYS).plus(hours, ChronoUnit.HOURS);
     }
 }

@@ -7,6 +7,7 @@ import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
 import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 import fr.uge.forkeat.service.port.UserIdentityPort;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -21,6 +22,14 @@ public interface UserPersistence extends UserIdentityPort {
 	Optional<User> findByEmail(String email);
 
 	Optional<User> findByUsername(String username);
+
+	boolean existsById(UUID userId);
+
+	void banUser(UUID userId);
+
+	void suspendUser(UUID userId, Instant suspendedUntil);
+
+	void unbanUser(UUID userId);
 
 	boolean existsByEmail(String email);
 

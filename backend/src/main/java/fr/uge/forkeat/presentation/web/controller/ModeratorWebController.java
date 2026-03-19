@@ -1,21 +1,27 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.service.RecipeModerationActionService;
-import fr.uge.forkeat.service.RecipeService;
-import fr.uge.forkeat.service.RecipeReportService;
-import fr.uge.forkeat.service.model.ReportStatus;
+import fr.uge.forkeat.service.*;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
+import fr.uge.forkeat.service.model.user.CreateUserModerationAction;
+import fr.uge.forkeat.service.model.user.UserModerationActionType;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+
+import fr.uge.forkeat.presentation.web.dto.UserModerationRequest;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 import java.util.UUID;
 
 @Controller
 @RequestMapping("/moderator")
 public class ModeratorWebController {
+
+    private final UserReportService userReportService;
+    private final UserModerationActionService userModerationActionService;
 
     @ModelAttribute("inModeratorInterface")
     public boolean inModeratorInterface() {
@@ -24,6 +30,7 @@ public class ModeratorWebController {
 
     private static final int RECIPES_PAGE_SIZE = 10;
     private static final int RECIPESREPORTS_PAGE_SIZE = 10;
+    private static final int USERSREPORTS_PAGE_SIZE = 10;
 
     private final RecipeService recipeService;
     private final RecipeModerationActionService recipeModerationActionService;
@@ -33,11 +40,13 @@ public class ModeratorWebController {
     public ModeratorWebController(RecipeService recipeService,
                                   RecipeModerationActionService recipeModerationActionService,
                                   RecipeReportService recipeReportService,
-                                  AuthenticationPort authPort) {
+                                  AuthenticationPort authPort, UserReportService userReportService, UserModerationActionService userModerationActionService) {
         this.recipeService = recipeService;
         this.recipeModerationActionService = recipeModerationActionService;
         this.recipeReportService = recipeReportService;
         this.authPort = authPort;
+        this.userReportService = userReportService;
+        this.userModerationActionService = userModerationActionService;
     }
 
     @GetMapping("/recipes")
@@ -77,15 +86,58 @@ public class ModeratorWebController {
         return "moderator/recipes-reports";
     }
 
-    @PostMapping("/reports/{reportId}/validate")
-    public String validateReport(@PathVariable UUID reportId, @RequestParam("recipeId") UUID recipeId) {
+    @GetMapping("/users/reports")
+    public String reportedUsers(@RequestParam(defaultValue = "0") int page, Model model) {
+        var result = userReportService.getReportsToModerate(authPort.extractUsername(), USERSREPORTS_PAGE_SIZE, page);
+        var totalPages = (int) Math.ceil((double) result.total() / USERSREPORTS_PAGE_SIZE);
+        model.addAttribute("reports", result.items());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("totalCount", result.total());
+        model.addAttribute("pageTitle", "Signalements d'utilisateurs - Administration");
+        return "/moderator/users-reports";
+    }
+
+    @PostMapping("/recipes/reports/{reportId}/validate")
+    public String validateRecipeReport(@PathVariable UUID reportId, @RequestParam("recipeId") UUID recipeId) {
         recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(recipeId, authPort.extractUsername(), RecipeModerationActionType.APPROVED, "", reportId));
         return "redirect:/moderator/recipes/reports";
     }
 
-    @PostMapping("/reports/{reportId}/dismiss")
-    public String dismissReport(@PathVariable UUID reportId, @RequestParam("recipeId") UUID recipeId, @RequestParam("justification") String justification) {
+    @PostMapping("/recipes/reports/{reportId}/dismiss")
+    public String dismissRecipeReport(@PathVariable UUID reportId, @RequestParam("recipeId") UUID recipeId, @RequestParam("justification") String justification) {
         recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(recipeId, authPort.extractUsername(), RecipeModerationActionType.REJECTED, justification, reportId));
         return "redirect:/moderator/recipes/reports";
+    }
+
+    @PostMapping("/users/reports/{reportId}/resolve")
+    public String resolveUserReport(@PathVariable UUID reportId, @ModelAttribute UserModerationRequest request) {
+        var suspendedUntil = computeSuspendedUntil(request.action(), request.suspensionDays(), request.suspensionHours());
+        userModerationActionService.moderateUser(
+            new CreateUserModerationAction(
+                request.userId(),
+                authPort.extractUsername(),
+                request.action(),
+                request.justification(),
+                suspendedUntil,
+                reportId
+            )
+        );
+        return "redirect:/moderator/users/reports";
+    }
+
+    private static Instant computeSuspendedUntil(UserModerationActionType action, Integer suspensionDays, Integer suspensionHours) {
+        if (action != UserModerationActionType.SUSPENDED) {
+            return null;
+        }
+        int days = suspensionDays == null ? 0 : suspensionDays;
+        int hours = suspensionHours == null ? 0 : suspensionHours;
+        if (days < 0 || hours < 0 || hours > 23) {
+            throw new IllegalArgumentException("Suspension duration is invalid");
+        }
+        if (days == 0 && hours == 0) {
+            throw new IllegalArgumentException("Suspension duration must be greater than zero");
+        }
+        return Instant.now().plus(days, ChronoUnit.DAYS).plus(hours, ChronoUnit.HOURS);
     }
 }

@@ -105,6 +105,42 @@ public class UserPersistenceAdapter implements UserPersistence {
 	}
 
 	@Override
+	public boolean existsById(UUID userId) {
+		return userRepository.existsById(userId);
+	}
+
+	@Override
+	public void banUser(UUID userId) {
+		Objects.requireNonNull(userId);
+		var user = userRepository.findById(userId)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+		user.setStatus(UserStatus.BANNED);
+		userRepository.save(user);
+	}
+
+	@Override
+	public void suspendUser(UUID userId, Instant suspendedUntil) {
+		Objects.requireNonNull(userId);
+		Objects.requireNonNull(suspendedUntil);
+		if (!suspendedUntil.isAfter(Instant.now())) {
+			throw new IllegalArgumentException("suspendedUntil must be in the future");
+		}
+		var user = userRepository.findById(userId)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+		user.setStatus(UserStatus.SUSPENDED);
+		userRepository.save(user);
+	}
+
+	@Override
+	public void unbanUser(UUID userId) {
+		Objects.requireNonNull(userId);
+		var user = userRepository.findById(userId)
+						.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+		user.setStatus(UserStatus.ACTIVE);
+		userRepository.save(user);
+	}
+
+	@Override
 	public boolean existsByEmail(String email) {
 		return userRepository.existsByEmail(email);
 	}
@@ -222,3 +258,4 @@ public class UserPersistenceAdapter implements UserPersistence {
 	}
 
 }
+

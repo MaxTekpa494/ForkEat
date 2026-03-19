@@ -2,7 +2,7 @@ package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.ModeratorIsAuthorException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
-import fr.uge.forkeat.service.exception.RecipeReportNotFoundException;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.persistence.RecipeModerationActionPersistence;
@@ -43,12 +43,10 @@ public class RecipeModerationActionService {
             throw new RecipeNotFoundException(command.recipeId());
         }
         if(command.relatedReportId() != null && !recipeReportPersistence.existsById(command.relatedReportId())) {
-            throw new RecipeReportNotFoundException(command.relatedReportId());
+            throw new ResourceNotFoundException("Related report id not found : " + command.relatedReportId());
         }
         var moderatorId = userIdentityPort.findIdByUsernameOrThrow(command.moderatorUsername());
-
-        var authorId = userIdentityPort.findIdByUsernameOrThrow(command.moderatorUsername());
-        if (recipePersistence.isAuthor(command.recipeId(), authorId)) {
+        if (recipePersistence.isAuthor(command.recipeId(), moderatorId)) {
             throw new ModeratorIsAuthorException();
         }
 

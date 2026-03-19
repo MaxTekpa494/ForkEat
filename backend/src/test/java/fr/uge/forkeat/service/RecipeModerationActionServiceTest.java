@@ -2,7 +2,7 @@ package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.ModeratorIsAuthorException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
-import fr.uge.forkeat.service.exception.RecipeReportNotFoundException;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.persistence.RecipeModerationActionPersistence;
@@ -147,7 +147,7 @@ class RecipeModerationActionServiceTest {
         }
 
         @Test
-        void shouldThrowRecipeReportNotFoundException_WhenRelatedReportDoesNotExist() {
+        void shouldThrowResourceNotFoundException_WhenRelatedReportDoesNotExist() {
             var recipeId = UUID.randomUUID();
             var relatedReportId = UUID.randomUUID();
             var command = new CreateRecipeModerationAction(recipeId, "mod", RecipeModerationActionType.APPROVED, "Justification", relatedReportId);
@@ -155,7 +155,7 @@ class RecipeModerationActionServiceTest {
             when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
             when(recipeReportPersistence.existsById(relatedReportId)).thenReturn(false);
 
-            assertThrows(RecipeReportNotFoundException.class, () -> recipeModerationActionService.moderateRecipe(command));
+            assertThrows(ResourceNotFoundException.class, () -> recipeModerationActionService.moderateRecipe(command));
             verify(moderationActionPersistence, never()).save(any());
         }
     }

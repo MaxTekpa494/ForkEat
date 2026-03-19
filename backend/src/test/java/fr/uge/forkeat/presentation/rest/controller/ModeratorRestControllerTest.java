@@ -7,13 +7,16 @@ import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.service.RecipeModerationActionService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeReportService;
+import fr.uge.forkeat.service.UserReportService;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationAction;
+import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Recipe;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeReportDetails;
+import fr.uge.forkeat.service.model.user.projection.UserReportDetails;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -42,13 +45,15 @@ public class ModeratorRestControllerTest {
   private RecipeModerationActionService recipeModerationActionService;
   @Mock
   private RecipeReportService recipeReportService;
+  @Mock
+  private UserReportService userReportService;
 
   private ModeratorRestController moderatorController;
   private Instant now;
 
   @BeforeEach
   void setUp() {
-    moderatorController = new ModeratorRestController(authPort, recipeService, recipeModerationActionService, recipeReportService);
+    moderatorController = new ModeratorRestController(authPort, recipeService, recipeModerationActionService, recipeReportService, userReportService);
     now = Instant.now();
   }
 
@@ -194,6 +199,43 @@ public class ModeratorRestControllerTest {
       var response = moderatorController.validateReport(reportId, request);
       assertEquals(HttpStatus.NO_CONTENT, response.getStatusCode());
       verify(recipeModerationActionService).moderateRecipe(any());
+    }
+  }
+
+  @Nested
+  class GetReportedUsers {
+    @Test
+    void shouldReturnReportedUsers() {
+      var reportedId = UUID.randomUUID();
+      var details = new UserReportDetails(
+        UUID.randomUUID(), reportedId, "reportedUser", "reporterUser", "SPAM", "Justification", now
+      );
+      var pageResult = new PageResult<>(List.of(details), 1);
+
+      when(authPort.extractUsername()).thenReturn("moderatorTest");
+      when(userReportService.getReportsToModerate("moderatorTest", 10, 0)).thenReturn(pageResult);
+
+      var response = moderatorController.getReportedUsers(10, 0);
+
+      assertEquals(HttpStatus.OK, response.getStatusCode());
+      var listResponse = (ListResponse<UserReportDetails>) response.getBody();
+      assertEquals(1, listResponse.resources().size());
+      assertEquals(1, listResponse.total());
+      assertEquals(reportedId, listResponse.resources().getFirst().reportedUserId());
+      verify(userReportService).getReportsToModerate("moderatorTest", 10, 0);
+    }
+
+    @Test
+    void shouldReturnEmpty_WhenNoUserReports() {
+      when(authPort.extractUsername()).thenReturn("moderatorTest");
+      when(userReportService.getReportsToModerate("moderatorTest", 10, 0)).thenReturn(new PageResult<>(List.of(), 0));
+
+      var response = moderatorController.getReportedUsers(10, 0);
+
+      assertEquals(HttpStatus.OK, response.getStatusCode());
+      var listResponse = (ListResponse<UserReportDetails>) response.getBody();
+      assertTrue(listResponse.resources().isEmpty());
+      assertEquals(0, listResponse.total());
     }
   }
 

@@ -4,7 +4,6 @@ import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeReportEntityMapper
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeReportRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
-import fr.uge.forkeat.service.exception.RecipeReportNotFoundException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.ReportStatus;
@@ -71,11 +70,11 @@ public final class RecipeReportPersistenceAdapter implements RecipeReportPersist
         Objects.requireNonNull(reviewerId);
         Objects.requireNonNull(status);
         var recipeReportEntity = recipeReportRepository.findById(recipeReportId)
-                .orElseThrow(() -> new RecipeReportNotFoundException(recipeReportId));
+                .orElseThrow(() -> new ResourceNotFoundException("Related report id not found : " + recipeReportId));
         var reviewerEntity = userRepository.findById(reviewerId)
                         .orElseThrow(() -> new ResourceNotFoundException("User not found with id : " + reviewerId));
         recipeReportEntity.setReviewedBy(reviewerEntity);
-    recipeReportEntity.setReviewedAt(Instant.now());
+        recipeReportEntity.setReviewedAt(Instant.now());
         recipeReportEntity.setStatus(status);
         return RecipeReportEntityMapper.toDomain(recipeReportRepository.save(recipeReportEntity));
     }

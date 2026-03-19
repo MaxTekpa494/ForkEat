@@ -62,6 +62,7 @@ public class RecipeModerationActionPersistenceAdapter implements RecipeModeratio
 
   @Override
   public List<RecipeModerationAction> findByActionType(RecipeModerationActionType actionType) {
+    Objects.requireNonNull(actionType);
     return recipeModerationActionRepository.findByModerationActionType(actionType).stream()
             .map(RecipeModerationActionEntityMapper::toDomain)
             .toList();

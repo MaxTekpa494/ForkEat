@@ -3,11 +3,17 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 import fr.uge.forkeat.infrastructure.persistence.mapper.UserReportEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserReportRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.user.UserReport;
+import fr.uge.forkeat.service.model.user.projection.UserReportDetails;
 import fr.uge.forkeat.service.persistence.UserReportPersistence;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -52,6 +58,53 @@ public final class UserReportPersistenceAdapter implements UserReportPersistence
         return userReportRepository.findByStatus(status).stream()
                 .map(UserReportEntityMapper::toDomain)
                 .toList();
+    }
+
+    @Override
+    public PageResult<UserReportDetails> getReportsToModerateWithReportedUserAndReporter(UUID reporterId, int size, int page) {
+        Objects.requireNonNull(reporterId);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        var pageResult = userReportRepository.findUserReportsByStatusAndNotReporterIdWithReportedUserAndReporter(ReportStatus.PENDING, reporterId, pageable);
+        var details = pageResult.getContent().stream()
+                .map(r -> new UserReportDetails(
+                        r.getId(),
+                        r.getReportedUserId(),
+                        r.getReportedUsername(),
+                        r.getReporterUsername(),
+                        r.getReportType(),
+                        r.getJustification(),
+                        r.getCreatedAt()
+                ))
+                .toList();
+        return new PageResult<>(details, pageResult.getTotalElements());
+    }
+
+    @Override
+    public UserReport updateStatus(UUID userReportId, UUID reviewerId, ReportStatus status) {
+        Objects.requireNonNull(userReportId);
+        Objects.requireNonNull(reviewerId);
+        Objects.requireNonNull(status);
+        var userReportEntity = userReportRepository.findById(userReportId)
+                .orElseThrow(() -> new ResourceNotFoundException("Related report id not found : " + userReportId));
+        var reviewerEntity = userRepository.findById(reviewerId)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id : " + reviewerId));
+        userReportEntity.setReviewedBy(reviewerEntity);
+        userReportEntity.setReviewedAt(Instant.now());
+        userReportEntity.setStatus(status);
+        return UserReportEntityMapper.toDomain(userReportRepository.save(userReportEntity));
+    }
+
+    @Override
+    public boolean existsById(UUID userReportId) {
+        Objects.requireNonNull(userReportId);
+        return userReportRepository.existsById(userReportId);
+    }
+
+    @Override
+    public boolean isAuthor(UUID userReportId, UUID reporterId) {
+        Objects.requireNonNull(userReportId);
+        Objects.requireNonNull(reporterId);
+        return userReportRepository.existsByIdAndReporterId(userReportId, reporterId);
     }
 
     @Override
