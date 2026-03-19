@@ -25,16 +25,15 @@ public interface RecipeReportRepository extends JpaRepository<RecipeReportEntity
 
     long countByStatus(ReportStatus status);
 
-    // TODO : ajouter auteur recette ne peut pas modérer le signalement de sa recette
     @Query("""
         SELECT r.id AS id, rec.id AS recipeId, rec.title AS recipeTitle,
                rec.imageUrl AS recipeImageUrl,
-               u.username AS reporterUsername, r.reportType AS reportType,\s
+               u.username AS reporterUsername, r.reportType AS reportType,
                r.justification AS justification, r.createdAt AS createdAt
         FROM RecipeReportEntity r
         JOIN r.recipe rec
         LEFT JOIN r.reporter u
-        WHERE u.id <> :reporterId AND r.status = :status
-   \s""")
+        WHERE rec.author.id <> :reporterId AND u.id <> :reporterId AND r.status = :status
+    """)
     Page<RecipeReportDetailsView> findRecipeReportsByStatusAndNotReporterIdWithRecipeAndReporter(ReportStatus status, UUID reporterId, Pageable pageable);
 }
