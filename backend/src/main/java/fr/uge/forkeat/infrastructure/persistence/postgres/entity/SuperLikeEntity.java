@@ -30,6 +30,9 @@ public class SuperLikeEntity {
     @Column(name = "is_bonus_free", nullable = false)
     private boolean isBonusFree;
 
+    @Column(name = "redist_amount_cents", nullable = false)
+    private long redistAmountCents;
+
     @PrePersist
     private void onCreate() {
         if (id == null) {
@@ -42,12 +45,13 @@ public class SuperLikeEntity {
 
     public SuperLikeEntity() {}
 
-    public SuperLikeEntity(UUID userId, UUID recipeId, long amount, UUID promotionId, boolean isBonusFree) {
+    public SuperLikeEntity(UUID userId, UUID recipeId, long amount, UUID promotionId, boolean isBonusFree, long redistAmountCents) {
         this.userId = userId;
         this.recipeId = recipeId;
         this.amount = amount;
         this.promotionId = promotionId;
         this.isBonusFree = isBonusFree;
+        this.redistAmountCents = redistAmountCents;
     }
 
     public UUID getId() { return id; }
@@ -70,4 +74,7 @@ public class SuperLikeEntity {
 
     public boolean isBonusFree() { return isBonusFree; }
     public void setBonusFree(boolean bonusFree) { isBonusFree = bonusFree; }
+
+    public long getRedistAmountCents() { return redistAmountCents; }
+    public void setRedistAmountCents(long redistAmountCents) { this.redistAmountCents = redistAmountCents; }
 }

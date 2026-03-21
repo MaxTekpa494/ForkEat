@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Objects;
 
 @Component
@@ -124,10 +126,13 @@ public class RecipeNodeClient {
             .orElse(false);
     }
 
-    public void markAsDeleted(String recipeId) {
-        var cypher = "MATCH (r:Recipe {id: $recipeId}) SET r.deleted = true";
+    public void markDeletedAt(String recipeId, Instant deletedAt) {
+        Objects.requireNonNull(recipeId);
+        Objects.requireNonNull(deletedAt);
+        var cypher = "MATCH (r:Recipe {id: $recipeId}) SET r.deleted_at = $deletedAt";
         neo4jClient.query(cypher)
             .bind(recipeId).to("recipeId")
+            .bind(deletedAt.atOffset(ZoneOffset.UTC)).to("deletedAt")
             .run();
     }
 }

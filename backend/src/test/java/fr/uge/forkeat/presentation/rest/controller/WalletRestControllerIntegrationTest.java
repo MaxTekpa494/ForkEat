@@ -4,6 +4,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.uge.forkeat.presentation.dto.user.TopUpRequestDTO;
 import fr.uge.forkeat.presentation.dto.user.CreateBankInfoRequestDTO;
 import fr.uge.forkeat.presentation.dto.user.WithdrawalRequestDTO;
+import fr.uge.forkeat.service.RedistributionService;
+import fr.uge.forkeat.service.model.redistribution.EarningsRow;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.WithdrawalException;
@@ -56,6 +58,9 @@ class WalletRestControllerIntegrationTest { // Renamed class
 
     @MockitoBean
     private BankInfoService bankInfoService;
+
+    @MockitoBean
+    private RedistributionService redistributionService;
 
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
@@ -191,6 +196,34 @@ class WalletRestControllerIntegrationTest { // Renamed class
                         .content(objectMapper.writeValueAsString(request)))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").value(errorMessage));
+    }
+
+    @Test
+    void shouldReturnEarningsGroupedByMonth() throws Exception {
+        var sourceId = UUID.randomUUID();
+        var recipeId = UUID.randomUUID();
+        var rows = List.of(
+            new EarningsRow("2026-03", 30L, sourceId, recipeId, "Tarte aux pommes"),
+            new EarningsRow("2026-03", 15L, UUID.randomUUID(), UUID.randomUUID(), "Quiche lorraine"),
+            new EarningsRow("2026-02", 60L, UUID.randomUUID(), UUID.randomUUID(), "Bœuf bourguignon")
+        );
+        when(redistributionService.getUserEarnings("testuser")).thenReturn(rows);
+
+        mockMvc.perform(get("/api/wallet/redistribution/earnings"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(2))
+            .andExpect(jsonPath("$[?(@.batchMonth=='2026-03')].totalCents").value(45))
+            .andExpect(jsonPath("$[?(@.batchMonth=='2026-03')].details.length()").value(2))
+            .andExpect(jsonPath("$[?(@.batchMonth=='2026-02')].totalCents").value(60));
+    }
+
+    @Test
+    void shouldReturnEmptyListWhenNoEarnings() throws Exception {
+        when(redistributionService.getUserEarnings("testuser")).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/wallet/redistribution/earnings"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.length()").value(0));
     }
 
 //    @Test

@@ -1,38 +1,35 @@
 package fr.uge.forkeat.presentation.web.controller;
 
+import fr.uge.forkeat.presentation.dto.redistribution.RedistributionChainEntryDTO;
+import fr.uge.forkeat.presentation.dto.superlike.PromotionFormDTO;
 import fr.uge.forkeat.presentation.web.dto.UserModerationRequest;
 import fr.uge.forkeat.service.*;
-import fr.uge.forkeat.service.model.user.*;
-import fr.uge.forkeat.service.port.PromotionSchedulingPort;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
+import fr.uge.forkeat.service.model.SortOrder;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.superlike.Promotion;
-import fr.uge.forkeat.service.model.SortOrder;
+import fr.uge.forkeat.service.model.user.CreateUserModerationAction;
+import fr.uge.forkeat.service.model.user.UserRegister;
+import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.port.PromotionSchedulingPort;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import fr.uge.forkeat.service.user.UserService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import fr.uge.forkeat.presentation.dto.superlike.PromotionFormDTO;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
-import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
-import java.time.temporal.ChronoUnit;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
-
-import fr.uge.forkeat.service.model.ReportStatus;
+import java.time.temporal.ChronoUnit;
 
 import static fr.uge.forkeat.presentation.ComputeSuspendedUntil.computeSuspendedUntil;
 
@@ -55,6 +52,7 @@ public class AdminWebController {
     private final RecipeReportService recipeReportService;
     private final UserReportService userReportService;
     private final UserModerationActionService userModerationActionService;
+    private final RedistributionService redistributionService;
 
     public AdminWebController(UserService userQueryService,
                               RecipeService recipeService,
@@ -63,10 +61,11 @@ public class AdminWebController {
                               UserRegistrationService userRegistrationService,
                               RecipeModerationActionService recipeModerationActionService,
                               PromotionService promotionService,
-                              PromotionSchedulingPort schedulingService,
                               RecipeReportService recipeReportService,
                               UserReportService userReportService,
-                              UserModerationActionService userModerationActionService) {
+                              UserModerationActionService userModerationActionService,
+                              PromotionSchedulingPort schedulingService,
+                              RedistributionService redistributionService) {
         this.userQueryService = userQueryService;
         this.recipeService = recipeService;
         this.platformWalletService = platformWalletService;
@@ -78,6 +77,7 @@ public class AdminWebController {
         this.recipeReportService = recipeReportService;
         this.userReportService = userReportService;
         this.userModerationActionService = userModerationActionService;
+        this.redistributionService = redistributionService;
     }
 
     @GetMapping
@@ -145,14 +145,28 @@ public class AdminWebController {
         }
     }
 
+    @GetMapping("/redistribution/chain")
+    @ResponseBody
+    public ResponseEntity<List<RedistributionChainEntryDTO>> getRedistributionChain(
+            @RequestParam UUID recipeId,
+            @RequestParam String month) {
+        var chain = redistributionService.getRedistributionChain(recipeId, month).stream()
+            .map(e -> new RedistributionChainEntryDTO(e.authorId().toString(), e.username(),
+                                                      e.recipeId().toString(), e.recipeTitle(), e.amountCents()))
+            .toList();
+        return ResponseEntity.ok(chain);
+    }
+
     @GetMapping("/wallets")
     public String wallets(Model model) {
         var benefitsWallet = platformWalletService.getWallet(PlatformWalletType.EARNINGS);
         var redistributionWallet = platformWalletService.getWallet(PlatformWalletType.REDISTRIBUTION);
         var transactions = platformWalletService.getTransactionHistory(SortOrder.DESC);
+        var redistributionSummary = redistributionService.getRedistributionSummary();
         model.addAttribute("benefitsWallet", benefitsWallet);
         model.addAttribute("redistributionWallet", redistributionWallet);
         model.addAttribute("walletTransactions", transactions);
+        model.addAttribute("redistributionSummary", redistributionSummary);
         model.addAttribute("pageTitle", "Porte-monnaies - Administration");
         return "admin/wallets";
     }

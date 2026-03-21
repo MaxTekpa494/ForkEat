@@ -319,7 +319,7 @@ public class RecipeService {
       }
 
       applyWalletMovements(wallet.id(), recipeId, pricing);
-      recipePersistence.superLikeRecipe(userId, recipeId, pricing.effectivePrice(), pricing.promotionId(), pricing.isBonusFree());
+      recipePersistence.superLikeRecipe(userId, recipeId, pricing.effectivePrice(), pricing.promotionId(), pricing.isBonusFree(), pricing.redistPart());
       walletPersistence.saveTransaction(new Transaction(UUID.randomUUID(), wallet.id(), null, pricing.effectivePrice(), TransactionType.SUPER_LIKE, Instant.now(), null, TransactionStatus.SUCCEEDED));
   }
 
