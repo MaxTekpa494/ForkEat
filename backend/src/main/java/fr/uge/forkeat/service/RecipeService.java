@@ -148,6 +148,7 @@ public class RecipeService {
       storageService.deleteImage(recipe.imageUrl());
       logger.info("Image deleted for recipe {}", id);
     }
+    recipePersistence.reparentVariants(id, recipe.parentId());
     recipePersistence.deleteById(id);
   }
 

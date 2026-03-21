@@ -244,6 +244,11 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
+    public void reparentVariants(UUID deletedId, UUID newParentId) {
+        recipeRepository.reparentVariants(deletedId, newParentId);
+    }
+
+    @Override
     public Recipe updateStatus(UUID id, RecipeStatus status) {
     Objects.requireNonNull(id);
     Objects.requireNonNull(status);
