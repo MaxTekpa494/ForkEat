@@ -89,6 +89,8 @@ public class RecipeModerationActionService {
             Instant.now(),
             reviewerId
         );
+        System.out.println(updated);
+        System.out.println(updated.status());
         recipeReportPersistence.save(updated);
     }
 

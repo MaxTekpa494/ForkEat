@@ -1,27 +1,20 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
-import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jUserRepository;
 import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jUserRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.SuperLikeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.SuperLikeRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.entity.SuperLikeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
-import fr.uge.forkeat.service.exception.InsufficientFundsException;
-import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
-import fr.uge.forkeat.service.model.user.*;
 import fr.uge.forkeat.service.model.user.projection.UserPublicProfile;
 import fr.uge.forkeat.service.model.user.projection.UserSocialStats;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Component;
-import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.List;
@@ -107,37 +100,6 @@ public class UserPersistenceAdapter implements UserPersistence {
 	@Override
 	public boolean existsById(UUID userId) {
 		return userRepository.existsById(userId);
-	}
-
-	@Override
-	public void banUser(UUID userId) {
-		Objects.requireNonNull(userId);
-		var user = userRepository.findById(userId)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-		user.setStatus(UserStatus.BANNED);
-		userRepository.save(user);
-	}
-
-	@Override
-	public void suspendUser(UUID userId, Instant suspendedUntil) {
-		Objects.requireNonNull(userId);
-		Objects.requireNonNull(suspendedUntil);
-		if (!suspendedUntil.isAfter(Instant.now())) {
-			throw new IllegalArgumentException("suspendedUntil must be in the future");
-		}
-		var user = userRepository.findById(userId)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-		user.setStatus(UserStatus.SUSPENDED);
-		userRepository.save(user);
-	}
-
-	@Override
-	public void unbanUser(UUID userId) {
-		Objects.requireNonNull(userId);
-		var user = userRepository.findById(userId)
-						.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
-		user.setStatus(UserStatus.ACTIVE);
-		userRepository.save(user);
 	}
 
 	@Override

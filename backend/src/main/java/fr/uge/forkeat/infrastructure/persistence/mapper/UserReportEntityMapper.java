@@ -25,13 +25,16 @@ public final class UserReportEntityMapper {
         );
     }
 
-    public static UserReportEntity toEntity(UserReport report, UserEntity reportedUser, UserEntity reporter) {
+    public static UserReportEntity toEntity(UserReport report, UserEntity reportedUser, UserEntity reporter, UserEntity reviewedBy) {
         var entity = new UserReportEntity();
+        entity.setId(report.id());
         entity.setReportedUser(reportedUser);
         entity.setReporter(reporter);
         entity.setReportType(report.reportType());
         entity.setStatus(report.status());
         entity.setJustification(report.justification());
+        entity.setReviewedAt(report.reviewedAt());
+        entity.setReviewedBy(reviewedBy);
         return entity;
     }
 

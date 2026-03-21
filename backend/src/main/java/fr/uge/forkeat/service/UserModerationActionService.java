@@ -6,15 +6,15 @@ import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.user.CreateUserModerationAction;
 import fr.uge.forkeat.service.model.user.UserModerationAction;
 import fr.uge.forkeat.service.model.user.UserModerationActionType;
-import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.model.user.UserReport;
 import fr.uge.forkeat.service.persistence.UserModerationActionPersistence;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import fr.uge.forkeat.service.persistence.UserReportPersistence;
 import fr.uge.forkeat.service.port.UserIdentityPort;
-import fr.uge.forkeat.service.user.UserService;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -29,8 +29,7 @@ public class UserModerationActionService {
     public UserModerationActionService(UserModerationActionPersistence moderationActionPersistence,
                                        UserPersistence userPersistence,
                                        UserReportPersistence userReportPersistence,
-                                       UserIdentityPort userIdentityPort,
-                                       UserService userService) {
+                                       UserIdentityPort userIdentityPort) {
         this.moderationActionPersistence = moderationActionPersistence;
         this.userPersistence = userPersistence;
         this.userReportPersistence = userReportPersistence;
@@ -40,6 +39,9 @@ public class UserModerationActionService {
     @Transactional
     public UserModerationAction moderateUser(CreateUserModerationAction command) {
         Objects.requireNonNull(command);
+        if (command.suspendedUntil() != null && !command.suspendedUntil().isAfter(Instant.now())) {
+            throw new IllegalArgumentException("suspendedUntil must be in the future");
+        }
         if(!userPersistence.existsById(command.userId())) {
             throw new ResourceNotFoundException("User not found with id : " + command.userId());
         }
@@ -67,25 +69,49 @@ public class UserModerationActionService {
                 command.relatedReportId()
         );
         var moderationActionRow = moderationActionPersistence.save(moderationAction);
-        ReportStatus reportStatus = null;
-        switch(command.moderationActionType()) {
-          case SUSPENDED -> {
-              reportStatus = ReportStatus.VALIDATED;
-              userPersistence.suspendUser(command.userId(), command.suspendedUntil());
-          }
-          case BANNED -> {
-              reportStatus = ReportStatus.VALIDATED;
-              userPersistence.banUser(command.userId());
-          }
-          case WARNING -> {
-              reportStatus = ReportStatus.VALIDATED;
-          }
-          case DISMISSED -> {
-              reportStatus = ReportStatus.DISMISSED;
-          }
-        }
-        userReportPersistence.updateStatus(command.relatedReportId(), moderatorId, reportStatus);
+
+        var reportStatus = handleUserModeration(command);
+        updateReportStatus(command.relatedReportId(), moderatorId, reportStatus);
         return moderationActionRow;
+    }
+
+    private ReportStatus handleUserModeration(CreateUserModerationAction command) {
+        return switch(command.moderationActionType()) {
+            case SUSPENDED -> {
+                var user = userPersistence.findById(command.userId())
+                        .orElseThrow(() -> new ResourceNotFoundException("User not found with id : " + command.userId()));
+                var suspendedUser = user.suspend();
+                userPersistence.updateUser(suspendedUser);
+                yield ReportStatus.VALIDATED;
+            }
+            case BANNED -> {
+                var user = userPersistence.findById(command.userId())
+                        .orElseThrow(() -> new ResourceNotFoundException("User not found with id : " + command.userId()));
+                var bannedUser = user.ban();
+                userPersistence.updateUser(bannedUser);
+                yield ReportStatus.VALIDATED;
+            }
+            case WARNING -> ReportStatus.VALIDATED;
+            case DISMISSED -> ReportStatus.DISMISSED;
+        };
+    }
+
+    private void updateReportStatus(UUID reportId, UUID reviewerId, ReportStatus status) {
+        var report = userReportPersistence.findById(reportId)
+            .orElseThrow(() -> new ResourceNotFoundException("User report not found with id : " + reportId));
+        var updated = new UserReport(
+            report.id(),
+            report.reportedUserId(),
+            report.reporterId(),
+            report.reportType(),
+            status,
+            report.justification(),
+            report.createdAt(),
+            report.updatedAt(),
+            Instant.now(),
+            reviewerId
+        );
+        userReportPersistence.save(updated);
     }
 
     public List<UserModerationAction> findByType(UserModerationActionType type) {

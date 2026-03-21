@@ -41,8 +41,11 @@ public final class RecipeReportPersistenceAdapter implements RecipeReportPersist
         var reporter = report.reporterId() != null
                 ? userRepository.getReferenceById(report.reporterId())
                 : null;
+        var reviewer = report.reviewedById() != null
+                ? userRepository.getReferenceById(report.reviewedById())
+                : null;
 
-        var entity = RecipeReportEntityMapper.toEntity(report, recipe, reporter);
+        var entity = RecipeReportEntityMapper.toEntity(report, recipe, reporter, reviewer);
         var saved = recipeReportRepository.save(entity);
         return RecipeReportEntityMapper.toDomain(saved);
     }

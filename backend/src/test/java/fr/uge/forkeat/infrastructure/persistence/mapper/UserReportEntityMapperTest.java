@@ -153,34 +153,69 @@ class UserReportEntityMapperTest {
     class ToEntity {
 
         @Test
-        void shouldConvertDomainToEntity() {
+        void shouldConvertDomainToEntity_AllFields() {
+            var id = UUID.randomUUID();
             var report = new UserReport(
-                    UUID.randomUUID(), reportedUserEntity.getId(), reporterEntity.getId(),
-                    UserReportType.INAPPROPRIATE_CONTENT, ReportStatus.PENDING,
-                    "Contenu inapproprié", now, now, null, null
+                    id, reportedUserEntity.getId(), reporterEntity.getId(),
+                    UserReportType.INAPPROPRIATE_CONTENT, ReportStatus.VALIDATED,
+                    "Contenu inapproprié", now, now, now, reviewerEntity.getId()
             );
 
-            var entity = UserReportEntityMapper.toEntity(report, reportedUserEntity, reporterEntity);
+            var entity = UserReportEntityMapper.toEntity(report, reportedUserEntity, reporterEntity, reviewerEntity);
 
             assertNotNull(entity);
+            assertEquals(id, entity.getId());
             assertEquals(reportedUserEntity, entity.getReportedUser());
             assertEquals(reporterEntity, entity.getReporter());
             assertEquals(UserReportType.INAPPROPRIATE_CONTENT, entity.getReportType());
-            assertEquals(ReportStatus.PENDING, entity.getStatus());
+            assertEquals(ReportStatus.VALIDATED, entity.getStatus());
             assertEquals("Contenu inapproprié", entity.getJustification());
+            assertEquals(now, entity.getReviewedAt());
+            assertEquals(reviewerEntity, entity.getReviewedBy());
         }
 
         @Test
-        void shouldSetNullReporter_WhenReporterIsNull() {
+        void shouldConvertDomainToEntity_WithNullReviewedByAndReviewedAt() {
+            var id = UUID.randomUUID();
             var report = new UserReport(
-                    UUID.randomUUID(), reportedUserEntity.getId(), null,
+                    id, reportedUserEntity.getId(), reporterEntity.getId(),
                     UserReportType.SPAM, ReportStatus.PENDING,
                     "Justification", now, now, null, null
             );
 
-            var entity = UserReportEntityMapper.toEntity(report, reportedUserEntity, null);
+            var entity = UserReportEntityMapper.toEntity(report, reportedUserEntity, reporterEntity, null);
 
+            assertNotNull(entity);
+            assertEquals(id, entity.getId());
+            assertEquals(reportedUserEntity, entity.getReportedUser());
+            assertEquals(reporterEntity, entity.getReporter());
+            assertEquals(UserReportType.SPAM, entity.getReportType());
+            assertEquals(ReportStatus.PENDING, entity.getStatus());
+            assertEquals("Justification", entity.getJustification());
+            assertNull(entity.getReviewedAt());
+            assertNull(entity.getReviewedBy());
+        }
+
+        @Test
+        void shouldSetNullReporter_WhenReporterIsNull() {
+            var id = UUID.randomUUID();
+            var report = new UserReport(
+                    id, reportedUserEntity.getId(), null,
+                    UserReportType.SPAM, ReportStatus.PENDING,
+                    "Justification", now, now, null, null
+            );
+
+            var entity = UserReportEntityMapper.toEntity(report, reportedUserEntity, null, null);
+
+            assertNotNull(entity);
+            assertEquals(id, entity.getId());
+            assertEquals(reportedUserEntity, entity.getReportedUser());
             assertNull(entity.getReporter());
+            assertEquals(UserReportType.SPAM, entity.getReportType());
+            assertEquals(ReportStatus.PENDING, entity.getStatus());
+            assertEquals("Justification", entity.getJustification());
+            assertNull(entity.getReviewedAt());
+            assertNull(entity.getReviewedBy());
         }
     }
 }

@@ -25,13 +25,16 @@ public final class RecipeReportEntityMapper {
         );
     }
 
-    public static RecipeReportEntity toEntity(RecipeReport report, RecipeEntity recipe, UserEntity reporter) {
+    public static RecipeReportEntity toEntity(RecipeReport report, RecipeEntity recipe, UserEntity reporter, UserEntity reviewedBy) {
         var entity = new RecipeReportEntity();
+        entity.setId(report.id());
         entity.setRecipe(recipe);
         entity.setReporter(reporter);
         entity.setReportType(report.reportType());
         entity.setStatus(report.status());
         entity.setJustification(report.justification());
+        entity.setReviewedAt(report.reviewedAt());
+        entity.setReviewedBy(reviewedBy);
         return entity;
     }
 

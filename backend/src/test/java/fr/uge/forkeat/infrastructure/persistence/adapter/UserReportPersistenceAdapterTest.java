@@ -237,69 +237,6 @@ class UserReportPersistenceAdapterTest {
     }
 
     @Nested
-    class UpdateStatus {
-        @Test
-        void shouldUpdateStatusSuccessfully() {
-            UUID reportId = UUID.randomUUID();
-            UUID reviewerId = UUID.randomUUID();
-            var entity = createReportEntity();
-            entity.setId(reportId);
-            var reviewer = new UserEntity();
-            reviewer.setId(reviewerId);
-            when(userReportRepository.findById(reportId)).thenReturn(Optional.of(entity));
-            when(userRepository.findById(reviewerId)).thenReturn(Optional.of(reviewer));
-            when(userReportRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-            var result = adapter.updateStatus(reportId, reviewerId, ReportStatus.VALIDATED);
-
-            assertNotNull(result);
-            assertEquals(ReportStatus.VALIDATED, result.status());
-            assertEquals(reviewerId, entity.getReviewedBy().getId());
-            assertNotNull(entity.getReviewedAt());
-        }
-
-        @Test
-        void shouldThrow_WhenReportNotFound() {
-            UUID reportId = UUID.randomUUID();
-            UUID reviewerId = UUID.randomUUID();
-            when(userReportRepository.findById(reportId)).thenReturn(Optional.empty());
-            assertThrows(fr.uge.forkeat.service.exception.ResourceNotFoundException.class,
-                () -> adapter.updateStatus(reportId, reviewerId, ReportStatus.DISMISSED));
-        }
-
-        @Test
-        void shouldThrow_WhenReviewerNotFound() {
-            UUID reportId = UUID.randomUUID();
-            UUID reviewerId = UUID.randomUUID();
-            var entity = createReportEntity();
-            entity.setId(reportId);
-            when(userReportRepository.findById(reportId)).thenReturn(Optional.of(entity));
-            when(userRepository.findById(reviewerId)).thenReturn(Optional.empty());
-            assertThrows(fr.uge.forkeat.service.exception.ResourceNotFoundException.class,
-                () -> adapter.updateStatus(reportId, reviewerId, ReportStatus.DISMISSED));
-        }
-
-        @Test
-        void shouldThrow_WhenReportIdIsNull() {
-            UUID reviewerId = UUID.randomUUID();
-            assertThrows(NullPointerException.class, () -> adapter.updateStatus(null, reviewerId, ReportStatus.PENDING));
-        }
-
-        @Test
-        void shouldThrow_WhenReviewerIdIsNull() {
-            UUID reportId = UUID.randomUUID();
-            assertThrows(NullPointerException.class, () -> adapter.updateStatus(reportId, null, ReportStatus.PENDING));
-        }
-
-        @Test
-        void shouldThrow_WhenStatusIsNull() {
-            UUID reportId = UUID.randomUUID();
-            UUID reviewerId = UUID.randomUUID();
-            assertThrows(NullPointerException.class, () -> adapter.updateStatus(reportId, reviewerId, null));
-        }
-    }
-
-    @Nested
     class GetReportsToModerateWithReportedUserAndReporter {
         @Test
         void shouldReturnReportsToModerate() {
@@ -390,6 +327,29 @@ class UserReportPersistenceAdapterTest {
         }
     }
 
+    @Nested
+    class FindById {
+        @Test
+        void shouldReturnReport_WhenExists() {
+            var reportId = UUID.randomUUID();
+            var entity = createUserReportEntity(reportId);
+            when(userReportRepository.findById(reportId)).thenReturn(Optional.of(entity));
+            var result = adapter.findById(reportId);
+            assertTrue(result.isPresent());
+            assertEquals(reportId, result.get().id());
+            verify(userReportRepository).findById(reportId);
+        }
+
+        @Test
+        void shouldReturnEmpty_WhenNotExists() {
+            var reportId = UUID.randomUUID();
+            when(userReportRepository.findById(reportId)).thenReturn(Optional.empty());
+            var result = adapter.findById(reportId);
+            assertTrue(result.isEmpty());
+            verify(userReportRepository).findById(reportId);
+        }
+    }
+
     private static UserReportDetailsView createUserReportDetailsView(UserReportDetails details) {
         return new UserReportDetailsView() {
             @Override
@@ -427,5 +387,16 @@ class UserReportPersistenceAdapterTest {
                 return details.createdAt();
             }
         };
+    }
+
+    private UserReportEntity createUserReportEntity(UUID reportId) {
+        var entity = new UserReportEntity();
+        entity.setId(reportId);
+        entity.setReportedUser(reportedUser);
+        entity.setReporter(reporter);
+        entity.setReportType(UserReportType.SPAM);
+        entity.setStatus(ReportStatus.PENDING);
+        entity.setJustification("Justification");
+        return entity;
     }
 }

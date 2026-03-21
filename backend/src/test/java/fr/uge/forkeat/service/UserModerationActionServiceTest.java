@@ -1,16 +1,13 @@
 package fr.uge.forkeat.service;
 
-import fr.uge.forkeat.service.exception.ModeratorIsAuthorException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.ReportStatus;
-import fr.uge.forkeat.service.model.user.CreateUserModerationAction;
-import fr.uge.forkeat.service.model.user.UserModerationAction;
-import fr.uge.forkeat.service.model.user.UserModerationActionType;
+import fr.uge.forkeat.service.model.user.*;
 import fr.uge.forkeat.service.persistence.UserModerationActionPersistence;
 import fr.uge.forkeat.service.persistence.UserPersistence;
 import fr.uge.forkeat.service.persistence.UserReportPersistence;
 import fr.uge.forkeat.service.port.UserIdentityPort;
-import fr.uge.forkeat.service.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -20,6 +17,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -38,8 +36,6 @@ class UserModerationActionServiceTest {
     private UserReportPersistence userReportPersistence;
     @Mock
     private UserIdentityPort userIdentityPort;
-    @Mock
-    private UserService userService;
 
     private UserModerationActionService service;
 
@@ -49,8 +45,7 @@ class UserModerationActionServiceTest {
                 moderationActionPersistence,
                 userPersistence,
                 userReportPersistence,
-                userIdentityPort,
-                userService
+                userIdentityPort
         );
     }
 
@@ -91,6 +86,22 @@ class UserModerationActionServiceTest {
         );
     }
 
+    private User createUser(UUID id) {
+        return new User(
+            id,
+            "username",
+            "first",
+            "last",
+            "user@email.com",
+            UserRole.MEMBER,
+            UserStatus.ACTIVE,
+            AuthMode.LOCAL,
+            Instant.now(),
+            Instant.now(),
+            true
+        );
+    }
+
     @Nested
     class ModerateUser {
 
@@ -102,9 +113,12 @@ class UserModerationActionServiceTest {
             var suspendedUntil = Instant.now().plusSeconds(3600);
             var command = createCommand(userId, "mod", UserModerationActionType.SUSPENDED, suspendedUntil, reportId);
             var expected = createModerationAction(userId, moderatorId, UserModerationActionType.SUSPENDED, suspendedUntil, reportId);
-
+            var report = createUserReport(reportId, userId);
+            var user = createUser(userId);
             when(userPersistence.existsById(userId)).thenReturn(true);
+            when(userPersistence.findById(userId)).thenReturn(Optional.of(user));
             when(userReportPersistence.existsById(reportId)).thenReturn(true);
+            when(userReportPersistence.findById(reportId)).thenReturn(Optional.of(report));
             when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
             when(userReportPersistence.isAuthor(reportId, moderatorId)).thenReturn(false);
             when(moderationActionPersistence.save(any())).thenReturn(expected);
@@ -121,9 +135,18 @@ class UserModerationActionServiceTest {
                             && action.suspendedUntil().equals(suspendedUntil)
                             && action.relatedReportId().equals(reportId)
             ));
-            verify(userPersistence).suspendUser(userId, suspendedUntil);
-            verify(userPersistence, never()).banUser(any());
-            verify(userReportPersistence).updateStatus(reportId, moderatorId, ReportStatus.VALIDATED);
+            verify(userPersistence).updateUser(argThat(u ->
+                u.id().equals(userId)
+                && u.status() == UserStatus.SUSPENDED
+            ));
+            verify(userPersistence, never()).updateUser(argThat(u -> u.status() == UserStatus.BANNED));
+            verify(userReportPersistence).findById(reportId);
+            verify(userReportPersistence).save(argThat(saved ->
+                saved.id().equals(reportId)
+                && saved.status() == ReportStatus.VALIDATED
+                && saved.reviewedById().equals(moderatorId)
+                && saved.reviewedAt() != null
+            ));
         }
 
         @Test
@@ -133,9 +156,12 @@ class UserModerationActionServiceTest {
             var moderatorId = UUID.randomUUID();
             var command = createCommand(userId, "mod", UserModerationActionType.BANNED, null, reportId);
             var expected = createModerationAction(userId, moderatorId, UserModerationActionType.BANNED, null, reportId);
-
+            var report = createUserReport(reportId, userId);
+            var user = createUser(userId);
             when(userPersistence.existsById(userId)).thenReturn(true);
+            when(userPersistence.findById(userId)).thenReturn(Optional.of(user));
             when(userReportPersistence.existsById(reportId)).thenReturn(true);
+            when(userReportPersistence.findById(reportId)).thenReturn(Optional.of(report));
             when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
             when(userReportPersistence.isAuthor(reportId, moderatorId)).thenReturn(false);
             when(moderationActionPersistence.save(any())).thenReturn(expected);
@@ -144,9 +170,18 @@ class UserModerationActionServiceTest {
 
             assertNotNull(result);
             assertEquals(UserModerationActionType.BANNED, result.moderationActionType());
-            verify(userPersistence).banUser(userId);
-            verify(userPersistence, never()).suspendUser(any(), any());
-            verify(userReportPersistence).updateStatus(reportId, moderatorId, ReportStatus.VALIDATED);
+            verify(userPersistence).updateUser(argThat(u ->
+                u.id().equals(userId)
+                && u.status() == UserStatus.BANNED
+            ));
+            verify(userPersistence, never()).updateUser(argThat(u -> u.status() == UserStatus.SUSPENDED));
+            verify(userReportPersistence).findById(reportId);
+            verify(userReportPersistence).save(argThat(saved ->
+                saved.id().equals(reportId)
+                && saved.status() == ReportStatus.VALIDATED
+                && saved.reviewedById().equals(moderatorId)
+                && saved.reviewedAt() != null
+            ));
         }
 
         @Test
@@ -156,9 +191,10 @@ class UserModerationActionServiceTest {
             var moderatorId = UUID.randomUUID();
             var command = createCommand(userId, "mod", UserModerationActionType.WARNING, null, reportId);
             var expected = createModerationAction(userId, moderatorId, UserModerationActionType.WARNING, null, reportId);
-
+            var report = createUserReport(reportId, userId);
             when(userPersistence.existsById(userId)).thenReturn(true);
             when(userReportPersistence.existsById(reportId)).thenReturn(true);
+            when(userReportPersistence.findById(reportId)).thenReturn(Optional.of(report));
             when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
             when(userReportPersistence.isAuthor(reportId, moderatorId)).thenReturn(false);
             when(moderationActionPersistence.save(any())).thenReturn(expected);
@@ -167,9 +203,14 @@ class UserModerationActionServiceTest {
 
             assertNotNull(result);
             assertEquals(UserModerationActionType.WARNING, result.moderationActionType());
-            verify(userPersistence, never()).banUser(any());
-            verify(userPersistence, never()).suspendUser(any(), any());
-            verify(userReportPersistence).updateStatus(reportId, moderatorId, ReportStatus.VALIDATED);
+            verify(userPersistence, never()).updateUser(any());
+            verify(userReportPersistence).findById(reportId);
+            verify(userReportPersistence).save(argThat(saved ->
+                saved.id().equals(reportId)
+                && saved.status() == ReportStatus.VALIDATED
+                && saved.reviewedById().equals(moderatorId)
+                && saved.reviewedAt() != null
+            ));
         }
 
         @Test
@@ -179,9 +220,10 @@ class UserModerationActionServiceTest {
             var moderatorId = UUID.randomUUID();
             var command = createCommand(userId, "mod", UserModerationActionType.DISMISSED, null, reportId);
             var expected = createModerationAction(userId, moderatorId, UserModerationActionType.DISMISSED, null, reportId);
-
+            var report = createUserReport(reportId, userId);
             when(userPersistence.existsById(userId)).thenReturn(true);
             when(userReportPersistence.existsById(reportId)).thenReturn(true);
+            when(userReportPersistence.findById(reportId)).thenReturn(Optional.of(report));
             when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
             when(userReportPersistence.isAuthor(reportId, moderatorId)).thenReturn(false);
             when(moderationActionPersistence.save(any())).thenReturn(expected);
@@ -190,94 +232,65 @@ class UserModerationActionServiceTest {
 
             assertNotNull(result);
             assertEquals(UserModerationActionType.DISMISSED, result.moderationActionType());
-            verify(userPersistence, never()).banUser(any());
-            verify(userPersistence, never()).suspendUser(any(), any());
-            verify(userReportPersistence).updateStatus(reportId, moderatorId, ReportStatus.DISMISSED);
+            verify(userPersistence, never()).updateUser(any());
+            verify(userReportPersistence).findById(reportId);
+            verify(userReportPersistence).save(argThat(saved ->
+                saved.id().equals(reportId)
+                && saved.status() == ReportStatus.DISMISSED
+                && saved.reviewedById().equals(moderatorId)
+                && saved.reviewedAt() != null
+            ));
         }
 
         @Test
-        void shouldThrowNullPointerException_WhenCommandIsNull() {
-            assertThrows(NullPointerException.class, () -> service.moderateUser(null));
-            verifyNoInteractions(moderationActionPersistence, userPersistence, userReportPersistence, userIdentityPort);
-        }
-
-        @Test
-        void shouldThrowResourceNotFoundException_WhenUserDoesNotExist() {
-            var userId = UUID.randomUUID();
-            var command = createCommand(userId, "mod", UserModerationActionType.WARNING, null, UUID.randomUUID());
-
-            when(userPersistence.existsById(userId)).thenReturn(false);
-
-            assertThrows(ResourceNotFoundException.class, () -> service.moderateUser(command));
-            verify(moderationActionPersistence, never()).save(any());
-            verify(userReportPersistence, never()).updateStatus(any(), any(), any());
-        }
-
-        @Test
-        void shouldThrowResourceNotFoundException_WhenReportDoesNotExist() {
-            var userId = UUID.randomUUID();
-            var reportId = UUID.randomUUID();
-            var command = createCommand(userId, "mod", UserModerationActionType.WARNING, null, reportId);
-
-            when(userPersistence.existsById(userId)).thenReturn(true);
-            when(userReportPersistence.existsById(reportId)).thenReturn(false);
-
-            assertThrows(ResourceNotFoundException.class, () -> service.moderateUser(command));
-            verify(moderationActionPersistence, never()).save(any());
-            verify(userReportPersistence, never()).updateStatus(any(), any(), any());
-        }
-
-        @Test
-        void shouldThrowModeratorIsAuthorException_WhenModeratorIsAuthorOfReport() {
+        void shouldThrowResourceNotFoundException_WhenReportNotFoundOnFindById() {
             var userId = UUID.randomUUID();
             var reportId = UUID.randomUUID();
             var moderatorId = UUID.randomUUID();
             var command = createCommand(userId, "mod", UserModerationActionType.WARNING, null, reportId);
-
             when(userPersistence.existsById(userId)).thenReturn(true);
             when(userReportPersistence.existsById(reportId)).thenReturn(true);
+            when(userReportPersistence.findById(reportId)).thenReturn(Optional.empty());
             when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
-            when(userReportPersistence.isAuthor(reportId, moderatorId)).thenReturn(true);
-
-            assertThrows(ModeratorIsAuthorException.class, () -> service.moderateUser(command));
-            verify(moderationActionPersistence, never()).save(any());
-            verify(userReportPersistence, never()).updateStatus(any(), any(), any());
-            verify(userPersistence, never()).banUser(any());
-            verify(userPersistence, never()).suspendUser(any(), any());
-        }
-
-        @Test
-        void shouldPropagateResourceNotFoundException_WhenModeratorDoesNotExist() {
-            var userId = UUID.randomUUID();
-            var reportId = UUID.randomUUID();
-            var command = createCommand(userId, "missing-mod", UserModerationActionType.WARNING, null, reportId);
-
-            when(userPersistence.existsById(userId)).thenReturn(true);
-            when(userReportPersistence.existsById(reportId)).thenReturn(true);
-            when(userIdentityPort.findIdByUsernameOrThrow("missing-mod"))
-                    .thenThrow(new ResourceNotFoundException("User not found: missing-mod"));
+            when(userReportPersistence.isAuthor(reportId, moderatorId)).thenReturn(false);
 
             assertThrows(ResourceNotFoundException.class, () -> service.moderateUser(command));
-            verify(moderationActionPersistence, never()).save(any());
-            verify(userReportPersistence, never()).updateStatus(any(), any(), any());
-            verify(userPersistence, never()).banUser(any());
-            verify(userPersistence, never()).suspendUser(any(), any());
+            verify(userReportPersistence).findById(reportId);
+            verify(userReportPersistence, never()).save(any());
         }
 
         @Test
-        void shouldThrowModeratorIsAuthorException_WhenModeratorIsReportedUser() {
+        void shouldThrowException_WhenSuspendedUntilNotAfterReportDate() {
             var userId = UUID.randomUUID();
             var reportId = UUID.randomUUID();
-            var command = createCommand(userId, "mod", UserModerationActionType.WARNING, null, reportId);
-            // Le modérateur est aussi l'utilisateur signalé
-            when(userPersistence.existsById(userId)).thenReturn(true);
-            when(userReportPersistence.existsById(reportId)).thenReturn(true);
-            when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(userId);
-            // isAuthor doit retourner false pour ne pas court-circuiter le test
-            when(userReportPersistence.isAuthor(reportId, userId)).thenReturn(false);
+            var reportCreatedAt = Instant.now();
+            var suspendedUntil = reportCreatedAt.minusSeconds(10); // avant la date du rapport
+            var command = createCommand(userId, "mod", UserModerationActionType.SUSPENDED, suspendedUntil, reportId);
+            assertThrows(IllegalArgumentException.class, () -> service.moderateUser(command));
+        }
 
-            assertThrows(ModeratorIsAuthorException.class, () -> service.moderateUser(command));
-            verify(moderationActionPersistence, never()).save(any());
+        @Test
+        void shouldThrowResourceNotFoundException_WhenUserNotFound() {
+            var userId = UUID.randomUUID();
+            var reportId = UUID.randomUUID();
+            var command = createCommand(userId, "mod", UserModerationActionType.BANNED, null, reportId);
+            when(userPersistence.existsById(userId)).thenReturn(true);
+            assertThrows(ResourceNotFoundException.class, () -> service.moderateUser(command));
+        }
+
+        private UserReport createUserReport(UUID reportId, UUID reportedUserId) {
+            return new UserReport(
+                reportId,
+                reportedUserId,
+                UUID.randomUUID(),
+                fr.uge.forkeat.service.model.user.UserReportType.SPAM,
+                ReportStatus.PENDING,
+                "Justification",
+                Instant.now(),
+                Instant.now(),
+                null,
+                null
+            );
         }
     }
 

@@ -3,7 +3,6 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 import fr.uge.forkeat.infrastructure.persistence.mapper.UserReportEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserReportRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.user.UserReport;
@@ -13,9 +12,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -38,10 +37,20 @@ public final class UserReportPersistenceAdapter implements UserReportPersistence
         var reporter = report.reporterId() != null
                 ? userRepository.getReferenceById(report.reporterId())
                 : null;
+        var reviewer = report.reviewedById() != null
+                ? userRepository.getReferenceById(report.reviewedById())
+                : null;
 
-        var entity = UserReportEntityMapper.toEntity(report, reportedUser, reporter);
+        var entity = UserReportEntityMapper.toEntity(report, reportedUser, reporter, reviewer);
         var saved = userReportRepository.save(entity);
         return UserReportEntityMapper.toDomain(saved);
+    }
+
+    @Override
+    public Optional<UserReport> findById(UUID userReportId) {
+        Objects.requireNonNull(userReportId);
+        return userReportRepository.findById(userReportId)
+                .map(UserReportEntityMapper::toDomain);
     }
 
     @Override
@@ -72,21 +81,6 @@ public final class UserReportPersistenceAdapter implements UserReportPersistence
     }
 
     @Override
-    public UserReport updateStatus(UUID userReportId, UUID reviewerId, ReportStatus status) {
-        Objects.requireNonNull(userReportId);
-        Objects.requireNonNull(reviewerId);
-        Objects.requireNonNull(status);
-        var userReportEntity = userReportRepository.findById(userReportId)
-                .orElseThrow(() -> new ResourceNotFoundException("Related report id not found : " + userReportId));
-        var reviewerEntity = userRepository.findById(reviewerId)
-                .orElseThrow(() -> new ResourceNotFoundException("User not found with id : " + reviewerId));
-        userReportEntity.setReviewedBy(reviewerEntity);
-        userReportEntity.setReviewedAt(Instant.now());
-        userReportEntity.setStatus(status);
-        return UserReportEntityMapper.toDomain(userReportRepository.save(userReportEntity));
-    }
-
-    @Override
     public boolean existsById(UUID userReportId) {
         Objects.requireNonNull(userReportId);
         return userReportRepository.existsById(userReportId);
@@ -105,4 +99,5 @@ public final class UserReportPersistenceAdapter implements UserReportPersistence
         Objects.requireNonNull(reporterId);
         return userReportRepository.existsByReportedUserIdAndReporterId(reportedUserId, reporterId);
     }
+
 }
