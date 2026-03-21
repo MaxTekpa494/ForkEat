@@ -7,7 +7,6 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeRepor
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeReportRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.RecipeReport;
@@ -212,50 +211,6 @@ class RecipeReportPersistenceAdapterTest {
     }
 
     @Nested
-    class UpdateStatus {
-
-        @Test
-        void shouldUpdateStatus() {
-            var reportId = UUID.randomUUID();
-            var reviewerId = UUID.randomUUID();
-            var entity = createReportEntity();
-            var reviewer = new UserEntity();
-            reviewer.setId(reviewerId);
-            when(recipeReportRepository.findById(reportId)).thenReturn(Optional.of(entity));
-            when(userRepository.findById(reviewerId)).thenReturn(Optional.of(reviewer));
-            when(recipeReportRepository.save(any(RecipeReportEntity.class))).thenReturn(entity);
-
-            var result = adapter.updateStatus(reportId, reviewerId, ReportStatus.VALIDATED);
-
-            assertNotNull(result);
-            assertEquals(ReportStatus.VALIDATED, entity.getStatus());
-            verify(recipeReportRepository).findById(reportId);
-            verify(userRepository).findById(reviewerId);
-            verify(recipeReportRepository).save(entity);
-        }
-
-        @Test
-        void shouldThrowException_WhenReportNotFound() {
-            var reportId = UUID.randomUUID();
-            var reviewerId = UUID.randomUUID();
-            when(recipeReportRepository.findById(reportId)).thenReturn(java.util.Optional.empty());
-
-            assertThrows(ResourceNotFoundException.class, () -> adapter.updateStatus(reportId, reviewerId, ReportStatus.VALIDATED));
-        }
-
-        @Test
-        void shouldThrowException_WhenReviewerNotFound() {
-            var reportId = UUID.randomUUID();
-            var reviewerId = UUID.randomUUID();
-            var entity = createReportEntity();
-            when(recipeReportRepository.findById(reportId)).thenReturn(java.util.Optional.of(entity));
-            when(userRepository.findById(reviewerId)).thenReturn(java.util.Optional.empty());
-
-            assertThrows(ResourceNotFoundException.class, () -> adapter.updateStatus(reportId, reviewerId, ReportStatus.VALIDATED));
-        }
-    }
-
-    @Nested
     class GetReportsToModerateWithRecipeAndReporter {
         @Test
         void shouldReturnReportsToModerate() {
@@ -312,17 +267,6 @@ class RecipeReportPersistenceAdapterTest {
             int page = 0;
             int size = 10;
             var pageable = PageRequest.of(page, size, Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
-            var details = new RecipeReportDetails(
-                UUID.randomUUID(),
-                recipe.getId(),
-                "Tarte aux pommes",
-                "image.jpg",
-                "reporter",
-                "SPAM",
-                "Justification",
-                now
-            );
-            var view = createRecipeReportDetailsView(details);
             recipe.setAuthor(new UserEntity());
             recipe.getAuthor().setId(moderatorId);
             Page<RecipeReportDetailsView> pageResult = new PageImpl<>(List.of(), pageable, 1);
@@ -365,12 +309,34 @@ class RecipeReportPersistenceAdapterTest {
             var result = adapter.getReportsToModerateWithRecipeAndReporter(moderatorId, size, page);
 
             // Ici, le mock retourne un résultat, mais la vraie logique filtrerait ce cas
-            // On vérifie que l'appel au repository est correct
+            // On vérifie que l'appel au repository est correct.
             assertNotNull(result);
             // En vrai, il faudrait un test d'intégration pour vérifier le filtrage
             verify(recipeReportRepository).findRecipeReportsByStatusAndNotReporterIdWithRecipeAndReporter(
                     eq(ReportStatus.PENDING), eq(moderatorId), eq(pageable)
             );
+        }
+    }
+
+    @Nested
+    class FindById {
+        @Test
+        void shouldReturnReport_WhenExists() {
+            var entity = createReportEntity();
+            when(recipeReportRepository.findById(entity.getId())).thenReturn(Optional.of(entity));
+            var result = adapter.findById(entity.getId());
+            assertTrue(result.isPresent());
+            assertEquals(entity.getId(), result.get().id());
+            verify(recipeReportRepository).findById(entity.getId());
+        }
+
+        @Test
+        void shouldReturnEmpty_WhenNotExists() {
+            UUID id = UUID.randomUUID();
+            when(recipeReportRepository.findById(id)).thenReturn(Optional.empty());
+            var result = adapter.findById(id);
+            assertTrue(result.isEmpty());
+            verify(recipeReportRepository).findById(id);
         }
     }
 

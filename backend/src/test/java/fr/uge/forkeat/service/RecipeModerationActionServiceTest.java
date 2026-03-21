@@ -18,6 +18,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -35,14 +36,12 @@ class RecipeModerationActionServiceTest {
     private RecipeReportPersistence recipeReportPersistence;
     @Mock
     private UserIdentityPort userIdentityPort;
-    @Mock
-    private RecipeService recipeService;
 
     private RecipeModerationActionService recipeModerationActionService;
 
     @BeforeEach
     void setUp() {
-        recipeModerationActionService = new RecipeModerationActionService(moderationActionPersistence, recipePersistence, recipeReportPersistence, userIdentityPort, recipeService);
+        recipeModerationActionService = new RecipeModerationActionService(moderationActionPersistence, recipePersistence, recipeReportPersistence, userIdentityPort);
     }
 
     private RecipeModerationAction createModerationAction(UUID recipeId, UUID moderatorId, RecipeModerationActionType moderationActionType, String justification, UUID relatedReportId) {
@@ -129,16 +128,23 @@ class RecipeModerationActionServiceTest {
             var relatedReportId = UUID.randomUUID();
             var command = new CreateRecipeModerationAction(recipeId, "mod", RecipeModerationActionType.APPROVED, "Justification", relatedReportId);
             var expected = createModerationAction(recipeId, moderatorId, RecipeModerationActionType.APPROVED, "Justification", relatedReportId);
+            var report = new RecipeReport(relatedReportId, recipeId, UUID.randomUUID(), RecipeReportType.SPAM, ReportStatus.PENDING, "bad", Instant.now(), null, null);
 
             when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
             when(recipeReportPersistence.existsById(relatedReportId)).thenReturn(true);
+            when(recipeReportPersistence.findById(relatedReportId)).thenReturn(Optional.of(report));
             when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
             when(moderationActionPersistence.save(any())).thenReturn(expected);
             when(recipePersistence.isAuthor(recipeId, moderatorId)).thenReturn(false);
 
             recipeModerationActionService.moderateRecipe(command);
 
-            verify(recipeReportPersistence).updateStatus(relatedReportId, moderatorId, ReportStatus.VALIDATED);
+            verify(recipeReportPersistence).findById(relatedReportId);
+            verify(recipeReportPersistence).save(argThat(saved ->
+                saved.id().equals(relatedReportId)
+                && saved.status() == ReportStatus.VALIDATED
+                && saved.reviewedById().equals(moderatorId)
+            ));
             verify(recipePersistence).updateStatus(recipeId, RecipeStatus.REJECTED);
         }
 
@@ -149,17 +155,66 @@ class RecipeModerationActionServiceTest {
             var relatedReportId = UUID.randomUUID();
             var command = new CreateRecipeModerationAction(recipeId, "mod", RecipeModerationActionType.REJECTED, "Justification", relatedReportId);
             var expected = createModerationAction(recipeId, moderatorId, RecipeModerationActionType.REJECTED, "Justification", relatedReportId);
+            var report = new RecipeReport(relatedReportId, recipeId, UUID.randomUUID(), RecipeReportType.SPAM, ReportStatus.PENDING, "bad", Instant.now(), null, null);
 
             when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
             when(recipeReportPersistence.existsById(relatedReportId)).thenReturn(true);
+            when(recipeReportPersistence.findById(relatedReportId)).thenReturn(Optional.of(report));
             when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
             when(moderationActionPersistence.save(any())).thenReturn(expected);
             when(recipePersistence.isAuthor(recipeId, moderatorId)).thenReturn(false);
 
             recipeModerationActionService.moderateRecipe(command);
 
-            verify(recipeReportPersistence).updateStatus(relatedReportId, moderatorId, ReportStatus.DISMISSED);
+            verify(recipeReportPersistence).findById(relatedReportId);
+            verify(recipeReportPersistence).save(argThat(saved ->
+                saved.id().equals(relatedReportId)
+                && saved.status() == ReportStatus.DISMISSED
+                && saved.reviewedById().equals(moderatorId)
+            ));
             verify(recipePersistence).updateStatus(recipeId, RecipeStatus.PUBLISHED);
+        }
+        @Test
+        void shouldThrowRecipeNotFoundException_WhenRelatedReportNotFound() {
+            var recipeId = UUID.randomUUID();
+            var moderatorId = UUID.randomUUID();
+            var relatedReportId = UUID.randomUUID();
+            var command = new CreateRecipeModerationAction(recipeId, "mod", RecipeModerationActionType.APPROVED, "Justification", relatedReportId);
+
+            when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
+            when(recipeReportPersistence.existsById(relatedReportId)).thenReturn(true);
+            when(recipeReportPersistence.findById(relatedReportId)).thenReturn(Optional.empty());
+            when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
+            when(recipePersistence.isAuthor(recipeId, moderatorId)).thenReturn(false);
+
+            assertThrows(RecipeNotFoundException.class, () -> recipeModerationActionService.moderateRecipe(command));
+            verify(recipeReportPersistence).findById(relatedReportId);
+            verify(recipeReportPersistence, never()).save(any());
+        }
+        @Test
+        void shouldSaveReportWithCorrectFields_WhenModerationActionIsApproved() {
+            var recipeId = UUID.randomUUID();
+            var moderatorId = UUID.randomUUID();
+            var relatedReportId = UUID.randomUUID();
+            var command = new CreateRecipeModerationAction(recipeId, "mod", RecipeModerationActionType.APPROVED, "Justification", relatedReportId);
+            var expected = createModerationAction(recipeId, moderatorId, RecipeModerationActionType.APPROVED, "Justification", relatedReportId);
+            var report = new RecipeReport(relatedReportId, recipeId, UUID.randomUUID(), RecipeReportType.SPAM, ReportStatus.PENDING, "bad", Instant.now(), null, null);
+
+            when(recipePersistence.existRecipe(recipeId)).thenReturn(true);
+            when(recipeReportPersistence.existsById(relatedReportId)).thenReturn(true);
+            when(recipeReportPersistence.findById(relatedReportId)).thenReturn(Optional.of(report));
+            when(userIdentityPort.findIdByUsernameOrThrow("mod")).thenReturn(moderatorId);
+            when(moderationActionPersistence.save(any())).thenReturn(expected);
+            when(recipePersistence.isAuthor(recipeId, moderatorId)).thenReturn(false);
+
+            recipeModerationActionService.moderateRecipe(command);
+
+            verify(recipeReportPersistence).save(argThat(saved ->
+                saved.id().equals(relatedReportId)
+                && saved.status() == ReportStatus.VALIDATED
+                && saved.reviewedById().equals(moderatorId)
+                && saved.reviewedAt() != null
+            ));
         }
 
         @Test

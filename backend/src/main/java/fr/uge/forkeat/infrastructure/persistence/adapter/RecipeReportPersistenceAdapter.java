@@ -4,7 +4,6 @@ import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeReportEntityMapper
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeReportRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.RecipeReport;
@@ -14,9 +13,9 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
-import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -49,6 +48,12 @@ public final class RecipeReportPersistenceAdapter implements RecipeReportPersist
     }
 
     @Override
+    public Optional<RecipeReport> findById(UUID recipeReportId) {
+        Objects.requireNonNull(recipeReportId);
+        return recipeReportRepository.findById(recipeReportId).map(RecipeReportEntityMapper::toDomain);
+    }
+
+    @Override
     public List<RecipeReport> findByRecipeId(UUID recipeId) {
         Objects.requireNonNull(recipeId);
         return recipeReportRepository.findByRecipeId(recipeId).stream()
@@ -62,21 +67,6 @@ public final class RecipeReportPersistenceAdapter implements RecipeReportPersist
         return recipeReportRepository.findByStatus(status).stream()
                 .map(RecipeReportEntityMapper::toDomain)
                 .toList();
-    }
-
-    @Override
-    public RecipeReport updateStatus(UUID recipeReportId, UUID reviewerId, ReportStatus status) {
-        Objects.requireNonNull(recipeReportId);
-        Objects.requireNonNull(reviewerId);
-        Objects.requireNonNull(status);
-        var recipeReportEntity = recipeReportRepository.findById(recipeReportId)
-                .orElseThrow(() -> new ResourceNotFoundException("Related report id not found : " + recipeReportId));
-        var reviewerEntity = userRepository.findById(reviewerId)
-                        .orElseThrow(() -> new ResourceNotFoundException("User not found with id : " + reviewerId));
-        recipeReportEntity.setReviewedBy(reviewerEntity);
-        recipeReportEntity.setReviewedAt(Instant.now());
-        recipeReportEntity.setStatus(status);
-        return RecipeReportEntityMapper.toDomain(recipeReportRepository.save(recipeReportEntity));
     }
 
     @Override

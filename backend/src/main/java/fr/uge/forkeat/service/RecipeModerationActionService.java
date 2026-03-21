@@ -12,6 +12,7 @@ import fr.uge.forkeat.service.port.UserIdentityPort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -22,18 +23,15 @@ public class RecipeModerationActionService {
     private final RecipePersistence recipePersistence;
     private final RecipeReportPersistence recipeReportPersistence;
     private final UserIdentityPort userIdentityPort;
-    private final RecipeService recipeService;
 
     public RecipeModerationActionService(RecipeModerationActionPersistence moderationActionPersistence,
                                          RecipePersistence recipePersistence,
                                          RecipeReportPersistence recipeReportPersistence,
-                                         UserIdentityPort userIdentityPort,
-                                         RecipeService recipeService) {
+                                         UserIdentityPort userIdentityPort) {
         this.moderationActionPersistence = moderationActionPersistence;
         this.recipePersistence = recipePersistence;
         this.recipeReportPersistence = recipeReportPersistence;
         this.userIdentityPort = userIdentityPort;
-        this.recipeService = recipeService;
     }
 
     @Transactional
@@ -70,12 +68,28 @@ public class RecipeModerationActionService {
             recipeStatus = command.moderationActionType() == RecipeModerationActionType.APPROVED ? RecipeStatus.PUBLISHED : RecipeStatus.REJECTED;
         } else {
             var reportStatus = command.moderationActionType() == RecipeModerationActionType.APPROVED ? ReportStatus.VALIDATED : ReportStatus.DISMISSED;
-            recipeReportPersistence.updateStatus(command.relatedReportId(), moderatorId, reportStatus);
-
+            updateReportStatus(command.relatedReportId(), moderatorId, reportStatus);
             recipeStatus = command.moderationActionType() == RecipeModerationActionType.APPROVED ? RecipeStatus.REJECTED : RecipeStatus.PUBLISHED;
         }
         recipePersistence.updateStatus(command.recipeId(), recipeStatus);
         return moderationActionRow;
+    }
+
+    private void updateReportStatus(UUID reportId, UUID reviewerId, ReportStatus status) {
+        var report = recipeReportPersistence.findById(reportId)
+            .orElseThrow(() -> new RecipeNotFoundException(reportId));
+        var updated = new RecipeReport(
+            report.id(),
+            report.recipeId(),
+            report.reporterId(),
+            report.reportType(),
+            status,
+            report.justification(),
+            report.createdAt(),
+            Instant.now(),
+            reviewerId
+        );
+        recipeReportPersistence.save(updated);
     }
 
     public List<RecipeModerationAction> findByType(RecipeModerationActionType type) {
