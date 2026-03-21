@@ -593,7 +593,7 @@ class RecipeServiceTest {
 
             when(recipePersistence.hasSuperLikedRecipe(userId, recipeId)).thenReturn(false);
             when(walletPersistence.saveTransaction(any())).thenReturn(null);
-            doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean());
+            doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean(), anyLong());
             doNothing().when(walletPersistence).incrementBalanceById(any(), anyLong());
             when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.of(createWallet(200L)));
             when(superLikeConfigPersistence.get()).thenReturn(config);
@@ -603,7 +603,7 @@ class RecipeServiceTest {
 
             recipeService.superLikeRecipe(userId, recipeId);
 
-            verify(recipePersistence).superLikeRecipe(eq(userId), eq(recipeId), eq(100L), isNull(), eq(false));
+            verify(recipePersistence).superLikeRecipe(eq(userId), eq(recipeId), eq(100L), isNull(), eq(false), eq(60L));
         }
 
         @Test
@@ -615,7 +615,7 @@ class RecipeServiceTest {
 
             recipeService.superLikeRecipe(userId, recipeId);
 
-            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean());
+            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean(), anyLong());
             verify(walletPersistence, never()).loadWalletWithLock(any());
             verify(walletPersistence, never()).incrementBalanceById(any(), anyLong());
             verify(walletPersistence, never()).getRedistributionWallet();
@@ -637,7 +637,7 @@ class RecipeServiceTest {
             assertThrows(InsufficientFundsException.class,
                     () -> recipeService.superLikeRecipe(userId, recipeId));
 
-            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean());
+            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean(), anyLong());
             verify(walletPersistence, never()).incrementBalanceById(any(), anyLong());
             verify(walletPersistence, never()).getEarningsWallet();
             verify(walletPersistence, never()).getRedistributionWallet();

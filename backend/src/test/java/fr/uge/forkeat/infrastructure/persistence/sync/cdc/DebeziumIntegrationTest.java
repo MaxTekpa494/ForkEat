@@ -18,15 +18,12 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.transaction.TestTransaction;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.UUID;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -56,10 +53,15 @@ class DebeziumIntegrationTest extends AbstractIntegrationTest {
         neo4jClient.query("MATCH (n) DETACH DELETE n").run();
 
         // Nettoyage PostgreSQL via psql dans le conteneur
+        // Suppression ciblée pour préserver les wallets système (platform_wallets référence wallets via FK)
         postgres.execInContainer("psql",
                 "-U", postgres.getUsername(),
                 "-d", postgres.getDatabaseName(),
-                "-c", "TRUNCATE TABLE recipe_allergens, recipe_ingredients, recipes, platform_wallets, wallets, user_systems, \"users\" CASCADE");
+                "-c", """
+                    TRUNCATE TABLE recipe_allergens, recipe_ingredients, recipes CASCADE;
+                    DELETE FROM wallets WHERE user_id IN (SELECT id FROM "users" WHERE username LIKE 'cdc_%');
+                    DELETE FROM "users" WHERE username LIKE 'cdc_%';
+                    """);
     }
 
     @Nested
@@ -306,7 +308,7 @@ class DebeziumIntegrationTest extends AbstractIntegrationTest {
             TestTransaction.end();
 
             await().atMost(Duration.ofSeconds(10)).untilAsserted(() -> {
-                var isDeleted = neo4jClient.query("MATCH (r:Recipe {title: $title}) RETURN r.deleted")
+                var isDeleted = neo4jClient.query("MATCH (r:Recipe {title: $title}) RETURN r.deleted_at IS NOT NULL")
                         .bind(recipe.getTitle()).to("title")
                         .fetchAs(Boolean.class).one().orElse(false);
                 assertThat(isDeleted).as("Recipe should be marked deleted").isTrue();

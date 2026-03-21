@@ -1,5 +1,8 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
+import fr.uge.forkeat.presentation.dto.redistribution.EarningsByMonthDTO;
+import fr.uge.forkeat.presentation.dto.redistribution.EarningsDetailDTO;
+import fr.uge.forkeat.service.RedistributionService;
 import fr.uge.forkeat.presentation.dto.user.BankInfoResponseDTO;
 import fr.uge.forkeat.presentation.dto.user.CreateBankInfoRequestDTO;
 import fr.uge.forkeat.presentation.dto.user.TopUpRequestDTO;
@@ -21,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @RestController("walletRestController")
 @RequestMapping("/api/wallet")
@@ -30,13 +34,16 @@ public class WalletRestController {
     private final AuthenticationPort authPort;
     private final UserService userService;
     private final BankInfoService bankInfoService;
+    private final RedistributionService redistributionService;
 
     public WalletRestController(WalletService walletService, AuthenticationPort authPort,
-                                UserService userQueryService, BankInfoService bankInfoService) {
+                                UserService userQueryService, BankInfoService bankInfoService,
+                                RedistributionService redistributionService) {
         this.walletService = Objects.requireNonNull(walletService);
         this.authPort = Objects.requireNonNull(authPort);
         this.userService = Objects.requireNonNull(userQueryService);
         this.bankInfoService = Objects.requireNonNull(bankInfoService);
+        this.redistributionService = Objects.requireNonNull(redistributionService);
     }
 
     @PostMapping("/recharge")
@@ -75,6 +82,25 @@ public class WalletRestController {
         var bankInfo = bankInfoService.getBankInfoByUserId(user.id())
                 .orElseThrow(() -> new ResourceNotFoundException("Bank information not found for current user"));
         return ResponseEntity.ok(BankInfoDTOMapper.toResponseDTO(bankInfo));
+    }
+
+    @GetMapping("/redistribution/earnings")
+    public ResponseEntity<List<EarningsByMonthDTO>> getMyEarnings() {
+        var username = authPort.extractUsername();
+        var rows = redistributionService.getUserEarnings(username);
+        var grouped = rows.stream().collect(Collectors.groupingBy(r -> r.batchMonth()));
+        var result = grouped.entrySet().stream()
+            .map(entry -> {
+                var details = entry.getValue().stream()
+                    .map(r -> new EarningsDetailDTO(r.recipeId().toString(), r.recipeTitle(),
+                                                    r.amountCents(), r.sourceRecipeId().toString()))
+                    .toList();
+                var total = entry.getValue().stream().mapToLong(r -> r.amountCents()).sum();
+                return new EarningsByMonthDTO(entry.getKey(), total, details);
+            })
+            .sorted((a, b) -> b.batchMonth().compareTo(a.batchMonth()))
+            .toList();
+        return ResponseEntity.ok(result);
     }
 
     @PostMapping("/withdraw")

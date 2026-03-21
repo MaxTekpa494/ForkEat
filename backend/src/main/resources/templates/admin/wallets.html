@@ -126,9 +126,11 @@
                                           th:text="${tx.walletType().name() == 'EARNINGS'} ? 'Bénéfices' : 'Redistribution'">Wallet</span>
                                     <span class="text-xs px-2 py-0.5 rounded-full font-medium"
                                           th:classappend="${tx.reason() == 'SUPER_LIKE_EARNED'} ? 'bg-green-100 text-green-700' :
-                                                          (${tx.reason() == 'SUPER_LIKE_REDISTRIBUTION'} ? 'bg-blue-100 text-blue-700' : 'bg-orange-100 text-orange-700')"
+                                                          (${tx.reason() == 'SUPER_LIKE_REDISTRIBUTION'} ? 'bg-blue-100 text-blue-700' :
+                                                          (${tx.reason() == 'MONTHLY_REDISTRIBUTION'} ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'))"
                                           th:text="${tx.reason() == 'SUPER_LIKE_EARNED'} ? 'Gains super-like' :
-                                                    (${tx.reason() == 'SUPER_LIKE_REDISTRIBUTION'} ? 'Redistribution' : 'Bonus financé')">Raison</span>
+                                                    (${tx.reason() == 'SUPER_LIKE_REDISTRIBUTION'} ? 'Redistribution SL' :
+                                                    (${tx.reason() == 'MONTHLY_REDISTRIBUTION'} ? 'Redistribution mensuelle' : 'Autre'))">Raison</span>
                                 </div>
                                 <div class="text-xs text-gray-400 mt-0.5"
                                      th:text="${#temporals.format(tx.createdAt(), 'dd/MM/yyyy à HH:mm:ss')}">Date</div>
@@ -139,6 +141,60 @@
                              th:classappend="${tx.amountCents() >= 0} ? 'text-green-600' : 'text-red-500'"
                              th:text="${(tx.amountCents() >= 0 ? '+' : '') + #numbers.formatDecimal(tx.amountCents() / 100.0, 1, 2) + ' €'}">
                             +0.00 €
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Redistribution mensuelle -->
+            <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mb-8">
+                <div class="p-6 border-b border-gray-100 flex items-center justify-between">
+                    <h2 class="font-display font-bold text-lg text-secondary-900 flex items-center gap-2">
+                        <i class="fas fa-exchange-alt text-purple-500"></i> Redistribution mensuelle
+                    </h2>
+                    <span class="text-xs text-gray-400"
+                          th:text="${#lists.size(redistributionSummary)} + ' entrée(s)'">0 entrée(s)</span>
+                </div>
+
+                <div th:if="${#lists.isEmpty(redistributionSummary)}" class="p-8 text-center">
+                    <i class="fas fa-exchange-alt text-4xl text-gray-300 mb-3"></i>
+                    <p class="text-gray-500 font-medium">Aucune redistribution effectuée</p>
+                </div>
+
+                <div th:unless="${#lists.isEmpty(redistributionSummary)}"
+                     class="overflow-y-auto divide-y divide-gray-50"
+                     style="max-height: 480px;">
+                    <div th:each="entry : ${redistributionSummary}">
+                        <!-- Ligne cliquable -->
+                        <div class="px-6 py-4 hover:bg-gray-50 transition cursor-pointer flex items-center justify-between"
+                             th:data-recipe-id="${entry.sourceRecipeId()}"
+                             th:data-batch-month="${entry.batchMonth()}"
+                             onclick="toggleChain(this)">
+                            <div class="flex items-center gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-purple-50 flex items-center justify-center flex-shrink-0">
+                                    <i class="fas fa-exchange-alt text-purple-500"></i>
+                                </div>
+                                <div>
+                                    <div class="flex items-center gap-2">
+                                        <span class="font-medium text-secondary-900 text-sm"
+                                              th:text="${entry.sourceRecipeTitle()}">Recette</span>
+                                        <span class="text-xs px-2 py-0.5 rounded-full bg-purple-100 text-purple-700 font-medium"
+                                              th:text="${entry.batchMonth()}">Mois</span>
+                                    </div>
+                                    <div class="text-xs text-gray-400 mt-0.5">Cliquer pour voir la chaîne</div>
+                                </div>
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <span class="font-bold text-lg text-red-500"
+                                      th:text="${'-' + #numbers.formatDecimal(entry.totalCents() / 100.0, 1, 2) + ' €'}">
+                                    -0.00 €
+                                </span>
+                                <i class="fas fa-chevron-down text-gray-400 text-xs chain-chevron transition-transform"></i>
+                            </div>
+                        </div>
+                        <!-- Détail de la chaîne (masqué par défaut) -->
+                        <div class="chain-detail hidden bg-gray-50 border-t border-gray-100 px-6 py-4">
+                            <div class="chain-content text-sm text-gray-500 italic">Chargement...</div>
                         </div>
                     </div>
                 </div>
@@ -181,5 +237,51 @@
     </section>
 
 </div>
+
+<th:block layout:fragment="scripts">
+<script th:inline="none">
+window.toggleChain = function(row) {
+    var recipeId = row.dataset.recipeId;
+    var month = row.dataset.batchMonth;
+    var detail = row.nextElementSibling;
+    var chevron = row.querySelector('.chain-chevron');
+    var isOpen = !detail.classList.contains('hidden');
+
+    if (isOpen) {
+        detail.classList.add('hidden');
+        chevron.style.transform = '';
+        return;
+    }
+
+    detail.classList.remove('hidden');
+    chevron.style.transform = 'rotate(180deg)';
+
+    var content = detail.querySelector('.chain-content');
+    if (content.dataset.loaded) return;
+
+    fetch('/admin/redistribution/chain?recipeId=' + encodeURIComponent(recipeId) + '&month=' + encodeURIComponent(month), { credentials: 'include' })
+        .then(function(r) { return r.json(); })
+        .then(function(chain) {
+            if (!chain.length) {
+                content.innerHTML = '<span class="text-gray-400">Aucune donnée</span>';
+                return;
+            }
+            content.innerHTML = chain.map(function(e) {
+                return '<div class="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">'
+                    + '<div>'
+                    + '<span class="font-medium text-secondary-900">' + e.username + '</span>'
+                    + '<span class="text-gray-400 mx-1">&middot;</span>'
+                    + '<span class="text-gray-600">' + e.recipeTitle + '</span>'
+                    + '</div>'
+                    + '<span class="font-bold text-green-600">+' + (e.amountCents / 100).toFixed(2) + ' €</span>'
+                    + '</div>';
+            }).join('');
+            content.dataset.loaded = '1';
+        })
+        .catch(function() { content.innerHTML = '<span class="text-red-400">Erreur de chargement</span>'; });
+};
+</script>
+</th:block>
+
 </body>
 </html>

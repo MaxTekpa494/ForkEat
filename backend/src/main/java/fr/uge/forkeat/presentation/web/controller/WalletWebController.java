@@ -1,6 +1,7 @@
 package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.service.PromotionService;
+import fr.uge.forkeat.service.RedistributionService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.WithdrawalException;
 import fr.uge.forkeat.service.port.AuthenticationPort;
@@ -23,19 +24,22 @@ public class WalletWebController {
     private final BankInfoService bankInfoService;
     private final AuthenticationPort authPort;
     private final PromotionService promotionService;
+    private final RedistributionService redistributionService;
 
     public WalletWebController(
             UserService userService,
             WalletService walletService,
             BankInfoService bankInfoService,
             AuthenticationPort authPort,
-            PromotionService promotionService
+            PromotionService promotionService,
+            RedistributionService redistributionService
     ) {
         this.userService = Objects.requireNonNull(userService);
         this.walletService = Objects.requireNonNull(walletService);
         this.bankInfoService = Objects.requireNonNull(bankInfoService);
         this.authPort = Objects.requireNonNull(authPort);
         this.promotionService = Objects.requireNonNull(promotionService);
+        this.redistributionService = Objects.requireNonNull(redistributionService);
     }
 
     @GetMapping("/wallet")
@@ -49,12 +53,14 @@ public class WalletWebController {
         var transactions = walletService.getTransactionHistory(user.id());
         var bankInfo = bankInfoService.getBankInfoByUserId(user.id()).orElse(null);
         var superLikeHistory = promotionService.findSuperLikeHistory(user.id());
+        var redistributionEarnings = redistributionService.getUserEarnings(username);
 
         model.addAttribute("user", user);
         model.addAttribute("balance", balance);
         model.addAttribute("transactions", transactions);
         model.addAttribute("bankInfo", bankInfo);
         model.addAttribute("superLikeHistory", superLikeHistory);
+        model.addAttribute("redistributionEarnings", redistributionEarnings);
         model.addAttribute("pageTitle", "Mon Wallet - ForkEat");
 
         if ("success".equals(payment)) {

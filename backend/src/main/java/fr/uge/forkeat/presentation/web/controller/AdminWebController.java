@@ -2,6 +2,7 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.service.port.PromotionSchedulingPort;
 import fr.uge.forkeat.service.PlatformWalletService;
+import fr.uge.forkeat.service.RedistributionService;
 import fr.uge.forkeat.service.RecipeModerationActionService;
 import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.RecipeService;
@@ -20,16 +21,20 @@ import fr.uge.forkeat.service.user.UserService;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import fr.uge.forkeat.presentation.dto.superlike.PromotionFormDTO;
+import fr.uge.forkeat.presentation.dto.redistribution.RedistributionChainEntryDTO;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
@@ -47,6 +52,7 @@ public class AdminWebController {
     private final RecipeModerationActionService recipeModerationActionService;
     private final PromotionService promotionService;
     private final PromotionSchedulingPort schedulingService;
+    private final RedistributionService redistributionService;
 
     public AdminWebController(UserService userQueryService,
                               RecipeService recipeService,
@@ -55,7 +61,8 @@ public class AdminWebController {
                               UserRegistrationService userRegistrationService,
                               RecipeModerationActionService recipeModerationActionService,
                               PromotionService promotionService,
-                              PromotionSchedulingPort schedulingService) {
+                              PromotionSchedulingPort schedulingService,
+                              RedistributionService redistributionService) {
         this.userQueryService = Objects.requireNonNull(userQueryService);
         this.recipeService = Objects.requireNonNull(recipeService);
         this.platformWalletService = Objects.requireNonNull(platformWalletService);
@@ -64,6 +71,7 @@ public class AdminWebController {
         this.recipeModerationActionService = Objects.requireNonNull(recipeModerationActionService);
         this.promotionService = Objects.requireNonNull(promotionService);
         this.schedulingService = Objects.requireNonNull(schedulingService);
+        this.redistributionService = Objects.requireNonNull(redistributionService);
     }
 
     @GetMapping
@@ -131,14 +139,28 @@ public class AdminWebController {
         }
     }
 
+    @GetMapping("/redistribution/chain")
+    @ResponseBody
+    public ResponseEntity<List<RedistributionChainEntryDTO>> getRedistributionChain(
+            @RequestParam UUID recipeId,
+            @RequestParam String month) {
+        var chain = redistributionService.getRedistributionChain(recipeId, month).stream()
+            .map(e -> new RedistributionChainEntryDTO(e.authorId().toString(), e.username(),
+                                                      e.recipeId().toString(), e.recipeTitle(), e.amountCents()))
+            .toList();
+        return ResponseEntity.ok(chain);
+    }
+
     @GetMapping("/wallets")
     public String wallets(Model model) {
         var benefitsWallet = platformWalletService.getWallet(PlatformWalletType.EARNINGS);
         var redistributionWallet = platformWalletService.getWallet(PlatformWalletType.REDISTRIBUTION);
         var transactions = platformWalletService.getTransactionHistory(SortOrder.DESC);
+        var redistributionSummary = redistributionService.getRedistributionSummary();
         model.addAttribute("benefitsWallet", benefitsWallet);
         model.addAttribute("redistributionWallet", redistributionWallet);
         model.addAttribute("walletTransactions", transactions);
+        model.addAttribute("redistributionSummary", redistributionSummary);
         model.addAttribute("pageTitle", "Porte-monnaies - Administration");
         return "admin/wallets";
     }
