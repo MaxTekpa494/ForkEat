@@ -3,6 +3,7 @@ package fr.uge.forkeat.infrastructure.persistence.mapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeReportEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeReportDetailsView;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.RecipeReport;
@@ -126,6 +127,29 @@ class RecipeReportEntityMapperTest {
             assertEquals(reviewerEntity.getId(), domain.reviewedById());
             assertEquals(now, domain.reviewedAt());
             assertEquals(ReportStatus.VALIDATED, domain.status());
+        }
+
+        @Test
+        void shouldMapFromViewToDomain() {
+            RecipeReportDetailsView view = new RecipeReportDetailsView() {
+                public java.util.UUID getId() { return UUID.randomUUID(); }
+                public java.util.UUID getRecipeId() { return recipeEntity.getId(); }
+                public String getRecipeTitle() { return recipeEntity.getTitle(); }
+                public String getRecipeImageUrl() { return "image.jpg"; }
+                public String getReporterUsername() { return reporterEntity.getUsername(); }
+                public String getReportType() { return "SPAM"; }
+                public String getJustification() { return "Justification"; }
+                public java.time.Instant getCreatedAt() { return now; }
+            };
+            var details = RecipeReportEntityMapper.toDomain(view);
+            assertNotNull(details);
+            assertEquals(recipeEntity.getId(), details.recipeId());
+            assertEquals(recipeEntity.getTitle(), details.recipeTitle());
+            assertEquals("image.jpg", details.recipeImageUrl());
+            assertEquals(reporterEntity.getUsername(), details.reporterUsername());
+            assertEquals("SPAM", details.reportType());
+            assertEquals("Justification", details.justification());
+            assertEquals(now, details.createdAt());
         }
     }
 

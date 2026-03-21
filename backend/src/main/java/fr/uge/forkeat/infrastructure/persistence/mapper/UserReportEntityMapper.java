@@ -2,7 +2,9 @@ package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserReportEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.UserReportDetailsView;
 import fr.uge.forkeat.service.model.user.UserReport;
+import fr.uge.forkeat.service.model.user.projection.UserReportDetails;
 
 public final class UserReportEntityMapper {
 
@@ -31,5 +33,17 @@ public final class UserReportEntityMapper {
         entity.setStatus(report.status());
         entity.setJustification(report.justification());
         return entity;
+    }
+
+    public static UserReportDetails toDomain(UserReportDetailsView view) {
+        return new UserReportDetails(
+                view.getId(),
+                view.getReportedUserId(),
+                view.getReportedUsername(),
+                view.getReporterUsername(),
+                view.getReportType(),
+                view.getJustification(),
+                view.getCreatedAt()
+        );
     }
 }

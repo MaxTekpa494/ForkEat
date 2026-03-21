@@ -2,6 +2,7 @@ package fr.uge.forkeat.infrastructure.persistence.mapper;
 
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserReportEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.UserReportDetailsView;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.user.UserReport;
@@ -124,6 +125,27 @@ class UserReportEntityMapperTest {
             assertEquals(reviewerEntity.getId(), domain.reviewedById());
             assertEquals(now, domain.reviewedAt());
             assertEquals(ReportStatus.VALIDATED, domain.status());
+        }
+
+        @Test
+        void shouldMapFromViewToDomain() {
+            UserReportDetailsView view = new UserReportDetailsView() {
+                public java.util.UUID getId() { return UUID.randomUUID(); }
+                public java.util.UUID getReportedUserId() { return reportedUserEntity.getId(); }
+                public String getReportedUsername() { return reportedUserEntity.getUsername(); }
+                public String getReporterUsername() { return reporterEntity.getUsername(); }
+                public String getReportType() { return "SPAM"; }
+                public String getJustification() { return "Justification"; }
+                public java.time.Instant getCreatedAt() { return now; }
+            };
+            var details = UserReportEntityMapper.toDomain(view);
+            assertNotNull(details);
+            assertEquals(reportedUserEntity.getId(), details.reportedUserId());
+            assertEquals(reportedUserEntity.getUsername(), details.reportedUsername());
+            assertEquals(reporterEntity.getUsername(), details.reporterUsername());
+            assertEquals("SPAM", details.reportType());
+            assertEquals("Justification", details.justification());
+            assertEquals(now, details.createdAt());
         }
     }
 

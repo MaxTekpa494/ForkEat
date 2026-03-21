@@ -98,16 +98,7 @@ public final class RecipeReportPersistenceAdapter implements RecipeReportPersist
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         var pageResult = recipeReportRepository.findRecipeReportsByStatusAndNotReporterIdWithRecipeAndReporter(ReportStatus.PENDING, reporterId, pageable);
         var details = pageResult.getContent().stream()
-            .map(r -> new RecipeReportDetails(
-                r.getId(),
-                r.getRecipeId(),
-                r.getRecipeTitle(),
-                r.getRecipeImageUrl(),
-                r.getReporterUsername(),
-                r.getReportType(),
-                r.getJustification(),
-                r.getCreatedAt()
-            ))
+            .map(RecipeReportEntityMapper::toDomain)
             .toList();
         return new PageResult<>(details, pageResult.getTotalElements());
     }

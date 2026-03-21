@@ -3,7 +3,9 @@ package fr.uge.forkeat.infrastructure.persistence.mapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeReportEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeReportDetailsView;
 import fr.uge.forkeat.service.model.recipe.RecipeReport;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeReportDetails;
 
 public final class RecipeReportEntityMapper {
 
@@ -31,5 +33,18 @@ public final class RecipeReportEntityMapper {
         entity.setStatus(report.status());
         entity.setJustification(report.justification());
         return entity;
+    }
+
+    public static RecipeReportDetails toDomain(RecipeReportDetailsView view) {
+        return new RecipeReportDetails(
+                view.getId(),
+                view.getRecipeId(),
+                view.getRecipeTitle(),
+                view.getRecipeImageUrl(),
+                view.getReporterUsername(),
+                view.getReportType(),
+                view.getJustification(),
+                view.getCreatedAt()
+        );
     }
 }

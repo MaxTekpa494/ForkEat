@@ -66,15 +66,7 @@ public final class UserReportPersistenceAdapter implements UserReportPersistence
         var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
         var pageResult = userReportRepository.findUserReportsByStatusAndNotReporterIdWithReportedUserAndReporter(ReportStatus.PENDING, reporterId, pageable);
         var details = pageResult.getContent().stream()
-                .map(r -> new UserReportDetails(
-                        r.getId(),
-                        r.getReportedUserId(),
-                        r.getReportedUsername(),
-                        r.getReporterUsername(),
-                        r.getReportType(),
-                        r.getJustification(),
-                        r.getCreatedAt()
-                ))
+                .map(UserReportEntityMapper::toDomain)
                 .toList();
         return new PageResult<>(details, pageResult.getTotalElements());
     }
