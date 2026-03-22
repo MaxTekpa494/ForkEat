@@ -135,11 +135,6 @@ public class RecipeWebController {
         var currentUser = authPort.extractUsername();
         var personalizedRecipe = recipeService.findPersonalizedRecipeById(id, currentUser);
         var recipe = personalizedRecipe.recipe();
-
-        if (!recipe.isPublished() && !authPort.isAdmin() && (currentUser == null || !currentUser.equals(recipe.usernameAuthor()))) {
-            throw new RecipeNotFoundException(id);
-        }
-
         var recipeDTO = RecipeDTOMapper.toPersonalizedRecipeDTO(personalizedRecipe);
 
         if (recipe.isVariant()) {
@@ -206,8 +201,7 @@ public class RecipeWebController {
     }
 
     @GetMapping("/create-variant")
-    public String pageCreateVariant(@RequestParam("id") UUID idParent, @RequestParam("title") String titleRecipeParent,
-                                    @RequestParam("username") String usernameOwnerRecipeParent, Model model) {
+    public String pageCreateVariant(@RequestParam("id") UUID idParent, Model model) {
         var recipeParent = recipeService.findById(idParent);
         var recipeParentDTO = RecipeDTOMapper.toDTO(recipeParent);
         var allAllergens = recipeService.findAllAllergens().stream()

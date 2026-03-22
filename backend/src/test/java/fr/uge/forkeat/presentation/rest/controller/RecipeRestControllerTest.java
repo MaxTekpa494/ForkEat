@@ -209,13 +209,14 @@ class RecipeRestControllerTest {
 
         @Test
         void shouldThrow404WhenRecipeNotPublishedAndUserIsAnonymous() {
-            // Dans un test Mockito pur, SecurityContextHolder.getContext().getAuthentication() est null
-            // → currentUsername reste null → le guard rejette les recettes non publiées
+            // Le guard est dans le service : on vérifie que le contrôleur passe bien null
+            // pour un utilisateur anonyme, et propage l'exception levée par le service
             var recipeId = UUID.randomUUID();
-            var recipe = createRecipeWithMetadata(recipeId, "Brouillon privé", null, RecipeStatus.DRAFT);
-            when(recipeService.findPersonalizedRecipeById(eq(recipeId), isNull())).thenReturn(recipe);
+            when(recipeService.findPersonalizedRecipeById(eq(recipeId), isNull()))
+                    .thenThrow(new RecipeNotFoundException(recipeId));
 
             assertThrows(RecipeNotFoundException.class, () -> recipeController.getRecipe(recipeId));
+            verify(recipeService).findPersonalizedRecipeById(eq(recipeId), isNull());
         }
 
         @Test
@@ -246,12 +247,12 @@ class RecipeRestControllerTest {
             SecurityContextHolder.setContext(ctx);
 
             var recipeId = UUID.randomUUID();
-            // La recette appartient à "chef_test", pas à "other_user"
-            var recipe = createRecipeWithMetadata(recipeId, "Brouillon de chef_test", null, RecipeStatus.DRAFT);
             when(authPort.extractUsername()).thenReturn("other_user");
-            when(recipeService.findPersonalizedRecipeById(eq(recipeId), eq("other_user"))).thenReturn(recipe);
+            when(recipeService.findPersonalizedRecipeById(eq(recipeId), eq("other_user")))
+                    .thenThrow(new RecipeNotFoundException(recipeId));
 
             assertThrows(RecipeNotFoundException.class, () -> recipeController.getRecipe(recipeId));
+            verify(recipeService).findPersonalizedRecipeById(eq(recipeId), eq("other_user"));
         }
     }
 

@@ -261,9 +261,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
             try (MockedStatic<RecipeDTOMapper> mock = mockStatic(RecipeDTOMapper.class)) {
                 mock.when(() -> RecipeDTOMapper.toDTO((Recipe) any())).thenReturn(getRecipe());
                 testRightsMVCNoRedirect(get("/recipes/create-variant")
-                        .param("id", UUID.randomUUID().toString())
-                        .param("title", "Test Recipe")
-                        .param("username", "testuser"), AuthorizationTest.EMAIL_VERIFIED);
+                        .param("id", UUID.randomUUID().toString()), AuthorizationTest.EMAIL_VERIFIED);
             }
         }
 

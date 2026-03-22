@@ -68,9 +68,6 @@ public class RecipeRestController {
     }
     var personalizedRecipe = recipeService.findPersonalizedRecipeById(id, currentUsername);
     var recipe = personalizedRecipe.recipe();
-    if (!recipe.isPublished() && (currentUsername == null || !currentUsername.equals(recipe.usernameAuthor())) && !authPort.isAdmin()) {
-      throw new RecipeNotFoundException(id);
-    }
     RecipeDTO parentDTO = null;
     RecipeDiff diff = null;
     if (recipe.parentId() != null) {

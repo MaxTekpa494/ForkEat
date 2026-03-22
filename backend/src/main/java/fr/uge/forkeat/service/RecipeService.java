@@ -174,6 +174,10 @@ public class RecipeService {
       Objects.requireNonNull(id);
       var recipe = recipePersistence.findById(id)
               .orElseThrow(() -> new RecipeNotFoundException(id));
+      if (!recipe.isPublished() && !authPort.isAdmin() && !authPort.isModerator()
+              && (currentUsername == null || !currentUsername.equals(recipe.usernameAuthor()))) {
+          throw new RecipeNotFoundException(id);
+      }
       var counts = recipePersistence.findRecipeCounts(id);
       var interaction = currentUsername != null
               ? recipePersistence.findUserRecipeInteraction(id, currentUsername)
