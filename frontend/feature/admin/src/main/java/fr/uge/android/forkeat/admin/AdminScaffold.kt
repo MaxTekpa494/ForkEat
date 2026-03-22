@@ -16,6 +16,7 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Dashboard
 import androidx.compose.material.icons.filled.Group
 import androidx.compose.material.icons.filled.MenuBook
+import androidx.compose.material.icons.filled.Report
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -50,7 +51,7 @@ val AdminPurple300 = Color(0xFFA78BFA)
 val AdminPurple200 = Color(0xFFDDD6FE)
 val AdminPurple100 = Color(0xFFEDE9FE)
 
-private enum class AdminTab { DASHBOARD, USERS, RECIPES, WALLETS, CREATE }
+private enum class AdminTab { DASHBOARD, USERS, RECIPES, REPORTS, WALLETS, CREATE }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -59,6 +60,7 @@ fun AdminScaffold(
     onNavigateToDashboard: () -> Unit,
     onNavigateToUsers: () -> Unit,
     onNavigateToRecipes: () -> Unit,
+    onNavigateToReports: () -> Unit,
     onNavigateToWallets: () -> Unit,
     onNavigateToCreate: () -> Unit,
     onLogout: () -> Unit,
@@ -68,6 +70,7 @@ fun AdminScaffold(
         "admin-dashboard" -> AdminTab.DASHBOARD
         "admin-users"     -> AdminTab.USERS
         "admin-recipes"   -> AdminTab.RECIPES
+        "admin-reports"   -> AdminTab.REPORTS
         "admin-wallets"   -> AdminTab.WALLETS
         "admin-create"    -> AdminTab.CREATE
         else              -> AdminTab.DASHBOARD
@@ -167,6 +170,19 @@ fun AdminScaffold(
                     onClick = { if (selectedTab != AdminTab.RECIPES) onNavigateToRecipes() },
                     icon = { Icon(Icons.Default.MenuBook, contentDescription = "Recettes") },
                     label = { Text("Recettes", fontSize = 10.sp) },
+                    colors = NavigationBarItemDefaults.colors(
+                        selectedIconColor = AdminPurple300,
+                        selectedTextColor = AdminPurple300,
+                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
+                        unselectedTextColor = Color.White.copy(alpha = 0.5f),
+                        indicatorColor = AdminPurple700
+                    )
+                )
+                NavigationBarItem(
+                    selected = selectedTab == AdminTab.REPORTS,
+                    onClick = { if (selectedTab != AdminTab.REPORTS) onNavigateToReports() },
+                    icon = { Icon(Icons.Default.Report, contentDescription = "Signalements") },
+                    label = { Text("Signalements", fontSize = 8.sp) },
                     colors = NavigationBarItemDefaults.colors(
                         selectedIconColor = AdminPurple300,
                         selectedTextColor = AdminPurple300,

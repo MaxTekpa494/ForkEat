@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -30,6 +29,7 @@ import fr.uge.android.forkeat.account.AccountScreen
 import fr.uge.android.forkeat.admin.AdminCreateUserScreen
 import fr.uge.android.forkeat.admin.AdminDashboardScreen
 import fr.uge.android.forkeat.admin.AdminRecipesScreen
+import fr.uge.android.forkeat.admin.AdminReportsScreen
 import fr.uge.android.forkeat.admin.AdminUsersScreen
 import fr.uge.android.forkeat.admin.AdminWalletsScreen
 import fr.uge.android.forkeat.designsystem.theme.ForkEatTheme
@@ -41,6 +41,7 @@ import fr.uge.android.forkeat.home.LoginScreen
 import fr.uge.android.forkeat.home.RegisterScreen
 import fr.uge.android.forkeat.home.WelcomeScreen
 import fr.uge.android.forkeat.moderator.ModeratorRecipesScreen
+import fr.uge.android.forkeat.moderator.ModeratorReportsScreen
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.profile.ProfileScreen
 import fr.uge.android.forkeat.profile.UserProfileScreen
@@ -490,9 +491,23 @@ class MainActivity : ComponentActivity() {
                 onNavigateToModerators = { navController.navigate("admin-users?tab=1") },
                 onNavigateToAdmins = { navController.navigate("admin-users?tab=2") },
                 onNavigateToRecipes = { navController.navigate("admin-recipes") },
+                onNavigateToReports = { navController.navigate("admin-reports") },
                 onNavigateToWallets = { navController.navigate("admin-wallets") },
                 onNavigateToCreate = { navController.navigate("admin-create") },
                 onLogout = logout
+              )
+            }
+            composable("admin-reports") {
+              AdminReportsScreen(
+                currentRoute = "admin-reports",
+                onNavigateToDashboard = { navController.navigate("admin-dashboard") },
+                onNavigateToUsers = { navController.navigate("admin-users") },
+                onNavigateToRecipes = { navController.navigate("admin-recipes") },
+                onNavigateToWallets = { navController.navigate("admin-wallets") },
+                onNavigateToCreate = { navController.navigate("admin-create") },
+                onLogout = logout,
+                onNavigateToRecipe = { id -> navController.navigate("recipes/$id") },
+                onNavigateToUserProfile = { username -> navController.navigate("user/$username") }
               )
             }
             composable(
@@ -507,6 +522,7 @@ class MainActivity : ComponentActivity() {
                 onNavigateToRecipes = { navController.navigate("admin-recipes") },
                 onNavigateToWallets = { navController.navigate("admin-wallets") },
                 onNavigateToCreate = { navController.navigate("admin-create") },
+                onNavigateToReports = { navController.navigate("admin-reports") },
                 onLogout = logout
               )
             }
@@ -517,6 +533,7 @@ class MainActivity : ComponentActivity() {
                 onNavigateToUsers = { navController.navigate("admin-users") },
                 onNavigateToWallets = { navController.navigate("admin-wallets") },
                 onNavigateToCreate = { navController.navigate("admin-create") },
+                onNavigateToReports = { navController.navigate("admin-reports") },
                 onLogout = logout
               )
             }
@@ -527,6 +544,7 @@ class MainActivity : ComponentActivity() {
                 onNavigateToUsers = { navController.navigate("admin-users") },
                 onNavigateToRecipes = { navController.navigate("admin-recipes") },
                 onNavigateToCreate = { navController.navigate("admin-create") },
+                onNavigateToReports = { navController.navigate("admin-reports") },
                 onLogout = logout
               )
             }
@@ -537,6 +555,7 @@ class MainActivity : ComponentActivity() {
                 onNavigateToUsers = { navController.navigate("admin-users") },
                 onNavigateToRecipes = { navController.navigate("admin-recipes") },
                 onNavigateToWallets = { navController.navigate("admin-wallets") },
+                onNavigateToReports = { navController.navigate("admin-reports") },
                 onLogout = logout
               )
             }
@@ -544,16 +563,19 @@ class MainActivity : ComponentActivity() {
             composable("moderator-recipes") {
               ModeratorRecipesScreen(
                 currentRoute = "moderator-recipes",
-                onNavigateToReports = { },
+                onNavigateToReports = { navController.navigate("moderator-reports") },
                 onNavigateToRecipe = { id -> navController.navigate("recipes/$id") },
-                onExit = { navController.popBackStack() }
+                onExit = { navController.navigate("recipes") }
               )
             }
             composable("moderator-reports") {
-              // Placeholder for moderator reports screen
-              Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Moderator Reports Screen - To be implemented") // TODO: Implement moderator reports screen
-              }
+              ModeratorReportsScreen(
+                currentRoute = "moderator-reports",
+                onNavigateToRecipes = { navController.navigate("moderator-recipes") },
+                onExit = { navController.navigate("recipes") },
+                onNavigateToRecipe = { id -> navController.navigate("recipes/$id") },
+                onNavigateToUserProfile = { username -> navController.navigate("user/$username") }
+              )
             }
           }
         }
