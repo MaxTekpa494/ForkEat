@@ -1,7 +1,6 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.presentation.dto.recipe.*;
-import fr.uge.forkeat.service.model.recipe.projection.AuthorRecipesPage;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.response.*;
@@ -12,6 +11,7 @@ import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.projection.AuthorRecipesPage;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.UserService;
 import org.slf4j.Logger;
@@ -19,7 +19,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
@@ -68,7 +67,7 @@ public class RecipeRestController {
     }
     var personalizedRecipe = recipeService.findPersonalizedRecipeById(id, currentUsername);
     var recipe = personalizedRecipe.recipe();
-    if (!recipe.isPublished() && (currentUsername == null || !currentUsername.equals(recipe.usernameAuthor())) && !authPort.isAdmin()) {
+    if (!recipe.isPublished() && (currentUsername == null || !currentUsername.equals(recipe.usernameAuthor())) && !authPort.isAdmin() && !authPort.isModerator()) {
       throw new RecipeNotFoundException(id);
     }
     RecipeDTO parentDTO = null;
