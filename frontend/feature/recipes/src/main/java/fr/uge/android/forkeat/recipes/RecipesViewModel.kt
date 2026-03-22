@@ -35,9 +35,6 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     private val _currentRecipe = MutableStateFlow<RecipeDetailsDTO?>(null)
     val currentRecipe: StateFlow<RecipeDetailsDTO?> = _currentRecipe.asStateFlow()
 
-    private val _currentParent = MutableStateFlow<RecipeDTO?>(null)
-    val currentParent: StateFlow<RecipeDTO?> = _currentParent.asStateFlow()
-
     private val _currentDiff = MutableStateFlow<RecipeDiffDTO?>(null)
     val currentDiff: StateFlow<RecipeDiffDTO?> = _currentDiff.asStateFlow()
 
@@ -334,7 +331,6 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     fun loadRecipeWithId(id: UUID) {
         viewModelScope.launch {
             _currentRecipe.value = null
-            _currentParent.value = null
             _currentDiff.value = null
             try {
                 val token = tokenManager.getToken()
@@ -342,7 +338,6 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
                 if (response.isSuccessful) {
                     val data = response.body()?.resource
                     _currentRecipe.value = data?.recipe
-                    _currentParent.value = data?.parent
                     _currentDiff.value = data?.diff
                     _errorMessage.value = null
 
