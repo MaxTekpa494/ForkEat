@@ -1,12 +1,7 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
-import fr.uge.forkeat.presentation.dto.recipe.PersonalizedRecipeSummaryDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
+import fr.uge.forkeat.presentation.dto.recipe.*;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
-import fr.uge.forkeat.presentation.dto.recipe.RecipePaginationDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.web.viewmodel.AuthorRecipesViewModel;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
@@ -15,18 +10,16 @@ import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
-import fr.uge.forkeat.service.exception.ModerationRagException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeReportType;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
-import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.user.UserService;
+import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import jakarta.servlet.http.HttpSession;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -140,7 +133,7 @@ public class RecipeWebController {
         var personalizedRecipe = recipeService.findPersonalizedRecipeById(id, currentUser);
         var recipe = personalizedRecipe.recipe();
 
-        if (!recipe.isPublished() && !authPort.isAdmin() && (currentUser == null || !currentUser.equals(recipe.usernameAuthor()))) {
+        if (!recipe.isPublished() && !authPort.isAdmin() && !authPort.isModerator() && (currentUser == null || !currentUser.equals(recipe.usernameAuthor()))) {
             throw new RecipeNotFoundException(id);
         }
 
