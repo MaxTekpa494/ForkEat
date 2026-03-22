@@ -1,6 +1,7 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeReportRequestDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipePaginationDTO;
@@ -49,6 +50,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Objects;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -111,31 +113,29 @@ class RecipeRestControllerTest {
         void shouldCreateRecipeWithAuthenticatedUsername() {
             var recipeId = UUID.randomUUID();
             var savedRecipe = createRecipe(recipeId, "Tarte aux pommes", null, RecipeStatus.DRAFT);
-            var dto = new RecipeDTO(null, "Tarte aux pommes", "Une bonne tarte", null,
-                    null, 30, null, "DRAFT", List.of(), List.of(), List.of(), List.of(), null, null);
+            var request = new CreateRecipeRequest(null, "Tarte aux pommes", "Une bonne tarte", 30, true, null, List.of(), List.of(), List.of(), List.of());
 
             when(authPort.extractUsername()).thenReturn("chef_test");
-            when(recipeService.createRecipe(any(), any())).thenReturn(savedRecipe);
+            when(recipeService.createRecipe(any(CreateRecipeCommand.class))).thenReturn(savedRecipe);
 
-            var response = recipeController.createRecipe(dto, null);
+            var response = recipeController.createRecipe(request, null);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertInstanceOf(CreatedResponse.class, response.getBody());
             verify(authPort).extractUsername();
-            verify(recipeService).createRecipe(any(), any());
+            verify(recipeService).createRecipe(any(CreateRecipeCommand.class));
         }
 
         @Test
         void shouldUseAuthenticatedUsernameNotDtoUsername() {
             var recipeId = UUID.randomUUID();
             var savedRecipe = createRecipe(recipeId, "Recette", null, RecipeStatus.DRAFT);
-            var dto = new RecipeDTO(null, "Recette", "Résumé", null,
-                    "intruder", 20, null, "DRAFT", List.of(), List.of(), List.of(), List.of(), null, null);
+            var request = new CreateRecipeRequest(null, "Recette", "Résumé", 20, true, null, List.of(), List.of(), List.of(), List.of());
 
             when(authPort.extractUsername()).thenReturn("real_author");
-            when(recipeService.createRecipe(any(), any())).thenReturn(savedRecipe);
+            when(recipeService.createRecipe(any(CreateRecipeCommand.class))).thenReturn(savedRecipe);
 
-            recipeController.createRecipe(dto, null);
+            recipeController.createRecipe(request, null);
 
             verify(authPort).extractUsername();
         }
@@ -209,13 +209,14 @@ class RecipeRestControllerTest {
 
         @Test
         void shouldThrow404WhenRecipeNotPublishedAndUserIsAnonymous() {
-            // Dans un test Mockito pur, SecurityContextHolder.getContext().getAuthentication() est null
-            // → currentUsername reste null → le guard rejette les recettes non publiées
+            // Le guard est dans le service : on vérifie que le contrôleur passe bien null
+            // pour un utilisateur anonyme, et propage l'exception levée par le service
             var recipeId = UUID.randomUUID();
-            var recipe = createRecipeWithMetadata(recipeId, "Brouillon privé", null, RecipeStatus.DRAFT);
-            when(recipeService.findPersonalizedRecipeById(eq(recipeId), isNull())).thenReturn(recipe);
+            when(recipeService.findPersonalizedRecipeById(eq(recipeId), isNull()))
+                    .thenThrow(new RecipeNotFoundException(recipeId));
 
             assertThrows(RecipeNotFoundException.class, () -> recipeController.getRecipe(recipeId));
+            verify(recipeService).findPersonalizedRecipeById(eq(recipeId), isNull());
         }
 
         @Test
@@ -246,12 +247,12 @@ class RecipeRestControllerTest {
             SecurityContextHolder.setContext(ctx);
 
             var recipeId = UUID.randomUUID();
-            // La recette appartient à "chef_test", pas à "other_user"
-            var recipe = createRecipeWithMetadata(recipeId, "Brouillon de chef_test", null, RecipeStatus.DRAFT);
             when(authPort.extractUsername()).thenReturn("other_user");
-            when(recipeService.findPersonalizedRecipeById(eq(recipeId), eq("other_user"))).thenReturn(recipe);
+            when(recipeService.findPersonalizedRecipeById(eq(recipeId), eq("other_user")))
+                    .thenThrow(new RecipeNotFoundException(recipeId));
 
             assertThrows(RecipeNotFoundException.class, () -> recipeController.getRecipe(recipeId));
+            verify(recipeService).findPersonalizedRecipeById(eq(recipeId), eq("other_user"));
         }
     }
 
@@ -710,7 +711,8 @@ class RecipeRestControllerTest {
             var response = recipeController.myRecipes(pagination);
 
             verify(recipeService).findRecipesByAuthor("chef_test", RecipeStatus.DRAFT, 0, 10);
-            var result = (AuthorRecipesPage) ((ItemResponse<?>) response.getBody()).resource();
+          assert response.getBody() != null;
+          var result = (AuthorRecipesPage) ((ItemResponse<?>) response.getBody()).resource();
             assertEquals(1, result.recipes().items().size());
             assertEquals(RecipeStatus.DRAFT, result.recipes().items().getFirst().status());
         }
@@ -741,7 +743,7 @@ class RecipeRestControllerTest {
             when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, 0, 10)).thenReturn(authorRecipesPage);
 
-            var result = (AuthorRecipesPage) ((ItemResponse<?>) recipeController.myRecipes(defaultPagination()).getBody()).resource();
+            var result = (AuthorRecipesPage) ((ItemResponse<?>) Objects.requireNonNull(recipeController.myRecipes(defaultPagination()).getBody())).resource();
 
             assertEquals(3, result.stats().published());
             assertEquals(1, result.stats().draft());
@@ -766,7 +768,7 @@ class RecipeRestControllerTest {
             pagination.setPage(0);
             pagination.setSize(10);
 
-            var result = (AuthorRecipesPage) ((ItemResponse<?>) recipeController.myRecipes(pagination).getBody()).resource();
+            var result = (AuthorRecipesPage) ((ItemResponse<?>) Objects.requireNonNull(recipeController.myRecipes(pagination).getBody())).resource();
 
             assertNotNull(result.recipes().items().getFirst().rejectionInfo());
             assertEquals("Contenu inapproprié", result.recipes().items().getFirst().rejectionInfo().justification());
@@ -779,65 +781,45 @@ class RecipeRestControllerTest {
     class CreateVariant {
 
         @Test
-        void shouldCreateVariantWithParentImageWhenNoNewImageProvided() {
+        void shouldCreateVariantWithProvidedImageUrl() {
             var parentId = UUID.randomUUID();
-            var parent = createRecipe(parentId, "Recette originale", null, RecipeStatus.PUBLISHED);
-            var dto = new RecipeDTO(null, "Variante", "Résumé", parentId,
-                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
-            var savedVariant = createRecipe(UUID.randomUUID(), "Variante", parentId, RecipeStatus.PUBLISHED);
+            var savedVariant = createRecipe(UUID.randomUUID(), "Variante", parentId, RecipeStatus.PENDING_REVIEW);
+            var request = new CreateRecipeRequest(parentId, "Variante", "Résumé", 30, false, "https://img.example.com/parent.jpg", List.of(), List.of(), List.of(), List.of());
 
             when(authPort.extractUsername()).thenReturn("chef_test");
-            when(recipeService.findById(parentId)).thenReturn(parent);
-            when(recipeService.createRecipe(any(), isNull())).thenReturn(savedVariant);
+            when(recipeService.createRecipe(any(CreateRecipeCommand.class))).thenReturn(savedVariant);
 
-            var response = recipeController.createVariant(dto, null);
+            var response = recipeController.createRecipe(request, null);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertInstanceOf(CreatedResponse.class, response.getBody());
-            // L'image du parent est copiée → findById doit être appelé
-            verify(recipeService).findById(parentId);
-            verify(recipeService).createRecipe(any(), isNull());
+            // Le contrôleur ne consulte jamais le parent — c'est la responsabilité du client
+            verify(recipeService, never()).findById(any());
+            verify(recipeService).createRecipe(any(CreateRecipeCommand.class));
         }
 
         @Test
         void shouldCreateVariantWithNewImageWhenImageProvided() {
             var parentId = UUID.randomUUID();
-            var dto = new RecipeDTO(null, "Variante", "Résumé", parentId,
-                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
-            var savedVariant = createRecipe(UUID.randomUUID(), "Variante", parentId, RecipeStatus.PUBLISHED);
+            var savedVariant = createRecipe(UUID.randomUUID(), "Variante", parentId, RecipeStatus.PENDING_REVIEW);
+            var request = new CreateRecipeRequest(parentId, "Variante", "Résumé", 30, false, null, List.of(), List.of(), List.of(), List.of());
             var mockImage = mock(MultipartFile.class);
 
             when(mockImage.isEmpty()).thenReturn(false);
             when(authPort.extractUsername()).thenReturn("chef_test");
-            when(recipeService.createRecipe(any(), any())).thenReturn(savedVariant);
+            when(recipeService.createRecipe(any(CreateRecipeCommand.class))).thenReturn(savedVariant);
 
-            var response = recipeController.createVariant(dto, mockImage);
+            var response = recipeController.createRecipe(request, mockImage);
 
             assertEquals(HttpStatus.OK, response.getStatusCode());
             assertInstanceOf(CreatedResponse.class, response.getBody());
-            // Avec une nouvelle image, le parent ne doit PAS être consulté
             verify(recipeService, never()).findById(any());
-            verify(recipeService).createRecipe(any(), any());
+            verify(recipeService).createRecipe(any(CreateRecipeCommand.class));
         }
 
         @Test
-        void shouldNotFetchParentWhenNullParentId() {
-            var dto = new RecipeDTO(null, "Variante sans parent", "Résumé", null,
-                    null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
-            var savedVariant = createRecipe(UUID.randomUUID(), "Variante sans parent", null, RecipeStatus.PUBLISHED);
-
-            when(authPort.extractUsername()).thenReturn("chef_test");
-            when(recipeService.createRecipe(any(), isNull())).thenReturn(savedVariant);
-
-            var response = recipeController.createVariant(dto, null);
-
-            assertEquals(HttpStatus.OK, response.getStatusCode());
-            verify(recipeService, never()).findById(any());
-        }
-
-        @Test
-        void shouldThrowWhenDtoIsNull() {
-            assertThrows(NullPointerException.class, () -> recipeController.createVariant(null, null));
+        void shouldThrowWhenRequestIsNull() {
+            assertThrows(NullPointerException.class, () -> recipeController.createRecipe(null, null));
         }
     }
 
