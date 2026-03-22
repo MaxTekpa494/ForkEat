@@ -234,7 +234,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testMyRecipes() throws Exception {
-            testRightsMVCNoRedirect(get("/recipes/my-recipes"), AuthorizationTest.UNAUTHENTICATED);
+            testRightsMVCNoRedirect(get("/recipes/my-recipes"), AuthorizationTest.MEMBER);
         }
 
         @Test

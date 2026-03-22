@@ -5,6 +5,7 @@ import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
+import fr.uge.forkeat.service.SmartSearchConfigService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeAlreadyReportedException;
@@ -69,6 +70,9 @@ class RecipeWebControllerTest {
 
     @MockitoBean
     private RecipeReportService recipeReportService;
+
+    @MockitoBean
+    private SmartSearchConfigService smartSearchConfigService;
 
     @Nested
     class ListRecipes {
@@ -254,7 +258,7 @@ class RecipeWebControllerTest {
                     .andExpect(status().isOk())
                     .andExpect(view().name("recipes/detail"))
                     .andExpect(model().attributeExists("recipe"))
-                    .andExpect(model().attributeExists("parent"));
+                    .andExpect(model().attributeExists("diff"));
         }
 
         @Test
