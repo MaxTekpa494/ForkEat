@@ -107,7 +107,7 @@ class Neo4jSyncServiceTest {
         after.put("title", "Tarte aux pommes");
         after.put("author_id", "author-456");
         neo4jSyncService.handleRecipeChange("c", payload);
-        verify(recipeNodeClient).mergeRecipe("recipe-123", "Tarte aux pommes", "author-456", "c");
+        verify(recipeNodeClient).mergeRecipe("recipe-123", "Tarte aux pommes", "author-456", "c", "PUBLISHED");
     }
 
     @Test
@@ -120,7 +120,7 @@ class Neo4jSyncServiceTest {
         after.put("author_id", "author-456");
         after.put("parent_id", "parent-789");
         neo4jSyncService.handleRecipeChange("c", payload);
-        verify(recipeNodeClient).mergeRecipe("recipe-123", "Variante Tarte", "author-456", "c");
+        verify(recipeNodeClient).mergeRecipe("recipe-123", "Variante Tarte", "author-456", "c", "PUBLISHED");
         verify(recipeNodeClient).createVariantRelationship("recipe-123", "parent-789");
     }
 
@@ -165,7 +165,7 @@ class Neo4jSyncServiceTest {
         ObjectNode after = payload.putObject("after");
         after.put("id", "recipe-123");
         neo4jSyncService.handleRecipeChange("c", payload);
-        verify(recipeNodeClient).mergeRecipe("recipe-123", null, null, "c");
+        verify(recipeNodeClient).mergeRecipe("recipe-123", null, null, "c", "PUBLISHED");
         verify(recipeNodeClient, never()).createVariantRelationship(anyString(), anyString());
     }
 
@@ -177,7 +177,7 @@ class Neo4jSyncServiceTest {
         after.put("id", "recipe-123");
         after.putNull("parent_id");
         neo4jSyncService.handleRecipeChange("c", payload);
-        verify(recipeNodeClient).mergeRecipe(anyString(), any(), any(), eq("c"));
+        verify(recipeNodeClient).mergeRecipe(anyString(), any(), any(), eq("c"), eq("PUBLISHED"));
         verify(recipeNodeClient, never()).createVariantRelationship(anyString(), anyString());
     }
 

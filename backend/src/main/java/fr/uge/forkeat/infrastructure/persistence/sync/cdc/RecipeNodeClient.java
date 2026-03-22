@@ -4,6 +4,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.stereotype.Component;
 
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.Objects;
 
 @Component
@@ -17,22 +19,49 @@ public class RecipeNodeClient {
         this.neo4jClient = neo4jClient;
     }
 
-    public void mergeRecipe(String id, String title, String authorId, String op) {
+    public void mergeRecipe(String id, String title, String authorId, String op, String state) {
         Objects.requireNonNull(id);
         Objects.requireNonNull(title);
         Objects.requireNonNull(op);
         var cypher = """
             MERGE (r:Recipe {id: $id})
-            ON CREATE SET r.title = $title
-            ON MATCH SET r.title = $title
+            ON CREATE SET r.title = $title, r.state = $state, r.feed = false
+            ON MATCH SET r.title = $title, r.state = $state
+            RETURN r.feed
             """;
-        neo4jClient.query(cypher)
+        var isFeed = neo4jClient.query(cypher)
             .bind(id).to("id")
             .bind(title).to("title")
-            .run();
+            .bind(state).to("state")
+            .fetchAs(Boolean.class)
+            .mappedBy((_, record) -> record.get("r.feed").asBoolean())
+            .one().orElse(true);
+
+
         if (authorId != null && (op.equals("c") || op.equals("r"))) {
             createPublishedRelationship(id, authorId);
         }
+        if(authorId != null && "PUBLISHED".equals(state) && !isFeed) {
+            fillFeedRecipe(id, authorId);
+        }
+    }
+
+    public void fillFeedRecipe(String id, String authorId) {
+        Objects.requireNonNull(id);
+        var cypher = """
+                MATCH (recipe:Recipe {id: $recipeId})
+                MATCH path = (author:User {id: $authorId})<-[:FOLLOWS*1..3]-(follower:User)
+                WITH follower, recipe, min(length(path)) as depth
+                MERGE (follower)-[f:FEED]->(recipe)
+                ON CREATE SET f.depth = depth, f.createdAt = $now
+                ON MATCH SET f.depth = CASE WHEN depth < f.depth THEN depth ELSE f.depth END
+                SET recipe.feed = true
+            """;
+        neo4jClient.query(cypher)
+                .bind(id).to("recipeId")
+                .bind(authorId).to("authorId")
+                .bind(Instant.now().atZone(ZoneOffset.UTC)).to("now")
+                .run();
     }
 
     private void createPublishedRelationship(String recipeId, String authorId) {

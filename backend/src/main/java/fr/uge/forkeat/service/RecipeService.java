@@ -15,12 +15,8 @@ import fr.uge.forkeat.service.model.transaction.TransactionStatus;
 import fr.uge.forkeat.service.model.transaction.TransactionType;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
-import fr.uge.forkeat.service.persistence.PlatformWalletPersistence;
-import fr.uge.forkeat.service.persistence.PromotionPersistence;
-import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.persistence.*;
 import fr.uge.forkeat.service.port.EventPublisherPort;
-import fr.uge.forkeat.service.persistence.SuperLikeConfigPersistence;
-import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.UserIdentityPort;
 import fr.uge.forkeat.service.port.StoragePort;
@@ -51,7 +47,7 @@ public class RecipeService {
   private final Logger logger = LoggerFactory.getLogger(RecipeService.class);
   private static final String FOLDER_STORAGE = "recipes";
 
-  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService,
+    public RecipeService(RecipePersistence recipePersistence, StoragePort storageService,
                        WalletPersistence walletPersistence,
                        AuthenticationPort authPort,
                        SuperLikeConfigPersistence superLikeConfigPersistence,
@@ -69,7 +65,7 @@ public class RecipeService {
     this.authPort = authPort;
     this.userIdentityPort = userIdentityPort;
     this.securityService = securityService;
-  }
+    }
 
   @Transactional
   public Recipe createRecipe(Recipe recipe, ImageUpload image) {
@@ -214,6 +210,31 @@ public class RecipeService {
 
     return new PageResult<>(personalized, page.total());
   }
+
+    public PageResult<PersonalizedRecipeSummary> getPersonalizedFeedRecipes(Instant instant, int nbPage) {
+        var currentUsername = authPort.extractUsername();
+        var page = recipePersistence.searchPersonalizedFeedRecipes(currentUsername, instant, nbPage);
+        var summaries = page.items();
+        if (summaries.isEmpty()) {
+            return new PageResult<>(List.of(), page.total());
+        }
+
+        var ids = summaries.stream().map(RecipeSummary::id).toList();
+        var countsMap = recipePersistence.findRecipeCounts(ids);
+        var interactionsMap = currentUsername != null
+                ? recipePersistence.findUserRecipeInteractions(ids, currentUsername)
+                : Map.<UUID, RecipeUserInteraction>of();
+
+        var personalized = summaries.stream()
+                .map(s -> new PersonalizedRecipeSummary(
+                        s,
+                        countsMap.getOrDefault(s.id(), RecipeCounts.ZERO),
+                        interactionsMap.getOrDefault(s.id(), RecipeUserInteraction.NONE)
+                ))
+                .toList();
+
+        return new PageResult<>(personalized, page.total());
+    }
 
   public List<Allergen> findAllAllergens() {
     return recipePersistence.findAllAllergens();
