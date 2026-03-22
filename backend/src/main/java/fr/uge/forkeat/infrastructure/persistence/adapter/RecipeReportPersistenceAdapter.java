@@ -4,13 +4,18 @@ import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeReportEntityMapper
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeReportRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.RecipeReport;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeReportDetails;
 import fr.uge.forkeat.service.persistence.RecipeReportPersistence;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Component
@@ -36,10 +41,19 @@ public final class RecipeReportPersistenceAdapter implements RecipeReportPersist
         var reporter = report.reporterId() != null
                 ? userRepository.getReferenceById(report.reporterId())
                 : null;
+        var reviewer = report.reviewedById() != null
+                ? userRepository.getReferenceById(report.reviewedById())
+                : null;
 
-        var entity = RecipeReportEntityMapper.toEntity(report, recipe, reporter);
+        var entity = RecipeReportEntityMapper.toEntity(report, recipe, reporter, reviewer);
         var saved = recipeReportRepository.save(entity);
         return RecipeReportEntityMapper.toDomain(saved);
+    }
+
+    @Override
+    public Optional<RecipeReport> findById(UUID recipeReportId) {
+        Objects.requireNonNull(recipeReportId);
+        return recipeReportRepository.findById(recipeReportId).map(RecipeReportEntityMapper::toDomain);
     }
 
     @Override
@@ -69,5 +83,16 @@ public final class RecipeReportPersistenceAdapter implements RecipeReportPersist
         Objects.requireNonNull(recipeId);
         Objects.requireNonNull(reporterId);
         return recipeReportRepository.existsByRecipeIdAndReporterId(recipeId, reporterId);
+    }
+
+    @Override
+    public PageResult<RecipeReportDetails> getReportsToModerateWithRecipeAndReporter(UUID reporterId, int size, int page) {
+        Objects.requireNonNull(reporterId);
+        var pageable = PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "createdAt"));
+        var pageResult = recipeReportRepository.findRecipeReportsByStatusAndNotReporterIdWithRecipeAndReporter(ReportStatus.PENDING, reporterId, pageable);
+        var details = pageResult.getContent().stream()
+            .map(RecipeReportEntityMapper::toDomain)
+            .toList();
+        return new PageResult<>(details, pageResult.getTotalElements());
     }
 }

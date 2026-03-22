@@ -6,6 +6,8 @@ import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeReportType;
+import fr.uge.forkeat.service.model.PageResult;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeReportDetails;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.persistence.RecipeReportPersistence;
 import fr.uge.forkeat.service.port.UserIdentityPort;
@@ -15,6 +17,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
 import java.util.List;
@@ -170,6 +173,66 @@ class RecipeReportServiceTest {
         void shouldThrowNullPointerException_WhenRecipeIdIsNull() {
             assertThrows(NullPointerException.class, () -> recipeReportService.findByRecipeId(null));
             verifyNoInteractions(recipeReportPersistence, recipePersistence);
+        }
+    }
+
+    @Nested
+    class GetReportsToModerate {
+        @Test
+        void shouldReturnReportsToModerate() {
+            var reporterUsername = "moderator";
+            var reporterId = UUID.randomUUID();
+            int size = 5;
+            int page = 0;
+            var details = new RecipeReportDetails(
+                    UUID.randomUUID(), UUID.randomUUID(), "Tarte aux pommes", "img.jpg",
+                    "user1", "SPAM", "Justification", Instant.now()
+            );
+            var pageResult = new PageResult<>(List.of(details), 1);
+
+            when(userIdentityPort.findIdByUsernameOrThrow(reporterUsername)).thenReturn(reporterId);
+            when(recipeReportPersistence.getReportsToModerateWithRecipeAndReporter(reporterId, size, page)).thenReturn(pageResult);
+
+            var result = recipeReportService.getReportsToModerate(reporterUsername, size, page);
+
+            assertNotNull(result);
+            assertEquals(1, result.items().size());
+            assertEquals(1, result.total());
+            assertEquals("Tarte aux pommes", result.items().getFirst().recipeTitle());
+            verify(userIdentityPort).findIdByUsernameOrThrow(reporterUsername);
+            verify(recipeReportPersistence).getReportsToModerateWithRecipeAndReporter(reporterId, size, page);
+        }
+
+        @Test
+        void shouldReturnEmptyPage_WhenNoReports() {
+            var reporterUsername = "moderator";
+            var reporterId = UUID.randomUUID();
+            int size = 5;
+            int page = 0;
+            var pageResult = new PageResult<RecipeReportDetails>(List.of(), 0);
+
+            when(userIdentityPort.findIdByUsernameOrThrow(reporterUsername)).thenReturn(reporterId);
+            when(recipeReportPersistence.getReportsToModerateWithRecipeAndReporter(reporterId, size, page)).thenReturn(pageResult);
+
+            var result = recipeReportService.getReportsToModerate(reporterUsername, size, page);
+
+            assertNotNull(result);
+            assertTrue(result.items().isEmpty());
+            assertEquals(0, result.total());
+        }
+
+        @Test
+        void shouldThrowNullPointerException_WhenUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> recipeReportService.getReportsToModerate(null, 5, 0));
+            verifyNoInteractions(recipeReportPersistence);
+        }
+
+        @Test
+        void shouldThrowIllegalArgumentException_WhenSizeOrPageInvalid() {
+            var reporterUsername = "moderator";
+            when(userIdentityPort.findIdByUsernameOrThrow(reporterUsername)).thenReturn(UUID.randomUUID());
+            assertThrows(IllegalArgumentException.class, () -> recipeReportService.getReportsToModerate(reporterUsername, 0, 0));
+            assertThrows(IllegalArgumentException.class, () -> recipeReportService.getReportsToModerate(reporterUsername, 5, -1));
         }
     }
 }

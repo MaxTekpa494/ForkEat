@@ -128,48 +128,69 @@
                                        class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-secondary-100 hover:bg-secondary-200 text-secondary-700 rounded-lg font-medium transition">
                                         <i class="fas fa-eye"></i> Voir
                                     </a>
-                                    <form th:action="@{/admin/recipes/{id}/reject(id=${recipe.id()})}" method="post" class="inline">
-                                        <button type="submit"
-                                                class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 rounded-lg font-medium transition"
-                                                onclick="return confirm('Retirer cette recette de la publication ?')">
-                                            <i class="fas fa-eye-slash"></i> Dépublier
-                                        </button>
-                                    </form>
-                                </div>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
+                                    <button type="button"
+                                            class="inline-flex items-center gap-1.5 text-xs px-3 py-1.5 bg-gray-100 hover:bg-red-100 text-gray-500 hover:text-red-600 rounded-lg font-medium transition btn-open-reject-modal"
+                                            th:attr="data-recipe-id=${recipe.id()}"
+                                            onclick="openRejectModalFromButton(this)">
+                                         <i class="fas fa-eye-slash"></i> Dépublier
+                                     </button>
+                                 </div>
+                             </td>
+                         </tr>
+                     </tbody>
+                 </table>
 
-                <!-- Pagination -->
-                <div th:if="${totalPages > 1}" class="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50">
-                    <a th:if="${currentPage > 0}"
-                       th:href="@{/admin/recipes(page=${currentPage - 1})}"
-                       class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium transition">
-                        <i class="fas fa-chevron-left"></i> Précédente
-                    </a>
-                    <span th:unless="${currentPage > 0}" class="px-4 py-2 text-gray-300 text-sm">
-                        <i class="fas fa-chevron-left"></i> Précédente
-                    </span>
+                 <!-- Inclusion de la modale de rejet centralisée -->
+                 <div th:replace="fragments/modals :: ModerationRejectModal('rejectModal', 'rejectForm')"></div>
 
-                    <span class="text-sm text-gray-500">
-                        Page <strong th:text="${currentPage + 1}">1</strong> sur <strong th:text="${totalPages}">1</strong>
-                    </span>
+                 <!-- Bloc scripts -->
+                 <th:block layout:fragment="scripts">
+                     <script>
+                         let rejectModal = document.getElementById('rejectModal');
+                         let rejectForm = document.getElementById('rejectForm');
+                         function openRejectModal(recipeId) {
+                             rejectForm.action = `/admin/recipes/${recipeId}/reject`;
+                             rejectModal.classList.remove('hidden');
+                         }
+                         function openRejectModalFromButton(btn) {
+                             const recipeId = btn.getAttribute('data-recipe-id');
+                             openRejectModal(recipeId);
+                         }
+                         function closeRejectModal() {
+                             rejectModal.classList.add('hidden');
+                             rejectForm.action = '';
+                             rejectForm.reset();
+                         }
+                     </script>
+                 </th:block>
+                 <!-- Pagination -->
+                 <div th:if="${totalPages > 1}" class="px-6 py-4 border-t border-gray-100 flex items-center justify-between bg-gray-50">
+                     <a th:if="${currentPage > 0}"
+                        th:href="@{/admin/recipes(page=${currentPage - 1})}"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium transition">
+                         <i class="fas fa-chevron-left"></i> Précédente
+                     </a>
+                     <span th:unless="${currentPage > 0}" class="px-4 py-2 text-gray-300 text-sm">
+                         <i class="fas fa-chevron-left"></i> Précédente
+                     </span>
 
-                    <a th:if="${currentPage + 1 < totalPages}"
-                       th:href="@{/admin/recipes(page=${currentPage + 1})}"
-                       class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium transition">
-                        Suivante <i class="fas fa-chevron-right"></i>
-                    </a>
-                    <span th:unless="${currentPage + 1 < totalPages}" class="px-4 py-2 text-gray-300 text-sm">
-                        Suivante <i class="fas fa-chevron-right"></i>
-                    </span>
-                </div>
-            </div>
+                     <span class="text-sm text-gray-500">
+                         Page <strong th:text="${currentPage + 1}">1</strong> sur <strong th:text="${totalPages}">1</strong>
+                     </span>
 
-        </div>
-    </section>
+                     <a th:if="${currentPage + 1 < totalPages}"
+                        th:href="@{/admin/recipes(page=${currentPage + 1})}"
+                        class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium transition">
+                         Suivante <i class="fas fa-chevron-right"></i>
+                     </a>
+                     <span th:unless="${currentPage + 1 < totalPages}" class="px-4 py-2 text-gray-300 text-sm">
+                         Suivante <i class="fas fa-chevron-right"></i>
+                     </span>
+                 </div>
+             </div>
+         </div>
+     </section>
 
-</div>
-</body>
-</html>
+ </div>
+ </body>
+ </html>

@@ -3,6 +3,7 @@ package fr.uge.forkeat.infrastructure.persistence.mapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeReportEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeReportDetailsView;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.RecipeReport;
@@ -127,40 +128,98 @@ class RecipeReportEntityMapperTest {
             assertEquals(now, domain.reviewedAt());
             assertEquals(ReportStatus.VALIDATED, domain.status());
         }
+
+        @Test
+        void shouldMapFromViewToDomain() {
+            RecipeReportDetailsView view = new RecipeReportDetailsView() {
+                public java.util.UUID getId() { return UUID.randomUUID(); }
+                public java.util.UUID getRecipeId() { return recipeEntity.getId(); }
+                public String getRecipeTitle() { return recipeEntity.getTitle(); }
+                public String getRecipeImageUrl() { return "image.jpg"; }
+                public String getReporterUsername() { return reporterEntity.getUsername(); }
+                public String getReportType() { return "SPAM"; }
+                public String getJustification() { return "Justification"; }
+                public java.time.Instant getCreatedAt() { return now; }
+            };
+            var details = RecipeReportEntityMapper.toDomain(view);
+            assertNotNull(details);
+            assertEquals(recipeEntity.getId(), details.recipeId());
+            assertEquals(recipeEntity.getTitle(), details.recipeTitle());
+            assertEquals("image.jpg", details.recipeImageUrl());
+            assertEquals(reporterEntity.getUsername(), details.reporterUsername());
+            assertEquals("SPAM", details.reportType());
+            assertEquals("Justification", details.justification());
+            assertEquals(now, details.createdAt());
+        }
     }
 
     @Nested
     class ToEntity {
 
         @Test
-        void shouldConvertDomainToEntity() {
+        void shouldConvertDomainToEntity_AllFields() {
+            var id = UUID.randomUUID();
             var report = new RecipeReport(
-                    UUID.randomUUID(), recipeEntity.getId(), reporterEntity.getId(),
-                    RecipeReportType.COPYRIGHT, ReportStatus.PENDING,
-                    "Contenu copié", now, null, null
+                    id, recipeEntity.getId(), reporterEntity.getId(),
+                    RecipeReportType.COPYRIGHT, ReportStatus.VALIDATED,
+                    "Contenu copié", now, now, reviewerEntity.getId()
             );
 
-            var entity = RecipeReportEntityMapper.toEntity(report, recipeEntity, reporterEntity);
+            var entity = RecipeReportEntityMapper.toEntity(report, recipeEntity, reporterEntity, reviewerEntity);
 
             assertNotNull(entity);
+            assertEquals(id, entity.getId());
             assertEquals(recipeEntity, entity.getRecipe());
             assertEquals(reporterEntity, entity.getReporter());
             assertEquals(RecipeReportType.COPYRIGHT, entity.getReportType());
-            assertEquals(ReportStatus.PENDING, entity.getStatus());
+            assertEquals(ReportStatus.VALIDATED, entity.getStatus());
             assertEquals("Contenu copié", entity.getJustification());
+            assertEquals(now, entity.getReviewedAt());
+            assertEquals(reviewerEntity, entity.getReviewedBy());
         }
 
         @Test
-        void shouldSetNullReporter_WhenReporterIsNull() {
+        void shouldConvertDomainToEntity_WithNullReviewedByAndReviewedAt() {
+            var id = UUID.randomUUID();
             var report = new RecipeReport(
-                    UUID.randomUUID(), recipeEntity.getId(), null,
+                    id, recipeEntity.getId(), reporterEntity.getId(),
                     RecipeReportType.SPAM, ReportStatus.PENDING,
                     "Justification", now, null, null
             );
 
-            var entity = RecipeReportEntityMapper.toEntity(report, recipeEntity, null);
+            var entity = RecipeReportEntityMapper.toEntity(report, recipeEntity, reporterEntity, null);
 
+            assertNotNull(entity);
+            assertEquals(id, entity.getId());
+            assertEquals(recipeEntity, entity.getRecipe());
+            assertEquals(reporterEntity, entity.getReporter());
+            assertEquals(RecipeReportType.SPAM, entity.getReportType());
+            assertEquals(ReportStatus.PENDING, entity.getStatus());
+            assertEquals("Justification", entity.getJustification());
+            assertNull(entity.getReviewedAt());
+            assertNull(entity.getReviewedBy());
+        }
+
+        @Test
+        void shouldSetNullReporter_WhenReporterIsNull() {
+            var id = UUID.randomUUID();
+            var report = new RecipeReport(
+                    id, recipeEntity.getId(), null,
+                    RecipeReportType.SPAM, ReportStatus.PENDING,
+                    "Justification", now, null, null
+            );
+
+            var entity = RecipeReportEntityMapper.toEntity(report, recipeEntity, null, null);
+
+            assertNotNull(entity);
+            assertEquals(id, entity.getId());
+            assertEquals(recipeEntity, entity.getRecipe());
             assertNull(entity.getReporter());
+            assertEquals(RecipeReportType.SPAM, entity.getReportType());
+            assertEquals(ReportStatus.PENDING, entity.getStatus());
+            assertEquals("Justification", entity.getJustification());
+            assertNull(entity.getReviewedAt());
+            assertNull(entity.getReviewedBy());
         }
     }
 }
