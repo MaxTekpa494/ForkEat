@@ -53,6 +53,7 @@ public class AdminWebController {
     private final UserReportService userReportService;
     private final UserModerationActionService userModerationActionService;
     private final RedistributionService redistributionService;
+    private final SmartSearchConfigService smartSearchConfigService;
 
     public AdminWebController(UserService userQueryService,
                               RecipeService recipeService,
@@ -65,7 +66,8 @@ public class AdminWebController {
                               UserReportService userReportService,
                               UserModerationActionService userModerationActionService,
                               PromotionSchedulingPort schedulingService,
-                              RedistributionService redistributionService) {
+                              RedistributionService redistributionService,
+                              SmartSearchConfigService smartSearchConfigService) {
         this.userQueryService = userQueryService;
         this.recipeService = recipeService;
         this.platformWalletService = platformWalletService;
@@ -78,6 +80,7 @@ public class AdminWebController {
         this.userReportService = userReportService;
         this.userModerationActionService = userModerationActionService;
         this.redistributionService = redistributionService;
+        this.smartSearchConfigService = smartSearchConfigService;
     }
 
     @GetMapping
@@ -95,6 +98,7 @@ public class AdminWebController {
 
         var superLikeConfig = promotionService.getConfig();
         var activePromotion = promotionService.findActive();
+        var smartSearchConfig = smartSearchConfigService.getConfig();
 
         model.addAttribute("admin", admin);
         model.addAttribute("memberCount", memberCount);
@@ -105,6 +109,7 @@ public class AdminWebController {
         model.addAttribute("redistributionWallet", redistributionWallet);
         model.addAttribute("superLikeConfig", superLikeConfig);
         model.addAttribute("activePromotion", activePromotion.orElse(null));
+        model.addAttribute("smartSearchConfig", smartSearchConfig);
         model.addAttribute("pageTitle", "Administration - ForkEat");
 
         return "admin/dashboard";
@@ -217,6 +222,13 @@ public class AdminWebController {
                                @RequestParam BigDecimal earningsRatio) {
         promotionService.updateConfig(priceCents, earningsRatio);
         return "redirect:/admin/super-like?configSuccess=true";
+    }
+
+    @PostMapping("/smart-search/config")
+    public String updateSmartSearchConfig(@RequestParam int topK,
+                                          @RequestParam long cost) {
+        smartSearchConfigService.updateConfig(topK, cost);
+        return "redirect:/admin?smartSearchConfigSuccess=true";
     }
 
     @GetMapping("/promotions/create")
