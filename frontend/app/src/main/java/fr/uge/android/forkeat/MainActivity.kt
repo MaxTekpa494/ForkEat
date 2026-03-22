@@ -265,7 +265,6 @@ class MainActivity : ComponentActivity() {
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToLogin = { navController.navigate("login") },
                 onRegisterSuccess = {
-                  isLoggedIn = true
                   navController.navigate("recipes") {
                     popUpTo("home") { inclusive = true }
                   }
