@@ -68,7 +68,7 @@ fun ModeratorRecipesScreen(
         currentRoute = currentRoute,
         onNavigateToRecipes = {},
         onNavigateToReports = onNavigateToReports,
-        onExit = onExit
+        onExitToNonModerator = onExit
     ) { innerPadding ->
         PullToRefreshBox(
             isRefreshing = uiState.isLoading,
@@ -280,22 +280,6 @@ private fun PendingRecipeCard(
             .clickable(enabled = !isActionInProgress) { onNavigateToRecipe() }
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            // Badge statut + titre
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Box(
-                    modifier = Modifier
-                        .background(Color(0xFFFEF3C7), RoundedCornerShape(50))
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
-                ) {
-                    Text("À modérer", fontSize = 10.sp, color = Color(0xFFD97706), fontWeight = FontWeight.Bold)
-                }
-            }
-
-            Spacer(Modifier.height(8.dp))
-
             Text(
                 text = recipe.title,
                 fontWeight = FontWeight.Bold,
