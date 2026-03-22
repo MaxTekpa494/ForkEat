@@ -14,6 +14,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.AllergenRep
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
+import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
@@ -339,18 +340,17 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
     @Test
     @WithMockUser(username = "chef_integration")
     void createRecipe_shouldCreateRecipeSuccessfully() throws Exception {
-        var dto = new RecipeDTO(null, "Nouvelle recette", "Un résumé délicieux", null,
-                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
+        var request = new CreateRecipeRequest(null, "Nouvelle recette", "Un résumé délicieux", 30, false, null, List.of(), List.of(), List.of(), List.of());
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
-                objectMapper.writeValueAsBytes(dto));
+                objectMapper.writeValueAsBytes(request));
 
         mockMvc.perform(multipart("/api/recipes/create")
                         .file(recipePart))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resource.title").value("Nouvelle recette"))
                 .andExpect(jsonPath("$.resource.username").value("chef_integration"))
-                .andExpect(jsonPath("$.resource.status").value("PUBLISHED"));
+                .andExpect(jsonPath("$.resource.status").value("PENDING_REVIEW"));
     }
 
     @Test
@@ -358,16 +358,14 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
     void createRecipe_shouldPersistRecipeInDatabase() throws Exception {
         long countBefore = recipeRepository.count();
 
-        var dto = new RecipeDTO(null, "Recette persistée", "Résumé", null,
-                null, 45, null, "DRAFT", List.of(), List.of(), List.of(), List.of(), null, null);
+        var request = new CreateRecipeRequest(null, "Recette persistée", "Résumé", 45, true, null, List.of(), List.of(), List.of(), List.of());
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
-                objectMapper.writeValueAsBytes(dto));
+                objectMapper.writeValueAsBytes(request));
 
         mockMvc.perform(multipart("/api/recipes/create").file(recipePart))
                 .andExpect(status().isOk());
 
-        // La transaction n'est pas encore committée mais la requête est visible dans la même transaction
         long countAfter = recipeRepository.count();
         org.junit.jupiter.api.Assertions.assertEquals(countBefore + 1, countAfter);
     }
@@ -544,13 +542,12 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
     void createVariant_shouldCreateVariantSuccessfully() throws Exception {
         var parent = createAndSaveRecipe("Recette originale", RecipeStatus.PUBLISHED, null);
 
-        var dto = new RecipeDTO(null, "Ma variante", "Une variation de la recette", parent.getId(),
-                null, 45, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
+        var request = new CreateRecipeRequest(parent.getId(), "Ma variante", "Une variation de la recette", 45, false, null, List.of(), List.of(), List.of(), List.of());
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
-                objectMapper.writeValueAsBytes(dto));
+                objectMapper.writeValueAsBytes(request));
 
-        mockMvc.perform(multipart("/api/recipes/create-variant")
+        mockMvc.perform(multipart("/api/recipes/create")
                         .file(recipePart))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resource.title").value("Ma variante"))
@@ -560,19 +557,15 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
 
     @Test
     @WithMockUser(username = "chef_integration")
-    void createVariant_shouldInheritParentImageWhenNoImageProvided() throws Exception {
+    void createVariant_shouldUseProvidedImageUrl() throws Exception {
         var parent = createAndSaveRecipe("Original avec image", RecipeStatus.PUBLISHED, null);
-        // Manuellement on donne une imageUrl au parent
-        parent.setImageUrl("https://example.com/image.jpg");
-        recipeRepository.save(parent);
 
-        var dto = new RecipeDTO(null, "Variante héritée", "Résumé", parent.getId(),
-                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
+        var request = new CreateRecipeRequest(parent.getId(), "Variante héritée", "Résumé", 30, false, "https://example.com/image.jpg", List.of(), List.of(), List.of(), List.of());
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
-                objectMapper.writeValueAsBytes(dto));
+                objectMapper.writeValueAsBytes(request));
 
-        mockMvc.perform(multipart("/api/recipes/create-variant")
+        mockMvc.perform(multipart("/api/recipes/create")
                         .file(recipePart))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.resource.imageUrl").value("https://example.com/image.jpg"));
@@ -583,13 +576,12 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
     void createVariant_shouldReturn404WhenParentNotFound() throws Exception {
         var nonExistentParentId = UUID.randomUUID();
 
-        var dto = new RecipeDTO(null, "Variante orpheline", "Résumé", nonExistentParentId,
-                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
+        var request = new CreateRecipeRequest(nonExistentParentId, "Variante orpheline", "Résumé", 30, false, null, List.of(), List.of(), List.of(), List.of());
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
-                objectMapper.writeValueAsBytes(dto));
+                objectMapper.writeValueAsBytes(request));
 
-        mockMvc.perform(multipart("/api/recipes/create-variant")
+        mockMvc.perform(multipart("/api/recipes/create")
                         .file(recipePart))
                 .andExpect(status().isNotFound());
     }

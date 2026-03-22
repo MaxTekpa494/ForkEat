@@ -66,6 +66,7 @@ fun AdminRecipesScreen(
     onNavigateToDashboard: () -> Unit,
     onNavigateToUsers: () -> Unit,
     onNavigateToWallets: () -> Unit,
+    onNavigateToReports : () -> Unit,
     onNavigateToCreate: () -> Unit,
     onNavigateToRecipe: (String) -> Unit = {},
     onLogout: () -> Unit,
@@ -85,6 +86,7 @@ fun AdminRecipesScreen(
         onNavigateToRecipes = {},
         onNavigateToWallets = onNavigateToWallets,
         onNavigateToCreate = onNavigateToCreate,
+        onNavigateToReports = onNavigateToReports,
         onLogout = onLogout
     ) { innerPadding ->
         PullToRefreshBox(

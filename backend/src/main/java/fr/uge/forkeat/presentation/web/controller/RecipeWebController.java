@@ -3,6 +3,7 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
 import fr.uge.forkeat.presentation.dto.recipe.PersonalizedRecipeSummaryDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
+import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.dto.recipe.RecipePaginationDTO;
@@ -16,18 +17,16 @@ import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.SmartSearchConfigService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
-import fr.uge.forkeat.service.exception.ModerationRagException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeReportType;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
-import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.user.UserService;
+import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import jakarta.servlet.http.HttpSession;
-import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -88,17 +87,12 @@ public class RecipeWebController {
     }
 
     @PostMapping
-    public String createRecipe(@ModelAttribute RecipeDTO recipeDTO,
+    public String createRecipe(@ModelAttribute CreateRecipeRequest request,
                                @RequestPart(value = "image", required = false) MultipartFile image,
                                Model model) {
-        Objects.requireNonNull(recipeDTO);
-        logger.info("Creating recipe 1 {}", recipeDTO);
+        Objects.requireNonNull(request);
         var username = authPort.extractUsername();
-        var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
-        logger.info("Creating recipe 2 {}", recipe);
-        logger.info("Creating recipe status 2 {}", recipe.status());
-        logger.info("Creating recipe 3 {}", image);
-        var savedRecipe = recipeService.createRecipe(recipe, ImageMapper.toImageUpload(image));
+        var savedRecipe = recipeService.createRecipe(RecipeDTOMapper.toCommand(request, username, ImageMapper.toImageUpload(image)));
         return "redirect:/recipes/" + savedRecipe.id();
     }
 
@@ -143,9 +137,6 @@ public class RecipeWebController {
         var currentUser = authPort.extractUsername();
         var personalizedRecipe = recipeService.findPersonalizedRecipeById(id, currentUser);
         var recipe = personalizedRecipe.recipe();
-
-
-
         var recipeDTO = RecipeDTOMapper.toPersonalizedRecipeDTO(personalizedRecipe);
 
         if (recipe.isVariant()) {
@@ -210,8 +201,7 @@ public class RecipeWebController {
     }
 
     @GetMapping("/create-variant")
-    public String pageCreateVariant(@RequestParam("id") UUID idParent, @RequestParam("title") String titleRecipeParent,
-                                    @RequestParam("username") String usernameOwnerRecipeParent, Model model) {
+    public String pageCreateVariant(@RequestParam("id") UUID idParent, Model model) {
         var recipeParent = recipeService.findById(idParent);
         var recipeParentDTO = RecipeDTOMapper.toDTO(recipeParent);
         var allAllergens = recipeService.findAllAllergens().stream()
@@ -233,25 +223,9 @@ public class RecipeWebController {
         model.addAttribute("allDietaryNames", allDietaryNames);
         model.addAttribute("selectedAllergenIds", selectedAllergenIds);
         model.addAttribute("username", username);
-        model.addAttribute("formAction", "/recipes/create-variant");
+        model.addAttribute("formAction", "/recipes");
         model.addAttribute("formTitle", "Créer une variante");
         return "recipes/create-variant";
-    }
-
-    @PostMapping("/create-variant")
-    public String createVariant(@ModelAttribute RecipeDTO recipeDTO,
-                                @RequestPart(value = "image", required = false) MultipartFile image,
-                                Model model) {
-        var currentUser = authPort.extractUsername();
-        var dto = RecipeDTOMapper.recipeDTOWithUser(recipeDTO, currentUser);
-        var hasNewImage = image != null && !image.isEmpty();
-        if (!hasNewImage && recipeDTO.parentId() != null) {
-            var parent = recipeService.findById(recipeDTO.parentId());
-            logger.info("Adding image from parent {}\n\n\n", parent);
-            dto = RecipeDTOMapper.recipeDTOWithImageUrl(dto, parent.imageUrl());
-        }
-        var savedRecipe = recipeService.createRecipe(RecipeDTOMapper.toDomain(dto), hasNewImage ? ImageMapper.toImageUpload(image) : null);
-        return "redirect:/recipes/" + savedRecipe.id();
     }
 
     @GetMapping("/smart-search")

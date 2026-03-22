@@ -1,6 +1,8 @@
 package fr.uge.forkeat.presentation.mapper.rest;
 
 import fr.uge.forkeat.presentation.dto.recipe.*;
+import fr.uge.forkeat.presentation.mapper.ImageMapper;
+import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
@@ -66,6 +68,25 @@ public final class RecipeDTOMapper {
                 allergen.id(),
                 allergen.name(),
                 allergen.severity().name()
+        );
+    }
+
+    public static CreateRecipeCommand toCommand(CreateRecipeRequest request, String username, ImageUpload image) {
+        Objects.requireNonNull(request);
+        Objects.requireNonNull(username);
+        return new CreateRecipeCommand(
+                request.parentId(),
+                username,
+                request.title(),
+                request.summary(),
+                request.preparationMinutes(),
+                request.draft(),
+                image,
+                request.imageUrl(),
+                toStepsDomain(request.steps()),
+                toIngredientsDomain(request.ingredients()),
+                toAllergensDomain(request.allergens()),
+                request.dietaries()
         );
     }
 

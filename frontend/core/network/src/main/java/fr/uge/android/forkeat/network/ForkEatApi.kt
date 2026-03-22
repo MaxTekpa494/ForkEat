@@ -34,7 +34,7 @@ object ForkEatApi {
 
     // 10.0.2.2 = host machine depuis l'émulateur Android
     // Pour un device physique, utiliser l'IP locale de la machine (ex: 192.168.x.x)
-    private const val BASE_URL = "http://10.0.2.2:8080/"
+    private const val BASE_URL = "http://192.168.0.159:8080/"
 
     private var tokenManager: TokenManager? = null
 
@@ -67,7 +67,7 @@ object ForkEatApi {
             .addInterceptor { chain ->
                 val requestBuilder = chain.request().newBuilder()
                 tokenManager?.getToken()?.let { token ->
-                    requestBuilder.addHeader("Authorization", "$token")
+                    requestBuilder.addHeader("Authorization", token)
                 }
                 chain.proceed(requestBuilder.build())
             }

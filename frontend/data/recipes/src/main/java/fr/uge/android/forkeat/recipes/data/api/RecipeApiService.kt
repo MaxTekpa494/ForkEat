@@ -62,13 +62,6 @@ interface RecipeApiService {
     ): Response<RecipeItemResponse>
 
     @Multipart
-    @POST("api/recipes/create-variant")
-    suspend fun createVariant(
-        @Part("recipe") recipe: RequestBody,
-        @Part image: MultipartBody.Part?
-    ): Response<RecipeItemResponse>
-
-    @Multipart
     @POST("api/recipes/{id}/update")
     suspend fun updateRecipe(
         @Path("id") id: UUID,

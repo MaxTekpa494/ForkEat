@@ -45,6 +45,8 @@ public interface RecipePersistence {
 
   void deleteById(UUID id);
 
+  void reparentVariants(UUID deletedId, UUID newParentId);
+
   Recipe updateStatus(UUID id, RecipeStatus status);
 
   long countByStatus(RecipeStatus status);

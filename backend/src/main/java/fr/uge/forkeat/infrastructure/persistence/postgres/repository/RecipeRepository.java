@@ -9,6 +9,7 @@ import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -132,4 +133,8 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
     @Query(value = "SELECT status::text AS status, COUNT(id) AS count FROM recipes WHERE author_id = :authorId GROUP BY status",
             nativeQuery = true)
     List<RecipeStatusCount> countByAuthorIdGroupByStatus(@Param("authorId") UUID authorId);
+
+    @Modifying
+    @Query(value = "UPDATE recipes SET parent_id = :newParentId WHERE parent_id = :deletedId", nativeQuery = true)
+    void reparentVariants(@Param("deletedId") UUID deletedId, @Param("newParentId") UUID newParentId);
 }
