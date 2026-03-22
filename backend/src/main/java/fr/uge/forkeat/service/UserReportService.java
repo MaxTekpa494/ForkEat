@@ -1,9 +1,11 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.UserAlreadyReportedException;
+import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.user.CreateUserReport;
 import fr.uge.forkeat.service.model.user.UserReport;
+import fr.uge.forkeat.service.model.user.projection.UserReportDetails;
 import fr.uge.forkeat.service.persistence.UserReportPersistence;
 import fr.uge.forkeat.service.port.UserIdentityPort;
 import org.springframework.stereotype.Service;
@@ -57,5 +59,14 @@ public class UserReportService {
     public List<UserReport> findByReportedUserId(UUID reportedUserId) {
         Objects.requireNonNull(reportedUserId);
         return userReportPersistence.findByReportedUserId(reportedUserId);
+    }
+
+    public PageResult<UserReportDetails> getReportsToModerate(String reporterUsername, int size, int page) {
+        Objects.requireNonNull(reporterUsername);
+        var reporterId = userIdentityPort.findIdByUsernameOrThrow(reporterUsername);
+        if (size <= 0 || page < 0) {
+            throw new IllegalArgumentException("Invalid page or size");
+        }
+        return userReportPersistence.getReportsToModerateWithReportedUserAndReporter(reporterId, size, page);
     }
 }

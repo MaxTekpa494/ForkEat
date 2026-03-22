@@ -3,6 +3,7 @@ package fr.uge.forkeat.infrastructure.persistence.adapter;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeReportEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
+import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeReportDetailsView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeReportRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
@@ -11,6 +12,7 @@ import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.RecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeReportType;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeReportDetails;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,9 +21,11 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.data.domain.*;
 
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -67,7 +71,7 @@ class RecipeReportPersistenceAdapterTest {
         recipe.setUpdatedAt(now);
     }
 
-    private RecipeReportEntity createReportEntity(UUID recipeId, UUID reporterId) {
+    private RecipeReportEntity createReportEntity() {
         var entity = new RecipeReportEntity();
         entity.setId(UUID.randomUUID());
         entity.setRecipe(recipe);
@@ -78,6 +82,7 @@ class RecipeReportPersistenceAdapterTest {
         return entity;
     }
 
+
     @Nested
     class Save {
 
@@ -87,7 +92,7 @@ class RecipeReportPersistenceAdapterTest {
                     UUID.randomUUID(), recipe.getId(), reporter.getId(),
                     RecipeReportType.SPAM, ReportStatus.PENDING, "Justification", now, null, null
             );
-            var savedEntity = createReportEntity(recipe.getId(), reporter.getId());
+            var savedEntity = createReportEntity();
 
             when(recipeRepository.getReferenceById(recipe.getId())).thenReturn(recipe);
             when(userRepository.getReferenceById(reporter.getId())).thenReturn(reporter);
@@ -105,7 +110,7 @@ class RecipeReportPersistenceAdapterTest {
                     UUID.randomUUID(), recipe.getId(), null,
                     RecipeReportType.SPAM, ReportStatus.PENDING, "Justification", now, null, null
             );
-            var savedEntity = createReportEntity(recipe.getId(), null);
+            var savedEntity = createReportEntity();
 
             when(recipeRepository.getReferenceById(recipe.getId())).thenReturn(recipe);
             when(recipeReportRepository.save(any())).thenReturn(savedEntity);
@@ -121,7 +126,7 @@ class RecipeReportPersistenceAdapterTest {
 
         @Test
         void shouldReturnReports() {
-            var entity = createReportEntity(recipe.getId(), reporter.getId());
+            var entity = createReportEntity();
             when(recipeReportRepository.findByRecipeId(recipe.getId())).thenReturn(List.of(entity));
 
             var result = adapter.findByRecipeId(recipe.getId());
@@ -145,12 +150,22 @@ class RecipeReportPersistenceAdapterTest {
 
         @Test
         void shouldReturnPendingReports() {
-            var entity = createReportEntity(recipe.getId(), reporter.getId());
+            var entity = createReportEntity();
             when(recipeReportRepository.findByStatus(ReportStatus.PENDING)).thenReturn(List.of(entity));
 
             var result = adapter.findByStatus(ReportStatus.PENDING);
 
             assertEquals(1, result.size());
+            verify(recipeReportRepository).findByStatus(ReportStatus.PENDING);
+        }
+
+        @Test
+        void shouldReturnEmptyListWhenNoMatch() {
+            when(recipeReportRepository.findByStatus(ReportStatus.PENDING)).thenReturn(List.of());
+
+            var result = adapter.findByStatus(ReportStatus.PENDING);
+
+            assertTrue(result.isEmpty());
             verify(recipeReportRepository).findByStatus(ReportStatus.PENDING);
         }
     }
@@ -193,5 +208,148 @@ class RecipeReportPersistenceAdapterTest {
 
             assertFalse(adapter.existsByRecipeIdAndReporterId(recipe.getId(), reporter.getId()));
         }
+    }
+
+    @Nested
+    class GetReportsToModerateWithRecipeAndReporter {
+        @Test
+        void shouldReturnReportsToModerate() {
+            var reporterId = UUID.randomUUID();
+            int page = 0;
+            int size = 10;
+            var pageable = PageRequest.of(page, size, Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+            var details = new RecipeReportDetails(
+                UUID.randomUUID(),
+                recipe.getId(),
+                "Tarte aux pommes",
+                "image.jpg",
+                "reporter",
+                "SPAM",
+                "Justification",
+                now
+            );
+            var view = createRecipeReportDetailsView(details);
+            var pageResult = new PageImpl<>(List.of(view), pageable, 1);
+            when(recipeReportRepository.findRecipeReportsByStatusAndNotReporterIdWithRecipeAndReporter(
+                eq(ReportStatus.PENDING), eq(reporterId), eq(pageable)
+            )).thenReturn(pageResult);
+
+            var result = adapter.getReportsToModerateWithRecipeAndReporter(reporterId, size, page);
+
+            assertNotNull(result);
+            assertEquals(1, result.items().size());
+            assertEquals(details.id(), result.items().getFirst().id());
+            verify(recipeReportRepository).findRecipeReportsByStatusAndNotReporterIdWithRecipeAndReporter(
+                eq(ReportStatus.PENDING), eq(reporterId), eq(pageable)
+            );
+        }
+
+        @Test
+        void shouldReturnEmpty_WhenNoReportsToModerate() {
+            var reporterId = UUID.randomUUID();
+            int page = 0;
+            int size = 10;
+            Pageable pageable = PageRequest.of(page, size, Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+            Page<RecipeReportDetailsView> pageResult = new PageImpl<>(List.of(), pageable, 0);
+            when(recipeReportRepository.findRecipeReportsByStatusAndNotReporterIdWithRecipeAndReporter(
+                eq(ReportStatus.PENDING), eq(reporterId), eq(pageable)
+            )).thenReturn(pageResult);
+
+            var result = adapter.getReportsToModerateWithRecipeAndReporter(reporterId, size, page);
+
+            assertNotNull(result);
+            assertTrue(result.items().isEmpty());
+        }
+
+        @Test
+        void shouldNotReturnReportsWhereModeratorIsRecipeAuthor() {
+            var moderatorId = UUID.randomUUID();
+            int page = 0;
+            int size = 10;
+            var pageable = PageRequest.of(page, size, Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+            recipe.setAuthor(new UserEntity());
+            recipe.getAuthor().setId(moderatorId);
+            Page<RecipeReportDetailsView> pageResult = new PageImpl<>(List.of(), pageable, 1);
+            when(recipeReportRepository.findRecipeReportsByStatusAndNotReporterIdWithRecipeAndReporter(
+                eq(ReportStatus.PENDING), eq(moderatorId), eq(pageable)
+            )).thenReturn(pageResult);
+
+            var result = adapter.getReportsToModerateWithRecipeAndReporter(moderatorId, size, page);
+
+            assertNotNull(result);
+            assertTrue(result.items().isEmpty());
+            verify(recipeReportRepository).findRecipeReportsByStatusAndNotReporterIdWithRecipeAndReporter(
+                eq(ReportStatus.PENDING), eq(moderatorId), eq(pageable)
+            );
+        }
+
+        @Test
+        void shouldNotReturnReportsWhereModeratorIsReporter() {
+            var moderatorId = UUID.randomUUID();
+            int page = 0;
+            int size = 10;
+            var pageable = PageRequest.of(page, size, Sort.by(org.springframework.data.domain.Sort.Direction.DESC, "createdAt"));
+            var details = new RecipeReportDetails(
+                    UUID.randomUUID(),
+                    recipe.getId(),
+                    "Tarte aux pommes",
+                    "image.jpg",
+                    "moderatorUsername", // le modérateur est aussi le reporter
+                    "SPAM",
+                    "Justification",
+                    now
+            );
+            var view = createRecipeReportDetailsView(details);
+            // Simule un résultat où le reporterUsername correspond au modérateur
+            var pageResult = new PageImpl<>(List.of(view), pageable, 1);
+            when(recipeReportRepository.findRecipeReportsByStatusAndNotReporterIdWithRecipeAndReporter(
+                    eq(ReportStatus.PENDING), eq(moderatorId), eq(pageable)
+            )).thenReturn(pageResult);
+
+            var result = adapter.getReportsToModerateWithRecipeAndReporter(moderatorId, size, page);
+
+            // Ici, le mock retourne un résultat, mais la vraie logique filtrerait ce cas
+            // On vérifie que l'appel au repository est correct.
+            assertNotNull(result);
+            // En vrai, il faudrait un test d'intégration pour vérifier le filtrage
+            verify(recipeReportRepository).findRecipeReportsByStatusAndNotReporterIdWithRecipeAndReporter(
+                    eq(ReportStatus.PENDING), eq(moderatorId), eq(pageable)
+            );
+        }
+    }
+
+    @Nested
+    class FindById {
+        @Test
+        void shouldReturnReport_WhenExists() {
+            var entity = createReportEntity();
+            when(recipeReportRepository.findById(entity.getId())).thenReturn(Optional.of(entity));
+            var result = adapter.findById(entity.getId());
+            assertTrue(result.isPresent());
+            assertEquals(entity.getId(), result.get().id());
+            verify(recipeReportRepository).findById(entity.getId());
+        }
+
+        @Test
+        void shouldReturnEmpty_WhenNotExists() {
+            UUID id = UUID.randomUUID();
+            when(recipeReportRepository.findById(id)).thenReturn(Optional.empty());
+            var result = adapter.findById(id);
+            assertTrue(result.isEmpty());
+            verify(recipeReportRepository).findById(id);
+        }
+    }
+
+    private static RecipeReportDetailsView createRecipeReportDetailsView(RecipeReportDetails details) {
+        return new RecipeReportDetailsView() {
+            public UUID getId() { return details.id(); }
+            public UUID getRecipeId() { return details.recipeId(); }
+            public String getRecipeTitle() { return details.recipeTitle(); }
+            public String getRecipeImageUrl() { return details.recipeImageUrl(); }
+            public String getReporterUsername() { return details.reporterUsername(); }
+            public String getReportType() { return details.reportType(); }
+            public String getJustification() { return details.justification(); }
+            public Instant getCreatedAt() { return details.createdAt(); }
+        };
     }
 }

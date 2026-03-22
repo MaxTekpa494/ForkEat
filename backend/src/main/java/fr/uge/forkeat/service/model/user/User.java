@@ -29,5 +29,16 @@ public record User(UUID id, String username, String firstName, String lastName, 
     return role == UserRole.ADMIN;
   }
 
+  public User ban() {
+    return new User(id, username, firstName, lastName, email, role, UserStatus.BANNED, authMode, createdAt, Instant.now(), emailVerified);
+  }
+
+  public User suspend() {
+    return new User(id, username, firstName, lastName, email, role, UserStatus.SUSPENDED, authMode, createdAt, Instant.now(), emailVerified);
+  }
+
+  public User unban() {
+    return new User(id, username, firstName, lastName, email, role, UserStatus.ACTIVE, authMode, createdAt, Instant.now(), emailVerified);
+  }
 
 }
