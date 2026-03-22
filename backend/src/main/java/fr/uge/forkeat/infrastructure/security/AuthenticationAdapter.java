@@ -31,7 +31,7 @@ public class AuthenticationAdapter implements AuthenticationPort {
     @Override
     public String extractUsername() {
         var authentication = SecurityContextHolder.getContext().getAuthentication();
-        if (authentication == null || !authentication.isAuthenticated()) {
+        if (authentication == null) {
             return null;
         }
 
