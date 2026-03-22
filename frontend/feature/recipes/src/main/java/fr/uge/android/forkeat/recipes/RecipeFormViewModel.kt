@@ -51,7 +51,6 @@ data class RecipeFormUiState(
     val title: String = "",
     val summary: String = "",
     val preparationMinutes: String = "",
-    val status: String = "PENDING_REVIEW",
     val steps: List<StepState> = emptyList(),
     val ingredients: List<IngredientState> = emptyList(),
     val selectedAllergenIds: Set<String> = emptySet(),
@@ -142,7 +141,6 @@ class RecipeFormViewModel(
                     title = recipe.title,
                     summary = recipe.summary,
                     preparationMinutes = recipe.preparationMinutes.toString(),
-                    status = if (isVariant) "PENDING_REVIEW" else recipe.status,
                     steps = recipe.steps.map { StepState(it.instruction) },
                     ingredients = recipe.ingredients.map {
                         IngredientState(it.name, it.quantity.toString(), it.unit)
@@ -166,7 +164,6 @@ class RecipeFormViewModel(
     fun onTitleChange(v: String) { _uiState.value = _uiState.value.copy(title = v) }
     fun onSummaryChange(v: String) { _uiState.value = _uiState.value.copy(summary = v) }
     fun onPrepMinutesChange(v: String) { _uiState.value = _uiState.value.copy(preparationMinutes = v) }
-    fun onStatusChange(v: String) { _uiState.value = _uiState.value.copy(status = v) }
     fun onImageSelected(uri: Uri?) { _uiState.value = _uiState.value.copy(imageUri = uri) }
 
     /** Crée une URI MediaStore vide où TakePicture écrira la photo. */
@@ -269,7 +266,7 @@ class RecipeFormViewModel(
 
     // --- Soumission ---
 
-    fun submitRecipe() {
+    fun submitRecipe(draft: Boolean) {
         val state = _uiState.value
 
         if (state.title.isBlank()) {
@@ -300,13 +297,15 @@ class RecipeFormViewModel(
                     title = state.title.trim(),
                     summary = state.summary.trim(),
                     preparationMinutes = prepMinutes,
-                    status = state.status,
+                    draft = draft,
+                    status = if (mode is RecipeFormMode.Edit) if (draft) "DRAFT" else "PENDING_REVIEW" else null,
                     steps = state.steps.mapIndexed { i, s -> RecipeStepDTO(i + 1, s.instruction.trim()) },
                     ingredients = state.ingredients
                         .filter { it.name.isNotBlank() }
                         .map { RecipeIngredientDTO(it.name.trim(), it.quantity.toDoubleOrNull() ?: 0.0, it.unit.trim()) },
                     allergens = selectedAllergens,
                     parentId = parentId,
+                    imageUrl = if (state.imageUri == null) state.currentImageUrl else null,
                     dietaries = state.selectedDietaries.toList()
                 )
 
@@ -323,7 +322,7 @@ class RecipeFormViewModel(
 
                 val response = when (val m = mode) {
                     is RecipeFormMode.Edit -> api.updateRecipe(m.recipeId, jsonBody, imagePart)
-                    is RecipeFormMode.CreateVariant -> api.createVariant(jsonBody, imagePart)
+                    is RecipeFormMode.CreateVariant -> api.createRecipe(jsonBody, imagePart)
                     is RecipeFormMode.Create -> api.createRecipe(jsonBody, imagePart)
                 }
 

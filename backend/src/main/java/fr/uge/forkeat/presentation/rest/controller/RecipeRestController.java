@@ -111,12 +111,11 @@ public class RecipeRestController {
   }
 
   @PostMapping(value = "/create", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<HttpResponse<RecipeDTO>> createRecipe(@RequestPart("recipe") RecipeDTO recipeDTO,
+  public ResponseEntity<HttpResponse<RecipeDTO>> createRecipe(@RequestPart("recipe") CreateRecipeRequest request,
                                                               @RequestPart(value = "image", required = false) MultipartFile image) {
-    Objects.requireNonNull(recipeDTO);
+    Objects.requireNonNull(request);
     var username = authPort.extractUsername();
-    var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
-    var savedRecipe = recipeService.createRecipe(recipe, ImageMapper.toImageUpload(image));
+    var savedRecipe = recipeService.createRecipe(RecipeDTOMapper.toCommand(request, username, ImageMapper.toImageUpload(image)));
     return ResponseEntity.ok(new CreatedResponse<>(RecipeDTOMapper.toDTO(savedRecipe)));
   }
 
@@ -143,20 +142,6 @@ public class RecipeRestController {
     return ResponseEntity.ok(new ItemResponse<>(result));
   }
 
-  @PostMapping(value = "create-variant", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<HttpResponse<RecipeDTO>> createVariant(@RequestPart("recipe") RecipeDTO recipeDTO, @RequestPart(value = "image", required = false) MultipartFile image) {
-		Objects.requireNonNull(recipeDTO);
-		var currentUser = authPort.extractUsername();
-		var dto = RecipeDTOMapper.recipeDTOWithUser(recipeDTO, currentUser);
-		var hasNewImage = image != null && !image.isEmpty();
-		if (!hasNewImage && recipeDTO.parentId() != null) {
-			var parent = recipeService.findById(recipeDTO.parentId());
-			logger.info("Adding image from parent {}\n\n\n", parent);
-			dto = RecipeDTOMapper.recipeDTOWithImageUrl(dto, parent.imageUrl());
-		}
-		var savedRecipe = recipeService.createRecipe(RecipeDTOMapper.toDomain(dto), hasNewImage ? ImageMapper.toImageUpload(image) : null);
-		return ResponseEntity.ok(new CreatedResponse<>(RecipeDTOMapper.toDTO(savedRecipe)));
-  }
 
   @PostMapping("/{id}/like")
   public ResponseEntity<?> likeRecipe(@PathVariable UUID id) {

@@ -172,31 +172,6 @@ fun RecipeFormScreen(
                 singleLine = true
             )
 
-            // Statut
-            FormSectionTitle("Statut")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                listOf("PENDING_REVIEW" to "Soumettre à validation", "DRAFT" to "Brouillon").forEach { (value, label) ->
-                    val isSelected = uiState.status == value
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { viewModel.onStatusChange(value) },
-                        label = { Text(label) },
-                        shape = RoundedCornerShape(20.dp),
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = Primary500,
-                            selectedLabelColor = Color.White,
-                            containerColor = Color.White,
-                            labelColor = Gray500
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            borderColor = Color(0xFFE5E7EB),
-                            selectedBorderColor = Primary500,
-                            enabled = true,
-                            selected = isSelected
-                        )
-                    )
-                }
-            }
 
             // Image
             FormSectionTitle("Image")
@@ -334,10 +309,20 @@ fun RecipeFormScreen(
                 }
             }
 
-            // Bouton submit
+            // Boutons submit
+            Spacer(Modifier.height(8.dp))
+            OutlinedButton(
+                onClick = { viewModel.submitRecipe(draft = true) },
+                enabled = !uiState.isSubmitting,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(16.dp),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Primary500)
+            ) {
+                Text("Enregistrer en brouillon", color = Primary500, style = Typography.titleMedium)
+            }
             Spacer(Modifier.height(8.dp))
             Button(
-                onClick = viewModel::submitRecipe,
+                onClick = { viewModel.submitRecipe(draft = false) },
                 enabled = !uiState.isSubmitting,
                 modifier = Modifier.fillMaxWidth().height(52.dp),
                 shape = RoundedCornerShape(16.dp),

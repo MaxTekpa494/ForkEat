@@ -1,13 +1,10 @@
 package fr.uge.forkeat.presentation.security;
 
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
-import fr.uge.forkeat.infrastructure.config.JwtUtils;
-import fr.uge.forkeat.infrastructure.config.SecurityConfig;
-import fr.uge.forkeat.infrastructure.security.AuthenticationAdapter;
+import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
-import fr.uge.forkeat.presentation.rest.controller.RecipeRestController;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
@@ -24,24 +21,16 @@ import fr.uge.forkeat.service.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
-import org.springframework.context.annotation.Import;
-import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.test.context.support.WithAnonymousUser;
-import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.RequestBuilder;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.test.web.servlet.request.MockMultipartHttpServletRequestBuilder;
-import org.springframework.test.web.servlet.request.MockMvcRequestBuilders;
 import org.springframework.transaction.annotation.Transactional;
 import tools.jackson.databind.ObjectMapper;
 
@@ -97,7 +86,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         lenient().when(recipeService.findAllAllergens()).thenReturn(List.of());
         lenient().when(recipeService.findAllIngredientNames()).thenReturn(List.of());
         lenient().when(recipeService.findAllDietaryNames()).thenReturn(List.of());
-        lenient().when(recipeService.createRecipe(any(), any())).thenReturn(getRecipeModel());
+        lenient().when(recipeService.createRecipe(any())).thenReturn(getRecipeModel());
         lenient().when(recipeService.findById(any())).thenReturn(fakeRecipe);
         lenient().when(authPort.extractUsername()).thenReturn("testuser");
         lenient().when(authPort.isAdmin()).thenReturn(false);
@@ -157,13 +146,12 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
                 mock.when(() -> RecipeDTOMapper.toDTO((Recipe) any()))
                         .thenReturn(null);
 
-                // ton test ici
-
+                var request = new CreateRecipeRequest(null, "Test Recipe", "Summary", 30, false, null, List.of(), List.of(), List.of(), List.of());
                 testRightsMultiPart(multipart("/api/recipes/create").file(new MockMultipartFile(
-                        "recipe",           // nom du @RequestPart
-                        "",                 // filename
-                        "application/json", // content-type
-                        mapper.writeValueAsString(getRecipe()).getBytes()
+                        "recipe",
+                        "",
+                        "application/json",
+                        mapper.writeValueAsString(request).getBytes()
                 )), AuthorizationTest.EMAIL_VERIFIED);
             }
         }
@@ -198,12 +186,13 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         void testCreateVariant() throws Exception {
             try (MockedStatic<RecipeDTOMapper> mock = mockStatic(RecipeDTOMapper.class)) {
                 mock.when(() -> RecipeDTOMapper.toDTO((Recipe) any()))
-                        .thenReturn(getRecipe());
-                testRightsMultiPart(multipart("/api/recipes/create-variant").file(new MockMultipartFile(
-                        "recipe",           // nom du @RequestPart
-                        "",                 // filename
-                        "application/json", // content-type
-                        mapper.writeValueAsString(getRecipe()).getBytes()
+                        .thenReturn(null);
+                var request = new CreateRecipeRequest(UUID.randomUUID(), "Test Variant", "Summary", 30, false, null, List.of(), List.of(), List.of(), List.of());
+                testRightsMultiPart(multipart("/api/recipes/create").file(new MockMultipartFile(
+                        "recipe",
+                        "",
+                        "application/json",
+                        mapper.writeValueAsString(request).getBytes()
                 )), AuthorizationTest.EMAIL_VERIFIED);
             }
         }
@@ -229,7 +218,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
             testRightsMultiPartMVC(multipart("/recipes").param("title", dto.title())
                     .param("summary", dto.summary())
                     .param("preparationMinutes", String.valueOf(dto.preparationMinutes()))
-                    .param("status", dto.status()), AuthorizationTest.EMAIL_VERIFIED);
+                    .param("draft", "false"), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test
@@ -269,26 +258,23 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testPageCreateVariant() throws Exception {
-            var dto = getRecipe();
-            testRightsMultiPartMVC(multipart("/recipes/create-variant").param("title", dto.title())
-                    .param("summary", dto.summary())
-                    .param("preparationMinutes", String.valueOf(dto.preparationMinutes()))
-                    .param("status", dto.status()), AuthorizationTest.EMAIL_VERIFIED);
-
-
-
-
+            try (MockedStatic<RecipeDTOMapper> mock = mockStatic(RecipeDTOMapper.class)) {
+                mock.when(() -> RecipeDTOMapper.toDTO((Recipe) any())).thenReturn(getRecipe());
+                testRightsMVCNoRedirect(get("/recipes/create-variant")
+                        .param("id", UUID.randomUUID().toString())
+                        .param("title", "Test Recipe")
+                        .param("username", "testuser"), AuthorizationTest.EMAIL_VERIFIED);
+            }
         }
 
         @Test
         void testCreateVariant() throws Exception {
-
             var dto = getRecipe();
-            testRightsMultiPartMVC(multipart("/recipes/create-variant")
+            testRightsMultiPartMVC(multipart("/recipes")
                     .param("title", dto.title())
                     .param("summary", dto.summary())
                     .param("preparationMinutes", String.valueOf(dto.preparationMinutes()))
-                    .param("status", dto.status()), AuthorizationTest.EMAIL_VERIFIED);
+                    .param("draft", "false"), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test

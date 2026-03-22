@@ -4,6 +4,7 @@ import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.event.RecipePublishedEvent;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.exception.RecipeOwnershipException;
+import fr.uge.forkeat.service.exception.VariantCreationNotAllowedException;
 import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.ImageUpload;
@@ -35,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
+
 @Service
 @Transactional(readOnly = true)
 public class RecipeService {
@@ -72,30 +74,41 @@ public class RecipeService {
   }
 
   @Transactional
-  public Recipe createRecipe(Recipe recipe, ImageUpload image) {
-    var imageUrl = recipe.imageUrl();
-    if (image != null) {
-      logger.info("Uploading image for recipe {}", recipe.id());
-      imageUrl = storageService.uploadImage(image, FOLDER_STORAGE);
+  public Recipe createRecipe(CreateRecipeCommand command) {
+    userIdentityPort.findIdByUsernameOrThrow(command.username());
+    if (command.draft() && (command.title() == null || command.title().isBlank())) {
+      throw new IllegalArgumentException("Draft recipe must have a non-empty title");
     }
-    var recipeWithImage = new Recipe(
-            recipe.id(),
-            recipe.title(),
-            recipe.summary(),
-            recipe.parentId(),
-            recipe.usernameAuthor(),
-            recipe.preparationMinutes(),
+    if (command.parentId() != null) {
+      var parent = recipePersistence.findById(command.parentId())
+              .orElseThrow(() -> new RecipeNotFoundException(command.parentId()));
+      if (parent.status() != RecipeStatus.PUBLISHED) {
+        throw new VariantCreationNotAllowedException(command.parentId());
+      }
+    }
+    var status = command.draft() ? RecipeStatus.DRAFT : RecipeStatus.PENDING_REVIEW;
+    var now = java.time.Instant.now();
+    var imageUrl = command.image() != null
+            ? storageService.uploadImage(command.image(), FOLDER_STORAGE)
+            : command.imageUrl();
+    var recipe = new Recipe(
+            UUID.randomUUID(),
+            command.title(),
+            command.summary(),
+            command.parentId(),
+            command.username(),
+            command.preparationMinutes(),
             imageUrl,
-            recipe.status(),
-            recipe.stepByStepInstructions(),
-            recipe.ingredients(),
-            recipe.allergens(),
-            recipe.dietaries(),
-            recipe.createdAt(),
-            recipe.updatedAt()
+            status,
+            command.steps(),
+            command.ingredients(),
+            command.allergens(),
+            command.dietaries(),
+            now,
+            now
     );
     logger.info("Recipe {} created", recipe.id());
-    return recipePersistence.save(recipeWithImage);
+    return recipePersistence.save(recipe);
   }
 
   @Transactional
