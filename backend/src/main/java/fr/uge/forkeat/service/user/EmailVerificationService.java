@@ -110,9 +110,7 @@ public class EmailVerificationService {
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
     public void confirmPasswordChange(UUID userId, String code) {
         var token = validatePasswordChangeCode(userId, code);
-        var user = userPersistence.findById(userId)
-                .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
-        userPersistence.saveUser(user, token.pendingPasswordHash());
+        userPersistence.updatePassword(userId, token.pendingPasswordHash());
         tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
     }
 
@@ -120,9 +118,7 @@ public class EmailVerificationService {
     public void confirmPasswordReset(UUID userId, String code, String newPasswordHash) {
         Objects.requireNonNull(newPasswordHash);
         validatePasswordChangeCode(userId, code);
-        var user = userPersistence.findById(userId)
-                .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
-        userPersistence.saveUser(user, newPasswordHash);
+        userPersistence.updatePassword(userId, newPasswordHash);
         tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
     }
 
@@ -179,7 +175,7 @@ public class EmailVerificationService {
             var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
                     token.newEmail(), user.role(), user.status(), AuthMode.LOCAL,
                     user.createdAt(), Instant.now(), user.emailVerified());
-            result = userPersistence.saveUser(updatedUser, token.pendingPasswordHash());
+            result = userPersistence.updateUserAndPassword(updatedUser, token.pendingPasswordHash());
         } else {
             var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
                     token.newEmail(), user.role(), user.status(), user.authMode(),

@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -124,6 +125,40 @@ public class RecipeWebController {
                 pageResult.total(),
                 form.getSearch(),
                 form.getAllergens(),
+                allAllergens
+        );
+        model.addAttribute("vm", viewModel);
+        return "recipes/index";
+    }
+
+    @GetMapping("/following")
+    public String listRecipesFollowing(@RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
+        model.addAttribute("isFollowing", true);
+        if(session.getAttribute("instant") == null){
+            session.setAttribute("instant", Instant.now());
+        }
+        var attributeRaw = session.getAttribute("instant");
+        Instant attribute;
+        if(attributeRaw instanceof Instant) {
+            attribute = (Instant) attributeRaw;
+        }else {
+            attribute = Instant.now();
+        }
+        var pageResult = recipeService.getPersonalizedFeedRecipes(attribute, page);
+        System.out.println("############" + page);
+        var recipes = pageResult.items().stream()
+                .map(RecipeDTOMapper::toSummaryDTO)
+                .toList();
+        var allAllergens = recipeService.findAllAllergens().stream()
+                .map(RecipeDTOMapper::toDTO)
+                .toList();
+        var viewModel = new RecipeListViewModel(
+                recipes,
+                page,
+                (int) Math.ceil((double) pageResult.total() / 20),
+                pageResult.total(),
+                "",
+                List.of(),
                 allAllergens
         );
         model.addAttribute("vm", viewModel);
