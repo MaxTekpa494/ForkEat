@@ -4,7 +4,6 @@ import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
-import fr.uge.forkeat.service.RecipeDiffService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
@@ -62,9 +61,6 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
     // Mock toutes les dépendances du controller pour éviter le code métier
     @MockitoBean
     private RecipeService recipeService;
-
-    @MockitoBean
-    private RecipeDiffService recipeDiffService;
 
     @MockitoBean
     private AuthenticationPort authPort;
