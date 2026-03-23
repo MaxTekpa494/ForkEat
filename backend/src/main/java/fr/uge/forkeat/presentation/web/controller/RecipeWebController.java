@@ -4,6 +4,7 @@ import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
 import fr.uge.forkeat.presentation.dto.recipe.PersonalizedRecipeSummaryDTO;
 import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
+import fr.uge.forkeat.presentation.dto.recipe.UpdateRecipeRequest;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.dto.recipe.RecipePaginationDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
@@ -222,13 +223,13 @@ public class RecipeWebController {
 
     @PostMapping("/{id}/edit")
     public String updateRecipe(@PathVariable UUID id,
-                               @ModelAttribute RecipeDTO recipeDTO,
+                               @ModelAttribute UpdateRecipeRequest request,
                                @RequestPart(value = "image", required = false) MultipartFile image,
                                Model model) {
         var currentUser = authPort.extractUsername();
         logger.info("Updating recipe {}", id);
-        var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, currentUser));
-        var updatedRecipe = recipeService.updateRecipe(id, recipe, ImageMapper.toImageUpload(image));
+        var command = RecipeDTOMapper.toUpdateCommand(id, request, currentUser, ImageMapper.toImageUpload(image));
+        var updatedRecipe = recipeService.updateRecipe(command);
         logger.info("Recipe {} updated", updatedRecipe);
         return "redirect:/recipes/" + updatedRecipe.id();
     }

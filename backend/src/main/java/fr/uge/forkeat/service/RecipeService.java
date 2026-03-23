@@ -111,42 +111,45 @@ public class RecipeService {
   }
 
   @Transactional
-  public Recipe updateRecipe(UUID id, Recipe updatedRecipe, ImageUpload image) {
-    var existingRecipe = findById(id);
-    if(!securityService.canUpdateRecipe(existingRecipe)){
-        //Forbidden Exception de MAX
-        throw new RecipeOwnershipException(id, authPort.extractUsername());
+  public Recipe updateRecipe(UpdateRecipeCommand command) {
+    var existingRecipe = findById(command.id());
+    if (!securityService.canUpdateRecipe(existingRecipe)) {
+      throw new RecipeOwnershipException(command.id(), authPort.extractUsername());
+    }
+    if (command.draft() && (command.title() == null || command.title().isBlank())) {
+      throw new IllegalArgumentException("Draft recipe must have a non-empty title");
     }
 
     var imageUrl = existingRecipe.imageUrl();
-    if (image != null) {
+    if (command.image() != null) {
       if (existingRecipe.imageUrl() != null) {
         storageService.deleteImage(existingRecipe.imageUrl());
-        logger.info("Old image deleted for recipe {}", id);
+        logger.info("Old image deleted for recipe {}", command.id());
       }
-      imageUrl = storageService.uploadImage(image, FOLDER_STORAGE);
-      logger.info("New image uploaded for recipe {}", id);
+      imageUrl = storageService.uploadImage(command.image(), FOLDER_STORAGE);
+      logger.info("New image uploaded for recipe {}", command.id());
     }
 
+    var status = command.draft() ? RecipeStatus.DRAFT : RecipeStatus.PENDING_REVIEW;
     var recipeToSave = new Recipe(
-            id,
-            updatedRecipe.title(),
-            updatedRecipe.summary(),
+            command.id(),
+            command.title(),
+            command.summary(),
             existingRecipe.parentId(),
             existingRecipe.usernameAuthor(),
-            updatedRecipe.preparationMinutes(),
+            command.preparationMinutes(),
             imageUrl,
-            updatedRecipe.status(),
-            updatedRecipe.stepByStepInstructions(),
-            updatedRecipe.ingredients(),
-            updatedRecipe.allergens(),
-            updatedRecipe.dietaries(),
+            status,
+            command.steps(),
+            command.ingredients(),
+            command.allergens(),
+            command.dietaries(),
             existingRecipe.createdAt(),
-            updatedRecipe.updatedAt()
+            Instant.now()
     );
 
-    logger.info("Recipe {} updated", id);
-    return recipePersistence.update(id, recipeToSave);
+    logger.info("Recipe {} updated", command.id());
+    return recipePersistence.update(command.id(), recipeToSave);
   }
 
   @Transactional
