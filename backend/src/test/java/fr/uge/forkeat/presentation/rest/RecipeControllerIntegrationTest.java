@@ -145,7 +145,8 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.resource.recipe.id").value(variant.getId().toString()))
                 .andExpect(jsonPath("$.resource.recipe.title").value("Variante"))
                 .andExpect(jsonPath("$.resource.recipe.parentId").value(parent.getId().toString()))
-                .andExpect(jsonPath("$.resource.parent.id").value(parent.getId().toString()));
+                .andExpect(jsonPath("$.resource.diff").exists())
+                .andExpect(jsonPath("$.resource.parent").doesNotExist());
     }
 
     @Test

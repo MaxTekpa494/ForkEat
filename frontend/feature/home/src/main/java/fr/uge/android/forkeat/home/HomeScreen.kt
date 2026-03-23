@@ -38,6 +38,7 @@ import androidx.compose.material.icons.filled.MonetizationOn
 import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Security
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ButtonDefaults
@@ -557,11 +558,12 @@ private fun Footer() {
 }
 
 // Enum pour les onglets de la NavBar
-private enum class NavBarTab { HOME, SEARCH, PROFILE }
+private enum class NavBarTab { HOME, SEARCH, SMART_SEARCH, PROFILE }
 
 @Composable
 private fun NavBar(
     selectedTab: NavBarTab,
+    isLoggedIn: Boolean,
     onTabSelected: (NavBarTab) -> Unit
 ) {
     NavigationBar(
@@ -604,6 +606,26 @@ private fun NavBar(
                 unselectedTextColor = Secondary800
             )
         )
+        if (isLoggedIn) {
+            NavigationBarItem(
+                selected = selectedTab == NavBarTab.SMART_SEARCH,
+                onClick = { onTabSelected(NavBarTab.SMART_SEARCH) },
+                icon = {
+                    Icon(
+                        imageVector = Icons.Default.AutoAwesome,
+                        contentDescription = "Recherche IA",
+                        tint = if (selectedTab == NavBarTab.SMART_SEARCH) Primary500 else Secondary800
+                    )
+                },
+                label = { Text("Recherche IA") },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Primary500,
+                    selectedTextColor = Primary500,
+                    unselectedIconColor = Secondary800,
+                    unselectedTextColor = Secondary800
+                )
+            )
+        }
         NavigationBarItem(
             selected = selectedTab == NavBarTab.PROFILE,
             onClick = { onTabSelected(NavBarTab.PROFILE) },
@@ -642,6 +664,7 @@ fun ForkEatScaffold(
     val currentRoute = navBackStackEntry?.value?.destination?.route
     val selectedTab = when {
         currentRoute == "home" -> NavBarTab.HOME
+        currentRoute == "smart-search" -> NavBarTab.SMART_SEARCH
         currentRoute == "recipes" || currentRoute == "recipe-form" ||
             currentRoute?.startsWith("recipes/") == true ||
             currentRoute?.startsWith("user/") == true -> NavBarTab.SEARCH
@@ -674,10 +697,12 @@ fun ForkEatScaffold(
           if (showBars) {
             NavBar(
               selectedTab = selectedTab,
+              isLoggedIn = isLoggedIn,
               onTabSelected = { tab ->
                 val targetRoute = when (tab) {
                   NavBarTab.HOME -> "home"
                   NavBarTab.SEARCH -> "recipes"
+                  NavBarTab.SMART_SEARCH -> "smart-search"
                   NavBarTab.PROFILE -> "profile"
                 }
                 if (currentRoute != targetRoute) {

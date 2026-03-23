@@ -6,6 +6,8 @@ import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.model.recipe.projection.AuthorRecipeSummary;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeCounts;
 import fr.uge.forkeat.service.model.recipe.projection.UserRecipeStats;
+
+import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +52,8 @@ public interface RecipePersistence {
   Recipe updateStatus(UUID id, RecipeStatus status);
 
   long countByStatus(RecipeStatus status);
+
+  PageResult<RecipeSummary> searchPersonalizedFeedRecipes(String username, Instant beforeTime, int nbPage);
 
   // Alors ici on ne fait pas Page<RecipeSummary> parce qu'on
   // n'est pas sensé renvoyer plein de recette quand c'est du RAG...

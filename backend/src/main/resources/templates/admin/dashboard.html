@@ -147,6 +147,49 @@
         </div>
     </section>
 
+    <!-- Recherche intelligente -->
+    <section class="py-12 bg-white">
+        <div class="container mx-auto px-4">
+            <h2 class="font-display font-bold text-2xl text-secondary-900 mb-6">
+                <i class="fas fa-brain mr-2 text-purple-500"></i>Recherche intelligente
+            </h2>
+
+            <div th:if="${param.smartSearchConfigSuccess}" class="bg-green-50 border border-green-200 text-green-800 rounded-xl px-5 py-3 flex items-center gap-2 mb-6">
+                <i class="fas fa-check-circle"></i> Configuration mise à jour avec succès.
+            </div>
+
+            <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
+                <h3 class="font-display font-bold text-lg text-secondary-900 mb-5 flex items-center gap-2">
+                    <i class="fas fa-sliders-h text-purple-500"></i> Configuration
+                </h3>
+                <form th:action="@{/admin/smart-search/config}" method="post" class="grid grid-cols-1 md:grid-cols-3 gap-6 items-end">
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Coût par recherche (crédits)</label>
+                        <input type="number" name="cost" min="1"
+                               th:value="${smartSearchConfig.cost()}"
+                               class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                        <p class="text-xs text-gray-400 mt-1">Nombre de crédits débités par recherche</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold text-gray-700 mb-1">Nombre de résultats (top-k)</label>
+                        <input type="number" name="topK" min="1"
+                               th:value="${smartSearchConfig.topK()}"
+                               class="w-full border border-gray-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-purple-500" required>
+                        <p class="text-xs text-gray-400 mt-1">Nombre max de recettes retournées</p>
+                    </div>
+                    <div>
+                        <label class="block text-sm font-semibold mb-1 opacity-0">_</label>
+                        <button type="submit"
+                                class="w-full bg-secondary-800 hover:bg-secondary-700 text-white font-semibold px-5 py-2.5 rounded-xl transition">
+                            <i class="fas fa-save mr-2"></i>Enregistrer
+                        </button>
+                        <p class="text-xs mt-1 opacity-0">_</p>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </section>
+
     <!-- Wallets plateforme -->
     <section class="py-12 bg-surface">
         <div class="container mx-auto px-4">

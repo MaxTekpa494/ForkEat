@@ -36,6 +36,10 @@ public class AuthenticationAdapter implements AuthenticationPort {
         }
 
         var principal = authentication.getPrincipal();
+        switch (principal) {
+            case String s when s.equals("anonymousUser") -> { return null; }
+            default -> {}
+        }
         return extractors.stream().filter(extractor -> extractor.supports(principal)).findFirst()
                 .map(extractor -> extractor.extractUsername(principal)).orElse(authentication.getName());
     }

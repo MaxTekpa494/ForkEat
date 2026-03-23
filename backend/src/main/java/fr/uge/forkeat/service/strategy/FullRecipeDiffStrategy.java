@@ -1,54 +1,25 @@
-package fr.uge.forkeat.presentation.dto.recipe;
+package fr.uge.forkeat.service.strategy;
+
+import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.recipe.RecipeDiff.*;
+import org.springframework.stereotype.Component;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
-public record RecipeDiff(
-    boolean titleChanged,
-    String originalTitle,
-    boolean summaryChanged,
-    String originalSummary,
-    int timeDelta,
-    boolean imageChanged,
-    List<IngredientDiff> ingredients,
-    List<StepDiff> steps,
-    List<AllergenDiff> allergens,
-    List<DietaryFlagDiff> dietaryFlags) {
+/**
+ * Strategie de diff complete : compare tous les champs entre parent et variante,
+ * incluant les elements UNCHANGED.
+ */
+@Component
+public class FullRecipeDiffStrategy implements RecipeDiffStrategy {
 
-    public enum DiffType { UNCHANGED, ADDED, REMOVED, MODIFIED }
-
-    // Je veux ma factory sauf que je ne peux pas mettre le constructeur en private (c'est un record)
-    public record IngredientDiff(
-        DiffType type,
-        String name,
-        double quantity,
-        String unit,
-        double originalQuantity,
-        String originalUnit) {}
-
-    public record StepDiff(
-        DiffType type,
-        int stepNumber,
-        String instruction,
-        String originalInstruction) {}
-
-    public record AllergenDiff(
-        DiffType type,
-        String name,
-        String severity) {}
-
-    public record DietaryFlagDiff(
-        DiffType type,
-        String flagName) {}
-
-    // Factory methode, RecipeDiff va être partagée entre rest et mvc,
-    // On veut juste calculer la difference donc pas besion de construire
-    // Le record RecipeDiff à la main
-    public static RecipeDiff compute(RecipeDTO parent, RecipeDTO variant) {
+    @Override
+    public RecipeDiff compute(Recipe parent, Recipe variant) {
         Objects.requireNonNull(parent);
         Objects.requireNonNull(variant);
 
-        var titleChanged   = !Objects.equals(parent.title(),   variant.title());
+        var titleChanged   = !Objects.equals(parent.title(), variant.title());
         var summaryChanged = !Objects.equals(parent.summary(), variant.summary());
         var timeDelta      = variant.preparationMinutes() - parent.preparationMinutes();
         var imageChanged   = !Objects.equals(parent.imageUrl(), variant.imageUrl());
@@ -64,9 +35,9 @@ public record RecipeDiff(
         );
     }
 
-    private static List<IngredientDiff> computeIngredientDiffs(RecipeDTO parent, RecipeDTO variant) {
-        var parentIngByName  = new LinkedHashMap<String, RecipeIngredientDTO>();     // Pourquoi LinkedHashMap ? Parce qu'on veut garder l'ordre d'insertion
-        var variantIngByName = new LinkedHashMap<String, RecipeIngredientDTO>();
+    private List<IngredientDiff> computeIngredientDiffs(Recipe parent, Recipe variant) {
+        var parentIngByName  = new LinkedHashMap<String, RecipeIngredient>();
+        var variantIngByName = new LinkedHashMap<String, RecipeIngredient>();
         for (var ing : parent.ingredients())  parentIngByName.putIfAbsent(ing.name().toLowerCase(Locale.ROOT), ing);
         for (var ing : variant.ingredients()) variantIngByName.putIfAbsent(ing.name().toLowerCase(Locale.ROOT), ing);
 
@@ -90,31 +61,33 @@ public record RecipeDiff(
         return diffs;
     }
 
-    private static List<StepDiff> computeStepDiffs(RecipeDTO parent, RecipeDTO variant) {
+    private List<StepDiff> computeStepDiffs(Recipe parent, Recipe variant) {
         var diffs       = new ArrayList<StepDiff>();
-        var parentSize  = parent.steps().size();
-        var variantSize = variant.steps().size();
+        var parentSteps  = parent.stepByStepInstructions();
+        var variantSteps = variant.stepByStepInstructions();
+        var parentSize  = parentSteps.size();
+        var variantSize = variantSteps.size();
         var minSize     = Math.min(parentSize, variantSize);
 
         for (var i = 0; i < minSize; i++) {
-            var ps = parent.steps().get(i);
-            var vs = variant.steps().get(i);
+            var ps = parentSteps.get(i);
+            var vs = variantSteps.get(i);
             diffs.add(ps.instruction().equals(vs.instruction())
                 ? new StepDiff(DiffType.UNCHANGED, vs.stepNumber(), vs.instruction(), "")
                 : new StepDiff(DiffType.MODIFIED,  vs.stepNumber(), vs.instruction(), ps.instruction()));
         }
         for (var i = minSize; i < variantSize; i++) {
-            var s = variant.steps().get(i);
+            var s = variantSteps.get(i);
             diffs.add(new StepDiff(DiffType.ADDED, s.stepNumber(), s.instruction(), ""));
         }
         for (var i = minSize; i < parentSize; i++) {
-            var s = parent.steps().get(i);
+            var s = parentSteps.get(i);
             diffs.add(new StepDiff(DiffType.REMOVED, s.stepNumber(), s.instruction(), ""));
         }
         return diffs;
     }
 
-    private static List<AllergenDiff> computeAllergenDiffs(RecipeDTO parent, RecipeDTO variant) {
+    private List<AllergenDiff> computeAllergenDiffs(Recipe parent, Recipe variant) {
         var parentKeys  = parent.allergens().stream().map(a -> a.name().toLowerCase(Locale.ROOT)).collect(Collectors.toSet());
         var variantKeys = variant.allergens().stream().map(a -> a.name().toLowerCase(Locale.ROOT)).collect(Collectors.toSet());
 
@@ -122,17 +95,17 @@ public record RecipeDiff(
         for (var a : variant.allergens()) {
             diffs.add(new AllergenDiff(
                 parentKeys.contains(a.name().toLowerCase(Locale.ROOT)) ? DiffType.UNCHANGED : DiffType.ADDED,
-                a.name(), a.severity()));
+                a.name(), a.severity().name()));
         }
         for (var a : parent.allergens()) {
             if (!variantKeys.contains(a.name().toLowerCase(Locale.ROOT))) {
-                diffs.add(new AllergenDiff(DiffType.REMOVED, a.name(), a.severity()));
+                diffs.add(new AllergenDiff(DiffType.REMOVED, a.name(), a.severity().name()));
             }
         }
         return diffs;
     }
 
-    private static List<DietaryFlagDiff> computeDietaryFlagDiffs(RecipeDTO parent, RecipeDTO variant) {
+    private List<DietaryFlagDiff> computeDietaryFlagDiffs(Recipe parent, Recipe variant) {
         var parentSet  = parent.dietaries()  != null ? new HashSet<>(parent.dietaries())  : new HashSet<String>();
         var variantSet = variant.dietaries() != null ? new HashSet<>(variant.dietaries()) : new HashSet<String>();
         var all = new HashSet<String>();

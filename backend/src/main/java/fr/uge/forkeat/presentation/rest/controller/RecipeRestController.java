@@ -8,7 +8,9 @@ import fr.uge.forkeat.presentation.response.*;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
+import fr.uge.forkeat.service.SmartSearchConfigService;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
+import fr.uge.forkeat.service.model.recipe.RecipeDiff;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
@@ -18,10 +20,14 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import fr.uge.forkeat.presentation.dto.smartsearch.SmartSearchConfigDTO;
+
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -35,46 +41,36 @@ public class RecipeRestController {
   private final AuthenticationPort authPort;
   private final UserService userService;
   private final RecipeSmartSearchService smartSearchService;
+  private final SmartSearchConfigService smartSearchConfigService;
 
     private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
-  public RecipeRestController(RecipeService recipeService, RecipeReportService recipeReportService,
+  public RecipeRestController(RecipeService recipeService,
+                              RecipeReportService recipeReportService,
                               AuthenticationPort authPort, UserService userService,
-                              RecipeSmartSearchService smartSearchService) {
+                              RecipeSmartSearchService smartSearchService,
+                              SmartSearchConfigService smartSearchConfigService) {
     this.recipeService = recipeService;
     this.recipeReportService = recipeReportService;
     this.authPort = authPort;
     this.userService = userService;
     this.smartSearchService = smartSearchService;
+    this.smartSearchConfigService = smartSearchConfigService;
   }
 
   public record AllergensIngredients(List<AllergenDTO> allergens, List<String> ingredients, List<String> dietaries) {
   }
 
-  public record RecipeData(RecipeDetailsDTO recipe, RecipeDTO parent, RecipeDiff diff) {
+  public record RecipeData(RecipeDetailsDTO recipe, RecipeDiff diff) {
   }
 
   @GetMapping("/{id}")
   public ResponseEntity<HttpResponse<RecipeData>> getRecipe(@PathVariable UUID id) {
     Objects.requireNonNull(id);
-    String currentUsername = null;
-    if (SecurityContextHolder.getContext().getAuthentication() != null) {
-      var extracted = authPort.extractUsername();
-      if (extracted != null && !extracted.equals("anonymousUser")) {
-        currentUsername = extracted;
-      }
-    }
+    var currentUsername = authPort.extractUsername();
     var personalizedRecipe = recipeService.findPersonalizedRecipeById(id, currentUsername);
-    var recipe = personalizedRecipe.recipe();
-    RecipeDTO parentDTO = null;
-    RecipeDiff diff = null;
-    if (recipe.parentId() != null) {
-      var recipeParent = recipeService.findById(personalizedRecipe.recipe().parentId());
-      parentDTO = RecipeDTOMapper.toDTO(recipeParent);
-      diff = RecipeDiff.compute(parentDTO, RecipeDTOMapper.toDTO(personalizedRecipe.recipe()));
-    }
     var dto = RecipeDTOMapper.toPersonalizedRecipeDTO(personalizedRecipe);
-    return ResponseEntity.ok(new ItemResponse<>(new RecipeData(dto, parentDTO, diff)));
+    return ResponseEntity.ok(new ItemResponse<>(new RecipeData(dto, personalizedRecipe.diff())));
   }
 
   @GetMapping
@@ -85,6 +81,15 @@ public class RecipeRestController {
     var dtos = pageResult.items().stream().map(RecipeDTOMapper::toSummaryDTO).toList();
     return ResponseEntity.ok(new ListResponse<>(dtos, pageResult.total()));
   }
+
+    @GetMapping("/following")
+    public ResponseEntity<HttpResponse<PersonalizedRecipeSummaryDTO>> getRecipesFeed(@RequestParam(defaultValue = "0") int page,
+                                                                                     @RequestParam(required = false) Instant instant) {
+      instant = instant == null ? Instant.now() : instant;
+      var pageResult = recipeService.getPersonalizedFeedRecipes(instant, page);
+      var dtos = pageResult.items().stream().map(RecipeDTOMapper::toSummaryDTO).toList();
+      return ResponseEntity.ok(new ListResponse<>(dtos, pageResult.total()));
+    }
 
   @GetMapping("/allergens")
   public ResponseEntity<ListResponse<AllergenDTO>> getAllergens() {
@@ -152,13 +157,17 @@ public class RecipeRestController {
     return ResponseEntity.ok().build();
   }
 
+  @GetMapping("/smart-search/config")
+  public ResponseEntity<HttpResponse<SmartSearchConfigDTO>> getSmartSearchConfig() {
+    return ResponseEntity.ok(new ItemResponse<>(SmartSearchConfigDTO.from(smartSearchConfigService.getConfig())));
+  }
+
   @PostMapping("/smart-search")
   public ResponseEntity<HttpResponse<PersonalizedRecipeSummaryDTO>> smartSearch(
           @RequestBody SmartSearchRequestDTO request) {
 
-    var user = userService.getUserByUsername(authPort.extractUsername());
 
-    var recipes = smartSearchService.search(user.id(), request.query());
+    var recipes = smartSearchService.search(request.query());
 
     var dtos = recipes.stream()
             .map(RecipeDTOMapper::toSummaryDTO)

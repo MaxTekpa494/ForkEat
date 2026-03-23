@@ -39,7 +39,7 @@
             <!-- ═══════════════════════════════════════════════════════════════ -->
             <!-- BANNIÈRE VARIANTE + TOGGLE (visible uniquement si variante)    -->
             <!-- ═══════════════════════════════════════════════════════════════ -->
-            <div th:if="${parent != null}"
+            <div th:if="${diff != null}"
                  class="mb-6 bg-white rounded-2xl border border-gray-100 shadow-sm px-5 py-4 flex flex-wrap items-center justify-between gap-4">
 
                 <!-- Lien vers la recette parent -->
@@ -49,8 +49,8 @@
                     </div>
                     <div>
                         <p class="text-xs text-gray-400 uppercase tracking-widest font-semibold">Variante de</p>
-                        <a th:href="@{/recipes/{id}(id=${parent.id})}"
-                           th:text="${parent.title}"
+                        <a th:href="@{/recipes/{id}(id=${recipe.parentId})}"
+                           th:text="${diff.originalTitle}"
                            class="text-secondary-900 font-semibold hover:text-primary-500 transition-colors">
                             Recette parent
                         </a>

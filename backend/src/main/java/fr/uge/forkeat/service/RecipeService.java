@@ -16,12 +16,8 @@ import fr.uge.forkeat.service.model.transaction.TransactionStatus;
 import fr.uge.forkeat.service.model.transaction.TransactionType;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
-import fr.uge.forkeat.service.persistence.PlatformWalletPersistence;
-import fr.uge.forkeat.service.persistence.PromotionPersistence;
-import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.persistence.*;
 import fr.uge.forkeat.service.port.EventPublisherPort;
-import fr.uge.forkeat.service.persistence.SuperLikeConfigPersistence;
-import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.UserIdentityPort;
 import fr.uge.forkeat.service.port.StoragePort;
@@ -42,6 +38,7 @@ import java.util.UUID;
 public class RecipeService {
   private final StoragePort storageService;
   private final RecipePersistence recipePersistence;
+  private final RecipeDiffService recipeDiffService;
   private final EventPublisherPort<RecipePublishedEvent> eventPublisher;
   private final WalletPersistence walletPersistence;
   private final AuthenticationPort authPort;
@@ -53,7 +50,8 @@ public class RecipeService {
   private final Logger logger = LoggerFactory.getLogger(RecipeService.class);
   private static final String FOLDER_STORAGE = "recipes";
 
-  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService,
+  public RecipeService(RecipePersistence recipePersistence, RecipeDiffService recipeDiffService,
+                       StoragePort storageService,
                        WalletPersistence walletPersistence,
                        AuthenticationPort authPort,
                        SuperLikeConfigPersistence superLikeConfigPersistence,
@@ -62,6 +60,7 @@ public class RecipeService {
                        EventPublisherPort<RecipePublishedEvent> eventPublisher, UserIdentityPort userIdentityPort,
                        SecurityService securityService) {
     this.recipePersistence = recipePersistence;
+    this.recipeDiffService = recipeDiffService;
     this.storageService = storageService;
     this.eventPublisher = eventPublisher;
     this.walletPersistence = walletPersistence;
@@ -182,7 +181,14 @@ public class RecipeService {
       var interaction = currentUsername != null
               ? recipePersistence.findUserRecipeInteraction(id, currentUsername)
               : RecipeUserInteraction.NONE;
-      return new PersonalizedRecipe(recipe, counts, interaction);
+      RecipeDiff diff = null;
+      if (recipe.isVariant()) {
+          var parent = findById(recipe.parentId());
+          if (parent.isPublished()) {
+              diff = recipeDiffService.computeDiff(parent, recipe);
+          }
+      }
+      return new PersonalizedRecipe(recipe, counts, interaction, diff);
   }
 
   public List<Recipe> findByStatus(RecipeStatus status) {
@@ -232,6 +238,31 @@ public class RecipeService {
 
     return new PageResult<>(personalized, page.total());
   }
+
+    public PageResult<PersonalizedRecipeSummary> getPersonalizedFeedRecipes(Instant instant, int nbPage) {
+        var currentUsername = authPort.extractUsername();
+        var page = recipePersistence.searchPersonalizedFeedRecipes(currentUsername, instant, nbPage);
+        var summaries = page.items();
+        if (summaries.isEmpty()) {
+            return new PageResult<>(List.of(), page.total());
+        }
+
+        var ids = summaries.stream().map(RecipeSummary::id).toList();
+        var countsMap = recipePersistence.findRecipeCounts(ids);
+        var interactionsMap = currentUsername != null
+                ? recipePersistence.findUserRecipeInteractions(ids, currentUsername)
+                : Map.<UUID, RecipeUserInteraction>of();
+
+        var personalized = summaries.stream()
+                .map(s -> new PersonalizedRecipeSummary(
+                        s,
+                        countsMap.getOrDefault(s.id(), RecipeCounts.ZERO),
+                        interactionsMap.getOrDefault(s.id(), RecipeUserInteraction.NONE)
+                ))
+                .toList();
+
+        return new PageResult<>(personalized, page.total());
+    }
 
   public List<Allergen> findAllAllergens() {
     return recipePersistence.findAllAllergens();

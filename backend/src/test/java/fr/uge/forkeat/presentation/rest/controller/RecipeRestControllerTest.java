@@ -10,11 +10,12 @@ import fr.uge.forkeat.presentation.response.CreatedResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.presentation.response.NotContentResponse;
+import fr.uge.forkeat.presentation.security.RecipeControllerSecurityTest;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.WalletService;
+import fr.uge.forkeat.service.*;
 import fr.uge.forkeat.service.exception.*;
-import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.*;
@@ -56,6 +57,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -79,6 +81,9 @@ class RecipeRestControllerTest {
     private RecipeSmartSearchService recipeSmartSearchService;
 
     @MockitoBean
+    private SmartSearchConfigService smartSearchConfigService;
+
+    @MockitoBean
     private SecurityService securityService;
 
     @MockitoBean
@@ -95,7 +100,7 @@ class RecipeRestControllerTest {
     @BeforeEach
     void setUp() {
         recipeController = new RecipeRestController(recipeService, recipeReportService, authPort, userService,
-                recipeSmartSearchService);
+                recipeSmartSearchService, smartSearchConfigService);
         now = Instant.now();
     }
 
@@ -170,11 +175,9 @@ class RecipeRestControllerTest {
         void shouldReturnRecipeWithParentIdWhenVariant() {
             var parentId = UUID.randomUUID();
             var childId = UUID.randomUUID();
-            var parentRecipe = createRecipe(parentId, "Recette originale", null, RecipeStatus.PUBLISHED);
             var childRecipe = createRecipeWithMetadata(childId, "Variante", parentId, RecipeStatus.PUBLISHED);
 
             when(recipeService.findPersonalizedRecipeById(eq(childId), any())).thenReturn(childRecipe);
-            when(recipeService.findById(parentId)).thenReturn(parentRecipe);
 
             var response = recipeController.getRecipe(childId);
 
@@ -182,7 +185,6 @@ class RecipeRestControllerTest {
             var itemResponse = (ItemResponse<?>) response.getBody();
             assertNotNull(itemResponse);
             verify(recipeService).findPersonalizedRecipeById(eq(childId), any());
-            verify(recipeService).findById(parentId);
             verifyNoMoreInteractions(recipeService);
         }
 
@@ -949,6 +951,116 @@ class RecipeRestControllerTest {
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.error").value("Conflict"));
+        }
+    }
+
+    @Nested
+    class GetRecipesFeedTest {
+
+        @Nested
+        class WhenInstantIsAbsent {
+
+            @Test
+            void shouldCallServiceWithCurrentInstant() throws Exception {
+                when(recipeService.getPersonalizedFeedRecipes(any(Instant.class), eq(0)))
+                        .thenReturn(new PageResult<>(List.of(), 0L));
+
+                mockMvc.perform(get("/api/recipes/following"))
+                        .andExpect(status().isOk());
+
+                verify(recipeService).getPersonalizedFeedRecipes(any(Instant.class), eq(0));
+            }
+        }
+
+        @Nested
+        class WhenInstantIsProvided {
+
+            @Test
+            void shouldCallServiceWithProvidedInstant() throws Exception {
+                var fixedInstant = Instant.parse("2024-01-15T10:00:00Z");
+                when(recipeService.getPersonalizedFeedRecipes(eq(fixedInstant), eq(0)))
+                        .thenReturn(new PageResult<>(List.of(), 0L));
+
+                mockMvc.perform(get("/api/recipes/following")
+                                .param("instant", "2024-01-15T10:00:00Z"))
+                        .andExpect(status().isOk());
+
+                verify(recipeService).getPersonalizedFeedRecipes(eq(fixedInstant), eq(0));
+            }
+        }
+
+        @Nested
+        class WhenPageIsProvided {
+
+            @Test
+            void shouldCallServiceWithProvidedPage() throws Exception {
+                when(recipeService.getPersonalizedFeedRecipes(any(Instant.class), eq(2)))
+                        .thenReturn(new PageResult<>(List.of(), 0L));
+
+                mockMvc.perform(get("/api/recipes/following")
+                                .param("page", "2"))
+                        .andExpect(status().isOk());
+
+                verify(recipeService).getPersonalizedFeedRecipes(any(Instant.class), eq(2));
+            }
+
+            @Test
+            void shouldDefaultToPageZeroWhenAbsent() throws Exception {
+                when(recipeService.getPersonalizedFeedRecipes(any(Instant.class), eq(0)))
+                        .thenReturn(new PageResult<>(List.of(), 0L));
+
+                mockMvc.perform(get("/api/recipes/following"))
+                        .andExpect(status().isOk());
+
+                verify(recipeService).getPersonalizedFeedRecipes(any(Instant.class), eq(0));
+            }
+        }
+
+        @Nested
+        class Response {
+
+            @Test
+            void shouldReturn200() throws Exception {
+                when(recipeService.getPersonalizedFeedRecipes(any(Instant.class), anyInt()))
+                        .thenReturn(new PageResult<>(List.of(), 0L));
+
+                mockMvc.perform(get("/api/recipes/following"))
+                        .andExpect(status().isOk());
+            }
+
+            @Test
+            void shouldReturnMappedDTOs() throws Exception {
+                var summary = aPersonalizedSummary();
+                when(recipeService.getPersonalizedFeedRecipes(any(Instant.class), anyInt()))
+                        .thenReturn(new PageResult<>(List.of(summary), 1L));
+
+                var result = mockMvc.perform(get("/api/recipes/following"))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+                var body = result.getResponse().getContentAsString();
+                assertTrue(body.contains(summary.summary().id().toString()));
+            }
+
+            @Test
+            void shouldReturnTotalInResponse() throws Exception {
+                when(recipeService.getPersonalizedFeedRecipes(any(Instant.class), anyInt()))
+                        .thenReturn(new PageResult<>(List.of(), 42L));
+
+                var result = mockMvc.perform(get("/api/recipes/following"))
+                        .andExpect(status().isOk())
+                        .andReturn();
+
+                var body = result.getResponse().getContentAsString();
+                assertTrue(body.contains("42"));
+            }
+        }
+
+        // --- helpers ---
+
+        private PersonalizedRecipeSummary aPersonalizedSummary() {
+            var recipe = new RecipeSummary(UUID.randomUUID(), "Pasta", "", "", 0, Instant.now(), ""/* autres champs */);
+            return new PersonalizedRecipeSummary(recipe, RecipeCounts.ZERO, RecipeUserInteraction.NONE);
         }
     }
     // ========== Helpers ==========

@@ -59,13 +59,15 @@ class RecipeServiceTest {
     private PlatformWalletPersistence platformWalletPersistence;
     @Mock
     private SecurityService securityService;
+    @Mock
+    private RecipeDiffService recipeDiffService;
 
     private RecipeService recipeService;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeService = new RecipeService(recipePersistence, storageService, walletPersistence,
+        recipeService = new RecipeService(recipePersistence, recipeDiffService, storageService, walletPersistence,
                 authPort, superLikeConfigPersistence, promotionPersistence, platformWalletPersistence,
                 eventPublisherPort, userIdentityPort, securityService);
         now = Instant.now();
@@ -800,6 +802,175 @@ class RecipeServiceTest {
             assertThrows(IllegalArgumentException.class,
                     () -> recipeService.findRecipesByAuthor("chef_test", RecipeStatus.PUBLISHED, -1, 10));
             verifyNoInteractions(recipePersistence);
+        }
+    }
+
+    @Nested
+    class GetPersonalizedFeedRecipesTest {
+
+        private static final Instant NOW = Instant.parse("2024-01-15T10:00:00Z");
+        private static final int PAGE = 0;
+        private static final String USERNAME = "john.doe";
+        private static final UUID RECIPE_ID_1 = UUID.randomUUID();
+        private static final UUID RECIPE_ID_2 = UUID.randomUUID();
+
+        @Nested
+        class WhenPageIsEmpty {
+
+            @Test
+            void shouldReturnEmptyPageResult() {
+                // Given
+                when(authPort.extractUsername()).thenReturn(USERNAME);
+                when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
+                        .thenReturn(new PageResult<>(List.of(), 0L));
+
+                // When
+                var result = recipeService.getPersonalizedFeedRecipes(NOW, PAGE);
+
+                // Then
+                assertEquals(0L, result.total());
+                assertTrue(result.items().isEmpty());
+            }
+
+            @Test
+            void shouldNotFetchCountsNorInteractions() {
+                // Given
+                when(authPort.extractUsername()).thenReturn(USERNAME);
+                when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
+                        .thenReturn(new PageResult<>(List.of(), 0L));
+
+                // When
+                recipeService.getPersonalizedFeedRecipes(NOW, PAGE);
+
+                // Then
+                verify(recipePersistence, never()).findRecipeCounts((UUID) any());
+                verify(recipePersistence, never()).findUserRecipeInteractions(any(), any());
+            }
+        }
+
+        @Nested
+        class WhenUserIsAuthenticated {
+
+            @Test
+            void shouldReturnPersonalizedSummariesWithCountsAndInteractions() {
+                // Given
+                var summary1 = aRecipeSummary(RECIPE_ID_1);
+                var summary2 = aRecipeSummary(RECIPE_ID_2);
+                var counts1 = new RecipeCounts(10, 5, 0);
+                var counts2 = new RecipeCounts(3, 1, 0);
+                var interaction1 = new RecipeUserInteraction(true, false, false);
+                var interaction2 = new RecipeUserInteraction(false, true, false);
+
+                when(authPort.extractUsername()).thenReturn(USERNAME);
+                when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
+                        .thenReturn(new PageResult<>(List.of(summary1, summary2), 2L));
+                when(recipePersistence.findRecipeCounts(List.of(RECIPE_ID_1, RECIPE_ID_2)))
+                        .thenReturn(Map.of(RECIPE_ID_1, counts1, RECIPE_ID_2, counts2));
+                when(recipePersistence.findUserRecipeInteractions(List.of(RECIPE_ID_1, RECIPE_ID_2), USERNAME))
+                        .thenReturn(Map.of(RECIPE_ID_1, interaction1, RECIPE_ID_2, interaction2));
+
+                // When
+                var result = recipeService.getPersonalizedFeedRecipes(NOW, PAGE);
+
+                // Then
+                assertEquals(2L, result.total());
+
+                var first = result.items().get(0);
+                assertEquals(summary1, first.summary());
+                assertEquals(counts1, first.counts());
+                assertEquals(interaction1, first.interaction());
+
+                var second = result.items().get(1);
+                assertEquals(summary2, second.summary());
+                assertEquals(counts2, second.counts());
+                assertEquals(interaction2, second.interaction());
+            }
+
+            @Test
+            void shouldFallbackToZeroCountsWhenRecipeNotInCountsMap() {
+                // Given
+                var summary = aRecipeSummary(RECIPE_ID_1);
+
+                when(authPort.extractUsername()).thenReturn(USERNAME);
+                when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
+                        .thenReturn(new PageResult<>(List.of(summary), 1L));
+                when(recipePersistence.findRecipeCounts(List.of(RECIPE_ID_1)))
+                        .thenReturn(Map.of());
+                when(recipePersistence.findUserRecipeInteractions(List.of(RECIPE_ID_1), USERNAME))
+                        .thenReturn(Map.of(RECIPE_ID_1, new RecipeUserInteraction(true, false, false)));
+
+                // When
+                var result = recipeService.getPersonalizedFeedRecipes(NOW, PAGE);
+
+                // Then
+                assertEquals(RecipeCounts.ZERO, result.items().get(0).counts());
+            }
+
+            @Test
+            void shouldFallbackToNoneInteractionWhenRecipeNotInInteractionsMap() {
+                // Given
+                var summary = aRecipeSummary(RECIPE_ID_1);
+
+                when(authPort.extractUsername()).thenReturn(USERNAME);
+                when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
+                        .thenReturn(new PageResult<>(List.of(summary), 1L));
+                when(recipePersistence.findRecipeCounts(List.of(RECIPE_ID_1)))
+                        .thenReturn(Map.of(RECIPE_ID_1, new RecipeCounts(5, 2, 0)));
+                when(recipePersistence.findUserRecipeInteractions(List.of(RECIPE_ID_1), USERNAME))
+                        .thenReturn(Map.of());
+
+                // When
+                var result = recipeService.getPersonalizedFeedRecipes(NOW, PAGE);
+
+                // Then
+                assertEquals(RecipeUserInteraction.NONE, result.items().get(0).interaction());
+            }
+        }
+
+        @Nested
+        class WhenUserIsAnonymous {
+
+            @Test
+            void shouldNotFetchUserInteractions() {
+                // Given
+                var summary = aRecipeSummary(RECIPE_ID_1);
+
+                when(authPort.extractUsername()).thenReturn(null);
+                when(recipePersistence.searchPersonalizedFeedRecipes(null, NOW, PAGE))
+                        .thenReturn(new PageResult<>(List.of(summary), 1L));
+                when(recipePersistence.findRecipeCounts(List.of(RECIPE_ID_1)))
+                        .thenReturn(Map.of(RECIPE_ID_1, new RecipeCounts(5, 2, 0)));
+
+                // When
+                recipeService.getPersonalizedFeedRecipes(NOW, PAGE);
+
+                // Then
+                verify(recipePersistence, never()).findUserRecipeInteractions(any(), any());
+            }
+
+            @Test
+            void shouldReturnNoneInteractionForAllSummaries() {
+                // Given
+                var summary = aRecipeSummary(RECIPE_ID_1);
+
+                when(authPort.extractUsername()).thenReturn(null);
+                when(recipePersistence.searchPersonalizedFeedRecipes(null, NOW, PAGE))
+                        .thenReturn(new PageResult<>(List.of(summary), 1L));
+                when(recipePersistence.findRecipeCounts(List.of(RECIPE_ID_1)))
+                        .thenReturn(Map.of(RECIPE_ID_1, new RecipeCounts(5, 2, 5)));
+
+                // When
+                var result = recipeService.getPersonalizedFeedRecipes(NOW, PAGE);
+
+                // Then
+                assertEquals(RecipeUserInteraction.NONE, result.items().get(0).interaction());
+            }
+        }
+
+        // --- helpers ---
+
+        private RecipeSummary aRecipeSummary(UUID id) {
+            return new RecipeSummary(id, "Recipe " + id, "", "", 0, Instant.now(), "");
         }
     }
 

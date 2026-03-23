@@ -42,8 +42,12 @@ class SmartSearchViewModel(application: Application) : AndroidViewModel(applicat
     private val _balance = MutableStateFlow<Long?>(null)
     val balance: StateFlow<Long?> = _balance.asStateFlow()
 
+    private val _smartSearchCost = MutableStateFlow<Long?>(null)
+    val smartSearchCost: StateFlow<Long?> = _smartSearchCost.asStateFlow()
+
     init {
         loadBalance()
+        loadSmartSearchCost()
     }
 
     fun onQueryChange(value: String) {
@@ -83,7 +87,7 @@ class SmartSearchViewModel(application: Application) : AndroidViewModel(applicat
     // ── Sync d'état : appelé depuis MainActivity quand une action
     //    (like, follow, superlike) est déclenchée n'importe où dans l'app.
     //    Permet de refléter les changements dans les résultats de recherche
-    //    sans relancer une requête (qui coûterait 0,10 €).
+    //    sans relancer une requête (qui est payante).
 
     fun updateLikeState(recipeId: UUID, liked: Boolean) {
         _results.value = _results.value.map { recipe ->
@@ -132,6 +136,17 @@ class SmartSearchViewModel(application: Application) : AndroidViewModel(applicat
                 val resp = walletApi.getBalance()
                 if (resp.isSuccessful) {
                     _balance.value = resp.body()?.balance
+                }
+            } catch (_: Exception) { /* Silently ignore */ }
+        }
+    }
+
+    private fun loadSmartSearchCost() {
+        viewModelScope.launch {
+            try {
+                val resp = recipeApi.getSmartSearchConfig()
+                if (resp.isSuccessful) {
+                    _smartSearchCost.value = resp.body()?.resource?.cost
                 }
             } catch (_: Exception) { /* Silently ignore */ }
         }
