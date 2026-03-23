@@ -2,7 +2,6 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
 import fr.uge.forkeat.presentation.dto.recipe.PersonalizedRecipeSummaryDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
 import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
@@ -14,6 +13,7 @@ import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
+import fr.uge.forkeat.service.SmartSearchConfigService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
@@ -48,18 +48,21 @@ public class RecipeWebController {
     private final RecipeSmartSearchService smartSearchService;
     private final WalletService walletService;
     private final RecipeReportService recipeReportService;
+    private final SmartSearchConfigService smartSearchConfigService;
 
     private final Logger logger = LoggerFactory.getLogger(RecipeWebController.class);
 
     public RecipeWebController(RecipeService recipeService, UserService userService,
                                AuthenticationPort authPort, RecipeSmartSearchService smartSearchService,
-                               WalletService walletService, RecipeReportService recipeReportService) {
+                               WalletService walletService, RecipeReportService recipeReportService,
+                               SmartSearchConfigService smartSearchConfigService) {
         this.recipeService = recipeService;
         this.userService = userService;
         this.authPort = authPort;
         this.smartSearchService = smartSearchService;
         this.walletService = walletService;
         this.recipeReportService = recipeReportService;
+        this.smartSearchConfigService = smartSearchConfigService;
     }
 
     @GetMapping("/create")
@@ -170,11 +173,8 @@ public class RecipeWebController {
         var recipe = personalizedRecipe.recipe();
         var recipeDTO = RecipeDTOMapper.toPersonalizedRecipeDTO(personalizedRecipe);
 
-        if (recipe.isVariant()) {
-            var parent = recipeService.findById(recipe.parentId());
-            var parentDTO = RecipeDTOMapper.toDTO(parent);
-            model.addAttribute("parent", parentDTO);
-            model.addAttribute("diff", RecipeDiff.compute(parentDTO, recipeDTO.toRecipeDTO()));
+        if (personalizedRecipe.diff() != null) {
+            model.addAttribute("diff", personalizedRecipe.diff());
         }
 
         var isOwner = authPort.isAuthenticated() && currentUser != null && currentUser.equals(recipe.usernameAuthor());
@@ -265,7 +265,9 @@ public class RecipeWebController {
     public String pageSmartSearch(Model model, HttpSession session) {
         var username = authPort.extractUsername();
         var balance  = walletService.getBalance(userService.getUserByUsername(username).id());
+        var smartSearchCost = smartSearchConfigService.getConfig().cost();
         model.addAttribute("balance", balance);
+        model.addAttribute("smartSearchCost", smartSearchCost);
 
         if (!model.containsAttribute("query")) {
             var cached = session.getAttribute("smartSearchQuery");
@@ -282,9 +284,8 @@ public class RecipeWebController {
     @PostMapping("/smart-search")
     public String smartSearch(@RequestParam("query") String query, HttpSession session,
                               RedirectAttributes redirectAttrs) {
-        var user = userService.getUserByUsername(authPort.extractUsername());
         try {
-            var dtos = smartSearchService.search(user.id(), query).stream()
+            var dtos = smartSearchService.search(query).stream()
                     .map(RecipeDTOMapper::toSummaryDTO)
                     .toList();
             session.setAttribute("smartSearchQuery",   query);

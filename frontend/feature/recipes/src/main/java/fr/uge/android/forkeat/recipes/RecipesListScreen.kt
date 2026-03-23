@@ -118,33 +118,6 @@ fun RecipesListScreen(
                 onClearFilters = onClearFilters
             )
 
-            if (isLoggedIn) {
-                OutlinedButton(
-                    onClick = onNavigateToSmartSearch,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary500),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Primary500.copy(alpha = 0.5f))
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            "Recherche Intelligente par IA",
-                            fontWeight = FontWeight.SemiBold,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            "Décrivez votre envie en langage naturel — 0,10 €",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Gray500
-                        )
-                    }
-                }
-            }
-
             if (errorMessage != null) {
                 Text(
                     text = errorMessage,

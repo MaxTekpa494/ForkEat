@@ -6,6 +6,7 @@ import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
+import fr.uge.forkeat.service.SmartSearchConfigService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeAlreadyReportedException;
@@ -75,6 +76,9 @@ class RecipeWebControllerTest {
 
     @MockitoBean
     private RecipeReportService recipeReportService;
+
+    @MockitoBean
+    private SmartSearchConfigService smartSearchConfigService;
 
     @Nested
     class ListRecipes {
@@ -250,17 +254,18 @@ class RecipeWebControllerTest {
         void shouldIncludeParentWhenRecipeIsVariant() throws Exception {
             var parentId = UUID.randomUUID();
             var variantId = UUID.randomUUID();
-            var parent = createRecipeWithId(parentId, "Recette originale", RecipeStatus.PUBLISHED, null);
-            var variant = createRecipeWithMetaDataWithId(variantId, "Variante", RecipeStatus.PUBLISHED, parentId);
+            var diff = new RecipeDiff(false, "", false, "", 0, false, List.of(), List.of(), List.of(), List.of());
+            var variant = new PersonalizedRecipe(
+                    createRecipeWithId(variantId, "Variante", RecipeStatus.PUBLISHED, parentId),
+                    RecipeCounts.ZERO, RecipeUserInteraction.NONE, diff);
 
             when(recipeService.findPersonalizedRecipeById(eq(variantId), any())).thenReturn(variant);
-            when(recipeService.findById(parentId)).thenReturn(parent);
 
             mockMvc.perform(get("/recipes/{id}", variantId))
                     .andExpect(status().isOk())
                     .andExpect(view().name("recipes/detail"))
                     .andExpect(model().attributeExists("recipe"))
-                    .andExpect(model().attributeExists("parent"));
+                    .andExpect(model().attributeExists("diff"));
         }
 
         @Test
