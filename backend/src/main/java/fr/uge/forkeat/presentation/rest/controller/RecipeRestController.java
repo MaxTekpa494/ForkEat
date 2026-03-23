@@ -25,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -93,6 +94,15 @@ public class RecipeRestController {
     var dtos = pageResult.items().stream().map(RecipeDTOMapper::toSummaryDTO).toList();
     return ResponseEntity.ok(new ListResponse<>(dtos, pageResult.total()));
   }
+
+    @GetMapping("/following")
+    public ResponseEntity<HttpResponse<PersonalizedRecipeSummaryDTO>> getRecipesFeed(@RequestParam(defaultValue = "0") int page,
+                                                                                     @RequestParam(required = false) Instant instant) {
+      instant = instant == null ? Instant.now() : instant;
+      var pageResult = recipeService.getPersonalizedFeedRecipes(instant, page);
+      var dtos = pageResult.items().stream().map(RecipeDTOMapper::toSummaryDTO).toList();
+      return ResponseEntity.ok(new ListResponse<>(dtos, pageResult.total()));
+    }
 
   @GetMapping("/allergens")
   public ResponseEntity<ListResponse<AllergenDTO>> getAllergens() {
