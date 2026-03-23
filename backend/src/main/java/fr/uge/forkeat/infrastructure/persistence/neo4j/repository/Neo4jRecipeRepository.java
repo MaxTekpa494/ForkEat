@@ -10,6 +10,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.time.Instant;
 
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -88,4 +89,15 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
             DELETE f
             """)
     void unfollowRecipe(@Param("userId") UUID userId, @Param("recipeId") UUID recipeId);
+
+    @Query("""
+            MATCH (me:User {username: $username})-[f:FEED]->(r:Recipe)
+            WHERE f.createdAt >= $sinceTime
+                  AND f.createdAt <= $beforeTime
+            RETURN r
+            ORDER BY f.depth ASC, r.createdAt DESC
+            SKIP $offset LIMIT $limit
+            """)
+    List<RecipeNode> getFeed(@Param("username") String username, @Param("offset") long offset, @Param("limit") long limit, @Param("sinceTime") ZonedDateTime sinceTime, @Param("beforeTime") ZonedDateTime beforeTime);
+
 }

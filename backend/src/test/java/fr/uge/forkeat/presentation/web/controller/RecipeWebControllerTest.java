@@ -2,6 +2,7 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
@@ -21,20 +22,25 @@ import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
+import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
+import static org.hamcrest.Matchers.*;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -491,6 +497,158 @@ class RecipeWebControllerTest {
                             .param("justification", "Déjà signalé"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(flash().attributeExists("reportError"));
+        }
+    }
+
+    @Nested
+    class ListRecipesFollowingTest {
+
+        private RecipeListViewModel getViewModel(MvcResult result) {
+            return (RecipeListViewModel) result.getModelAndView().getModel().get("vm");
+        }
+
+        private void givenServiceReturns(List<PersonalizedRecipeSummary> items, long total) {
+            when(recipeService.getPersonalizedFeedRecipes(any(), anyInt()))
+                    .thenReturn(new PageResult<>(items, total));
+            when(recipeService.findAllAllergens()).thenReturn(List.of());
+        }
+
+        @Nested
+        class WhenSessionHasNoInstant {
+
+            @Test
+            void shouldCreateInstantInSession() throws Exception {
+                givenServiceReturns(List.of(), 0L);
+
+                mockMvc.perform(get("/recipes/following"))
+                        .andExpect(status().isOk())
+                        .andExpect(request().sessionAttribute("instant", instanceOf(Instant.class)));
+            }
+
+            @Test
+            void shouldCallServiceWithAnyInstant() throws Exception {
+                givenServiceReturns(List.of(), 0L);
+
+                mockMvc.perform(get("/recipes/following"))
+                        .andExpect(status().isOk());
+
+                verify(recipeService).getPersonalizedFeedRecipes(any(), eq(0));
+            }
+        }
+
+        @Nested
+        class WhenSessionAlreadyHasInstant {
+
+            @Test
+            void shouldReuseExistingInstant() throws Exception {
+                var fixedInstant = Instant.parse("2024-01-15T10:00:00Z");
+                givenServiceReturns(List.of(), 0L);
+
+                mockMvc.perform(get("/recipes/following")
+                                .sessionAttr("instant", fixedInstant))
+                        .andExpect(status().isOk());
+
+                verify(recipeService).getPersonalizedFeedRecipes(eq(fixedInstant), eq(0));
+            }
+
+            @Test
+            void shouldNotOverwriteExistingInstant() throws Exception {
+                var fixedInstant = Instant.parse("2024-01-15T10:00:00Z");
+                givenServiceReturns(List.of(), 0L);
+
+                mockMvc.perform(get("/following")
+                                .sessionAttr("instant", fixedInstant))
+                        .andExpect(request().sessionAttribute("instant", fixedInstant));
+            }
+        }
+
+        @Nested
+        class WhenSessionHasInvalidInstant {
+
+            @Test
+            void shouldFallbackToNewInstantWhenAttributeIsNotAnInstant() throws Exception {
+                givenServiceReturns(List.of(), 0L);
+
+                mockMvc.perform(get("/recipes/following")
+                                .sessionAttr("instant", "not-an-instant"))
+                        .andExpect(status().isOk());
+
+                verify(recipeService).getPersonalizedFeedRecipes(any(), eq(0));
+            }
+        }
+
+        @Nested
+        class ViewModel {
+
+            @Test
+            void shouldSetIsFollowingToTrue() throws Exception {
+                givenServiceReturns(List.of(), 0L);
+
+                mockMvc.perform(get("/recipes/following"))
+                        .andExpect(model().attribute("isFollowing", true));
+            }
+
+            @Test
+            void shouldReturnCorrectView() throws Exception {
+                givenServiceReturns(List.of(), 0L);
+
+                mockMvc.perform(get("/recipes/following"))
+                        .andExpect(view().name("recipes/index"));
+            }
+
+            @Test
+            void shouldComputeTotalPagesCorrectly() throws Exception {
+                givenServiceReturns(List.of(), 41L); // 41 / 20 = ceil(2.05) = 3 pages
+
+                var result = mockMvc.perform(get("/recipes/following"))
+                        .andExpect(status().isOk()).andReturn();
+                assertEquals(3, getViewModel(result).totalPages());
+            }
+
+            @Test
+            void shouldPassPageParamToViewModel() throws Exception {
+                givenServiceReturns(List.of(), 0L);
+
+                var result = mockMvc.perform(get("/recipes/following").param("page", "2"))
+                        .andExpect(status().isOk()).andReturn();
+                assertEquals(2, getViewModel(result).currentPage());
+
+            }
+
+            @Test
+            void shouldDefaultToPageZeroWhenParamAbsent() throws Exception {
+                givenServiceReturns(List.of(), 0L);
+
+                var result = mockMvc.perform(get("/recipes/following"))
+                        .andExpect(status().isOk()).andReturn();
+                assertEquals(0, getViewModel(result).currentPage());
+
+            }
+
+            @Test
+            void shouldPassTotalToViewModel() throws Exception {
+                givenServiceReturns(List.of(), 42L);
+
+                var result = mockMvc.perform(get("/recipes/following")).andExpect(status().isOk()).andReturn();
+                assertEquals(3, getViewModel(result).totalPages());
+            }
+
+            @Test
+            void shouldMapRecipesToDTOs() throws Exception {
+                var summary = aPersonalizedSummary();
+                givenServiceReturns(List.of(summary), 1L);
+
+                var result = mockMvc.perform(get("/recipes/following"))
+                        .andExpect(status().isOk()).andReturn();
+                assertEquals(1, getViewModel(result).recipes().size());
+            }
+        }
+
+        // --- helpers ---
+
+        private PersonalizedRecipeSummary aPersonalizedSummary() {
+            var recipe = new RecipeSummary(UUID.randomUUID(), "Pasta", "", "", 0, Instant.now(), "");
+            return new PersonalizedRecipeSummary(recipe, RecipeCounts.ZERO, RecipeUserInteraction.NONE);
         }
     }
 
