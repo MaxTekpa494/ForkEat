@@ -193,6 +193,6 @@ public class UserUpdateService {
             Instant.now(),
             user.emailVerified());
 
-    userPersistence.saveUser(updatedUser, passwordHasherPort.hash(newPassword));
+    userPersistence.updateUserAndPassword(updatedUser, passwordHasherPort.hash(newPassword));
   }
 }
