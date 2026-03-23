@@ -19,14 +19,12 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Book
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Group
-import androidx.compose.material.icons.filled.ChevronRight
 import androidx.compose.material.icons.filled.HourglassEmpty
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material.icons.filled.Shield
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -55,6 +53,7 @@ fun AdminDashboardScreen(
     onNavigateToModerators: () -> Unit,
     onNavigateToAdmins: () -> Unit,
     onNavigateToRecipes: () -> Unit,
+    onNavigateToReports : () -> Unit,
     onNavigateToWallets: () -> Unit,
     onNavigateToCreate: () -> Unit,
     onLogout: () -> Unit,
@@ -67,6 +66,7 @@ fun AdminDashboardScreen(
         onNavigateToDashboard = {},
         onNavigateToUsers = onNavigateToMembers,
         onNavigateToRecipes = onNavigateToRecipes,
+        onNavigateToReports = onNavigateToReports,
         onNavigateToWallets = onNavigateToWallets,
         onNavigateToCreate = onNavigateToCreate,
         onLogout = onLogout

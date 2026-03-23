@@ -47,6 +47,7 @@ fun AdminWalletsScreen(
     onNavigateToDashboard: () -> Unit,
     onNavigateToUsers: () -> Unit,
     onNavigateToRecipes: () -> Unit,
+    onNavigateToReports : () -> Unit,
     onNavigateToCreate: () -> Unit,
     onLogout: () -> Unit,
     viewModel: AdminWalletsViewModel = viewModel()
@@ -58,6 +59,7 @@ fun AdminWalletsScreen(
         onNavigateToDashboard = onNavigateToDashboard,
         onNavigateToUsers = onNavigateToUsers,
         onNavigateToRecipes = onNavigateToRecipes,
+        onNavigateToReports = onNavigateToReports,
         onNavigateToWallets = {},
         onNavigateToCreate = onNavigateToCreate,
         onLogout = onLogout
