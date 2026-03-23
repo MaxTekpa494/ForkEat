@@ -62,9 +62,8 @@ public class Neo4jSyncService {
     }
 
     private String extractState(JsonNode node) {
-        if (node == null || !node.has("id")) return null;
+        if (node == null || !node.has("status")) return null;
         var stateNode = node.get("status");
-        System.out.println(stateNode.asText());
         if (stateNode.isNull()) return null;
         return stateNode.asText();
     }
