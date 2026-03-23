@@ -55,7 +55,7 @@ fun ModeratorScaffold(
     currentRoute: String,
     onNavigateToRecipes: () -> Unit,
     onNavigateToReports: () -> Unit,
-    onExit: () -> Unit,
+    onExitToNonModerator: () -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
     val selectedTab = when (currentRoute) {
@@ -109,7 +109,7 @@ fun ModeratorScaffold(
                     }
                 },
                 actions = {
-                    IconButton(onClick = onExit) {
+                    IconButton(onClick = onExitToNonModerator) {
                         Icon(
                             imageVector = Icons.Default.Close,
                             contentDescription = "Quitter le mode modérateur",

@@ -4,6 +4,7 @@ import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.Node;
 import org.springframework.data.neo4j.core.schema.Relationship;
 
+import java.time.Instant;
 import java.util.UUID;
 
 @Node("Recipe")
@@ -12,7 +13,7 @@ public class RecipeNode {
     @Id
     private UUID id;
     private String title;
-    private Boolean deleted = false; // Flag pour les recettes de base supprimées avec des SUPER_LIKED
+    private Instant deletedAt; // Horodatage de suppression (null = vivante) pour les recettes avec SUPER_LIKED
 
     @Relationship(type = "IS_VARIANT_OF", direction = Relationship.Direction.OUTGOING)
     private RecipeNode parentRecipe;
@@ -23,7 +24,6 @@ public class RecipeNode {
     public RecipeNode(UUID id, String title) {
         this.id = id;
         this.title = title;
-        this.deleted = false;
     }
 
     public UUID getId() {
@@ -50,11 +50,11 @@ public class RecipeNode {
         this.parentRecipe = parentRecipe;
     }
 
-    public Boolean getDeleted() {
-        return deleted;
+    public Instant getDeletedAt() {
+        return deletedAt;
     }
 
-    public void setDeleted(Boolean deleted) {
-        this.deleted = deleted;
+    public void setDeletedAt(Instant deletedAt) {
+        this.deletedAt = deletedAt;
     }
 }

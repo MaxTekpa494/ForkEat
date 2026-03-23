@@ -269,7 +269,7 @@ class UserUpdateServiceTest {
 
             // Then
             verify(emailVerificationService).sendPasswordChangeCode(userId, "test@example.com", "hashedNewPass");
-            verify(userPersistence, never()).saveUser(any(), anyString());
+            verify(userPersistence, never()).updatePassword(any(), anyString());
         }
 
         @Test
@@ -346,9 +346,9 @@ class UserUpdateServiceTest {
             userUpdateService.setPasswordForOAuthUser("googleuser", "newPassword123", "newPassword123");
 
             // Then
-            verify(userPersistence).saveUser(argThat(user ->
-                    user.authMode() == AuthMode.LOCAL &&
-                            user.username().equals("googleuser")
+            verify(userPersistence).updateUserAndPassword(argThat(u ->
+                    u.authMode() == AuthMode.LOCAL &&
+                            u.username().equals("googleuser")
             ), eq("encodedPassword"));
         }
 
@@ -380,7 +380,7 @@ class UserUpdateServiceTest {
             );
 
             assertEquals("This user already has a local password", exception.getMessage());
-            verify(userPersistence, never()).saveUser(any(), anyString());
+            verify(userPersistence, never()).updateUserAndPassword(any(), anyString());
         }
 
         @Test
@@ -395,7 +395,7 @@ class UserUpdateServiceTest {
                     () -> userUpdateService.setPasswordForOAuthUser("unknown", "newPassword123", "newPassword123")
             );
 
-            verify(userPersistence, never()).saveUser(any(), anyString());
+            verify(userPersistence, never()).updateUserAndPassword(any(), anyString());
         }
     }
 

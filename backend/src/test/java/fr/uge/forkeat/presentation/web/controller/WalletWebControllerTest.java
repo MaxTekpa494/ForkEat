@@ -2,6 +2,7 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.PromotionService;
+import fr.uge.forkeat.service.RedistributionService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.user.BankInfoService;
@@ -57,6 +58,9 @@ class WalletWebControllerTest {
     private PromotionService promotionService;
 
     @MockitoBean
+    private RedistributionService redistributionService;
+
+    @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
 
     private User testUser;
@@ -84,6 +88,7 @@ class WalletWebControllerTest {
 
         when(authPort.extractUsername()).thenReturn("testuser");
         when(bankInfoService.getBankInfoByUserId(any())).thenReturn(Optional.empty());
+        when(redistributionService.getUserEarnings(any())).thenReturn(List.of());
     }
 
     @Test

@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+      xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+      layout:decorate="~{layout/base}">
+<head>
+    <title th:text="${pageTitle}">Signalements d'utilisateurs - Administration</title>
+</head>
+<body>
+<div layout:fragment="content">
+
+    <section class="bg-gradient-to-br from-orange-500 to-orange-700 text-white py-12">
+        <div class="container mx-auto px-4">
+            <div class="flex items-center justify-between mt-1">
+                <div>
+                    <h1 class="font-display font-bold text-3xl">
+                        Signalements d'<span class="text-orange-200">utilisateurs</span>
+                    </h1>
+                    <p class="text-orange-100 mt-1">
+                        <span th:text="${totalCount}">0</span> signalement(s) en attente de traitement
+                    </p>
+                </div>
+                <div th:if="${totalPages > 1}" class="text-orange-200 font-semibold text-lg">
+                    Page <span th:text="${currentPage + 1}">1</span>/<span th:text="${totalPages}">1</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section th:if="${reports.isEmpty()}" class="py-20 bg-surface">
+        <div class="container mx-auto px-4">
+            <div class="bg-white rounded-2xl p-16 text-center border border-gray-100 shadow-sm max-w-lg mx-auto">
+                <div class="w-20 h-20 bg-green-50 rounded-full flex items-center justify-center mx-auto mb-6">
+                    <i class="fas fa-check-double text-3xl text-green-400"></i>
+                </div>
+                <h2 class="font-display font-bold text-2xl text-secondary-900 mb-2">Aucun signalement !</h2>
+                <p class="text-gray-400">Il n'y a aucun signalement utilisateur à traiter pour le moment.</p>
+            </div>
+        </div>
+    </section>
+
+    <section th:unless="${reports.isEmpty()}" class="py-10 bg-surface">
+        <div class="container mx-auto px-4 space-y-6">
+
+            <div th:each="report : ${reports}"
+                 class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden hover:shadow-lg transition">
+
+                <div class="p-6">
+                    <div class="flex justify-between items-start mb-3">
+                        <div>
+                            <h2 class="font-display font-bold text-xl text-secondary-900">
+                                Utilisateur signalé :
+                                <a th:href="@{'/profile/' + ${report.reportedUsername()}}" class="text-orange-700 hover:underline" th:text="${report.reportedUsername()}">username</a>
+                            </h2>
+                            <div class="flex items-center gap-2 mt-2">
+                                <span class="inline-flex items-center gap-1.5 text-xs bg-orange-100 text-orange-700 px-2.5 py-1 rounded-full font-semibold">
+                                    <i class="fas fa-flag"></i>
+                                    <span th:text="${report.reportType()}">Type</span>
+                                </span>
+                                <span class="text-xs text-gray-500 ml-2">
+                                    Signalé le <span th:text="${#temporals.format(report.createdAt(), 'dd/MM/yyyy a HH:mm')}">date</span>
+                                </span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-gray-50 border border-gray-200 rounded-lg p-4 mb-4">
+                        <p class="font-semibold text-gray-800">Motif du signalement :</p>
+                        <p class="text-gray-600" th:text="${report.justification()}">Justification du signalement.</p>
+                        <p class="text-xs text-gray-500 mt-2">
+                            Signalé par :
+                            <a th:href="@{'/profile/' + ${report.reporterUsername()}}" class="text-orange-700 hover:underline" th:text="${report.reporterUsername()}">utilisateur</a>
+                        </p>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-3 mt-5 pt-5 border-t border-gray-100">
+                        <button type="button"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-gray-500 hover:bg-gray-400 text-white rounded-xl font-semibold text-sm transition"
+                                th:attr="data-report-id=${report.id()},data-user-id=${report.reportedUserId()},data-username=${report.reportedUsername()},data-action='DISMISSED'"
+                                onclick="openUserModerationModal(this)">
+                            <i class="fas fa-times-circle"></i> Rejeter le signalement
+                        </button>
+
+                        <button type="button"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-amber-500 hover:bg-amber-400 text-white rounded-xl font-semibold text-sm transition"
+                                th:attr="data-report-id=${report.id()},data-user-id=${report.reportedUserId()},data-username=${report.reportedUsername()},data-action='WARNING'"
+                                onclick="openUserModerationModal(this)">
+                            <i class="fas fa-triangle-exclamation"></i> Émettre un avertissement
+                        </button>
+
+                        <button type="button"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-orange-500 hover:bg-orange-400 text-white rounded-xl font-semibold text-sm transition"
+                                th:attr="data-report-id=${report.id()},data-user-id=${report.reportedUserId()},data-username=${report.reportedUsername()},data-action='SUSPENDED'"
+                                onclick="openUserModerationModal(this)">
+                            <i class="fas fa-user-clock"></i> Suspendre
+                        </button>
+
+                        <button type="button"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl font-semibold text-sm transition"
+                                th:attr="data-report-id=${report.id()},data-user-id=${report.reportedUserId()},data-username=${report.reportedUsername()},data-action='BANNED'"
+                                onclick="openUserModerationModal(this)">
+                            <i class="fas fa-user-slash"></i> Bannir
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <div th:if="${totalPages > 1}" class="container mx-auto px-4 py-6 flex items-center justify-between bg-gray-50 rounded-b-2xl border-t border-gray-100 mt-0">
+        <a th:if="${currentPage > 0}"
+           th:href="@{/admin/users/reports(page=${currentPage - 1})}"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium transition">
+            <i class="fas fa-chevron-left"></i> Precedente
+        </a>
+        <span th:unless="${currentPage > 0}" class="px-4 py-2 text-gray-300 text-sm">
+            <i class="fas fa-chevron-left"></i> Precedente
+        </span>
+
+        <a th:if="${currentPage + 1 < totalPages}"
+           th:href="@{/admin/users/reports(page=${currentPage + 1})}"
+           class="inline-flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 text-gray-700 hover:bg-gray-100 rounded-lg text-sm font-medium transition">
+            Suivante <i class="fas fa-chevron-right"></i>
+        </a>
+        <span th:unless="${currentPage + 1 < totalPages}" class="px-4 py-2 text-gray-300 text-sm">
+            Suivante <i class="fas fa-chevron-right"></i>
+        </span>
+    </div>
+
+    <div id="userModerationModal" class="fixed inset-0 z-50 hidden items-center justify-center bg-black bg-opacity-40">
+        <div class="bg-white rounded-2xl shadow-lg p-8 w-full max-w-xl relative">
+            <button type="button" class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 text-2xl" onclick="closeUserModerationModal()">&times;</button>
+            <h3 class="font-display font-bold text-lg mb-4 text-secondary-900">Traiter le signalement utilisateur</h3>
+
+            <form id="userModerationForm" th:action="@{/}" method="post" onsubmit="return validateUserModerationForm();">
+                <input type="hidden" id="moderatedUserId" name="userId" value="" />
+                <input type="hidden" id="moderationAction" name="action" value="WARNING" />
+
+                <div class="mb-4 text-sm text-gray-600">
+                    Utilisateur cible : <span id="moderatedUsername" class="font-semibold text-gray-900">-</span>
+                </div>
+
+                <div id="suspensionDurationFields" class="mb-4 hidden">
+                    <p class="text-sm font-medium text-gray-700 mb-2">Duree de suspension</p>
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label for="suspensionDays" class="block text-xs text-gray-600 mb-1">Jours</label>
+                            <input id="suspensionDays" name="suspensionDays" type="number" min="0" value="0"
+                                   class="w-full border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-200" />
+                        </div>
+                        <div>
+                            <label for="suspensionHours" class="block text-xs text-gray-600 mb-1">Heures (0-23)</label>
+                            <input id="suspensionHours" name="suspensionHours" type="number" min="0" max="23" value="0"
+                                   class="w-full border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-200" />
+                        </div>
+                    </div>
+                    <p id="suspension-error" class="text-red-500 text-xs mt-1 hidden">La duree doit etre superieure a 0 et les heures entre 0 et 23.</p>
+                </div>
+
+                <div class="mb-5">
+                    <label for="moderationJustification" class="block text-sm font-medium text-gray-700 mb-1">Justification <span class="text-red-500">*</span></label>
+                    <textarea id="moderationJustification" name="justification" rows="3" required
+                              class="w-full border border-gray-200 rounded-lg p-2 focus:outline-none focus:ring-2 focus:ring-orange-200"></textarea>
+                    <p id="justification-error" class="text-red-500 text-xs mt-1 hidden">La justification ne peut pas etre vide.</p>
+                </div>
+
+                <div class="flex justify-end gap-3">
+                    <button type="button" class="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium" onclick="closeUserModerationModal()">Annuler</button>
+                    <button type="submit" class="px-5 py-2 bg-orange-500 hover:bg-orange-400 text-white rounded-lg font-semibold shadow-md shadow-orange-500/30">Confirmer</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <th:block layout:fragment="scripts">
+        <script>
+            function openUserModerationModal(btn) {
+                const reportId = btn.getAttribute('data-report-id');
+                const userId = btn.getAttribute('data-user-id');
+                const username = btn.getAttribute('data-username');
+                const preselectedAction = btn.getAttribute('data-action');
+
+                const modal = document.getElementById('userModerationModal');
+                const form = document.getElementById('userModerationForm');
+                form.action = `/admin/users/reports/${reportId}/resolve`;
+
+                document.getElementById('moderatedUserId').value = userId;
+                document.getElementById('moderatedUsername').textContent = username;
+
+                document.getElementById('moderationAction').value = preselectedAction;
+                document.getElementById('moderationJustification').value = '';
+                document.getElementById('suspensionDays').value = '0';
+                document.getElementById('suspensionHours').value = '0';
+                toggleSuspensionFields();
+
+                modal.classList.remove('hidden');
+                modal.classList.add('flex');
+            }
+
+            function closeUserModerationModal() {
+                const modal = document.getElementById('userModerationModal');
+                modal.classList.add('hidden');
+                modal.classList.remove('flex');
+            }
+
+            function toggleSuspensionFields() {
+                const action = document.getElementById('moderationAction').value;
+                const wrap = document.getElementById('suspensionDurationFields');
+                if (action === 'SUSPENDED') {
+                    wrap.classList.remove('hidden');
+                } else {
+                    wrap.classList.add('hidden');
+                }
+                document.getElementById('suspension-error').classList.add('hidden');
+            }
+
+            function validateUserModerationForm() {
+                const justification = document.getElementById('moderationJustification');
+                const justificationError = document.getElementById('justification-error');
+                const action = document.getElementById('moderationAction').value;
+                const daysInput = document.getElementById('suspensionDays');
+                const hoursInput = document.getElementById('suspensionHours');
+                const suspensionError = document.getElementById('suspension-error');
+
+                const trimmed = justification.value.trim();
+                if (!trimmed) {
+                    justificationError.classList.remove('hidden');
+                    justification.classList.add('border-red-400');
+                    justification.focus();
+                    return false;
+                }
+
+                justificationError.classList.add('hidden');
+                justification.classList.remove('border-red-400');
+                justification.value = trimmed;
+
+                if (action === 'SUSPENDED') {
+                    // Vérifie que les champs ne sont pas vides
+                    if (daysInput.value === '' || hoursInput.value === '') {
+                        suspensionError.classList.remove('hidden');
+                        return false;
+                    }
+                    const days = parseInt(daysInput.value, 10);
+                    const hours = parseInt(hoursInput.value, 10);
+                    const invalid = Number.isNaN(days) || Number.isNaN(hours) || days < 0 || hours < 0 || hours > 23 || (days === 0 && hours === 0);
+                    if (invalid) {
+                        suspensionError.classList.remove('hidden');
+                        return false;
+                    }
+                }
+
+                suspensionError.classList.add('hidden');
+                return true;
+            }
+        </script>
+    </th:block>
+</div>
+</body>
+</html>
+

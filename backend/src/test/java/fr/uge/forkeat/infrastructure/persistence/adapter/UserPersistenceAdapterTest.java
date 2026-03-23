@@ -205,6 +205,28 @@ class UserPersistenceAdapterTest {
     }
 
     @Test
+    void existsById_ShouldReturnTrue_WhenExists() {
+        var userId = UUID.randomUUID();
+        when(userRepository.existsById(userId)).thenReturn(true);
+
+        boolean result = adapter.existsById(userId);
+
+        assertTrue(result);
+        verify(userRepository).existsById(userId);
+    }
+
+    @Test
+    void existsById_ShouldReturnFalse_WhenNotExists() {
+        var userId = UUID.randomUUID();
+        when(userRepository.existsById(userId)).thenReturn(false);
+
+        boolean result = adapter.existsById(userId);
+
+        assertFalse(result);
+        verify(userRepository).existsById(userId);
+    }
+
+    @Test
     void existsByEmail_ShouldReturnTrue_WhenExists() {
         // Given
         var email = "existing@example.com";

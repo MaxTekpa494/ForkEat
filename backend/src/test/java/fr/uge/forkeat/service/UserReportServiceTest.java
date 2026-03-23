@@ -1,10 +1,12 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.UserAlreadyReportedException;
+import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.user.CreateUserReport;
 import fr.uge.forkeat.service.model.user.UserReport;
 import fr.uge.forkeat.service.model.user.UserReportType;
+import fr.uge.forkeat.service.model.user.projection.UserReportDetails;
 import fr.uge.forkeat.service.persistence.UserReportPersistence;
 import fr.uge.forkeat.service.port.UserIdentityPort;
 import org.junit.jupiter.api.BeforeEach;
@@ -155,6 +157,73 @@ class UserReportServiceTest {
         void shouldThrowNullPointerException_WhenReportedUserIdIsNull() {
             assertThrows(NullPointerException.class, () -> userReportService.findByReportedUserId(null));
             verifyNoInteractions(userReportPersistence);
+        }
+    }
+
+    @Nested
+    class GetReportsToModerate {
+        @Test
+        void shouldReturnReportsToModerate() {
+            var reporterUsername = "moderator";
+            var reporterId = UUID.randomUUID();
+            var reportedId = UUID.randomUUID();
+            int size = 5;
+            int page = 0;
+            var details = new UserReportDetails(
+                    UUID.randomUUID(),
+                    reportedId,
+                    "reported",
+                    "reporter",
+                    "SPAM",
+                    "Justification",
+                    Instant.now()
+            );
+            var pageResult = new PageResult<>(List.of(details), 1);
+
+            when(userIdentityPort.findIdByUsernameOrThrow(reporterUsername)).thenReturn(reporterId);
+            when(userReportPersistence.getReportsToModerateWithReportedUserAndReporter(reporterId, size, page)).thenReturn(pageResult);
+
+            var result = userReportService.getReportsToModerate(reporterUsername, size, page);
+
+            assertNotNull(result);
+            assertEquals(1, result.items().size());
+            assertEquals(1, result.total());
+            assertEquals(reportedId, result.items().getFirst().reportedUserId());
+            verify(userIdentityPort).findIdByUsernameOrThrow(reporterUsername);
+            verify(userReportPersistence).getReportsToModerateWithReportedUserAndReporter(reporterId, size, page);
+        }
+
+        @Test
+        void shouldReturnEmptyPage_WhenNoReports() {
+            var reporterUsername = "moderator";
+            var reporterId = UUID.randomUUID();
+            int size = 5;
+            int page = 0;
+            var pageResult = new PageResult<UserReportDetails>(List.of(), 0);
+
+            when(userIdentityPort.findIdByUsernameOrThrow(reporterUsername)).thenReturn(reporterId);
+            when(userReportPersistence.getReportsToModerateWithReportedUserAndReporter(reporterId, size, page)).thenReturn(pageResult);
+
+            var result = userReportService.getReportsToModerate(reporterUsername, size, page);
+
+            assertNotNull(result);
+            assertTrue(result.items().isEmpty());
+            assertEquals(0, result.total());
+        }
+
+        @Test
+        void shouldThrowNullPointerException_WhenUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> userReportService.getReportsToModerate(null, 5, 0));
+            verifyNoInteractions(userReportPersistence);
+        }
+
+        @Test
+        void shouldThrowIllegalArgumentException_WhenSizeOrPageInvalid() {
+            var reporterUsername = "moderator";
+            when(userIdentityPort.findIdByUsernameOrThrow(reporterUsername)).thenReturn(UUID.randomUUID());
+
+            assertThrows(IllegalArgumentException.class, () -> userReportService.getReportsToModerate(reporterUsername, 0, 0));
+            assertThrows(IllegalArgumentException.class, () -> userReportService.getReportsToModerate(reporterUsername, 5, -1));
         }
     }
 }

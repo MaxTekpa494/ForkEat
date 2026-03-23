@@ -40,11 +40,11 @@ public interface WalletRepository extends JpaRepository<WalletEntity, UUID> {
     void decrementBalanceByUserId(@Param("userId") UUID userId, @Param("amount") Long amount);
 
 
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE WalletEntity w SET w.balance = w.balance + :amount WHERE w.id = :id")
     void incrementBalanceById(@Param("id") UUID id, @Param("amount") Long amount);
 
-    @Modifying
+    @Modifying(flushAutomatically = true, clearAutomatically = true)
     @Query("UPDATE WalletEntity w SET w.balance = w.balance - :amount WHERE w.id = :id")
     void decrementBalanceById(@Param("id") UUID id, @Param("amount") Long amount);
 

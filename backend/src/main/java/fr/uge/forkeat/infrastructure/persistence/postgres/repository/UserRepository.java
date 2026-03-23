@@ -21,6 +21,7 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     Optional<UserProfileView> findProfileByUsername(String username);
     Optional<UserEntity> findById(UUID id);
     Optional<UserEntity> findByEmail(String email);
+    boolean existsById(UUID userId);
     boolean existsByUsername(String username);
     boolean existsByEmail(String email);
     Page<UserEntity> findByRole(UserRole role, Pageable pageable);

@@ -8,7 +8,9 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.mockito.ArgumentMatchers.anyString;
+import java.time.Instant;
+
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -134,7 +136,7 @@ class Neo4jSyncServiceTest {
         verify(recipeNodeClient).reassignVariantParent("recipe-123");
         verify(recipeNodeClient).deleteRecipeNode("recipe-123");
         verify(recipeNodeClient, never()).reassignToSystemEarnings(anyString());
-        verify(recipeNodeClient, never()).markAsDeleted(anyString());
+        verify(recipeNodeClient, never()).markDeletedAt(anyString(), any(Instant.class));
     }
 
     @Test
@@ -146,8 +148,9 @@ class Neo4jSyncServiceTest {
         neo4jSyncService.handleRecipeChange("d", payload);
         verify(recipeNodeClient).deleteSocialRelationships("recipe-123");
         verify(recipeNodeClient).reassignToSystemEarnings("recipe-123");
-        verify(recipeNodeClient).markAsDeleted("recipe-123");
+        verify(recipeNodeClient).markDeletedAt(eq("recipe-123"), any(Instant.class));
         verify(recipeNodeClient, never()).deleteRecipeNode(anyString());
+        verify(recipeNodeClient, never()).reassignVariantParent(anyString());
     }
 
     @Test
@@ -208,8 +211,9 @@ class Neo4jSyncServiceTest {
         after.put("user_id", "user-123");
         after.put("recipe_id", "recipeId");
         after.put("amount", "100");
+        after.put("redist_amount_cents", "60");
         neo4jSyncService.handleSuperLikeChange("c", payload);
-        verify(userNodeClient).addSuperLike("user-123", "recipeId", 100);
+        verify(userNodeClient).addSuperLike("id", "user-123", "recipeId", 100, 60);
     }
 
     @Test
@@ -220,7 +224,8 @@ class Neo4jSyncServiceTest {
         after.put("user_id", "user-123");
         after.put("recipe_id", "recipeId");
         after.put("amount", "100");
+        after.put("redist_amount_cents", "60");
         neo4jSyncService.handleSuperLikeChange("r", payload);
-        verify(userNodeClient).addSuperLike("user-123", "recipeId", 100);
+        verify(userNodeClient).addSuperLike("id", "user-123", "recipeId", 100, 60);
     }
 }

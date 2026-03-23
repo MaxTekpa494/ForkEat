@@ -16,11 +16,17 @@ public interface UserPersistence extends UserIdentityPort {
 
 	User updateUser(User user);
 
+	void updatePassword(UUID userId, String hashedPassword);
+
+	User updateUserAndPassword(User user, String hashedPassword);
+
 	Optional<User> findById(UUID id);
 
 	Optional<User> findByEmail(String email);
 
 	Optional<User> findByUsername(String username);
+
+	boolean existsById(UUID userId);
 
 	boolean existsByEmail(String email);
 

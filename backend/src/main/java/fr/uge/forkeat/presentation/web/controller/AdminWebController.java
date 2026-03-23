@@ -1,43 +1,45 @@
 package fr.uge.forkeat.presentation.web.controller;
 
-import fr.uge.forkeat.service.port.PromotionSchedulingPort;
-import fr.uge.forkeat.service.PlatformWalletService;
-import fr.uge.forkeat.service.RecipeModerationActionService;
-import fr.uge.forkeat.service.PromotionService;
-import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.presentation.dto.redistribution.RedistributionChainEntryDTO;
+import fr.uge.forkeat.presentation.dto.superlike.PromotionFormDTO;
+import fr.uge.forkeat.presentation.web.dto.UserModerationRequest;
+import fr.uge.forkeat.service.*;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
+import fr.uge.forkeat.service.model.SortOrder;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.superlike.Promotion;
-import fr.uge.forkeat.service.model.SortOrder;
-import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
+import fr.uge.forkeat.service.model.user.CreateUserModerationAction;
 import fr.uge.forkeat.service.model.user.UserRegister;
 import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.port.PromotionSchedulingPort;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import fr.uge.forkeat.service.user.UserService;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
-import fr.uge.forkeat.presentation.dto.superlike.PromotionFormDTO;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.ModelAttribute;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.*;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
+import java.time.temporal.ChronoUnit;
+
+import static fr.uge.forkeat.presentation.ComputeSuspendedUntil.computeSuspendedUntil;
 
 @Controller
 @RequestMapping("/admin")
 public class AdminWebController {
 
     private static final int RECIPES_PAGE_SIZE = 20;
+    private static final int RECIPESREPORTS_PAGE_SIZE = 10;
+    private static final int USERSREPORTS_PAGE_SIZE = 10;
 
     private final UserService userQueryService;
     private final RecipeService recipeService;
@@ -47,6 +49,10 @@ public class AdminWebController {
     private final RecipeModerationActionService recipeModerationActionService;
     private final PromotionService promotionService;
     private final PromotionSchedulingPort schedulingService;
+    private final RecipeReportService recipeReportService;
+    private final UserReportService userReportService;
+    private final UserModerationActionService userModerationActionService;
+    private final RedistributionService redistributionService;
 
     public AdminWebController(UserService userQueryService,
                               RecipeService recipeService,
@@ -55,15 +61,23 @@ public class AdminWebController {
                               UserRegistrationService userRegistrationService,
                               RecipeModerationActionService recipeModerationActionService,
                               PromotionService promotionService,
-                              PromotionSchedulingPort schedulingService) {
-        this.userQueryService = Objects.requireNonNull(userQueryService);
-        this.recipeService = Objects.requireNonNull(recipeService);
-        this.platformWalletService = Objects.requireNonNull(platformWalletService);
-        this.authPort = Objects.requireNonNull(authPort);
-        this.userRegistrationService = Objects.requireNonNull(userRegistrationService);
-        this.recipeModerationActionService = Objects.requireNonNull(recipeModerationActionService);
-        this.promotionService = Objects.requireNonNull(promotionService);
-        this.schedulingService = Objects.requireNonNull(schedulingService);
+                              RecipeReportService recipeReportService,
+                              UserReportService userReportService,
+                              UserModerationActionService userModerationActionService,
+                              PromotionSchedulingPort schedulingService,
+                              RedistributionService redistributionService) {
+        this.userQueryService = userQueryService;
+        this.recipeService = recipeService;
+        this.platformWalletService = platformWalletService;
+        this.authPort = authPort;
+        this.userRegistrationService = userRegistrationService;
+        this.recipeModerationActionService = recipeModerationActionService;
+        this.promotionService = promotionService;
+        this.schedulingService = schedulingService;
+        this.recipeReportService = recipeReportService;
+        this.userReportService = userReportService;
+        this.userModerationActionService = userModerationActionService;
+        this.redistributionService = redistributionService;
     }
 
     @GetMapping
@@ -131,14 +145,28 @@ public class AdminWebController {
         }
     }
 
+    @GetMapping("/redistribution/chain")
+    @ResponseBody
+    public ResponseEntity<List<RedistributionChainEntryDTO>> getRedistributionChain(
+            @RequestParam UUID recipeId,
+            @RequestParam String month) {
+        var chain = redistributionService.getRedistributionChain(recipeId, month).stream()
+            .map(e -> new RedistributionChainEntryDTO(e.authorId().toString(), e.username(),
+                                                      e.recipeId().toString(), e.recipeTitle(), e.amountCents()))
+            .toList();
+        return ResponseEntity.ok(chain);
+    }
+
     @GetMapping("/wallets")
     public String wallets(Model model) {
         var benefitsWallet = platformWalletService.getWallet(PlatformWalletType.EARNINGS);
         var redistributionWallet = platformWalletService.getWallet(PlatformWalletType.REDISTRIBUTION);
         var transactions = platformWalletService.getTransactionHistory(SortOrder.DESC);
+        var redistributionSummary = redistributionService.getRedistributionSummary();
         model.addAttribute("benefitsWallet", benefitsWallet);
         model.addAttribute("redistributionWallet", redistributionWallet);
         model.addAttribute("walletTransactions", transactions);
+        model.addAttribute("redistributionSummary", redistributionSummary);
         model.addAttribute("pageTitle", "Porte-monnaies - Administration");
         return "admin/wallets";
     }
@@ -232,6 +260,58 @@ public class AdminWebController {
         promotionService.cancel(id);
         schedulingService.onCancelled(id);
         return "redirect:/admin/super-like?promoCancelled=true";
+    }
+
+    @GetMapping("/recipes/reports")
+    public String getPendingReports(@RequestParam(defaultValue = "0") int page, Model model) {
+        var result = recipeReportService.getReportsToModerate(authPort.extractUsername(), RECIPESREPORTS_PAGE_SIZE, page);
+        var totalPages = (int) Math.ceil((double) result.total() / RECIPESREPORTS_PAGE_SIZE);
+        model.addAttribute("reports", result.items());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("totalCount", result.total());
+        model.addAttribute("pageTitle", "Signalements de recettes - Administration");
+        return "admin/recipes-reports";
+    }
+
+    @GetMapping("/users/reports")
+    public String reportedUsers(@RequestParam(defaultValue = "0") int page, Model model) {
+        var result = userReportService.getReportsToModerate(authPort.extractUsername(), USERSREPORTS_PAGE_SIZE, page);
+        var totalPages = (int) Math.ceil((double) result.total() / USERSREPORTS_PAGE_SIZE);
+        model.addAttribute("reports", result.items());
+        model.addAttribute("currentPage", page);
+        model.addAttribute("totalPages", totalPages);
+        model.addAttribute("totalCount", result.total());
+        model.addAttribute("pageTitle", "Signalements d'utilisateurs - Administration");
+        return "admin/users-reports";
+    }
+
+    @PostMapping("/recipes/reports/{reportId}/validate")
+    public String validateRecipeReport(@PathVariable UUID reportId, @RequestParam("recipeId") UUID recipeId) {
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(recipeId, authPort.extractUsername(), RecipeModerationActionType.APPROVED, "", reportId));
+        return "redirect:/admin/recipes/reports";
+    }
+
+    @PostMapping("/recipes/reports/{reportId}/dismiss")
+    public String rejectRecipeReport(@PathVariable UUID reportId, @RequestParam("recipeId") UUID recipeId, @RequestParam("justification") String justification) {
+        recipeModerationActionService.moderateRecipe(new CreateRecipeModerationAction(recipeId, authPort.extractUsername(), RecipeModerationActionType.REJECTED, justification, reportId));
+        return "redirect:/admin/recipes/reports";
+    }
+
+    @PostMapping("/users/reports/{reportId}/resolve")
+    public String resolveUserReport(@PathVariable UUID reportId, @ModelAttribute UserModerationRequest request) {
+        var suspendedUntil = computeSuspendedUntil(request.action(), request.suspensionDays(), request.suspensionHours());
+        userModerationActionService.moderateUser(
+                new CreateUserModerationAction(
+                        request.userId(),
+                        authPort.extractUsername(),
+                        request.action(),
+                        request.justification(),
+                        suspendedUntil,
+                        reportId
+                )
+        );
+        return "redirect:/admin/users/reports";
     }
 
     private void addConfigAttributes(Model model) {

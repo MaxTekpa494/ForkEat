@@ -153,10 +153,13 @@ public class RecipeNodeClient {
             .orElse(false);
     }
 
-    public void markAsDeleted(String recipeId) {
-        var cypher = "MATCH (r:Recipe {id: $recipeId}) SET r.deleted = true";
+    public void markDeletedAt(String recipeId, Instant deletedAt) {
+        Objects.requireNonNull(recipeId);
+        Objects.requireNonNull(deletedAt);
+        var cypher = "MATCH (r:Recipe {id: $recipeId}) SET r.deleted_at = $deletedAt";
         neo4jClient.query(cypher)
             .bind(recipeId).to("recipeId")
+            .bind(deletedAt.atOffset(ZoneOffset.UTC)).to("deletedAt")
             .run();
     }
 }

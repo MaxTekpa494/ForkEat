@@ -195,20 +195,6 @@ public class WalletService {
 	}
 
 
-	@Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 30)
-	public void debitForSmartSearch(UUID userId) {
-		Objects.requireNonNull(userId);
-		var wallet = walletPersistence.loadWalletWithLock(userId)
-				.orElseThrow(() -> new WalletNotFoundException(userId));
-		if (wallet.balance() < smartSearchCost) {
-			throw new InsufficientFundsException(wallet.balance(), smartSearchCost);
-		}
-		walletPersistence.saveWallet(wallet.debit(smartSearchCost));
-		walletPersistence.saveTransaction(new Transaction(
-				UUID.randomUUID(), wallet.id(), null, smartSearchCost,
-				TransactionType.SMART_SEARCH, Instant.now(), null, TransactionStatus.SUCCEEDED));
-	}
-
 	@Transactional(readOnly = true, timeout = 10)
 	public long getBalance(UUID userId) {
 		return walletPersistence.getBalance(userId);

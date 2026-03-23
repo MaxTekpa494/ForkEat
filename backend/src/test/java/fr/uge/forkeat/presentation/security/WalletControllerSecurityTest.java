@@ -3,6 +3,7 @@ package fr.uge.forkeat.presentation.security;
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.presentation.dto.user.TopUpRequestDTO;
 import fr.uge.forkeat.presentation.dto.user.UserDTO;
+import fr.uge.forkeat.service.RedistributionService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.transaction.Transaction;
@@ -64,6 +65,8 @@ public class WalletControllerSecurityTest extends AbstractIntegrationTest {
     @MockitoBean
     private BankInfoService bankInfoService;
 
+    @MockitoBean
+    private RedistributionService redistributionService;
 
     // Test fixtures
     private static final String USERNAME = "testuser";
@@ -109,6 +112,8 @@ public class WalletControllerSecurityTest extends AbstractIntegrationTest {
                 .thenReturn(mockBankInfo);
         when(bankInfoService.getBankInfoByUserId(any()))
                 .thenReturn(Optional.of(mockBankInfo));
+        when(redistributionService.getUserEarnings(any()))
+                .thenReturn(List.of());
     }
 
 

@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.Objects;
 
 @Service
@@ -140,7 +141,7 @@ public class Neo4jSyncService {
         if (hasSuperLikes) {
             recipeNodeClient.deleteSocialRelationships(id);
             recipeNodeClient.reassignToSystemEarnings(id);
-            recipeNodeClient.markAsDeleted(id);
+            recipeNodeClient.markDeletedAt(id, Instant.now());
             logger.info("Recipe {} has SUPER_LIKED. Reassigned to system_earnings and marked as deleted.", id);
         } else {
             recipeNodeClient.reassignVariantParent(id);
@@ -164,7 +165,8 @@ public class Neo4jSyncService {
                 ? after.get("recipe_id").asText() : null;
 
         var amount = after.has("amount") ? after.get("amount").asLong() : 0;
-        userNodeClient.addSuperLike(userId, recipeId, amount);
+        var redistAmountCents = after.has("redist_amount_cents") ? after.get("redist_amount_cents").asLong() : 0;
+        userNodeClient.addSuperLike(id, userId, recipeId, amount, redistAmountCents);
 
         logger.info("Created SuperLikeRelationShip: {}", id);
     }

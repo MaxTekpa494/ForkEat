@@ -5,6 +5,7 @@ import fr.uge.forkeat.service.event.RecipePublishedEvent;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.VariantCreationNotAllowedException;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
@@ -330,10 +331,12 @@ class RecipeServiceTest {
         @Test
         void shouldSaveRecipeWithoutImage() {
             var recipeId = UUID.randomUUID();
-            var recipe = createRecipe(recipeId, "Tarte aux pommes", RecipeStatus.DRAFT);
-            when(recipePersistence.save(any(Recipe.class))).thenReturn(recipe);
+            var expected = createRecipe(recipeId, "Tarte aux pommes", RecipeStatus.DRAFT);
+            var command = new CreateRecipeCommand(null, "chef_test", "Tarte aux pommes", "Summary", 30, true, null, null, List.of(), List.of(), List.of(), List.of());
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(UUID.randomUUID());
+            when(recipePersistence.save(any(Recipe.class))).thenReturn(expected);
 
-            var result = recipeService.createRecipe(recipe, null);
+            var result = recipeService.createRecipe(command);
 
             assertNotNull(result);
             assertEquals(recipeId, result.id());
@@ -344,22 +347,99 @@ class RecipeServiceTest {
         @Test
         void shouldSaveRecipeWithImage() {
             var recipeId = UUID.randomUUID();
-            var recipe = createRecipe(recipeId, "Quiche Lorraine", RecipeStatus.DRAFT);
             var newImage = new ImageUpload(new byte[]{1, 2, 3}, "image/jpeg", "quiche.jpg");
-            when(storageService.uploadImage(newImage, "recipes")).thenReturn("https://cloudflare.com/recipes/maxtekpa.jpg");
+            var command = new CreateRecipeCommand(null, "chef_test", "Quiche Lorraine", "Summary", 30, true, newImage, null, List.of(), List.of(), List.of(), List.of());
             var expectedRecipe = new Recipe(
                     recipeId, "Quiche Lorraine", "Summary for Quiche Lorraine", null,
                     "chef_test", 30, "https://cloudflare.com/recipes/maxtekpa.jpg",
                     RecipeStatus.DRAFT, List.of(), List.of(), List.of(), List.of(), now, now
             );
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(UUID.randomUUID());
+            when(storageService.uploadImage(newImage, "recipes")).thenReturn("https://cloudflare.com/recipes/maxtekpa.jpg");
             when(recipePersistence.save(any(Recipe.class))).thenReturn(expectedRecipe);
 
-            var result = recipeService.createRecipe(recipe, newImage);
+            var result = recipeService.createRecipe(command);
 
             assertNotNull(result);
             assertEquals("https://cloudflare.com/recipes/maxtekpa.jpg", result.imageUrl());
             verify(storageService).uploadImage(newImage, "recipes");
             verify(recipePersistence).save(any(Recipe.class));
+        }
+
+        @Test
+        void shouldThrowWhenUserDoesNotExist() {
+            var command = new CreateRecipeCommand(null, "ghost", "Titre", "Summary", 30, false, null, null, List.of(), List.of(), List.of(), List.of());
+            when(userIdentityPort.findIdByUsername("ghost")).thenReturn(Optional.empty());
+            doCallRealMethod().when(userIdentityPort).findIdByUsernameOrThrow("ghost");
+
+            assertThrows(ResourceNotFoundException.class, () -> recipeService.createRecipe(command));
+            verify(recipePersistence, never()).save(any());
+        }
+
+        @Test
+        void shouldThrowWhenDraftHasBlankTitle() {
+            var command = new CreateRecipeCommand(null, "chef_test", "  ", "Summary", 30, true, null, null, List.of(), List.of(), List.of(), List.of());
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(UUID.randomUUID());
+
+            assertThrows(IllegalArgumentException.class, () -> recipeService.createRecipe(command));
+            verify(recipePersistence, never()).save(any());
+        }
+
+        @Test
+        void shouldUseDraftStatusWhenDraftIsTrue() {
+            var command = new CreateRecipeCommand(null, "chef_test", "Titre", "Summary", 30, true, null, null, List.of(), List.of(), List.of(), List.of());
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(UUID.randomUUID());
+            when(recipePersistence.save(any(Recipe.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            var result = recipeService.createRecipe(command);
+
+            assertEquals(RecipeStatus.DRAFT, result.status());
+        }
+
+        @Test
+        void shouldUsePendingReviewStatusWhenDraftIsFalse() {
+            var command = new CreateRecipeCommand(null, "chef_test", "Titre", "Summary", 30, false, null, null, List.of(), List.of(), List.of(), List.of());
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(UUID.randomUUID());
+            when(recipePersistence.save(any(Recipe.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            var result = recipeService.createRecipe(command);
+
+            assertEquals(RecipeStatus.PENDING_REVIEW, result.status());
+        }
+
+        @Test
+        void shouldUseImageUrlFallbackWhenNoUpload() {
+            var command = new CreateRecipeCommand(null, "chef_test", "Titre", "Summary", 30, false, null, "https://img.example.com/existing.jpg", List.of(), List.of(), List.of(), List.of());
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(UUID.randomUUID());
+            when(recipePersistence.save(any(Recipe.class))).thenAnswer(inv -> inv.getArgument(0));
+
+            var result = recipeService.createRecipe(command);
+
+            assertEquals("https://img.example.com/existing.jpg", result.imageUrl());
+            verify(storageService, never()).uploadImage(any(), any());
+        }
+
+        @Test
+        void shouldThrowWhenParentNotFound() {
+            var parentId = UUID.randomUUID();
+            var command = new CreateRecipeCommand(parentId, "chef_test", "Variante", "Summary", 30, false, null, null, List.of(), List.of(), List.of(), List.of());
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(UUID.randomUUID());
+            when(recipePersistence.findById(parentId)).thenReturn(Optional.empty());
+
+            assertThrows(RecipeNotFoundException.class, () -> recipeService.createRecipe(command));
+            verify(recipePersistence, never()).save(any());
+        }
+
+        @Test
+        void shouldThrowWhenParentIsNotPublished() {
+            var parentId = UUID.randomUUID();
+            var parent = createRecipe(parentId, "Recette parente", RecipeStatus.DRAFT);
+            var command = new CreateRecipeCommand(parentId, "chef_test", "Variante", "Summary", 30, false, null, null, List.of(), List.of(), List.of(), List.of());
+            when(userIdentityPort.findIdByUsernameOrThrow("chef_test")).thenReturn(UUID.randomUUID());
+            when(recipePersistence.findById(parentId)).thenReturn(Optional.of(parent));
+
+            assertThrows(VariantCreationNotAllowedException.class, () -> recipeService.createRecipe(command));
+            verify(recipePersistence, never()).save(any());
         }
     }
 
@@ -514,7 +594,7 @@ class RecipeServiceTest {
             var result = recipeService.findAllDietaryNames();
 
             assertEquals(3, result.size());
-            assertEquals("halal", result.get(0));
+            assertEquals("halal", result.getFirst());
             verify(recipePersistence).findAllDietaryNames();
         }
 
@@ -593,7 +673,7 @@ class RecipeServiceTest {
 
             when(recipePersistence.hasSuperLikedRecipe(userId, recipeId)).thenReturn(false);
             when(walletPersistence.saveTransaction(any())).thenReturn(null);
-            doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean());
+            doNothing().when(recipePersistence).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean(), anyLong());
             doNothing().when(walletPersistence).incrementBalanceById(any(), anyLong());
             when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.of(createWallet(200L)));
             when(superLikeConfigPersistence.get()).thenReturn(config);
@@ -603,7 +683,7 @@ class RecipeServiceTest {
 
             recipeService.superLikeRecipe(userId, recipeId);
 
-            verify(recipePersistence).superLikeRecipe(eq(userId), eq(recipeId), eq(100L), isNull(), eq(false));
+            verify(recipePersistence).superLikeRecipe(eq(userId), eq(recipeId), eq(100L), isNull(), eq(false), eq(60L));
         }
 
         @Test
@@ -615,7 +695,7 @@ class RecipeServiceTest {
 
             recipeService.superLikeRecipe(userId, recipeId);
 
-            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean());
+            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean(), anyLong());
             verify(walletPersistence, never()).loadWalletWithLock(any());
             verify(walletPersistence, never()).incrementBalanceById(any(), anyLong());
             verify(walletPersistence, never()).getRedistributionWallet();
@@ -637,7 +717,7 @@ class RecipeServiceTest {
             assertThrows(InsufficientFundsException.class,
                     () -> recipeService.superLikeRecipe(userId, recipeId));
 
-            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean());
+            verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean(), anyLong());
             verify(walletPersistence, never()).incrementBalanceById(any(), anyLong());
             verify(walletPersistence, never()).getEarningsWallet();
             verify(walletPersistence, never()).getRedistributionWallet();
