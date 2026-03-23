@@ -3,8 +3,8 @@ package fr.uge.forkeat.presentation.security;
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
+import fr.uge.forkeat.service.RecipeDiffService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
@@ -44,6 +44,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import org.mockito.MockedStatic;
 import static org.mockito.Mockito.mockStatic;
+
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -61,6 +62,9 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
     // Mock toutes les dépendances du controller pour éviter le code métier
     @MockitoBean
     private RecipeService recipeService;
+
+    @MockitoBean
+    private RecipeDiffService recipeDiffService;
 
     @MockitoBean
     private AuthenticationPort authPort;
@@ -115,12 +119,10 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testGetRecipe() throws Exception {
-            try (MockedStatic<RecipeDTOMapper> mock = mockStatic(RecipeDTOMapper.class);
-                    MockedStatic<RecipeDiff> mock2 = mockStatic(RecipeDiff.class)) {
+            try (MockedStatic<RecipeDTOMapper> mock = mockStatic(RecipeDTOMapper.class)) {
                 mock.when(() -> RecipeDTOMapper.toDTO((Recipe) any()))
                         .thenReturn(null);
 
-                mock2.when(()->RecipeDiff.compute(any(), any())).thenReturn(null);
                 testRights(get("/api/recipes/{id}", RECIPE_ID), AuthorizationTest.UNAUTHENTICATED);
             }
         }
