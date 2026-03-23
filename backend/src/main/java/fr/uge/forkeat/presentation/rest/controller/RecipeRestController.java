@@ -5,12 +5,10 @@ import fr.uge.forkeat.service.model.recipe.projection.AuthorRecipesPage;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.response.*;
-import fr.uge.forkeat.service.RecipeDiffService;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.SmartSearchConfigService;
-import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeDiff;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
@@ -38,7 +36,6 @@ import java.util.UUID;
 public class RecipeRestController {
 
   private final RecipeService recipeService;
-  private final RecipeDiffService recipeDiffService;
   private final RecipeReportService recipeReportService;
   private final AuthenticationPort authPort;
   private final UserService userService;
@@ -47,13 +44,12 @@ public class RecipeRestController {
 
     private final Logger logger = LoggerFactory.getLogger(RecipeRestController.class);
 
-  public RecipeRestController(RecipeService recipeService, RecipeDiffService recipeDiffService,
+  public RecipeRestController(RecipeService recipeService,
                               RecipeReportService recipeReportService,
                               AuthenticationPort authPort, UserService userService,
                               RecipeSmartSearchService smartSearchService,
                               SmartSearchConfigService smartSearchConfigService) {
     this.recipeService = recipeService;
-    this.recipeDiffService = recipeDiffService;
     this.recipeReportService = recipeReportService;
     this.authPort = authPort;
     this.userService = userService;
@@ -72,17 +68,8 @@ public class RecipeRestController {
     Objects.requireNonNull(id);
     var currentUsername = authPort.extractUsername();
     var personalizedRecipe = recipeService.findPersonalizedRecipeById(id, currentUsername);
-    var recipe = personalizedRecipe.recipe();
-    if (!recipe.isPublished() && (currentUsername == null || !currentUsername.equals(recipe.usernameAuthor())) && !authPort.isAdmin()) {
-      throw new RecipeNotFoundException(id);
-    }
-    RecipeDiff diff = null;
-    if (recipe.parentId() != null) {
-      var parent = recipeService.findById(recipe.parentId());
-      diff = recipeDiffService.computeDiff(parent, recipe);
-    }
     var dto = RecipeDTOMapper.toPersonalizedRecipeDTO(personalizedRecipe);
-    return ResponseEntity.ok(new ItemResponse<>(new RecipeData(dto, diff)));
+    return ResponseEntity.ok(new ItemResponse<>(new RecipeData(dto, personalizedRecipe.diff())));
   }
 
   @GetMapping

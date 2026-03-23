@@ -42,6 +42,7 @@ import java.util.UUID;
 public class RecipeService {
   private final StoragePort storageService;
   private final RecipePersistence recipePersistence;
+  private final RecipeDiffService recipeDiffService;
   private final EventPublisherPort<RecipePublishedEvent> eventPublisher;
   private final WalletPersistence walletPersistence;
   private final AuthenticationPort authPort;
@@ -53,7 +54,8 @@ public class RecipeService {
   private final Logger logger = LoggerFactory.getLogger(RecipeService.class);
   private static final String FOLDER_STORAGE = "recipes";
 
-  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService,
+  public RecipeService(RecipePersistence recipePersistence, RecipeDiffService recipeDiffService,
+                       StoragePort storageService,
                        WalletPersistence walletPersistence,
                        AuthenticationPort authPort,
                        SuperLikeConfigPersistence superLikeConfigPersistence,
@@ -62,6 +64,7 @@ public class RecipeService {
                        EventPublisherPort<RecipePublishedEvent> eventPublisher, UserIdentityPort userIdentityPort,
                        SecurityService securityService) {
     this.recipePersistence = recipePersistence;
+    this.recipeDiffService = recipeDiffService;
     this.storageService = storageService;
     this.eventPublisher = eventPublisher;
     this.walletPersistence = walletPersistence;
@@ -182,7 +185,14 @@ public class RecipeService {
       var interaction = currentUsername != null
               ? recipePersistence.findUserRecipeInteraction(id, currentUsername)
               : RecipeUserInteraction.NONE;
-      return new PersonalizedRecipe(recipe, counts, interaction);
+      RecipeDiff diff = null;
+      if (recipe.isVariant()) {
+          var parent = findById(recipe.parentId());
+          if (parent.isPublished()) {
+              diff = recipeDiffService.computeDiff(parent, recipe);
+          }
+      }
+      return new PersonalizedRecipe(recipe, counts, interaction, diff);
   }
 
   public List<Recipe> findByStatus(RecipeStatus status) {

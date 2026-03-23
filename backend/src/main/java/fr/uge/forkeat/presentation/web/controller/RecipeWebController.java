@@ -10,7 +10,6 @@ import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.web.viewmodel.AuthorRecipesViewModel;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
-import fr.uge.forkeat.service.RecipeDiffService;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
@@ -43,7 +42,6 @@ import java.util.function.UnaryOperator;
 @RequestMapping("/recipes")
 public class RecipeWebController {
     private final RecipeService recipeService;
-    private final RecipeDiffService recipeDiffService;
     private final AuthenticationPort authPort;
     private final UserService userService;
     private final RecipeSmartSearchService smartSearchService;
@@ -53,13 +51,11 @@ public class RecipeWebController {
 
     private final Logger logger = LoggerFactory.getLogger(RecipeWebController.class);
 
-    public RecipeWebController(RecipeService recipeService, RecipeDiffService recipeDiffService,
-                               UserService userService,
+    public RecipeWebController(RecipeService recipeService, UserService userService,
                                AuthenticationPort authPort, RecipeSmartSearchService smartSearchService,
                                WalletService walletService, RecipeReportService recipeReportService,
                                SmartSearchConfigService smartSearchConfigService) {
         this.recipeService = recipeService;
-        this.recipeDiffService = recipeDiffService;
         this.userService = userService;
         this.authPort = authPort;
         this.smartSearchService = smartSearchService;
@@ -142,9 +138,8 @@ public class RecipeWebController {
         var recipe = personalizedRecipe.recipe();
         var recipeDTO = RecipeDTOMapper.toPersonalizedRecipeDTO(personalizedRecipe);
 
-        if (recipe.isVariant()) {
-            var parent = recipeService.findById(recipe.parentId());
-            model.addAttribute("diff", recipeDiffService.computeDiff(parent, recipe));
+        if (personalizedRecipe.diff() != null) {
+            model.addAttribute("diff", personalizedRecipe.diff());
         }
 
         var isOwner = authPort.isAuthenticated() && currentUser != null && currentUser.equals(recipe.usernameAuthor());
