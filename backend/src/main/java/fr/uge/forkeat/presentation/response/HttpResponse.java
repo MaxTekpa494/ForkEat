@@ -1,12 +1,18 @@
 package fr.uge.forkeat.presentation.response;
 
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import java.time.Instant;
 import java.util.Objects;
 
 public interface HttpResponse<T> {
-    boolean success();
-    HttpStatusCode statusCode();
-    String message();
+    @JsonProperty boolean success();
+    @JsonProperty HttpStatusCode statusCode();
+    @JsonProperty String message();
+
+    @JsonProperty default String timestamp() {
+        return Instant.now().toString();
+    }
 
   enum HttpStatusCode {
     OK(200, "OK"),
@@ -15,9 +21,11 @@ public interface HttpResponse<T> {
 
     BAD_REQUEST(400, "Bad Request"),
     UNAUTHORIZED(401, "Unauthorized"),
+    PAYMENT_REQUIRED(402, "Payment Required"),
     FORBIDDEN(403, "Forbidden"),
     NOT_FOUND(404, "Not Found"),
-    // Faire le 409 pour signaler un conflit ...
+    CONFLICT(409, "Conflict"),
+    UNPROCESSABLE_CONTENT(422, "Unprocessable Content"),
 
     INTERNAL_SERVER_ERROR(500, "Internal Server Error");
 

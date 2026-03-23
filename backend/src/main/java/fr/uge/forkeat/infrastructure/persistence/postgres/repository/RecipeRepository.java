@@ -134,6 +134,8 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
             nativeQuery = true)
     List<RecipeStatusCount> countByAuthorIdGroupByStatus(@Param("authorId") UUID authorId);
 
+    boolean existsByImageUrlAndIdNot(String imageUrl, UUID id);
+
     @Modifying
     @Query(value = "UPDATE recipes SET parent_id = :newParentId WHERE parent_id = :deletedId", nativeQuery = true)
     void reparentVariants(@Param("deletedId") UUID deletedId, @Param("newParentId") UUID newParentId);

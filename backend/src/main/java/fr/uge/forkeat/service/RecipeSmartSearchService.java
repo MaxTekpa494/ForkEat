@@ -1,6 +1,7 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
+import fr.uge.forkeat.service.exception.ModerationRagException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.recipe.RecipeUserInteraction;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
@@ -61,36 +62,43 @@ public class RecipeSmartSearchService {
     this.debitTxTemplate.setTimeout(10);
   }
 
+  @Transactional
   public List<PersonalizedRecipeSummary> search(String userQuery) {
     var config = configPersistence.get();
     var currentUser = authPort.extractUsername();
     var user = userPersistence.findByUsername(currentUser).orElseThrow(() -> new IllegalStateException("User not found"));
-    debitTxTemplate.execute(status -> {
-      var wallet = walletPersistence.loadWalletWithLock(user.id())
-              .orElseThrow(() -> new WalletNotFoundException(user.id()));
-      if (wallet.balance() < config.cost()) {
-        throw new InsufficientFundsException(wallet.balance(), config.cost());
-      }
-      walletPersistence.saveWallet(wallet.debit(config.cost()));
-      walletPersistence.saveTransaction(new Transaction(
-              UUID.randomUUID(), wallet.id(), null, config.cost(),
-              TransactionType.SMART_SEARCH, Instant.now(), null, TransactionStatus.SUCCEEDED));
-      return null;
-    });
 
-    moderationPort.assertSafe(userQuery);
+
+    var wallet = walletPersistence.findByUserId(user.id())
+            .orElseThrow(() -> new WalletNotFoundException(user.id()));
+    if (wallet.balance() < config.cost()) {
+      throw new InsufficientFundsException(wallet.balance(), config.cost());
+    }
+
+    // si l'utilisateur triche, on le debite quand meme puis on lance l'exception
+    // Alors ce code fait objet de discussion donc voilà
+    var moderationRejection = moderationPort.moderate(userQuery);
+    if (moderationRejection.isPresent()) {
+      debit(user.id(), config.cost());
+      throw new ModerationRagException(moderationRejection.get());
+    }
+
     var recipeIds = ragSearchPort.findSimilarRecipeIds(userQuery, config.topK());
     var summaries = recipePersistence.findSummariesByIds(recipeIds);
+
+    // Là egalement, est-ce qu'on est gentil avec l'utilisateur et on ne le debite pas
+    // Quand on ne trouve pas de recettes ressemblantes ...
+    // Je suis gentil, je debite l'utilisateur que quand on lui trouve des recettes proches
+    //debit(user.id(), config.cost());
 
     if (summaries.isEmpty()) {
       return List.of();
     }
-
+    debit(user.id(), config.cost());
     var ids = summaries.stream().map(RecipeSummary::id).toList();
     var countsMap = recipePersistence.findRecipeCounts(ids);
-    var currentUsername = authPort.extractUsername();
-    var interactionsMap = currentUsername != null
-            ? recipePersistence.findUserRecipeInteractions(ids, currentUsername)
+    var interactionsMap = currentUser != null
+            ? recipePersistence.findUserRecipeInteractions(ids, currentUser)
             : Map.<UUID, RecipeUserInteraction>of();
 
     return summaries.stream()
@@ -100,5 +108,20 @@ public class RecipeSmartSearchService {
                     interactionsMap.getOrDefault(s.id(), RecipeUserInteraction.NONE)
             ))
             .toList();
+  }
+
+  private void debit(UUID userId, long cost) {
+    debitTxTemplate.execute(status -> {
+      var lockedWallet = walletPersistence.loadWalletWithLock(userId)
+              .orElseThrow(() -> new WalletNotFoundException(userId));
+      if (lockedWallet.balance() < cost) {
+        throw new InsufficientFundsException(lockedWallet.balance(), cost);
+      }
+      walletPersistence.saveWallet(lockedWallet.debit(cost));
+      walletPersistence.saveTransaction(new Transaction(
+              UUID.randomUUID(), lockedWallet.id(), null, cost,
+              TransactionType.SMART_SEARCH, Instant.now(), null, TransactionStatus.SUCCEEDED));
+      return null;
+    });
   }
 }
