@@ -79,9 +79,6 @@ class RecipeRestControllerTest {
     private SmartSearchConfigService smartSearchConfigService;
 
     @MockitoBean
-    private RecipeDiffService recipeDiffService;
-
-    @MockitoBean
     private SecurityService securityService;
 
     @MockitoBean
@@ -97,7 +94,7 @@ class RecipeRestControllerTest {
 
     @BeforeEach
     void setUp() {
-        recipeController = new RecipeRestController(recipeService, recipeDiffService, recipeReportService, authPort, userService,
+        recipeController = new RecipeRestController(recipeService, recipeReportService, authPort, userService,
                 recipeSmartSearchService, smartSearchConfigService);
         now = Instant.now();
     }
@@ -173,11 +170,9 @@ class RecipeRestControllerTest {
         void shouldReturnRecipeWithParentIdWhenVariant() {
             var parentId = UUID.randomUUID();
             var childId = UUID.randomUUID();
-            var parentRecipe = createRecipe(parentId, "Recette originale", null, RecipeStatus.PUBLISHED);
             var childRecipe = createRecipeWithMetadata(childId, "Variante", parentId, RecipeStatus.PUBLISHED);
 
             when(recipeService.findPersonalizedRecipeById(eq(childId), any())).thenReturn(childRecipe);
-            when(recipeService.findById(parentId)).thenReturn(parentRecipe);
 
             var response = recipeController.getRecipe(childId);
 
@@ -185,7 +180,6 @@ class RecipeRestControllerTest {
             var itemResponse = (ItemResponse<?>) response.getBody();
             assertNotNull(itemResponse);
             verify(recipeService).findPersonalizedRecipeById(eq(childId), any());
-            verify(recipeService).findById(parentId);
             verifyNoMoreInteractions(recipeService);
         }
 

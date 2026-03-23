@@ -59,13 +59,15 @@ class RecipeServiceTest {
     private PlatformWalletPersistence platformWalletPersistence;
     @Mock
     private SecurityService securityService;
+    @Mock
+    private RecipeDiffService recipeDiffService;
 
     private RecipeService recipeService;
     private Instant now;
 
     @BeforeEach
     void setUp() {
-        recipeService = new RecipeService(recipePersistence, storageService, walletPersistence,
+        recipeService = new RecipeService(recipePersistence, recipeDiffService, storageService, walletPersistence,
                 authPort, superLikeConfigPersistence, promotionPersistence, platformWalletPersistence,
                 eventPublisherPort, userIdentityPort, securityService);
         now = Instant.now();
