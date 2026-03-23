@@ -31,7 +31,7 @@ class RecipeCDCHandlerTest {
         after.put("title", "Tarte aux pommes");
         after.put("author_id", "author-456");
         recipeCDCHandler.handle("c", payload);
-        verify(recipeNodeClient).mergeRecipe("recipe-123", "Tarte aux pommes", "author-456", "c");
+        verify(recipeNodeClient).mergeRecipe("recipe-123", "Tarte aux pommes", "author-456", "c", null);
     }
 
     @Test
@@ -44,7 +44,7 @@ class RecipeCDCHandlerTest {
         after.put("author_id", "author-456");
         after.put("parent_id", "parent-789");
         recipeCDCHandler.handle("c", payload);
-        verify(recipeNodeClient).mergeRecipe("recipe-123", "Variante Tarte", "author-456", "c");
+        verify(recipeNodeClient).mergeRecipe("recipe-123", "Variante Tarte", "author-456", "c", null);
         verify(recipeNodeClient).createVariantRelationship("recipe-123", "parent-789");
     }
 
@@ -90,7 +90,7 @@ class RecipeCDCHandlerTest {
         ObjectNode after = payload.putObject("after");
         after.put("id", "recipe-123");
         recipeCDCHandler.handle("c", payload);
-        verify(recipeNodeClient).mergeRecipe("recipe-123", null, null, "c");
+        verify(recipeNodeClient).mergeRecipe("recipe-123", null, null, "c", null);
         verify(recipeNodeClient, never()).createVariantRelationship(anyString(), anyString());
     }
 
@@ -102,7 +102,7 @@ class RecipeCDCHandlerTest {
         after.put("id", "recipe-123");
         after.putNull("parent_id");
         recipeCDCHandler.handle("c", payload);
-        verify(recipeNodeClient).mergeRecipe(anyString(), any(), any(), eq("c"));
+        verify(recipeNodeClient).mergeRecipe(anyString(), any(), any(), eq("c"), isNull());
         verify(recipeNodeClient, never()).createVariantRelationship(anyString(), anyString());
     }
 

@@ -42,6 +42,7 @@ public class RecipeCDCHandler implements CDCTableHandler {
         var op = payload.get("op").asText();
         var after = payload.get("after");
         if (after == null) return;
+        var state = extractState(after);
         var id = extractId(after);
         if (id == null) {
             logger.warn("Recipe ID is missing or null in payload");
@@ -50,7 +51,7 @@ public class RecipeCDCHandler implements CDCTableHandler {
         var title = after.has("title") ? after.get("title").asText() : null;
         var authorId = after.has("author_id") && !after.get("author_id").isNull()
                 ? after.get("author_id").asText() : null;
-        recipeNodeClient.mergeRecipe(id, title, authorId, op);
+        recipeNodeClient.mergeRecipe(id, title, authorId, op, state);
         // Gestion simplifiée : Création de la relation uniquement si elle n'existe pas (cas CREATE)
         // Pour un UPDATE, on sait que la structure ne change pas sauf suppression gérée ailleurs.
         var newParentId = after.has("parent_id") && !after.get("parent_id").isNull() ? after.get("parent_id").asText() : null;
@@ -87,4 +88,12 @@ public class RecipeCDCHandler implements CDCTableHandler {
         if (idNode.isNull()) return null;
         return idNode.asText();
     }
+
+    private String extractState(JsonNode node) {
+        if (node == null || !node.has("status")) return null;
+        var stateNode = node.get("status");
+        if (stateNode.isNull()) return null;
+        return stateNode.asText();
+    }
+
 }
