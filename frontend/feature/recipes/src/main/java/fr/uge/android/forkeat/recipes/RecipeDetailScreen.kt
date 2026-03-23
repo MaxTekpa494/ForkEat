@@ -66,7 +66,6 @@ import coil.compose.rememberAsyncImagePainter
 import fr.uge.android.forkeat.designsystem.theme.*
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
-import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDiffDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeIngredientDTO
@@ -77,7 +76,6 @@ import kotlin.time.Instant
 @Composable
 fun RecipeDetailScreen(
     recipe: RecipeDetailsDTO,
-    parent: RecipeDTO? = null,
     diff: RecipeDiffDTO? = null,
     isOwner: Boolean = false,
     isAuthenticated: Boolean = false,
@@ -220,9 +218,9 @@ fun RecipeDetailScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            if (parent != null) {
+            if (diff != null) {
                 VariantBanner(
-                    parentTitle = parent.title,
+                    parentTitle = diff.originalTitle ?: "",
                     diffModeActive = diffModeActive,
                     onToggleDiffMode = { diffModeActive = !diffModeActive }
                 )
@@ -1228,22 +1226,6 @@ fun PreviewRecipeDetailScreen() {
 @Preview(showBackground = true, name = "Variante avec diff")
 @Composable
 fun PreviewRecipeDetailScreenWithDiff() {
-    val parentRecipe = RecipeDTO(
-        id = UUID.randomUUID(),
-        title = "Tarte aux pommes classique",
-        summary = "Recette originale",
-        parentId = null,
-        username = "mamie_jeanne",
-        preparationMinutes = 60,
-        imageUrl = "",
-        status = "PUBLISHED",
-        steps = emptyList(),
-        ingredients = emptyList(),
-        allergens = emptyList(),
-        dietaries = emptyList(),
-        createdAt = Instant.parse("2026-02-10T12:00:00Z"),
-        updatedAt = Instant.parse("2026-02-10T12:00:00Z"),
-    )
     val diff = RecipeDiffDTO(
         titleChanged = true,
         originalTitle = "Tarte aux pommes classique",
@@ -1272,7 +1254,7 @@ fun PreviewRecipeDetailScreenWithDiff() {
         id = UUID.randomUUID(),
         title = "Tarte aux pommes maison croustillante",
         summary = "Ma version améliorée de la tarte.",
-        parentId = parentRecipe.id,
+        parentId = UUID.randomUUID(),
         username = "chef_alex",
         preparationMinutes = 75,
         imageUrl = "",
@@ -1290,7 +1272,6 @@ fun PreviewRecipeDetailScreenWithDiff() {
     )
     RecipeDetailScreen(
         recipe = recipe,
-        parent = parentRecipe,
         diff = diff,
         isOwner = true,
         isAuthenticated = true,

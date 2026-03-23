@@ -10,11 +10,8 @@ import fr.uge.forkeat.presentation.response.CreatedResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.presentation.response.NotContentResponse;
-import fr.uge.forkeat.service.RecipeReportService;
-import fr.uge.forkeat.service.RecipeService;
-import fr.uge.forkeat.service.WalletService;
+import fr.uge.forkeat.service.*;
 import fr.uge.forkeat.service.exception.*;
-import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.*;
@@ -79,6 +76,10 @@ class RecipeRestControllerTest {
     private RecipeSmartSearchService recipeSmartSearchService;
 
     @MockitoBean
+    private SmartSearchConfigService smartSearchConfigService;
+
+
+    @MockitoBean
     private SecurityService securityService;
 
     @MockitoBean
@@ -95,7 +96,7 @@ class RecipeRestControllerTest {
     @BeforeEach
     void setUp() {
         recipeController = new RecipeRestController(recipeService, recipeReportService, authPort, userService,
-                recipeSmartSearchService);
+                recipeSmartSearchService, smartSearchConfigService);
         now = Instant.now();
     }
 

@@ -100,8 +100,9 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/", "/auth/**", "/login", "/error/**", "/css/**", "/js/**", "/images/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/recipes/create", "/recipes/create-variant").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers("/recipes/my-recipes").authenticated()
+						.requestMatchers("/recipes/smart-search").authenticated()
 						.requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
-						.requestMatchers("/recipes/my").authenticated()
 						.requestMatchers("/recipes/create", "/recipes/*/edit").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/recipes/*/delete").authenticated() // edit et delete c pas EMAIL verified
 																				// à corriger quand on les fait

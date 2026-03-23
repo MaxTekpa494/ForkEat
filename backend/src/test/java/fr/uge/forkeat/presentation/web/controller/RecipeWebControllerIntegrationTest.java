@@ -182,7 +182,8 @@ class RecipeWebControllerIntegrationTest extends AbstractIntegrationTest {
                     .andExpect(status().isOk())
                     .andExpect(view().name("recipes/detail"))
                     .andExpect(model().attributeExists("recipe"))
-                    .andExpect(model().attributeExists("parent"));
+                    .andExpect(model().attributeExists("diff"))
+                    .andExpect(model().attributeDoesNotExist("parent"));
         }
 
         @Test
