@@ -47,6 +47,8 @@ public interface RecipePersistence {
 
   void deleteById(UUID id);
 
+  boolean isImageUrlUsedByOtherRecipes(UUID excludeRecipeId, String imageUrl);
+
   void reparentVariants(UUID deletedId, UUID newParentId);
 
   Recipe updateStatus(UUID id, RecipeStatus status);

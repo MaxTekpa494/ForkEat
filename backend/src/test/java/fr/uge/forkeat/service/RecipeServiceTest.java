@@ -453,7 +453,7 @@ class RecipeServiceTest {
             var existingRecipe = createRecipe(recipeId, "Old Title", RecipeStatus.DRAFT);
             var updatedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PUBLISHED);
 
-            //when(authPort.extractUsername()).thenReturn("chef_test");
+            when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(existingRecipe));
             when(recipePersistence.update(eq(recipeId), any(Recipe.class))).thenReturn(updatedRecipe);
             when(securityService.canUpdateRecipe(any())).thenReturn(true);
@@ -476,7 +476,7 @@ class RecipeServiceTest {
             var updatedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PUBLISHED);
             var newImage = new ImageUpload(new byte[]{1, 2, 3}, "image/jpeg", "new.jpg");
 
-            //when(authPort.extractUsername()).thenReturn("chef_test");
+            when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(existingRecipe));
             when(storageService.uploadImage(newImage, "recipes")).thenReturn("https://new.image.url");
             when(recipePersistence.update(eq(recipeId), any(Recipe.class))).thenReturn(updatedRecipe);

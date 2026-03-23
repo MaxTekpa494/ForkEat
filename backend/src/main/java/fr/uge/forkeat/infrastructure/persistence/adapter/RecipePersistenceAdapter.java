@@ -257,6 +257,13 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
+    public boolean isImageUrlUsedByOtherRecipes(UUID excludeRecipeId, String imageUrl) {
+        Objects.requireNonNull(excludeRecipeId);
+        Objects.requireNonNull(imageUrl);
+        return recipeRepository.existsByImageUrlAndIdNot(imageUrl, excludeRecipeId);
+    }
+
+    @Override
     public void reparentVariants(UUID deletedId, UUID newParentId) {
         recipeRepository.reparentVariants(deletedId, newParentId);
     }
