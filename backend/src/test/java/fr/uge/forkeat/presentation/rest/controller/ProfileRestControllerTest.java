@@ -2,6 +2,8 @@ package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
+import fr.uge.forkeat.presentation.rest.GlobalRestExceptionHandler;
+import org.springframework.context.annotation.Import;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.presentation.dto.user.ChangePasswordConfirmCodeDTO;
@@ -53,6 +55,7 @@ import org.springframework.http.MediaType;
 
 @WebMvcTest(ProfileRestController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(GlobalRestExceptionHandler.class)
 class ProfileRestControllerTest {
 
     private final MockMvc mockMvc;
@@ -155,8 +158,8 @@ class ProfileRestControllerTest {
 
             mockMvc.perform(get("/api/profile/unknown"))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.error").value("Not Found"))
-                    .andExpect(jsonPath("$.message").value("User not found: unknown"));
+                    .andExpect(jsonPath("$.statusCode").value("NOT_FOUND"))
+                    .andExpect(jsonPath("$.description").value("User not found: unknown"));
         }
 
         @Test
@@ -203,7 +206,7 @@ class ProfileRestControllerTest {
 
             mockMvc.perform(get("/api/profile"))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.message").value("User not found: viewer"));
+                    .andExpect(jsonPath("$.description").value("User not found: viewer"));
         }
     }
 
@@ -289,7 +292,7 @@ class ProfileRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.error").value("Conflict"));
+                    .andExpect(jsonPath("$.statusCode").value("CONFLICT"));
         }
 
         @Test
@@ -304,7 +307,7 @@ class ProfileRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.error").value("Not Found"));
+                    .andExpect(jsonPath("$.statusCode").value("NOT_FOUND"));
         }
     }
 

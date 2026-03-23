@@ -1,6 +1,8 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.uge.forkeat.presentation.rest.GlobalRestExceptionHandler;
+import org.springframework.context.annotation.Import;
 import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeReportRequestDTO;
@@ -58,6 +60,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(RecipeRestController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(GlobalRestExceptionHandler.class)
 class RecipeRestControllerTest {
 
     @MockitoBean
@@ -928,7 +931,7 @@ class RecipeRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.error").value("Not Found"));
+                    .andExpect(jsonPath("$.statusCode").value("NOT_FOUND"));
         }
 
         @Test
@@ -945,7 +948,7 @@ class RecipeRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(request)))
                     .andExpect(status().isConflict())
-                    .andExpect(jsonPath("$.error").value("Conflict"));
+                    .andExpect(jsonPath("$.statusCode").value("CONFLICT"));
         }
     }
     // ========== Helpers ==========
