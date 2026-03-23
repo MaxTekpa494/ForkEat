@@ -121,10 +121,8 @@ public class RecipeService {
     }
 
     var imageUrl = existingRecipe.imageUrl();
-    if (image != null) {
-      if (existingRecipe.imageUrl() != null && !recipePersistence.isImageUrlUsedByOtherRecipes(id, existingRecipe.imageUrl())) {
     if (command.image() != null) {
-      if (existingRecipe.imageUrl() != null) {
+      if (existingRecipe.imageUrl() != null && !recipePersistence.isImageUrlUsedByOtherRecipes(command.id(), existingRecipe.imageUrl())) {
         storageService.deleteImage(existingRecipe.imageUrl());
         logger.info("Old image deleted for recipe {}", command.id());
       }
@@ -169,15 +167,8 @@ public class RecipeService {
   }
 
   public Recipe findById(UUID id) {
-    var recipe = recipePersistence.findById(id)
+    return recipePersistence.findById(id)
             .orElseThrow(() -> new RecipeNotFoundException(id));
-    if (!recipe.isPublished() && !authPort.isAdmin() && !authPort.isModerator()) {
-      var currentUsername = authPort.extractUsername();
-      if (currentUsername == null || !currentUsername.equals(recipe.usernameAuthor())) {
-        throw new RecipeNotFoundException(id);
-      }
-    }
-    return recipe;
   }
 
   public PersonalizedRecipe findPersonalizedRecipeById(UUID id, String currentUsername) {
@@ -194,8 +185,7 @@ public class RecipeService {
               : RecipeUserInteraction.NONE;
       RecipeDiff diff = null;
       if (recipe.isVariant()) {
-          var parent = recipePersistence.findById(recipe.parentId())
-                  .orElseThrow(() -> new RecipeNotFoundException(recipe.parentId()));
+          var parent = findById(recipe.parentId());
           if (parent.isPublished()) {
               diff = recipeDiffService.computeDiff(parent, recipe);
           }
