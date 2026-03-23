@@ -2,6 +2,7 @@ package fr.uge.android.forkeat.recipes.data.api
 
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
+import fr.uge.android.forkeat.recipes.data.dto.SuperLikePriceResponse
 import fr.uge.android.forkeat.recipes.data.dto.CreateRecipeFormDataResponse
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import fr.uge.android.forkeat.recipes.data.dto.AuthorRecipesResponse
@@ -122,4 +123,7 @@ interface RecipeApiService {
     suspend fun smartSearch(
         @Body request: SmartSearchRequestDTO
     ): Response<RecipesListResponse<PersonalizedRecipeSummaryDTO>>
+
+    @GET("api/super-likes/price")
+    suspend fun getSuperLikePrice(): Response<SuperLikePriceResponse>
 }

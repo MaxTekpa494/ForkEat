@@ -3,6 +3,7 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.presentation.dto.user.UserProfileDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.ProfileService;
+import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.UserReportService;
 import fr.uge.forkeat.service.model.user.CreateUserReport;
 import fr.uge.forkeat.service.model.user.UserReportType;
@@ -21,13 +22,24 @@ public class ProfileWebController {
     private final ProfileService profileService;
     private final UserService userService;
     private final UserReportService userReportService;
+    private final PromotionService promotionService;
 
     ProfileWebController(AuthenticationPort authPort, ProfileService profileService,
-                         UserService userService, UserReportService userReportService) {
+                         UserService userService, UserReportService userReportService,
+                         PromotionService promotionService) {
         this.authPort = authPort;
         this.profileService = profileService;
         this.userService = userService;
         this.userReportService = userReportService;
+        this.promotionService = promotionService;
+    }
+
+    private void addSuperLikePriceToModel(Model model) {
+        model.addAttribute("superLikeBasePriceCents", promotionService.getConfig().priceCents());
+        promotionService.findActive().ifPresentOrElse(
+            promo -> model.addAttribute("superLikePromoPriceCents", promo.priceCents()),
+            () -> model.addAttribute("superLikePromoPriceCents", null)
+        );
     }
 
     @GetMapping
@@ -61,6 +73,7 @@ public class ProfileWebController {
                 result.followedByCurrentUser()
         );
         model.addAttribute("vm", dto);
+        addSuperLikePriceToModel(model);
         return "profile/user";
     }
 

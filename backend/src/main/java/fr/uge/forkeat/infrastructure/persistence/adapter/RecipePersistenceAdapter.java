@@ -10,6 +10,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSumma
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeSummary;
 import fr.uge.forkeat.service.model.recipe.projection.RecipeRejectionInfo;
 import fr.uge.forkeat.service.model.recipe.projection.AuthorRecipeSummary;
@@ -344,6 +345,29 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                         r -> UUID.fromString(r.recipeId()),
                         r -> new RecipeUserInteraction(r.likedByCurrentUser(), r.superLikedByCurrentUser(), r.followedByCurrentUser())
                 ));
+    }
+
+    @Override
+    public Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe(String currentUsername) {
+        var topIds = neo4jRecipeRepository.findTopLikedRecipeIds(10);
+        for (var idStr : topIds) {
+            var uuid = UUID.fromString(idStr);
+            var opt = recipeRepository.findById(uuid);
+            if (opt.isPresent() && opt.get().getStatus() == RecipeStatus.PUBLISHED) {
+                var entity = opt.get();
+                var summary = new RecipeSummary(
+                        entity.getId(), entity.getTitle(), entity.getSummary(),
+                        entity.getImageUrl(), entity.getPreparationMinutes(),
+                        entity.getCreatedAt(), entity.getAuthor().getUsername()
+                );
+                var counts = findRecipeCounts(uuid);
+                var interaction = currentUsername != null
+                        ? findUserRecipeInteraction(uuid, currentUsername)
+                        : RecipeUserInteraction.NONE;
+                return Optional.of(new PersonalizedRecipeSummary(summary, counts, interaction));
+            }
+        }
+        return Optional.empty();
     }
 
     @Override

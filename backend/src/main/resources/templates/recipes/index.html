@@ -45,6 +45,28 @@
         </div>
     </section>
 
+    <!-- Bannière promotion active -->
+    <div th:if="${activePromotion != null}"
+         class="bg-gradient-to-r from-orange-500 to-orange-400 text-white py-3 px-4">
+        <div class="container mx-auto flex items-center justify-center gap-3 text-sm font-medium flex-wrap">
+            <svg class="w-5 h-5 shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 3C9.5 3 7.5 4.5 7 6.5C4.5 6.5 2.5 8.5 2.5 11C2.5 13.5 4.5 15.5 7 15.5H17C19.5 15.5 21.5 13.5 21.5 11C21.5 8.5 19.5 6.5 17 6.5C16.5 4.5 14.5 3 12 3Z"/>
+                <path d="M7 16.5H17C17.55 16.5 18 16.95 18 17.5V19.5C18 20.05 17.55 20.5 17 20.5H7C6.45 20.5 6 20.05 6 19.5V17.5C6 16.95 6.45 16.5 7 16.5Z"/>
+                <path d="M19 2L19.5 3.5L21 4L19.5 4.5L19 6L18.5 4.5L17 4L18.5 3.5L19 2Z"/>
+            </svg>
+            <span>
+                <strong th:text="${activePromotion.name()}">Promo</strong>
+                &nbsp;—&nbsp; Super Like en promotion :
+                <span class="line-through opacity-70"
+                      th:text="${#numbers.formatDecimal(superLikeBasePriceCents / 100.0, 1, 2) + '€'}"></span>
+                <strong th:text="${#numbers.formatDecimal(activePromotion.priceCents() / 100.0, 1, 2) + '€'}"></strong>
+                <th:block th:if="${activePromotion.bonusEveryN() != null}">
+                    &nbsp;· 1 Super Like offert tous les <strong th:text="${activePromotion.bonusEveryN()}"></strong>
+                </th:block>
+            </span>
+        </div>
+    </div>
+
     <!-- Contenu principal -->
     <section class="py-12 bg-surface">
         <div class="container mx-auto px-4 flex flex-col lg:flex-row gap-8">

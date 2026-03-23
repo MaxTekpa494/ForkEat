@@ -11,6 +11,7 @@ import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.web.viewmodel.AuthorRecipesViewModel;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
+import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
@@ -47,18 +48,29 @@ public class RecipeWebController {
     private final RecipeSmartSearchService smartSearchService;
     private final WalletService walletService;
     private final RecipeReportService recipeReportService;
+    private final PromotionService promotionService;
 
     private final Logger logger = LoggerFactory.getLogger(RecipeWebController.class);
 
     public RecipeWebController(RecipeService recipeService, UserService userService,
                                AuthenticationPort authPort, RecipeSmartSearchService smartSearchService,
-                               WalletService walletService, RecipeReportService recipeReportService) {
+                               WalletService walletService, RecipeReportService recipeReportService,
+                               PromotionService promotionService) {
         this.recipeService = recipeService;
         this.userService = userService;
         this.authPort = authPort;
         this.smartSearchService = smartSearchService;
         this.walletService = walletService;
         this.recipeReportService = recipeReportService;
+        this.promotionService = promotionService;
+    }
+
+    private void addSuperLikePriceToModel(Model model) {
+        model.addAttribute("superLikeBasePriceCents", promotionService.getConfig().priceCents());
+        promotionService.findActive().ifPresentOrElse(
+            promo -> model.addAttribute("superLikePromoPriceCents", promo.priceCents()),
+            () -> model.addAttribute("superLikePromoPriceCents", null)
+        );
     }
 
     @GetMapping("/create")
@@ -124,6 +136,8 @@ public class RecipeWebController {
                 allAllergens
         );
         model.addAttribute("vm", viewModel);
+        model.addAttribute("activePromotion", promotionService.findActive().orElse(null));
+        addSuperLikePriceToModel(model);
         return "recipes/index";
     }
 
@@ -147,6 +161,7 @@ public class RecipeWebController {
         model.addAttribute("recipe", recipeDTO);
         model.addAttribute("isOwner", isOwner);
         model.addAttribute("hasActiveDietaryFlags", hasActiveDietaryFlags);
+        addSuperLikePriceToModel(model);
         logger.info("Recipe {} viewed by {}", recipe, currentUser);
         return "recipes/detail";
     }
@@ -241,6 +256,7 @@ public class RecipeWebController {
             model.addAttribute("recipes", cached != null ? cached : List.of());
         }
 
+        addSuperLikePriceToModel(model);
         return "recipes/smart-search";
     }
 
