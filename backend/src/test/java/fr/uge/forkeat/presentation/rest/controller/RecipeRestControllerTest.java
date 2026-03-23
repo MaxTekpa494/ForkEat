@@ -78,6 +78,8 @@ class RecipeRestControllerTest {
     @MockitoBean
     private SmartSearchConfigService smartSearchConfigService;
 
+    @MockitoBean
+    private RecipeDiffService recipeDiffService;
 
     @MockitoBean
     private SecurityService securityService;
@@ -95,7 +97,7 @@ class RecipeRestControllerTest {
 
     @BeforeEach
     void setUp() {
-        recipeController = new RecipeRestController(recipeService, recipeReportService, authPort, userService,
+        recipeController = new RecipeRestController(recipeService, recipeDiffService, recipeReportService, authPort, userService,
                 recipeSmartSearchService, smartSearchConfigService);
         now = Instant.now();
     }

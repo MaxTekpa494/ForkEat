@@ -2,6 +2,7 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.service.RecipeDiffService;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
@@ -49,6 +50,9 @@ class RecipeWebControllerTest {
 
     @MockitoBean
     private RecipeService recipeService;
+
+    @MockitoBean
+    private RecipeDiffService recipeDiffService;
 
     @MockitoBean
     private UserService userService;
@@ -253,6 +257,8 @@ class RecipeWebControllerTest {
 
             when(recipeService.findPersonalizedRecipeById(eq(variantId), any())).thenReturn(variant);
             when(recipeService.findById(parentId)).thenReturn(parent);
+            when(recipeDiffService.computeDiff(any(), any())).thenReturn(
+                    new RecipeDiff(false, "", false, "", 0, false, List.of(), List.of(), List.of(), List.of()));
 
             mockMvc.perform(get("/recipes/{id}", variantId))
                     .andExpect(status().isOk())
