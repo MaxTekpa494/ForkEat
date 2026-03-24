@@ -161,6 +161,11 @@ public class WalletControllerSecurityTest extends AbstractIntegrationTest {
             {"amount": 500}
         """), AuthorizationTest.EMAIL_VERIFIED);
         }
+
+        @Test
+        void testGetMyEarnings() throws Exception {
+            testRights(get("/api/wallet/redistribution/earnings"), AuthorizationTest.EMAIL_VERIFIED);
+        }
     }
 
     @Nested

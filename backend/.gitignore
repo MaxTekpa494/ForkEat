@@ -17,3 +17,6 @@ ollama/*
 scripts 21.10.55/*
 .metals/*
 .vscode
+
+# Nginx logs
+nginx/logs/*.log

@@ -3,16 +3,22 @@ package fr.uge.forkeat.presentation.security;
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
+import fr.uge.forkeat.presentation.dto.recipe.RecipeReportRequestDTO;
+import fr.uge.forkeat.presentation.dto.recipe.SmartSearchRequestDTO;
 import fr.uge.forkeat.presentation.dto.recipe.UpdateRecipeRequest;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.model.recipe.UpdateRecipeCommand;
 import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.RecipeSmartSearchService;
+import fr.uge.forkeat.service.SmartSearchConfigService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Recipe;
+import fr.uge.forkeat.service.model.recipe.RecipeReportType;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.recipe.RecipeUserInteraction;
 import fr.uge.forkeat.service.model.recipe.projection.*;
+import fr.uge.forkeat.service.model.smartsearch.SmartSearchConfig;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
@@ -25,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
@@ -74,6 +81,12 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
     @MockitoBean
     private SecurityService securityService;
 
+    @MockitoBean
+    private SmartSearchConfigService smartSearchConfigService;
+
+    @MockitoBean
+    private RecipeSmartSearchService smartSearchService;
+
     private final UUID RECIPE_ID = UUID.randomUUID();
 
     @BeforeEach
@@ -85,9 +98,12 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         lenient().when(recipeService.updateRecipe(any(UpdateRecipeCommand.class))).thenReturn(getRecipeModel());
         lenient().when(recipeService.findPersonalizedRecipeById(any(), any())).thenReturn(createPersonalizedRecipe());
         lenient().when(recipeService.searchRecipes(any())).thenReturn(createPageResult());
+        lenient().when(recipeService.getPersonalizedFeedRecipes(any(), anyInt())).thenReturn(createPageResult());
         lenient().when(recipeService.findAllAllergens()).thenReturn(List.of());
+        lenient().when(smartSearchConfigService.getConfig()).thenReturn(new SmartSearchConfig(UUID.randomUUID(), 1, 1, Instant.now()));
         lenient().when(recipeService.findAllIngredientNames()).thenReturn(List.of());
         lenient().when(recipeService.findAllDietaryNames()).thenReturn(List.of());
+        lenient().when(smartSearchService.search(any())).thenReturn(List.of());
         lenient().when(recipeService.createRecipe(any())).thenReturn(getRecipeModel());
         lenient().when(recipeService.findById(any())).thenReturn(fakeRecipe);
         lenient().when(authPort.extractUsername()).thenReturn("testuser");
@@ -106,7 +122,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
 
     @Nested
-    class RecipeController {
+    class RecipeRestController {
 
         private static final ObjectMapper mapper = new ObjectMapper();
 
@@ -128,6 +144,11 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         @Test
         void testGetRecipes() throws Exception {
             testRights(get("/api/recipes"), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testGetRecipesFollowing() throws Exception {
+            testRights(get("/api/recipes/following"), AuthorizationTest.MEMBER);
         }
 
         @Test
@@ -203,6 +224,31 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         void testUnlikeRecipe() throws Exception {
             testRights(delete("/api/recipes/{id}/like", RECIPE_ID), AuthorizationTest.EMAIL_VERIFIED);
         }
+
+        @Test
+        void testGetSmartSearchConfig() throws Exception {
+            testRights(get("/api/recipes/smart-search/config"), AuthorizationTest.UNAUTHENTICATED);
+        }
+
+        @Test
+        void testSmartSearch() throws Exception {
+            testRights(post("/api/recipes/smart-search").contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(new SmartSearchRequestDTO("a"))), AuthorizationTest.EMAIL_VERIFIED);
+        }
+
+        @Test
+        void testFollowRecipe() throws Exception {
+            testRights(put("/api/recipes/{id}/follow", UUID.randomUUID()), AuthorizationTest.EMAIL_VERIFIED);
+        }
+
+        @Test
+        void testUnfollowRecipe() throws Exception {
+            testRights(delete("/api/recipes/{id}/follow", UUID.randomUUID()), AuthorizationTest.EMAIL_VERIFIED);
+        }
+
+        @Test
+        void testReportRecipe() throws Exception {
+            testRights(delete("/api/recipes/{id}/follow", UUID.randomUUID()).contentType(MediaType.APPLICATION_JSON).contentType(mapper.writeValueAsString(new RecipeReportRequestDTO(RecipeReportType.SPAM, "a"))), AuthorizationTest.EMAIL_VERIFIED);
+        }
     }
 
     @Nested
@@ -220,6 +266,16 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         @Test
         void testMyRecipes() throws Exception {
             testRightsMVCNoRedirect(get("/recipes/my-recipes"), AuthorizationTest.MEMBER);
+        }
+
+        @Test
+        void testListRecipesFollowing() throws Exception {
+            testRightsMVCNoRedirect(get("/recipes/following"), AuthorizationTest.MEMBER);
+        }
+
+        @Test
+        void testCreateRecipePage() throws Exception {
+            testRightsMVCNoRedirect(get("/recipes/create"), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test
@@ -261,6 +317,18 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
             }
         }
 
+        @Test
+        void testSmartSearchPage() throws Exception {
+            testRightsMVCNoRedirect(get("/recipes/smart-search"), AuthorizationTest.MEMBER);
+        }
+
+        @Test
+        void testSmartSearch() throws Exception {
+            testRightsMVC(post("/recipes/smart-search")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("query", "pasta vegan"),
+                    AuthorizationTest.EMAIL_VERIFIED);
+        }
         @Test
         void testCreateVariant() throws Exception {
             var dto = getRecipe();
