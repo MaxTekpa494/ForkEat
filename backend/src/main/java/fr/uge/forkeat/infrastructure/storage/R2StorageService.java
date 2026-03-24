@@ -68,6 +68,10 @@ public class R2StorageService implements StoragePort {
 
   @Override
   public void deleteImage(String imageUrl) {
+    if (!imageUrl.startsWith(publicUrl + "/")) {
+      logger.info("deleteImage ignoré : image externe ou hors bucket ({})", imageUrl);
+      return;
+    }
     try {
       var key = imageUrl.replace(publicUrl + "/", "");
       var deleteRequest = DeleteObjectRequest.builder()
