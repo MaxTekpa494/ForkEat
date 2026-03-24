@@ -151,6 +151,7 @@ public class RecipeWebController {
 
     @GetMapping("/following")
     public String listRecipesFollowing(@RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
+        model.addAttribute("authenticated", true);
         model.addAttribute("isFollowing", true);
         if(session.getAttribute("instant") == null){
             session.setAttribute("instant", Instant.now());
