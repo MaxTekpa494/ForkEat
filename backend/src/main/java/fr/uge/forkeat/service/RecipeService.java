@@ -112,7 +112,8 @@ public class RecipeService {
 
   @Transactional
   public Recipe updateRecipe(UpdateRecipeCommand command) {
-    var existingRecipe = findById(command.id());
+    Objects.requireNonNull(command);
+    var existingRecipe = recipePersistence.findById(command.id()).orElseThrow(() -> new RecipeNotFoundException(command.id()));
     if (!securityService.canUpdateRecipe(existingRecipe)) {
       throw new RecipeOwnershipException(command.id(), authPort.extractUsername());
     }
@@ -154,7 +155,8 @@ public class RecipeService {
 
   @Transactional
   public void deleteById(UUID id) {
-    var recipe = findById(id);
+    Objects.requireNonNull(id);
+    var recipe = recipePersistence.findById(id).orElseThrow(() -> new RecipeNotFoundException(id));
       if(!securityService.canDeleteRecipe(recipe)){
           throw new RecipeOwnershipException(id, authPort.extractUsername());
       }
