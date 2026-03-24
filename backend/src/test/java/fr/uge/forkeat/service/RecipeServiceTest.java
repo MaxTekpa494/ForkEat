@@ -164,6 +164,7 @@ class RecipeServiceTest {
 
         @Test
         void shouldReturnRecipesWithMatchingStatus() {
+            when(authPort.isAdmin()).thenReturn(true);
             var recipe1 = createRecipe(UUID.randomUUID(), "Recette 1", RecipeStatus.PUBLISHED);
             var recipe2 = createRecipe(UUID.randomUUID(), "Recette 2", RecipeStatus.PUBLISHED);
             when(recipePersistence.findByStatus(RecipeStatus.PUBLISHED)).thenReturn(List.of(recipe1, recipe2));
@@ -177,6 +178,7 @@ class RecipeServiceTest {
 
         @Test
         void shouldReturnEmptyListWhenNoRecipesMatch() {
+            when(authPort.isAdmin()).thenReturn(true);
             when(recipePersistence.findByStatus(RecipeStatus.DRAFT)).thenReturn(List.of());
 
             var result = recipeService.findByStatus(RecipeStatus.DRAFT);
@@ -187,6 +189,7 @@ class RecipeServiceTest {
 
         @Test
         void shouldReturnDraftRecipes() {
+            when(authPort.isAdmin()).thenReturn(true);
             var draftRecipe = createRecipe(UUID.randomUUID(), "Brouillon", RecipeStatus.DRAFT);
             when(recipePersistence.findByStatus(RecipeStatus.DRAFT)).thenReturn(List.of(draftRecipe));
 
