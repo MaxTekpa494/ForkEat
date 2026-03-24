@@ -71,6 +71,12 @@ public class AccountRestController {
     @PostMapping("/email-change-requests")
     public ResponseEntity<HttpResponse<Void>> requestEmailChange(@RequestBody RequestEmailChangeDTO dto) {
         var username = authPort.extractUsername();
+        var user = userService.getUserByUsername(username);
+        if (!user.emailVerified()) {
+            var updatedUser = userUpdateService.changeEmailDirectly(username, dto.newEmail(), dto.currentPassword(), dto.newPassword(), dto.confirmPassword());
+            emailVerificationService.sendEmailConfirmation(updatedUser.id(), updatedUser.email());
+            return ResponseEntity.ok(new SuccessResponse());
+        }
         userUpdateService.requestEmailChange(username, dto.newEmail(), dto.currentPassword(), dto.newPassword(), dto.confirmPassword());
         return ResponseEntity.ok(new SuccessResponse());
     }
@@ -101,9 +107,23 @@ public class AccountRestController {
         return ResponseEntity.ok(new SuccessResponse());
     }
 
-    @DeleteMapping
-    public ResponseEntity<HttpResponse<Void>> deleteAccount() {
+    @PostMapping("/delete-requests")
+    public ResponseEntity<HttpResponse<Void>> requestAccountDeletion() {
         var username = authPort.extractUsername();
+        var user = userService.getUserByUsername(username);
+        if (!user.emailVerified()) {
+            userService.deleteAccount(username);
+            return ResponseEntity.ok(new SuccessResponse());
+        }
+        emailVerificationService.sendAccountDeletionCode(user.id(), user.email());
+        return ResponseEntity.ok(new SuccessResponse());
+    }
+
+    @PutMapping("/delete-requests")
+    public ResponseEntity<HttpResponse<Void>> confirmAccountDeletion(@RequestParam String code) {
+        var username = authPort.extractUsername();
+        var user = userService.getUserByUsername(username);
+        emailVerificationService.confirmAccountDeletion(user.id(), code);
         userService.deleteAccount(username);
         return ResponseEntity.ok(new SuccessResponse());
     }

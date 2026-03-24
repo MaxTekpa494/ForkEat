@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.service.exception.ForbiddenOperationException;
 import fr.uge.forkeat.service.exception.PromotionModificationForbiddenException;
 import fr.uge.forkeat.service.exception.PromotionNotFoundException;
 import fr.uge.forkeat.service.exception.PromotionNotProfitableException;
@@ -10,6 +11,7 @@ import fr.uge.forkeat.service.model.superlike.SuperLikeConfig;
 import fr.uge.forkeat.service.model.superlike.SuperLikeHistory;
 import fr.uge.forkeat.service.persistence.PromotionPersistence;
 import fr.uge.forkeat.service.persistence.SuperLikeConfigPersistence;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -29,11 +31,14 @@ public class PromotionService {
     private final PromotionPersistence promotionPersistence;
     private final SuperLikeConfigPersistence superLikeConfigPersistence;
     private final Logger logger = LoggerFactory.getLogger(PromotionService.class);
+    private final AuthenticationPort authenticationPort;
 
     public PromotionService(PromotionPersistence promotionPersistence,
-                            SuperLikeConfigPersistence superLikeConfigPersistence) {
+                            SuperLikeConfigPersistence superLikeConfigPersistence,
+                            AuthenticationPort authenticationPort) {
         this.promotionPersistence = promotionPersistence;
         this.superLikeConfigPersistence = superLikeConfigPersistence;
+        this.authenticationPort = authenticationPort;
     }
 
     public List<Promotion> findAll() {
@@ -62,6 +67,10 @@ public class PromotionService {
         Objects.requireNonNull(startsAt);
         Objects.requireNonNull(endsAt);
 
+        if(!authenticationPort.isAdmin()){
+            throw new ForbiddenOperationException("Only admins can create a promotion");
+        }
+
         var config = superLikeConfigPersistence.get();
         validateProfitability(bonusEveryN, config);
         validateNoOverlap(startsAt, endsAt);
@@ -78,6 +87,11 @@ public class PromotionService {
     @Transactional
     public Promotion update(UUID id, String name, Instant startsAt, Instant endsAt, Long priceCents, Integer bonusEveryN) {
         Objects.requireNonNull(id);
+
+        if(!authenticationPort.isAdmin()){
+            throw new ForbiddenOperationException("Only admins can update a promotion");
+        }
+
         var existing = promotionPersistence.findById(id)
                 .orElseThrow(() -> new PromotionNotFoundException(id));
 
@@ -111,6 +125,11 @@ public class PromotionService {
     @Transactional
     public void cancel(UUID id) {
         Objects.requireNonNull(id);
+
+        if(!authenticationPort.isAdmin()){
+            throw new ForbiddenOperationException("Only admins can cancel a promotion");
+        }
+
         var existing = promotionPersistence.findById(id)
                 .orElseThrow(() -> new PromotionNotFoundException(id));
 

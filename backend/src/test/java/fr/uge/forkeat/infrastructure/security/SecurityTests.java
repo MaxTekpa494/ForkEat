@@ -85,7 +85,7 @@ public class SecurityTests extends AbstractIntegrationTest {
         var json = objectMapper.readTree(stringResponse);
 
         //Store the token
-        var tokenUser = "Bearer " + (json.get("token").asText());
+        var tokenUser = "Bearer " + (json.get("resource").get("token").asText());
 
 
         var adminDTO = new UserLoginDTO("admin", "admin");
@@ -97,7 +97,7 @@ public class SecurityTests extends AbstractIntegrationTest {
 
         JsonNode adminLoginJson = objectMapper.readTree(loginAdminBodyResponse.getResponse().getContentAsString());
 
-        var tokenAdmin = "Bearer " + (adminLoginJson.get("token").asText());
+        var tokenAdmin = "Bearer " + (adminLoginJson.get("resource").get("token").asText());
 
 
         //We try to create a moderator
