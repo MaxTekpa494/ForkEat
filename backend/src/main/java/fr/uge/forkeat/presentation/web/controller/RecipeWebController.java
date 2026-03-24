@@ -138,6 +138,12 @@ public class RecipeWebController {
                 form.getAllergens(),
                 allAllergens
         );
+        var username = authPort.extractUsername();
+        if(username == null){
+            model.addAttribute("authenticated", false);
+        }else{
+            model.addAttribute("authenticated", true);
+        }
         model.addAttribute("vm", viewModel);
         model.addAttribute("activePromotion", promotionService.findActive().orElse(null));
         addSuperLikePriceToModel(model);
@@ -147,6 +153,7 @@ public class RecipeWebController {
     @GetMapping("/following")
     @PreAuthorize("isAuthenticated()")
     public String listRecipesFollowing(@RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
+        model.addAttribute("authenticated", true);
         model.addAttribute("isFollowing", true);
         if(session.getAttribute("instant") == null){
             session.setAttribute("instant", Instant.now());
