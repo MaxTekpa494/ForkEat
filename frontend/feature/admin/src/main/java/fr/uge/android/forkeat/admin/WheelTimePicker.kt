@@ -27,7 +27,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import fr.uge.android.forkeat.designsystem.theme.AdminPurple500
 import fr.uge.android.forkeat.designsystem.theme.Gray500
 import fr.uge.android.forkeat.designsystem.theme.Secondary900
 import kotlin.math.abs
