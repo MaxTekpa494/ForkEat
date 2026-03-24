@@ -1,6 +1,7 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeEntityMapper;
+import fr.uge.forkeat.infrastructure.persistence.neo4j.node.RecipeNode;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.DietaryEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.IngredientEntity;
@@ -8,6 +9,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.SuperLikeEntity;
 import fr.uge.forkeat.infrastructure.persistence.postgres.projection.RecipeSummaryView;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.*;
+import fr.uge.forkeat.infrastructure.persistence.sync.cdc.RecipeNodeClient;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.*;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
@@ -23,6 +25,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -113,6 +116,16 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                 .map(RecipeEntityMapper::toDomain)
                 .toList();
         return new PageResult<>(recipes, pageResult.getTotalElements());
+    }
+
+    @Override
+    public PageResult<RecipeSummary> searchPersonalizedFeedRecipes(String username, Instant beforeTime, int nbPage) {
+        var sinceTime = beforeTime.minusSeconds(2678400);
+        var pageResult = neo4jRecipeRepository.getFeed(username, nbPage * 20L, nbPage* 20L + 20, sinceTime.atZone(ZoneOffset.UTC), beforeTime.atZone(ZoneOffset.UTC));
+        var recipes = recipeRepository.findSummariesByIds(pageResult.stream()
+                .map(RecipeNode::getId)
+                .toList()).stream().map(r-> new RecipeSummary(r.getId(), r.getTitle(), r.getSummary(), r.getImageUrl(), r.getPreparationMinutes(), r.getCreatedAt(), r.getAuthorUsername())).toList();
+        return new PageResult<>(recipes, recipes.size());
     }
 
     @Override
@@ -242,6 +255,13 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     @Override
     public void deleteById(UUID id) {
         recipeRepository.deleteById(id);
+    }
+
+    @Override
+    public boolean isImageUrlUsedByOtherRecipes(UUID excludeRecipeId, String imageUrl) {
+        Objects.requireNonNull(excludeRecipeId);
+        Objects.requireNonNull(imageUrl);
+        return recipeRepository.existsByImageUrlAndIdNot(imageUrl, excludeRecipeId);
     }
 
     @Override

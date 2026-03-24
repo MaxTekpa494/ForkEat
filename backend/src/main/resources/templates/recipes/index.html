@@ -8,8 +8,8 @@
 <body>
 <div layout:fragment="content">
 
-    <!-- Header avec recherche -->
-    <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
+    <!-- Header avec recherche — masqué sur le feed communauté -->
+    <section id="search-section" class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
         <div class="container mx-auto px-4">
             <div class="text-center mb-8">
                 <h1 class="font-display font-bold text-4xl md:text-5xl mb-4">
@@ -31,7 +31,6 @@
                            class="w-full px-6 py-4 pl-14 rounded-full bg-white/10 backdrop-blur-sm border border-white/20 text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition">
                     <i class="fas fa-search absolute left-5 top-1/2 -translate-y-1/2 text-white/60"></i>
 
-                    <!-- Filtres allergènes cachés pour les conserver lors de la recherche -->
                     <th:block th:if="${vm.selectedAllergens != null}">
                         <input type="hidden" name="allergens" th:each="allergen : ${vm.selectedAllergens}" th:value="${allergen}" />
                     </th:block>
@@ -69,104 +68,118 @@
 
     <!-- Contenu principal -->
     <section class="py-12 bg-surface">
-        <div class="container mx-auto px-4 flex flex-col lg:flex-row gap-8">
+        <div class="container mx-auto px-4">
 
-            <!-- Sidebar Filtres -->
-            <aside class="w-full lg:w-1/4">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-24">
-                    <div class="flex items-center justify-between mb-4">
-                        <h3 class="font-bold text-lg text-secondary-900">Filtres</h3>
-                        <a th:if="${(search != null and !search.isEmpty()) or (selectedAllergens != null and !selectedAllergens.isEmpty())}"
-                           th:href="@{/recipes}"
-                           class="text-sm text-primary-500 hover:text-primary-600 font-medium">
-                            Réinitialiser
+            <!-- Toggle Feed -->
+            <div class="flex justify-center mb-8">
+                <div class="inline-flex bg-white border border-gray-200 rounded-full p-1 shadow-sm">
+                    <button id="btn-feed-all"
+                            onclick="switchFeed('all')"
+                            class="px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 text-secondary-600 hover:text-secondary-900">
+                        <i class="fas fa-globe mr-2"></i>Toutes les recettes
+                    </button>
+                    <button id="btn-feed-following"
+                            onclick="switchFeed('following')"
+                            class="px-6 py-2 rounded-full text-sm font-semibold transition-all duration-200 text-secondary-600 hover:text-secondary-900">
+                        <i class="fas fa-users mr-2"></i>Ma communauté
+                    </button>
+                </div>
+            </div>
+
+            <div class="flex flex-col lg:flex-row gap-8">
+
+                <!-- Sidebar Filtres — masquée sur le feed communauté -->
+                <aside id="filters-sidebar" class="w-full lg:w-1/4">
+                    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-24">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-bold text-lg text-secondary-900">Filtres</h3>
+                            <a th:if="${(vm.search != null and !vm.search.isEmpty()) or (vm.selectedAllergens != null and !vm.selectedAllergens.isEmpty())}"
+                               th:href="@{/recipes}"
+                               class="text-sm text-primary-500 hover:text-primary-600 font-medium">
+                                Réinitialiser
+                            </a>
+                        </div>
+
+                        <form th:action="@{/recipes}" method="get" id="filter-form">
+                            <input type="hidden" name="search" th:value="${vm.search}" th:if="${vm.search != null and !vm.search.isEmpty()}">
+
+                            <div class="mb-6">
+                                <h4 class="font-semibold text-secondary-800 mb-3 text-sm uppercase tracking-wider">Allergènes (Exclure)</h4>
+                                <div class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
+                                    <th:block th:each="allergen : ${vm.allAllergens}">
+                                        <label class="flex items-center space-x-3 cursor-pointer group">
+                                            <input type="checkbox" name="allergens" th:value="${allergen.name}"
+                                                   th:checked="${vm.selectedAllergens != null and #lists.contains(vm.selectedAllergens, allergen.name)}"
+                                                   class="form-checkbox h-5 w-5 text-primary-500 rounded border-gray-300 focus:ring-primary-500 transition">
+                                            <span class="text-secondary-600 group-hover:text-secondary-900 transition" th:text="${allergen.name}">Allergène</span>
+                                        </label>
+                                    </th:block>
+                                </div>
+                            </div>
+
+                            <button type="submit" class="w-full bg-secondary-900 hover:bg-secondary-800 text-white py-2 rounded-lg font-semibold transition mt-4">
+                                Appliquer les filtres
+                            </button>
+                        </form>
+                    </div>
+                </aside>
+
+                <!-- Liste des résultats -->
+                <div id="recipes-grid" class="w-full lg:w-3/4">
+                    <div class="flex items-center justify-between mb-8">
+                        <p class="text-secondary-600">
+                            <span th:text="${vm.totalRecipes}" class="font-bold text-secondary-900">0</span> recette(s) trouvée(s)
+                        </p>
+                    </div>
+
+                    <div th:if="${#lists.isEmpty(vm.recipes)}" class="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
+                        <div class="w-24 h-24 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                            <i class="fas fa-utensils text-4xl text-secondary-400"></i>
+                        </div>
+                        <h3 class="font-display font-bold text-2xl text-secondary-900 mb-2">Aucune recette disponible</h3>
+                        <p class="text-secondary-500 mb-6">Essayez de modifier vos filtres ou votre recherche.</p>
+                        <a th:href="@{/recipes/create}"
+                           class="inline-block bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-full font-semibold transition">
+                            <i class="fas fa-plus mr-2"></i>Créer une recette
                         </a>
                     </div>
 
-                    <form th:action="@{/recipes}" method="get" id="filter-form">
-                        <input type="hidden" name="search" th:value="${vm.search}" th:if="${vm.search != null and !vm.search.isEmpty()}">
-
-                        <div class="mb-6">
-                            <h4 class="font-semibold text-secondary-800 mb-3 text-sm uppercase tracking-wider">Allergènes (Exclure)</h4>
-                            <div class="space-y-2 max-h-64 overflow-y-auto custom-scrollbar">
-                                <th:block th:each="allergen : ${vm.allAllergens}">
-                                    <label class="flex items-center space-x-3 cursor-pointer group">
-                                        <input type="checkbox" name="allergens" th:value="${allergen.name}"
-                                               th:checked="${vm.selectedAllergens != null and #lists.contains(vm.selectedAllergens, allergen.name)}"
-                                               class="form-checkbox h-5 w-5 text-primary-500 rounded border-gray-300 focus:ring-primary-500 transition">
-                                        <span class="text-secondary-600 group-hover:text-secondary-900 transition" th:text="${allergen.name}">Allergène</span>
-                                    </label>
-                                </th:block>
-                            </div>
-                        </div>
-
-                        <button type="submit" class="w-full bg-secondary-900 hover:bg-secondary-800 text-white py-2 rounded-lg font-semibold transition mt-4">
-                            Appliquer les filtres
-                        </button>
-                    </form>
-                </div>
-            </aside>
-
-            <!-- Liste des résultats -->
-            <div class="w-full lg:w-3/4">
-                <!-- Info résultats -->
-                <div class="flex items-center justify-between mb-8">
-                    <p class="text-secondary-600">
-                        <span th:text="${vm.totalRecipes}" class="font-bold text-secondary-900">0</span> recette(s) trouvée(s)
-                    </p>
-                </div>
-
-                <!-- Message si aucune recette -->
-                <div th:if="${#lists.isEmpty(vm.recipes)}" class="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
-                    <div class="w-24 h-24 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-6">
-                        <i class="fas fa-utensils text-4xl text-secondary-400"></i>
+                    <div th:unless="${#lists.isEmpty(vm.recipes)}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                        <th:block th:each="recipe : ${vm.recipes}">
+                            <div th:replace="~{fragments/recipe-card :: recipeCard(${recipe})}"></div>
+                        </th:block>
                     </div>
-                    <h3 class="font-display font-bold text-2xl text-secondary-900 mb-2">Aucune recette disponible</h3>
-                    <p class="text-secondary-500 mb-6">Essayez de modifier vos filtres ou votre recherche.</p>
-                    <a th:href="@{/recipes/create}"
-                       class="inline-block bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-full font-semibold transition">
-                        <i class="fas fa-plus mr-2"></i>Créer une recette
-                    </a>
-                </div>
-
-                <!-- Grille de recettes -->
-                <div th:unless="${#lists.isEmpty(vm.recipes)}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    <th:block th:each="recipe : ${vm.recipes}">
-                        <div th:replace="~{fragments/recipe-card :: recipeCard(${recipe})}"></div>
-                    </th:block>
                 </div>
 
             </div>
 
-        </div>
-
-        <!-- Pagination (pleine largeur, centrée sur la page) -->
-        <div th:if="${vm.totalPages > 1}" class="flex justify-center mt-12 container mx-auto px-4">
-            <nav class="flex items-center space-x-2">
-                <!-- Bouton précédent -->
-                <a th:if="${vm.currentPage > 0}"
-                   th:href="@{/recipes(page=${vm.currentPage - 1}, search=${vm.search}, allergens=${vm.selectedAllergens})}"
-                   class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition">
-                    <i class="fas fa-chevron-left"></i>
-                </a>
-
-                <!-- Numéros de page -->
-                <th:block th:each="i : ${vm.paginationPages()}">
-                    <span th:if="${i == -1}" class="px-3 py-2 text-secondary-400">...</span>
-                    <a th:unless="${i == -1}"
-                       th:href="@{/recipes(page=${i}, search=${vm.search}, allergens=${vm.selectedAllergens})}"
-                       th:text="${i + 1}"
-                       th:class="${i == vm.currentPage} ? 'px-4 py-2 bg-primary-500 text-white rounded-lg font-semibold' : 'px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition'">
-                        1
+            <!-- Pagination -->
+            <div th:if="${vm.totalPages > 1}" class="flex justify-center mt-12">
+                <nav class="flex items-center space-x-2">
+                    <a th:if="${vm.currentPage > 0}"
+                       th:href="${isFollowing} ? @{/recipes/following(page=${vm.currentPage - 1})} : @{/recipes(page=${vm.currentPage - 1}, search=${vm.search}, allergens=${vm.selectedAllergens})}"
+                       class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition">
+                        <i class="fas fa-chevron-left"></i>
                     </a>
-                </th:block>
 
-                <a th:if="${vm.currentPage < vm.totalPages - 1}"
-                   th:href="@{/recipes(page=${vm.currentPage + 1}, search=${vm.search}, allergens=${vm.selectedAllergens})}"
-                   class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition">
-                    <i class="fas fa-chevron-right"></i>
-                </a>
-            </nav>
+                    <th:block th:each="i : ${vm.paginationPages()}">
+                        <span th:if="${i == -1}" class="px-3 py-2 text-secondary-400">...</span>
+                        <a th:unless="${i == -1}"
+                           th:href="${isFollowing} ? @{/recipes/following(page=${i})} : @{/recipes(page=${i}, search=${vm.search}, allergens=${vm.selectedAllergens})}"
+                           th:text="${i + 1}"
+                           th:class="${i == vm.currentPage} ? 'px-4 py-2 bg-primary-500 text-white rounded-lg font-semibold' : 'px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition'">
+                            1
+                        </a>
+                    </th:block>
+
+                    <a th:if="${vm.currentPage < vm.totalPages - 1}"
+                       th:href="${isFollowing} ? @{/recipes/following(page=${vm.currentPage + 1})} : @{/recipes(page=${vm.currentPage + 1}, search=${vm.search}, allergens=${vm.selectedAllergens})}"
+                       class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition">
+                        <i class="fas fa-chevron-right"></i>
+                    </a>
+                </nav>
+            </div>
+
         </div>
     </section>
 
@@ -179,6 +192,31 @@
                 window.location.reload();
             }
         });
+
+        const isFollowing = window.location.pathname.startsWith('/recipes/following');
+
+        const activeBtn   = document.getElementById(isFollowing ? 'btn-feed-following' : 'btn-feed-all');
+        const inactiveBtn = document.getElementById(isFollowing ? 'btn-feed-all' : 'btn-feed-following');
+
+        activeBtn.classList.add('bg-primary-500', 'text-white');
+        activeBtn.classList.remove('text-secondary-600', 'hover:text-secondary-900');
+        inactiveBtn.classList.remove('bg-primary-500', 'text-white');
+        inactiveBtn.classList.add('text-secondary-600', 'hover:text-secondary-900');
+
+        if (isFollowing) {
+            document.getElementById('search-section').style.display = 'none';
+
+            const sidebar = document.getElementById('filters-sidebar');
+            sidebar.style.display = 'none';
+
+            const grid = document.getElementById('recipes-grid');
+            grid.classList.remove('lg:w-3/4');
+            grid.classList.add('lg:w-full');
+        }
+
+        function switchFeed(feed) {
+            window.location.href = feed === 'following' ? '/recipes/following' : '/recipes';
+        }
     </script>
 </th:block>
 

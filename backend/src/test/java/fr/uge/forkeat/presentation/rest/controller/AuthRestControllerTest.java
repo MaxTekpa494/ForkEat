@@ -3,6 +3,8 @@ package fr.uge.forkeat.presentation.rest.controller;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.uge.forkeat.infrastructure.config.JwtUtils;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.presentation.rest.GlobalRestExceptionHandler;
+import org.springframework.context.annotation.Import;
 import fr.uge.forkeat.presentation.dto.user.ChangePasswordConfirmCodeDTO;
 import fr.uge.forkeat.presentation.dto.user.ChangePasswordDTO;
 import fr.uge.forkeat.presentation.dto.user.UserLoginDTO;
@@ -42,6 +44,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @WebMvcTest(AuthRestController.class)
 @AutoConfigureMockMvc(addFilters = false)
+@Import(GlobalRestExceptionHandler.class)
 class AuthRestControllerTest {
 
     private final MockMvc mockMvc;
@@ -109,7 +112,7 @@ class AuthRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.error").value("Bad Request"));
+                    .andExpect(jsonPath("$.statusCode").value("BAD_REQUEST"));
 
             verify(userRegistrationService).registerUser(any());
         }
@@ -125,8 +128,8 @@ class AuthRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.error").value("Bad Request"))
-                    .andExpect(jsonPath("$.message").value("Email already exists"));
+                    .andExpect(jsonPath("$.statusCode").value("BAD_REQUEST"))
+                    .andExpect(jsonPath("$.description").value("Email already exists"));
         }
     }
 
@@ -226,8 +229,8 @@ class AuthRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isBadRequest())
-                    .andExpect(jsonPath("$.error").value("Bad Request"))
-                    .andExpect(jsonPath("$.message").value("Code incorrect"));
+                    .andExpect(jsonPath("$.statusCode").value("BAD_REQUEST"))
+                    .andExpect(jsonPath("$.description").value("Code incorrect"));
         }
 
         @Test
@@ -240,7 +243,7 @@ class AuthRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isNotFound())
-                    .andExpect(jsonPath("$.error").value("Not Found"));
+                    .andExpect(jsonPath("$.statusCode").value("NOT_FOUND"));
         }
     }
 }

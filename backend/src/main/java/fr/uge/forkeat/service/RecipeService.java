@@ -16,12 +16,8 @@ import fr.uge.forkeat.service.model.transaction.TransactionStatus;
 import fr.uge.forkeat.service.model.transaction.TransactionType;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
-import fr.uge.forkeat.service.persistence.PlatformWalletPersistence;
-import fr.uge.forkeat.service.persistence.PromotionPersistence;
-import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.persistence.*;
 import fr.uge.forkeat.service.port.EventPublisherPort;
-import fr.uge.forkeat.service.persistence.SuperLikeConfigPersistence;
-import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.UserIdentityPort;
 import fr.uge.forkeat.service.port.StoragePort;
@@ -43,6 +39,7 @@ import java.util.UUID;
 public class RecipeService {
   private final StoragePort storageService;
   private final RecipePersistence recipePersistence;
+  private final RecipeDiffService recipeDiffService;
   private final EventPublisherPort<RecipePublishedEvent> eventPublisher;
   private final WalletPersistence walletPersistence;
   private final AuthenticationPort authPort;
@@ -54,7 +51,8 @@ public class RecipeService {
   private final Logger logger = LoggerFactory.getLogger(RecipeService.class);
   private static final String FOLDER_STORAGE = "recipes";
 
-  public RecipeService(RecipePersistence recipePersistence, StoragePort storageService,
+  public RecipeService(RecipePersistence recipePersistence, RecipeDiffService recipeDiffService,
+                       StoragePort storageService,
                        WalletPersistence walletPersistence,
                        AuthenticationPort authPort,
                        SuperLikeConfigPersistence superLikeConfigPersistence,
@@ -63,6 +61,7 @@ public class RecipeService {
                        EventPublisherPort<RecipePublishedEvent> eventPublisher, UserIdentityPort userIdentityPort,
                        SecurityService securityService) {
     this.recipePersistence = recipePersistence;
+    this.recipeDiffService = recipeDiffService;
     this.storageService = storageService;
     this.eventPublisher = eventPublisher;
     this.walletPersistence = walletPersistence;
@@ -113,52 +112,56 @@ public class RecipeService {
   }
 
   @Transactional
-  public Recipe updateRecipe(UUID id, Recipe updatedRecipe, ImageUpload image) {
-    var existingRecipe = findById(id);
-    if(!securityService.canUpdateRecipe(existingRecipe)){
-        //Forbidden Exception de MAX
-        throw new RecipeOwnershipException(id, authPort.extractUsername());
+  public Recipe updateRecipe(UpdateRecipeCommand command) {
+    Objects.requireNonNull(command);
+    var existingRecipe = recipePersistence.findById(command.id()).orElseThrow(() -> new RecipeNotFoundException(command.id()));
+    if (!securityService.canUpdateRecipe(existingRecipe)) {
+      throw new RecipeOwnershipException(command.id(), authPort.extractUsername());
+    }
+    if (command.draft() && (command.title() == null || command.title().isBlank())) {
+      throw new IllegalArgumentException("Draft recipe must have a non-empty title");
     }
 
     var imageUrl = existingRecipe.imageUrl();
-    if (image != null) {
-      if (existingRecipe.imageUrl() != null) {
+    if (command.image() != null) {
+      if (existingRecipe.imageUrl() != null && !recipePersistence.isImageUrlUsedByOtherRecipes(command.id(), existingRecipe.imageUrl())) {
         storageService.deleteImage(existingRecipe.imageUrl());
-        logger.info("Old image deleted for recipe {}", id);
+        logger.info("Old image deleted for recipe {}", command.id());
       }
-      imageUrl = storageService.uploadImage(image, FOLDER_STORAGE);
-      logger.info("New image uploaded for recipe {}", id);
+      imageUrl = storageService.uploadImage(command.image(), FOLDER_STORAGE);
+      logger.info("New image uploaded for recipe {}", command.id());
     }
 
+    var status = command.draft() ? RecipeStatus.DRAFT : RecipeStatus.PENDING_REVIEW;
     var recipeToSave = new Recipe(
-            id,
-            updatedRecipe.title(),
-            updatedRecipe.summary(),
+            command.id(),
+            command.title(),
+            command.summary(),
             existingRecipe.parentId(),
             existingRecipe.usernameAuthor(),
-            updatedRecipe.preparationMinutes(),
+            command.preparationMinutes(),
             imageUrl,
-            updatedRecipe.status(),
-            updatedRecipe.stepByStepInstructions(),
-            updatedRecipe.ingredients(),
-            updatedRecipe.allergens(),
-            updatedRecipe.dietaries(),
+            status,
+            command.steps(),
+            command.ingredients(),
+            command.allergens(),
+            command.dietaries(),
             existingRecipe.createdAt(),
-            updatedRecipe.updatedAt()
+            Instant.now()
     );
 
-    logger.info("Recipe {} updated", id);
-    return recipePersistence.update(id, recipeToSave);
+    logger.info("Recipe {} updated", command.id());
+    return recipePersistence.update(command.id(), recipeToSave);
   }
 
   @Transactional
   public void deleteById(UUID id) {
-    var recipe = findById(id);
+    Objects.requireNonNull(id);
+    var recipe = recipePersistence.findById(id).orElseThrow(() -> new RecipeNotFoundException(id));
       if(!securityService.canDeleteRecipe(recipe)){
-          //Forbidden Exception de MAX
           throw new RecipeOwnershipException(id, authPort.extractUsername());
       }
-    if(recipe.imageUrl() != null){
+    if(recipe.imageUrl() != null && !recipePersistence.isImageUrlUsedByOtherRecipes(id, recipe.imageUrl())){
       storageService.deleteImage(recipe.imageUrl());
       logger.info("Image deleted for recipe {}", id);
     }
@@ -167,8 +170,15 @@ public class RecipeService {
   }
 
   public Recipe findById(UUID id) {
-    return recipePersistence.findById(id)
+    var recipe = recipePersistence.findById(id)
             .orElseThrow(() -> new RecipeNotFoundException(id));
+    if (!recipe.isPublished() && !authPort.isAdmin() && !authPort.isModerator()) {
+      var currentUsername = authPort.extractUsername();
+      if (currentUsername == null || !currentUsername.equals(recipe.usernameAuthor())) {
+        throw new RecipeNotFoundException(id);
+      }
+    }
+    return recipe;
   }
 
   public PersonalizedRecipe findPersonalizedRecipeById(UUID id, String currentUsername) {
@@ -183,7 +193,15 @@ public class RecipeService {
       var interaction = currentUsername != null
               ? recipePersistence.findUserRecipeInteraction(id, currentUsername)
               : RecipeUserInteraction.NONE;
-      return new PersonalizedRecipe(recipe, counts, interaction);
+      RecipeDiff diff = null;
+      if (recipe.isVariant()) {
+        var parent = recipePersistence.findById(recipe.parentId())
+                .orElseThrow(() -> new RecipeNotFoundException(recipe.parentId()));
+          if (parent.isPublished()) {
+              diff = recipeDiffService.computeDiff(parent, recipe);
+          }
+      }
+      return new PersonalizedRecipe(recipe, counts, interaction, diff);
   }
 
   public Optional<PersonalizedRecipeSummary> getTopLikedRecipe(String currentUsername) {
@@ -237,6 +255,31 @@ public class RecipeService {
 
     return new PageResult<>(personalized, page.total());
   }
+
+    public PageResult<PersonalizedRecipeSummary> getPersonalizedFeedRecipes(Instant instant, int nbPage) {
+        var currentUsername = authPort.extractUsername();
+        var page = recipePersistence.searchPersonalizedFeedRecipes(currentUsername, instant, nbPage);
+        var summaries = page.items();
+        if (summaries.isEmpty()) {
+            return new PageResult<>(List.of(), page.total());
+        }
+
+        var ids = summaries.stream().map(RecipeSummary::id).toList();
+        var countsMap = recipePersistence.findRecipeCounts(ids);
+        var interactionsMap = currentUsername != null
+                ? recipePersistence.findUserRecipeInteractions(ids, currentUsername)
+                : Map.<UUID, RecipeUserInteraction>of();
+
+        var personalized = summaries.stream()
+                .map(s -> new PersonalizedRecipeSummary(
+                        s,
+                        countsMap.getOrDefault(s.id(), RecipeCounts.ZERO),
+                        interactionsMap.getOrDefault(s.id(), RecipeUserInteraction.NONE)
+                ))
+                .toList();
+
+        return new PageResult<>(personalized, page.total());
+    }
 
   public List<Allergen> findAllAllergens() {
     return recipePersistence.findAllAllergens();

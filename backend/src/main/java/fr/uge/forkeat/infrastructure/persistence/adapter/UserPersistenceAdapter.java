@@ -1,10 +1,9 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
 import fr.uge.forkeat.infrastructure.persistence.mapper.UserEntityMapper;
+import fr.uge.forkeat.infrastructure.persistence.postgres.entity.UserEntity;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jUserRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.SuperLikeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
-import fr.uge.forkeat.infrastructure.persistence.postgres.repository.WalletRepository;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
@@ -29,15 +28,9 @@ public class UserPersistenceAdapter implements UserPersistence {
 
     private final Neo4jUserRepository neo4jUserRepository;
 
-    private final SuperLikeRepository superLikeRepository;
-
-    private final WalletRepository walletRepository;
-
-	public UserPersistenceAdapter(UserRepository userRepository, Neo4jUserRepository neo4jUserRepository, SuperLikeRepository superLikeRepository, WalletRepository walletRepository) {
+	public UserPersistenceAdapter(UserRepository userRepository, Neo4jUserRepository neo4jUserRepository) {
 		this.userRepository = userRepository;
         this.neo4jUserRepository = neo4jUserRepository;
-        this.superLikeRepository = superLikeRepository;
-        this.walletRepository = walletRepository;
 	}
 
 	@Override
@@ -56,22 +49,34 @@ public class UserPersistenceAdapter implements UserPersistence {
 		return UserEntityMapper.toDomain(saved);
 	}
 
+	@Override
+	public void updatePassword(UUID userId, String hashedPassword) {
+		Objects.requireNonNull(userId);
+		if (hashedPassword == null || hashedPassword.isEmpty()) {
+			throw new IllegalArgumentException("Hashed password is null or empty");
+		}
+		var entity = userRepository.findById(userId)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
+		entity.setPassword(hashedPassword);
+		userRepository.save(entity);
+	}
+
+	@Override
+	public User updateUserAndPassword(User user, String hashedPassword) {
+		Objects.requireNonNull(user);
+		if (hashedPassword == null || hashedPassword.isEmpty()) {
+			throw new IllegalArgumentException("Hashed password is null or empty");
+		}
+		var existing = loadAndApplyUserFields(user);
+		existing.setPassword(hashedPassword);
+		return UserEntityMapper.toDomain(userRepository.save(existing));
+	}
 
 	@Override
 	public User updateUser(User user) {
 		Objects.requireNonNull(user);
-		var existing = userRepository.findById(user.id())
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + user.id()));
-		existing.setUsername(user.username());
-		existing.setFirstName(user.firstName());
-		existing.setLastName(user.lastName());
-		existing.setEmail(user.email());
-		existing.setRole(user.role());
-		existing.setStatus(user.status());
-		existing.setAuthMode(user.authMode());
-		existing.setUpdatedAt(user.updatedAt());
-		var userUpdated = userRepository.save(existing);
-		return UserEntityMapper.toDomain(userUpdated);
+		var existing = loadAndApplyUserFields(user);
+		return UserEntityMapper.toDomain(userRepository.save(existing));
 	}
 
 	@Override
@@ -217,6 +222,20 @@ public class UserPersistenceAdapter implements UserPersistence {
 				fr.uge.forkeat.service.model.user.UserStatus.ACTIVE,
 				UserRole.MEMBER
 		);
+	}
+
+	private UserEntity loadAndApplyUserFields(User user) {
+		var existing = userRepository.findById(user.id())
+						.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + user.id()));
+		existing.setUsername(user.username());
+		existing.setFirstName(user.firstName());
+		existing.setLastName(user.lastName());
+		existing.setEmail(user.email());
+		existing.setRole(user.role());
+		existing.setStatus(user.status());
+		existing.setAuthMode(user.authMode());
+		existing.setUpdatedAt(user.updatedAt());
+		return existing;
 	}
 
 }

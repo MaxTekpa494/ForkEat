@@ -11,6 +11,7 @@ import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsResponseDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeItemResponse
 import fr.uge.android.forkeat.recipes.data.dto.RecipeReportRequestDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipesListResponse
+import fr.uge.android.forkeat.recipes.data.dto.SmartSearchConfigResponse
 import fr.uge.android.forkeat.recipes.data.dto.SmartSearchRequestDTO
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -118,6 +119,9 @@ interface RecipeApiService {
         @Path("id") id: UUID,
         @Body request: RecipeReportRequestDTO
     ): Response<Unit>
+
+    @GET("api/recipes/smart-search/config")
+    suspend fun getSmartSearchConfig(): Response<SmartSearchConfigResponse>
 
     @POST("api/recipes/smart-search")
     suspend fun smartSearch(

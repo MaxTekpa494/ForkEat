@@ -32,11 +32,21 @@ public class DebeziumConfig {
 
     private final DebeziumCDCListener cdcListener;
 
-    // Chemin du fichier stockant les offsets (position de lecture dans le WAL PostgreSQL)
+    @Value("${debezium.connector.name}")
+    private String connectorName;
+
+    @Value("${debezium.connector.class}")
+    private String connectorClass;
+
+    @Value("${debezium.offset.storage}")
+    private String offsetStorage;
+
     @Value("${debezium.offset-storage-file}")
     private String offsetStorageFile;
 
-    // Paramètres de connexion à PostgreSQL
+    @Value("${debezium.offset.flush.interval.ms}")
+    private String offsetFlushIntervalMs;
+
     @Value("${debezium.database.hostname}")
     private String dbHostname;
 
@@ -51,6 +61,30 @@ public class DebeziumConfig {
 
     @Value("${debezium.database.dbname}")
     private String dbName;
+
+    @Value("${debezium.database.server.name}")
+    private String dbServerName;
+
+    @Value("${debezium.topic.prefix}")
+    private String topicPrefix;
+
+    @Value("${debezium.table.include.list}")
+    private String tableIncludeList;
+
+    @Value("${debezium.plugin.name}")
+    private String pluginName;
+
+    @Value("${debezium.publication.autocreate.mode}")
+    private String publicationAutocreateMode;
+
+    @Value("${debezium.slot.name}")
+    private String slotName;
+
+    @Value("${debezium.schema.history.internal}")
+    private String schemaHistoryInternal;
+
+    @Value("${debezium.snapshot.mode}")
+    private String snapshotMode;
 
     // Moteur Debezium et son exécuteur
     private DebeziumEngine<RecordChangeEvent<SourceRecord>> engine;
@@ -69,33 +103,33 @@ public class DebeziumConfig {
 
         Configuration config = Configuration.create()
                 // Nom unique du connecteur
-                .with("name", "forkeat-postgres-connector")
+                .with("name", connectorName)
                 // Type de connecteur : PostgreSQL
-                .with("connector.class", "io.debezium.connector.postgresql.PostgresConnector")
+                .with("connector.class", connectorClass)
                 // Stockage des offsets dans un fichier local (position de lecture)
-                .with("offset.storage", "org.apache.kafka.connect.storage.FileOffsetBackingStore")
+                .with("offset.storage", offsetStorage)
                 .with("offset.storage.file.filename", offsetStorageFile)
-                .with("offset.flush.interval.ms", "1000")
+                .with("offset.flush.interval.ms", offsetFlushIntervalMs)
                 // Configuration de connexion PostgreSQL
                 .with("database.hostname", dbHostname)
                 .with("database.port", dbPort)
                 .with("database.user", dbUser)
                 .with("database.password", dbPassword)
                 .with("database.dbname", dbName)
-                .with("database.server.name", "forkeat")
-                .with("topic.prefix", "forkeat")
+                .with("database.server.name", dbServerName)
+                .with("topic.prefix", topicPrefix)
                 // Liste des tables à surveiller pour les changements
-                .with("table.include.list", "public.users,public.recipes,public.super_likes")
+                .with("table.include.list", tableIncludeList)
                 // Plugin de décodage PostgreSQL (pgoutput est le standard)
-                .with("plugin.name", "pgoutput")
+                .with("plugin.name", pluginName)
                 // Création automatique de la publication PostgreSQL
-                .with("publication.autocreate.mode", "filtered")
+                .with("publication.autocreate.mode", publicationAutocreateMode)
                 // Nom du slot de réplication PostgreSQL
-                .with("slot.name", "forkeat_slot")
+                .with("slot.name", slotName)
                 // Stockage de l'historique du schéma en mémoire (simplifié pour le dev)
-                .with("schema.history.internal", "io.debezium.relational.history.MemorySchemaHistory")
+                .with("schema.history.internal", schemaHistoryInternal)
                 // Mode snapshot : capture l'état initial des tables au premier démarrage
-                .with("snapshot.mode", "initial")
+                .with("snapshot.mode", snapshotMode)
                 .build();
 
         // Création et démarrage du moteur Debezium

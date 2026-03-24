@@ -321,7 +321,6 @@ class MainActivity : ComponentActivity() {
                 onNavigateBack = { navController.popBackStack() },
                 onNavigateToLogin = { navController.navigate("login") },
                 onRegisterSuccess = {
-                  isLoggedIn = true
                   navController.navigate("recipes") {
                     popUpTo("home") { inclusive = true }
                   }
@@ -430,7 +429,6 @@ class MainActivity : ComponentActivity() {
               }
 
               val recipe by recipesViewModel.currentRecipe.collectAsState()
-              val parent by recipesViewModel.currentParent.collectAsState()
               val diff by recipesViewModel.currentDiff.collectAsState()
               val insufficientFunds by recipesViewModel.insufficientFunds.collectAsState()
               val emailNotVerified by recipesViewModel.emailNotVerified.collectAsState()
@@ -445,7 +443,6 @@ class MainActivity : ComponentActivity() {
 
                 else -> RecipeDetailScreen(
                   recipe = r,
-                  parent = parent,
                   diff = diff,
                   isOwner = currentUsername != null && currentUsername == r.username,
                   isAuthenticated = isLoggedIn,
@@ -514,6 +511,7 @@ class MainActivity : ComponentActivity() {
                 val error by smartSearchViewModel.error.collectAsState()
                 val isModerationError by smartSearchViewModel.isModerationError.collectAsState()
                 val balance by smartSearchViewModel.balance.collectAsState()
+                val smartSearchCost by smartSearchViewModel.smartSearchCost.collectAsState()
 
                 SmartSearchScreen(
                   query = query,
@@ -523,6 +521,7 @@ class MainActivity : ComponentActivity() {
                   error = error,
                   isModerationError = isModerationError,
                   balance = balance,
+                  smartSearchCost = smartSearchCost,
                   onQueryChange = { smartSearchViewModel.onQueryChange(it) },
                   onSearch = { smartSearchViewModel.search() },
                   onNewSearch = { smartSearchViewModel.newSearch() },

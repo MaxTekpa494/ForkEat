@@ -3,8 +3,9 @@ package fr.uge.forkeat.presentation.security;
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
+import fr.uge.forkeat.presentation.dto.recipe.UpdateRecipeRequest;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
+import fr.uge.forkeat.service.model.recipe.UpdateRecipeCommand;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
@@ -44,6 +45,7 @@ import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.mock;
 import org.mockito.MockedStatic;
 import static org.mockito.Mockito.mockStatic;
+
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -80,7 +82,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         Recipe fakeRecipe = mock(Recipe.class);
         lenient().when(fakeRecipe.usernameAuthor()).thenReturn("testuser");
         lenient().when(fakeRecipe.status()).thenReturn(RecipeStatus.PUBLISHED);
-        lenient().when(recipeService.updateRecipe(any(), any(), any())).thenReturn(getRecipeModel());
+        lenient().when(recipeService.updateRecipe(any(UpdateRecipeCommand.class))).thenReturn(getRecipeModel());
         lenient().when(recipeService.findPersonalizedRecipeById(any(), any())).thenReturn(createPersonalizedRecipe());
         lenient().when(recipeService.searchRecipes(any())).thenReturn(createPageResult());
         lenient().when(recipeService.findAllAllergens()).thenReturn(List.of());
@@ -115,12 +117,10 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testGetRecipe() throws Exception {
-            try (MockedStatic<RecipeDTOMapper> mock = mockStatic(RecipeDTOMapper.class);
-                    MockedStatic<RecipeDiff> mock2 = mockStatic(RecipeDiff.class)) {
+            try (MockedStatic<RecipeDTOMapper> mock = mockStatic(RecipeDTOMapper.class)) {
                 mock.when(() -> RecipeDTOMapper.toDTO((Recipe) any()))
                         .thenReturn(null);
 
-                mock2.when(()->RecipeDiff.compute(any(), any())).thenReturn(null);
                 testRights(get("/api/recipes/{id}", RECIPE_ID), AuthorizationTest.UNAUTHENTICATED);
             }
         }
@@ -158,18 +158,14 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testUpdateRecipe() throws Exception {
+            var request = new UpdateRecipeRequest("Test Recipe", "Summary", 30, false, null, List.of(), List.of(), List.of(), List.of());
 
-            try (MockedStatic<RecipeDTOMapper> mock = mockStatic(RecipeDTOMapper.class)) {
-                mock.when(() -> RecipeDTOMapper.toDTO((Recipe) any()))
-                        .thenReturn(getRecipe());
-
-                testRightsMultiPart(multipart("/api/recipes/{id}/update", RECIPE_ID).file(new MockMultipartFile(
-                        "recipe",           // nom du @RequestPart
-                        "",                 // filename
-                        "application/json", // content-type
-                        mapper.writeValueAsString(getRecipe()).getBytes()
-                )), AuthorizationTest.EMAIL_VERIFIED);
-            }
+            testRightsMultiPart(multipart("/api/recipes/{id}/update", RECIPE_ID).file(new MockMultipartFile(
+                    "recipe",
+                    "",
+                    "application/json",
+                    mapper.writeValueAsString(request).getBytes()
+            )), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test
@@ -223,7 +219,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testMyRecipes() throws Exception {
-            testRightsMVCNoRedirect(get("/recipes/my-recipes"), AuthorizationTest.UNAUTHENTICATED);
+            testRightsMVCNoRedirect(get("/recipes/my-recipes"), AuthorizationTest.MEMBER);
         }
 
         @Test
@@ -249,11 +245,11 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testUpdateRecipe() throws Exception {
-            var dto = getRecipe();
-            testRightsMultiPartMVC(multipart("/recipes/{id}/edit", UUID.randomUUID()).param("title", dto.title())
-                    .param("summary", dto.summary())
-                    .param("preparationMinutes", String.valueOf(dto.preparationMinutes()))
-                    .param("status", dto.status()), AuthorizationTest.EMAIL_VERIFIED);
+            testRightsMultiPartMVC(multipart("/recipes/{id}/edit", UUID.randomUUID())
+                    .param("title", "Test Recipe")
+                    .param("summary", "Summary")
+                    .param("preparationMinutes", "30")
+                    .param("draft", "false"), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test

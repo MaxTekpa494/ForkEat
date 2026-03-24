@@ -1,6 +1,7 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
+import fr.uge.forkeat.service.exception.ModerationRagException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.recipe.RecipeUserInteraction;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
@@ -10,11 +11,12 @@ import fr.uge.forkeat.service.model.transaction.Transaction;
 import fr.uge.forkeat.service.model.transaction.TransactionStatus;
 import fr.uge.forkeat.service.model.transaction.TransactionType;
 import fr.uge.forkeat.service.persistence.RecipePersistence;
+import fr.uge.forkeat.service.persistence.SmartSearchConfigPersistence;
+import fr.uge.forkeat.service.persistence.UserPersistence;
 import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.port.RagModerationPort;
 import fr.uge.forkeat.service.port.RagSearchPort;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -35,25 +37,24 @@ public class RecipeSmartSearchService {
   private final RagModerationPort moderationPort;
   private final RagSearchPort ragSearchPort;
   private final RecipePersistence recipePersistence;
+  private final UserPersistence userPersistence;
   private final AuthenticationPort authPort;
   private final WalletPersistence walletPersistence;
+  private final SmartSearchConfigPersistence configPersistence;
   private final TransactionTemplate debitTxTemplate;
-
-  @Value("${app.rag.top-k:10}")
-  private int topK;
-
-  @Value("${app.rag.smart-search-cost:10}")
-  private long smartSearchCost;
 
   public RecipeSmartSearchService(RagModerationPort moderationPort, RagSearchPort ragSearchPort,
                                   RecipePersistence recipePersistence, AuthenticationPort authPort,
-                                  WalletPersistence walletPersistence,
+                                  WalletPersistence walletPersistence, UserPersistence userPersistance,
+                                  SmartSearchConfigPersistence configPersistence,
                                   PlatformTransactionManager transactionManager) {
     this.moderationPort = moderationPort;
     this.ragSearchPort = ragSearchPort;
     this.recipePersistence = recipePersistence;
     this.authPort = authPort;
-    this.walletPersistence = requireNonNull(walletPersistence);
+    this.walletPersistence = walletPersistence;
+    this.userPersistence = userPersistance;
+    this.configPersistence = configPersistence;
 
     this.debitTxTemplate = new TransactionTemplate(requireNonNull(transactionManager));
     this.debitTxTemplate.setIsolationLevel(TransactionDefinition.ISOLATION_REPEATABLE_READ);
@@ -61,33 +62,43 @@ public class RecipeSmartSearchService {
     this.debitTxTemplate.setTimeout(10);
   }
 
-  public List<PersonalizedRecipeSummary> search(UUID userId, String userQuery) {
-    debitTxTemplate.execute(status -> {
-      var wallet = walletPersistence.loadWalletWithLock(userId)
-              .orElseThrow(() -> new WalletNotFoundException(userId));
-      if (wallet.balance() < smartSearchCost) {
-        throw new InsufficientFundsException(wallet.balance(), smartSearchCost);
-      }
-      walletPersistence.saveWallet(wallet.debit(smartSearchCost));
-      walletPersistence.saveTransaction(new Transaction(
-              UUID.randomUUID(), wallet.id(), null, smartSearchCost,
-              TransactionType.SMART_SEARCH, Instant.now(), null, TransactionStatus.SUCCEEDED));
-      return null;
-    });
+  @Transactional
+  public List<PersonalizedRecipeSummary> search(String userQuery) {
+    var config = configPersistence.get();
+    var currentUser = authPort.extractUsername();
+    var user = userPersistence.findByUsername(currentUser).orElseThrow(() -> new IllegalStateException("User not found"));
 
-    moderationPort.assertSafe(userQuery);
-    var recipeIds = ragSearchPort.findSimilarRecipeIds(userQuery, topK);
+
+    var wallet = walletPersistence.findByUserId(user.id())
+            .orElseThrow(() -> new WalletNotFoundException(user.id()));
+    if (wallet.balance() < config.cost()) {
+      throw new InsufficientFundsException(wallet.balance(), config.cost());
+    }
+
+    // si l'utilisateur triche, on le debite quand meme puis on lance l'exception
+    // Alors ce code fait objet de discussion donc voilà
+    var moderationRejection = moderationPort.moderate(userQuery);
+    if (moderationRejection.isPresent()) {
+      debit(user.id(), config.cost());
+      throw new ModerationRagException(moderationRejection.get());
+    }
+
+    var recipeIds = ragSearchPort.findSimilarRecipeIds(userQuery, config.topK());
     var summaries = recipePersistence.findSummariesByIds(recipeIds);
+
+    // Là egalement, est-ce qu'on est gentil avec l'utilisateur et on ne le debite pas
+    // Quand on ne trouve pas de recettes ressemblantes ...
+    // Je suis gentil, je debite l'utilisateur que quand on lui trouve des recettes proches
+    //debit(user.id(), config.cost());
 
     if (summaries.isEmpty()) {
       return List.of();
     }
-
+    debit(user.id(), config.cost());
     var ids = summaries.stream().map(RecipeSummary::id).toList();
     var countsMap = recipePersistence.findRecipeCounts(ids);
-    var currentUsername = authPort.extractUsername();
-    var interactionsMap = currentUsername != null
-            ? recipePersistence.findUserRecipeInteractions(ids, currentUsername)
+    var interactionsMap = currentUser != null
+            ? recipePersistence.findUserRecipeInteractions(ids, currentUser)
             : Map.<UUID, RecipeUserInteraction>of();
 
     return summaries.stream()
@@ -97,5 +108,20 @@ public class RecipeSmartSearchService {
                     interactionsMap.getOrDefault(s.id(), RecipeUserInteraction.NONE)
             ))
             .toList();
+  }
+
+  private void debit(UUID userId, long cost) {
+    debitTxTemplate.execute(status -> {
+      var lockedWallet = walletPersistence.loadWalletWithLock(userId)
+              .orElseThrow(() -> new WalletNotFoundException(userId));
+      if (lockedWallet.balance() < cost) {
+        throw new InsufficientFundsException(lockedWallet.balance(), cost);
+      }
+      walletPersistence.saveWallet(lockedWallet.debit(cost));
+      walletPersistence.saveTransaction(new Transaction(
+              UUID.randomUUID(), lockedWallet.id(), null, cost,
+              TransactionType.SMART_SEARCH, Instant.now(), null, TransactionStatus.SUCCEEDED));
+      return null;
+    });
   }
 }

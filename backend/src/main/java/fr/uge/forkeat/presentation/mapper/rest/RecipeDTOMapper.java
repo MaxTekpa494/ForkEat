@@ -4,6 +4,8 @@ import fr.uge.forkeat.presentation.dto.recipe.*;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.service.model.ImageUpload;
 import fr.uge.forkeat.service.model.recipe.*;
+import fr.uge.forkeat.presentation.dto.recipe.UpdateRecipeRequest;
+import fr.uge.forkeat.service.model.recipe.UpdateRecipeCommand;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipe;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
 import org.springframework.stereotype.Component;
@@ -76,6 +78,26 @@ public final class RecipeDTOMapper {
         Objects.requireNonNull(username);
         return new CreateRecipeCommand(
                 request.parentId(),
+                username,
+                request.title(),
+                request.summary(),
+                request.preparationMinutes(),
+                request.draft(),
+                image,
+                request.imageUrl(),
+                toStepsDomain(request.steps()),
+                toIngredientsDomain(request.ingredients()),
+                toAllergensDomain(request.allergens()),
+                request.dietaries()
+        );
+    }
+
+    public static UpdateRecipeCommand toUpdateCommand(UUID id, UpdateRecipeRequest request, String username, ImageUpload image) {
+        Objects.requireNonNull(id);
+        Objects.requireNonNull(request);
+        Objects.requireNonNull(username);
+        return new UpdateRecipeCommand(
+                id,
                 username,
                 request.title(),
                 request.summary(),
