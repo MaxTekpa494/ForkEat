@@ -2,15 +2,16 @@ package fr.uge.forkeat.infrastructure.payment.adapter;
 
 import com.stripe.exception.SignatureVerificationException;
 import com.stripe.exception.StripeException;
-import com.stripe.model.Event;
 import com.stripe.model.checkout.Session;
 import com.stripe.net.Webhook;
 import com.stripe.param.checkout.SessionCreateParams;
+import fr.uge.forkeat.infrastructure.payment.mapper.StripeEventMapper;
 import fr.uge.forkeat.service.exception.PaymentException;
 import fr.uge.forkeat.service.exception.StripEventException;
 import fr.uge.forkeat.service.external.PaymentGateway;
 import fr.uge.forkeat.service.model.payment.PaymentRequest;
 import fr.uge.forkeat.service.model.payment.PaymentResponse;
+import fr.uge.forkeat.service.model.webhook.WebhookEvent;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -70,9 +71,11 @@ public class StripePaymentGatewayAdapter implements PaymentGateway {
         }
     }
 
-    public Event initEvent(String payload, String sigHeader, String endpointSecret) {
+    @Override
+    public WebhookEvent parseWebhookEvent(String payload, String sigHeader, String endpointSecret) {
         try {
-            return Webhook.constructEvent(payload, sigHeader, endpointSecret);
+            var event = Webhook.constructEvent(payload, sigHeader, endpointSecret);
+            return StripeEventMapper.toWebhookEvent(event);
         } catch (SignatureVerificationException e) {
             throw new StripEventException("Invalid Stripe signature", e);
         }
