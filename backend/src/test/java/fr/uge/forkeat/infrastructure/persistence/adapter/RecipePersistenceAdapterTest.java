@@ -1147,7 +1147,7 @@ class RecipePersistenceAdapterTest {
 
                 when(neo4jRecipeRepository.getFeed(USERNAME, 0L, 20L, SINCE_TIME_ZONED, BEFORE_TIME_ZONED))
                         .thenReturn(List.of(recipeNode));
-                when(neo4jRecipeRepository.countFeedRelationshipsBefore(any(), any())).thenReturn(1)
+                when(neo4jRecipeRepository.countFeedRelationshipsBefore(any(), any())).thenReturn(1L);
                 when(recipeRepository.findSummariesByIds(any()))
                         .thenReturn(List.of(summaryView));
 

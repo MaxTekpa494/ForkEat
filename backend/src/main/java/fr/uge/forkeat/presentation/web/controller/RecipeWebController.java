@@ -166,7 +166,6 @@ public class RecipeWebController {
             attribute = Instant.now();
         }
         var pageResult = recipeService.getPersonalizedFeedRecipes(attribute, page);
-        System.out.println("############" + pageResult.total());
         var recipes = pageResult.items().stream()
                 .map(RecipeDTOMapper::toSummaryDTO)
                 .toList();
