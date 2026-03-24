@@ -4,6 +4,7 @@ import fr.uge.forkeat.presentation.dto.user.*;
 import fr.uge.forkeat.presentation.mapper.rest.UserDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
+import fr.uge.forkeat.service.exception.AuthenticationTokenException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
@@ -20,7 +21,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Objects;
 
 @RestController
@@ -69,17 +69,14 @@ public class AuthRestController {
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<HttpResponse<Void>> login(@RequestBody UserLoginDTO userLogin) {
+	public ResponseEntity<HttpResponse<AuthTokenDTO>> login(@RequestBody UserLoginDTO userLogin) {
 		Objects.requireNonNull(userLogin);
 		try {
 			authenticationManager
 					.authenticate(new UsernamePasswordAuthenticationToken(userLogin.username(), userLogin.password()));
-			var authData = new HashMap<String, String>();
-			authData.put("token", authPort.generateToken(userLogin.username()));
-			authData.put("type", "Bearer");
-			return ResponseEntity.ok(authData);
+			return ResponseEntity.ok(new ItemResponse<>(new AuthTokenDTO(authPort.generateToken(userLogin.username()), "Bearer")));
 		} catch (AuthenticationException e) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+			throw new AuthenticationTokenException("Invalid username or password");
 		}
 	}
 
@@ -92,12 +89,12 @@ public class AuthRestController {
 	}
 
 	@PostMapping("/google-login")
-	public ResponseEntity<HttpResponse<Void>> loginWithGoogle(@RequestBody GoogleIdTokenRequestDTO request) {
+	public ResponseEntity<HttpResponse<AuthTokenDTO>> loginWithGoogle(@RequestBody GoogleIdTokenRequestDTO request) {
 		Objects.requireNonNull(request);
 		try {
 			var googleIdToken = googleTokenVerificationService.verify(request.idToken());
 			if (googleIdToken == null) {
-				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Google ID token");
+				throw new AuthenticationTokenException("Invalid Google ID token");
 			}
 
 			var payload = googleIdToken.getPayload();
@@ -111,13 +108,12 @@ public class AuthRestController {
 					email,
 					AuthMode.GOOGLE);
 
-			var authData = new HashMap<String, String>();
-			authData.put("token", authPort.generateToken(user.username()));
-			authData.put("type", "Bearer");
-			return ResponseEntity.ok(authData);
+			return ResponseEntity.ok(new ItemResponse<>(new AuthTokenDTO(authPort.generateToken(user.username()), "Bearer")));
+		} catch (AuthenticationTokenException e) {
+			throw e;
 		} catch (Exception e) {
 			logger.error("Google OAuth2 login failed", e);
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Google authentication failed");
+			throw new AuthenticationTokenException("Google authentication failed");
 		}
 	}
 
