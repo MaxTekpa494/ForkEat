@@ -113,10 +113,12 @@ class RecipeServiceTest {
             var counts = new RecipeCounts(10L, 5L, 2L);
             var interaction = new RecipeUserInteraction(true, false, false);
             var username = "user1";
+            var userId = UUID.randomUUID();
 
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(recipe));
             when(recipePersistence.findRecipeCounts(recipeId)).thenReturn(counts);
-            when(recipePersistence.findUserRecipeInteraction(recipeId, username)).thenReturn(interaction);
+            when(userIdentityPort.findIdByUsername(username)).thenReturn(Optional.of(userId));
+            when(recipePersistence.findUserRecipeInteraction(recipeId, userId)).thenReturn(interaction);
 
             var result = recipeService.findPersonalizedRecipeById(recipeId, username);
 
@@ -126,7 +128,7 @@ class RecipeServiceTest {
             assertEquals(interaction, result.interaction());
             verify(recipePersistence).findById(recipeId);
             verify(recipePersistence).findRecipeCounts(recipeId);
-            verify(recipePersistence).findUserRecipeInteraction(recipeId, username);
+            verify(recipePersistence).findUserRecipeInteraction(recipeId, userId);
         }
 
         @Test
@@ -270,11 +272,13 @@ class RecipeServiceTest {
             var counts = new RecipeCounts(5L, 2L, 1L);
             var interaction = new RecipeUserInteraction(true, false, false);
             var criteria = new RecipeSearchCriteria(RecipeStatus.PUBLISHED, "tarte", List.of(), 12, 0);
+            var userId = UUID.randomUUID();
 
             when(authPort.extractUsername()).thenReturn("user1");
+            when(userIdentityPort.findIdByUsername("user1")).thenReturn(Optional.of(userId));
             when(recipePersistence.searchRecipes(criteria)).thenReturn(new PageResult<>(List.of(summary), 1L));
             when(recipePersistence.findRecipeCounts(List.of(recipeId))).thenReturn(Map.of(recipeId, counts));
-            when(recipePersistence.findUserRecipeInteractions(List.of(recipeId), "user1")).thenReturn(Map.of(recipeId, interaction));
+            when(recipePersistence.findUserRecipeInteractions(List.of(recipeId), userId)).thenReturn(Map.of(recipeId, interaction));
 
             var result = recipeService.searchRecipes(criteria);
 
@@ -286,7 +290,7 @@ class RecipeServiceTest {
             assertTrue(item.interaction().likedByCurrentUser());
             verify(recipePersistence).searchRecipes(criteria);
             verify(recipePersistence).findRecipeCounts(List.of(recipeId));
-            verify(recipePersistence).findUserRecipeInteractions(List.of(recipeId), "user1");
+            verify(recipePersistence).findUserRecipeInteractions(List.of(recipeId), userId);
         }
 
         @Test
@@ -814,6 +818,7 @@ class RecipeServiceTest {
         private static final Instant NOW = Instant.parse("2024-01-15T10:00:00Z");
         private static final int PAGE = 0;
         private static final String USERNAME = "john.doe";
+        private static final UUID USER_ID = UUID.randomUUID();
         private static final UUID RECIPE_ID_1 = UUID.randomUUID();
         private static final UUID RECIPE_ID_2 = UUID.randomUUID();
 
@@ -865,11 +870,12 @@ class RecipeServiceTest {
                 var interaction2 = new RecipeUserInteraction(false, true, false);
 
                 when(authPort.extractUsername()).thenReturn(USERNAME);
+                when(userIdentityPort.findIdByUsername(USERNAME)).thenReturn(Optional.of(USER_ID));
                 when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
                         .thenReturn(new PageResult<>(List.of(summary1, summary2), 2L));
                 when(recipePersistence.findRecipeCounts(List.of(RECIPE_ID_1, RECIPE_ID_2)))
                         .thenReturn(Map.of(RECIPE_ID_1, counts1, RECIPE_ID_2, counts2));
-                when(recipePersistence.findUserRecipeInteractions(List.of(RECIPE_ID_1, RECIPE_ID_2), USERNAME))
+                when(recipePersistence.findUserRecipeInteractions(List.of(RECIPE_ID_1, RECIPE_ID_2), USER_ID))
                         .thenReturn(Map.of(RECIPE_ID_1, interaction1, RECIPE_ID_2, interaction2));
 
                 // When
@@ -895,11 +901,12 @@ class RecipeServiceTest {
                 var summary = aRecipeSummary(RECIPE_ID_1);
 
                 when(authPort.extractUsername()).thenReturn(USERNAME);
+                when(userIdentityPort.findIdByUsername(USERNAME)).thenReturn(Optional.of(USER_ID));
                 when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
                         .thenReturn(new PageResult<>(List.of(summary), 1L));
                 when(recipePersistence.findRecipeCounts(List.of(RECIPE_ID_1)))
                         .thenReturn(Map.of());
-                when(recipePersistence.findUserRecipeInteractions(List.of(RECIPE_ID_1), USERNAME))
+                when(recipePersistence.findUserRecipeInteractions(List.of(RECIPE_ID_1), USER_ID))
                         .thenReturn(Map.of(RECIPE_ID_1, new RecipeUserInteraction(true, false, false)));
 
                 // When
@@ -915,11 +922,12 @@ class RecipeServiceTest {
                 var summary = aRecipeSummary(RECIPE_ID_1);
 
                 when(authPort.extractUsername()).thenReturn(USERNAME);
+                when(userIdentityPort.findIdByUsername(USERNAME)).thenReturn(Optional.of(USER_ID));
                 when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
                         .thenReturn(new PageResult<>(List.of(summary), 1L));
                 when(recipePersistence.findRecipeCounts(List.of(RECIPE_ID_1)))
                         .thenReturn(Map.of(RECIPE_ID_1, new RecipeCounts(5, 2, 0)));
-                when(recipePersistence.findUserRecipeInteractions(List.of(RECIPE_ID_1), USERNAME))
+                when(recipePersistence.findUserRecipeInteractions(List.of(RECIPE_ID_1), USER_ID))
                         .thenReturn(Map.of());
 
                 // When

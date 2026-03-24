@@ -41,16 +41,16 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
 
     @Query("""
             UNWIND $recipeIds AS rid
-            OPTIONAL MATCH (u:User {username: $username})-[l:LIKED]->(:Recipe {id: rid})
+            OPTIONAL MATCH (u:User {id: $userId})-[l:LIKED]->(:Recipe {id: rid})
             WITH rid, l IS NOT NULL AS likedByCurrentUser
-            OPTIONAL MATCH (u2:User {username: $username})-[sl:SUPER_LIKED]->(:Recipe {id: rid})
+            OPTIONAL MATCH (u2:User {id: $userId})-[sl:SUPER_LIKED]->(:Recipe {id: rid})
             WITH rid, likedByCurrentUser, sl IS NOT NULL AS superLikedByCurrentUser
-            OPTIONAL MATCH (u3:User {username: $username})-[f:FOLLOWS_RECIPE]->(:Recipe {id: rid})
+            OPTIONAL MATCH (u3:User {id: $userId})-[f:FOLLOWS_RECIPE]->(:Recipe {id: rid})
             RETURN rid AS recipeId, likedByCurrentUser, superLikedByCurrentUser, f IS NOT NULL AS followedByCurrentUser
             """)
     List<RecipeUserInteractionProjection> findUserInteractionsByRecipeIds(
             @Param("recipeIds") List<String> recipeIds,
-            @Param("username") String username
+            @Param("userId") String userId
     );
 
     @Query("""

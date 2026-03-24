@@ -97,6 +97,7 @@ class ProfileServiceTest {
         void shouldReturnProfileWithPersonalizedRecipes() {
             var username = "chef";
             var currentUsername = "viewer";
+            var viewerId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
             var publicProfile = createPublicProfile(username);
             var socialStats = createSocialStats();
@@ -109,7 +110,8 @@ class ProfileServiceTest {
             when(recipePersistence.findUserRecipeSummaries(eq(username), eq(RecipeStatus.PUBLISHED), eq(10), eq(0)))
                     .thenReturn(new PageResult<>(List.of(summary), 1L));
             when(recipePersistence.findRecipeCounts(List.of(recipeId))).thenReturn(Map.of(recipeId, counts));
-            when(recipePersistence.findUserRecipeInteractions(List.of(recipeId), currentUsername))
+            when(userPersistence.findIdByUsernameOrThrow(currentUsername)).thenReturn(viewerId);
+            when(recipePersistence.findUserRecipeInteractions(List.of(recipeId), viewerId))
                     .thenReturn(Map.of(recipeId, interaction));
             when(userPersistence.isFollowing(currentUsername, username)).thenReturn(false);
 

@@ -100,7 +100,7 @@ services:
     environment:
       STRIPE_API_KEY: ${STRIPE_API_KEY}
       STRIPE_BASE_URL: ${STRIPE_BASE_URL}
-    command: listen --forward-to ${STRIPE_BASE_URL}/wallet/webhooks/stripe
+    command: listen --forward-to ${STRIPE_BASE_URL}/api/wallet/webhooks/stripe
     networks :
       - forkeat-network
     mem_reservation: 64m
