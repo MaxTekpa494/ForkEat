@@ -271,6 +271,16 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         }
 
         @Test
+        void testListRecipesFollowing() throws Exception {
+            testRightsMVCNoRedirect(get("/recipes/following"), AuthorizationTest.MEMBER);
+        }
+
+        @Test
+        void testCreateRecipePage() throws Exception {
+            testRightsMVCNoRedirect(get("/recipes/create"), AuthorizationTest.EMAIL_VERIFIED);
+        }
+
+        @Test
         void testListRecipes() throws Exception {
             testRightsMVCNoRedirect(get("/recipes"), AuthorizationTest.UNAUTHENTICATED);
         }
@@ -310,6 +320,18 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         }
 
         @Test
+        void testSmartSearchPage() throws Exception {
+            testRightsMVCNoRedirect(get("/recipes/smart-search"), AuthorizationTest.MEMBER);
+        }
+
+        @Test
+        void testSmartSearch() throws Exception {
+            testRightsMVC(post("/recipes/smart-search")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("query", "pasta vegan"),
+                    AuthorizationTest.EMAIL_VERIFIED);
+        }
+        @Test
         void testCreateVariant() throws Exception {
             var dto = getRecipe();
             testRightsMultiPartMVC(multipart("/recipes")
@@ -332,6 +354,16 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         @Test
         void testSuperLikeRecipe() throws Exception {
             testRightsMVC(post("/recipes/{id}/super-like", RECIPE_ID), AuthorizationTest.MEMBER);
+        }
+
+        @Test
+        void testFollowRecipe() throws Exception {
+            testRightsMVC(post("/recipes/{id}/follow", UUID.randomUUID()), AuthorizationTest.EMAIL_VERIFIED);
+        }
+
+        @Test
+        void testUnfollowRecipe() throws Exception {
+            testRightsMVC(post("/recipes/{id}/unfollow", UUID.randomUUID()), AuthorizationTest.EMAIL_VERIFIED);
         }
     }
 

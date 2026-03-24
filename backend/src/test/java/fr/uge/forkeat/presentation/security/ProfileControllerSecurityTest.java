@@ -146,9 +146,66 @@ public class ProfileControllerSecurityTest extends AbstractIntegrationTest {
                     .param("page", "0")
                     .param("size", "12"), AuthorizationTest.MEMBER);
         }
+
+        @Test
+        void testFollow() throws Exception {
+            testRightsMVC(post("/profile/{username}/follow", "otheruser"),
+                    AuthorizationTest.EMAIL_VERIFIED);
+        }
+
+        @Test
+        void testUnfollow() throws Exception {
+            testRightsMVC(post("/profile/{username}/unfollow", "otheruser"),
+                    AuthorizationTest.EMAIL_VERIFIED);
+        }
+
+        @Test
+        void testReportUser() throws Exception {
+            testRightsMVC(post("/profile/{username}/report", "otheruser")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("reportType", UserReportType.values()[0].name())
+                            .param("justification", "spam"),
+                    AuthorizationTest.EMAIL_VERIFIED);
+        }
     }
 
 
+
+    private void testRightsMVC(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
+        var expectedBlocked = status().is3xxRedirection();
+        var expectedSuccess = status().is3xxRedirection(); // POST redirige vers /account en cas de succès
+
+        // Non authentifié → toujours redirigé (vers /login ou succès si UNAUTHENTICATED)
+        mockMvc.perform(requestBuilders)
+                .andExpect(expectedBlocked);
+
+        var expected = authorization.equals(AuthorizationTest.MEMBER) || authorization.equals(AuthorizationTest.UNAUTHENTICATED)
+                ? expectedSuccess : expectedBlocked;
+
+        mockMvc.perform(requestBuilders.with(user("PAX").roles("MEMBER")))
+                .andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.EMAIL_VERIFIED)) {
+            expected = expectedSuccess;
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                        .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
+                .andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.MODERATOR)) {
+            expected = expectedSuccess;
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                        .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
+                .andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.ADMIN)) {
+            expected = expectedSuccess;
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                        .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
+                .andExpect(expected);
+    }
     private void testRights(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
         var expected = status().isForbidden();
 

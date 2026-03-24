@@ -34,6 +34,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
+import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -170,6 +171,68 @@ public class ModeratorControllerSecurityTest extends AbstractIntegrationTest {
         }
     }
 
+    @Nested
+    class ModeratorWebControllerTests {
+
+        @Test
+        void testPendingRecipes() throws Exception {
+            testRightsMVCNoRedirect(get("/moderator/recipes"), AuthorizationTest.MODERATOR);
+        }
+
+        @Test
+        void testValidateRecipe() throws Exception {
+            testRightsMVC(post("/moderator/recipes/{id}/validate", UUID.randomUUID()),
+                    AuthorizationTest.MODERATOR);
+        }
+
+        @Test
+        void testRejectRecipe() throws Exception {
+            testRightsMVC(post("/moderator/recipes/{id}/reject", UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("justification", "inappropriate content"),
+                    AuthorizationTest.MODERATOR);
+        }
+
+        @Test
+        void testReportedRecipes() throws Exception {
+            testRightsMVCNoRedirect(get("/moderator/recipes/reports"), AuthorizationTest.MODERATOR);
+        }
+
+        @Test
+        void testReportedUsers() throws Exception {
+            testRightsMVCNoRedirect(get("/moderator/users/reports"), AuthorizationTest.MODERATOR);
+        }
+
+        @Test
+        void testValidateRecipeReport() throws Exception {
+            testRightsMVC(post("/moderator/recipes/reports/{reportId}/validate", UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("recipeId", UUID.randomUUID().toString()),
+                    AuthorizationTest.MODERATOR);
+        }
+
+        @Test
+        void testDismissRecipeReport() throws Exception {
+            testRightsMVC(post("/moderator/recipes/reports/{reportId}/dismiss", UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("recipeId", UUID.randomUUID().toString())
+                            .param("justification", "not a violation"),
+                    AuthorizationTest.MODERATOR);
+        }
+
+        @Test
+        void testResolveUserReport() throws Exception {
+            testRightsMVC(post("/moderator/users/reports/{reportId}/resolve", UUID.randomUUID())
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("userId", UUID.randomUUID().toString())
+                            .param("action", "WARNING")
+                            .param("justification", "first warning")
+                            .param("suspensionDays", "0")
+                            .param("suspensionHours", "0"),
+                    AuthorizationTest.MODERATOR);
+        }
+    }
+
     private void testRights(MockHttpServletRequestBuilder requestBuilder, AuthorizationTest authorization) throws Exception {
         var expected = status().isForbidden();
 
@@ -201,5 +264,72 @@ public class ModeratorControllerSecurityTest extends AbstractIntegrationTest {
         }
         mockMvc.perform(requestBuilder.with(jwt()
                 .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
+    }
+
+    private void testRightsMVCNoRedirect(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
+        var expected = status().is3xxRedirection();
+
+        var expectedForUnauthenticated = authorization.equals(AuthorizationTest.UNAUTHENTICATED) ? status().is2xxSuccessful() : status().is3xxRedirection();
+        mockMvc.perform(requestBuilders).andExpect(expectedForUnauthenticated);
+
+        if (authorization.equals(AuthorizationTest.MEMBER) || authorization.equals(AuthorizationTest.UNAUTHENTICATED)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER")))).andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.EMAIL_VERIFIED)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.MODERATOR)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.ADMIN)) {
+            expected = status().is2xxSuccessful();
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
+    }
+
+    private void testRightsMVC(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
+        var expectedBlocked = status().is3xxRedirection();
+        var expectedSuccess = status().is3xxRedirection(); // POST redirige vers /account en cas de succès
+
+        // Non authentifié → toujours redirigé (vers /login ou succès si UNAUTHENTICATED)
+        mockMvc.perform(requestBuilders)
+                .andExpect(expectedBlocked);
+
+        var expected = authorization.equals(AuthorizationTest.MEMBER) || authorization.equals(AuthorizationTest.UNAUTHENTICATED)
+                ? expectedSuccess : expectedBlocked;
+
+        mockMvc.perform(requestBuilders.with(user("PAX").roles("MEMBER")))
+                .andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.EMAIL_VERIFIED)) {
+            expected = expectedSuccess;
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                        .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
+                .andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.MODERATOR)) {
+            expected = expectedSuccess;
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                        .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
+                .andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.ADMIN)) {
+            expected = expectedSuccess;
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                        .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
+                .andExpect(expected);
     }
 }

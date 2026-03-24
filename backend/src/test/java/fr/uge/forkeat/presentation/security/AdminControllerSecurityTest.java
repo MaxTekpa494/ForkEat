@@ -3,18 +3,22 @@ package fr.uge.forkeat.presentation.security;
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
-import fr.uge.forkeat.service.PlatformWalletService;
-import fr.uge.forkeat.service.RecipeService;
+import fr.uge.forkeat.service.*;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.recipe.Recipe;
+import fr.uge.forkeat.service.model.recipe.RecipeModerationAction;
+import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
-import fr.uge.forkeat.service.model.user.User;
-import fr.uge.forkeat.service.model.user.UserRole;
-import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.model.recipe.projection.RecipeReportDetails;
+import fr.uge.forkeat.service.model.smartsearch.SmartSearchConfig;
+import fr.uge.forkeat.service.model.superlike.SuperLikeConfig;
+import fr.uge.forkeat.service.model.user.*;
+import fr.uge.forkeat.service.model.user.projection.UserReportDetails;
 import fr.uge.forkeat.service.model.wallet.PlatformWallet;
 import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.port.PromotionSchedulingPort;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import fr.uge.forkeat.service.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
@@ -32,8 +36,10 @@ import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilde
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -65,6 +71,22 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
     private PlatformWalletService platformWalletService;
     @MockitoBean
     private AuthenticationPort authPort;
+    @MockitoBean
+    private RedistributionService redistributionService;
+    @MockitoBean
+    private RecipeModerationActionService recipeModerationActionService;
+    @MockitoBean
+    private PromotionService promotionService;
+    @MockitoBean
+    private PromotionSchedulingPort promotionSchedulingPort;
+    @MockitoBean
+    private RecipeReportService recipeReportService;
+    @MockitoBean
+    private UserReportService userReportService;
+    @MockitoBean
+    private UserModerationActionService userModerationActionService;
+    @MockitoBean
+    private SmartSearchConfigService smartSearchConfigService;
 
     @BeforeEach
     void setup() {
@@ -88,6 +110,7 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
         when(userService.countByRole(UserRole.MODERATOR)).thenReturn(3L);
         when(userService.countByRole(UserRole.ADMIN)).thenReturn(1L);
 
+        when(redistributionService.getRedistributionChain(any(), any())).thenReturn(List.of());
         when(recipeService.countByStatus(RecipeStatus.PUBLISHED)).thenReturn(50L);
         when(recipeService.countByStatus(RecipeStatus.PENDING_REVIEW)).thenReturn(5L);
         when(recipeService.countByStatus(RecipeStatus.DRAFT)).thenReturn(12L);
@@ -100,6 +123,18 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
 
         when(authPort.extractUsername()).thenReturn("PaxGPT");
         when(userService.getUserByUsername("PaxGPT")).thenReturn(mockUser);
+
+        var mockConfig = new SuperLikeConfig(UUID.randomUUID(), 1, new BigDecimal("0.5"), Instant.now()) ;
+        when(promotionService.getConfig()).thenReturn(mockConfig);
+        when(promotionService.findActive()).thenReturn(Optional.empty());
+        when(promotionService.findAll()).thenReturn(List.of());
+        when(smartSearchConfigService.getConfig()).thenReturn(new SmartSearchConfig(UUID.randomUUID(), 1, 1, Instant.now()));
+        var recipeMockPageResult = new PageResult<RecipeReportDetails>(List.of(), 0L);
+        var userMockPageResult = new PageResult<UserReportDetails>(List.of(), 0L);
+        when(recipeReportService.getReportsToModerate(any(), anyInt(), anyInt())).thenReturn(recipeMockPageResult);
+        when(userReportService.getReportsToModerate(any(), anyInt(), anyInt())).thenReturn(userMockPageResult);
+        when(recipeModerationActionService.moderateRecipe(any())).thenReturn(new RecipeModerationAction(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), RecipeModerationActionType.APPROVED, "a", Instant.now(), Instant.now(), UUID.randomUUID()));
+        when(userModerationActionService.moderateUser(any())).thenReturn(new UserModerationAction(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UserModerationActionType.BANNED, "a", Instant.now(), Instant.now(), Instant.now(), UUID.randomUUID()));
     }
 
 
@@ -166,7 +201,8 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
 
          @Test
          void testGetRedistribution() throws Exception {
-             testRights(get("/api/admin/wallets/redistribution").content("{\"recipeId\": \""+UUID.randomUUID()+"\", \"month\": \"May\"}"), AuthorizationTest.ADMIN);
+             testRights(get("/api/admin/redistribution").contentType(MediaType.APPLICATION_JSON).param("recipeId", UUID.randomUUID().toString())
+                     .param("month", "May"), AuthorizationTest.ADMIN);
          }
      }
 
@@ -214,6 +250,121 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
         @Test
         void testPendingRecipes() throws Exception {
             testRightsMVCNoRedirect(get("/admin/recipes/pending"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testValidateRecipe() throws Exception {
+            testRightsMVC(post("/admin/recipes/{id}/validate", UUID.randomUUID()), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testRejectRecipe() throws Exception {
+            testRightsMVC(post("/admin/recipes/{id}/reject", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .param("justification", "contenu inapproprié"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testSuperLikePage() throws Exception {
+            testRightsMVCNoRedirect(get("/admin/super-like"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testUpdateSuperLikeConfig() throws Exception {
+            testRightsMVC(post("/admin/super-like/config")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .param("priceCents", "100")
+                    .param("earningsRatio", "0.7"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testUpdateSmartSearchConfig() throws Exception {
+            testRightsMVC(post("/admin/smart-search/config")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .param("topK", "10")
+                    .param("cost", "50"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testCreatePromotionForm() throws Exception {
+            testRightsMVCNoRedirect(get("/admin/promotions/create"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testCreatePromotion() throws Exception {
+            testRightsMVC(post("/admin/promotions/create")
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .param("name", "Promo été")
+                    .param("startsAt", "2025-06-01T00:00")
+                    .param("endsAt", "2025-06-30T23:59")
+                    .param("priceCents", "200")
+                    .param("bonusEveryN", "5"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testEditPromotionForm() throws Exception {
+            testRightsMVCNoRedirect(get("/admin/promotions/{id}/edit", UUID.randomUUID()), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testEditPromotion() throws Exception {
+            testRightsMVC(post("/admin/promotions/{id}/edit", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .param("name", "Promo été modifiée")
+                    .param("startsAt", "2025-06-01T00:00")
+                    .param("endsAt", "2025-06-30T23:59")
+                    .param("priceCents", "300")
+                    .param("bonusEveryN", "3"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testCancelPromotion() throws Exception {
+            testRightsMVC(post("/admin/promotions/{id}/cancel", UUID.randomUUID()), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testRecipeReports() throws Exception {
+            testRightsMVCNoRedirect(get("/admin/recipes/reports")
+                    .param("page", "0"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testUserReports() throws Exception {
+            testRightsMVCNoRedirect(get("/admin/users/reports")
+                    .param("page", "0"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testValidateRecipeReport() throws Exception {
+            testRightsMVC(post("/admin/recipes/reports/{reportId}/validate", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .param("recipeId", UUID.randomUUID().toString()), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testDismissRecipeReport() throws Exception {
+            testRightsMVC(post("/admin/recipes/reports/{reportId}/dismiss", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .param("recipeId", UUID.randomUUID().toString())
+                    .param("justification", "signalement non fondé"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testResolveUserReport() throws Exception {
+            testRightsMVC(post("/admin/users/reports/{reportId}/resolve", UUID.randomUUID())
+                    .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                    .param("userId", UUID.randomUUID().toString())
+                    .param("action", UserModerationActionType.BANNED.toString())
+                    .param("justification", "comportement inapproprié")
+                    .param("suspensionDays", "0")
+                    .param("suspensionHours", "0"), AuthorizationTest.MODERATOR);
+        }
+
+        @Test
+        void testGetRedistributionChain() throws Exception {
+            testRightsMVCNoRedirect(get("/admin/redistribution/chain")
+                    .param("recipeId", UUID.randomUUID().toString())
+                    .param("month", "2025-06"), AuthorizationTest.ADMIN);
         }
     }
 

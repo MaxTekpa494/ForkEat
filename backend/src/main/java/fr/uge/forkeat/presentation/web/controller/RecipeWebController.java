@@ -26,6 +26,7 @@ import fr.uge.forkeat.service.user.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -132,6 +133,7 @@ public class RecipeWebController {
     }
 
     @GetMapping("/following")
+    @PreAuthorize("isAuthenticated()")
     public String listRecipesFollowing(@RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
         model.addAttribute("isFollowing", true);
         if(session.getAttribute("instant") == null){
