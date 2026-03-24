@@ -124,7 +124,7 @@ public class RecipeService {
 
     var imageUrl = existingRecipe.imageUrl();
     if (command.image() != null) {
-      if (existingRecipe.imageUrl() != null && !recipePersistence.isImageUrlUsedByOtherRecipes(command.id(), existingRecipe.imageUrl())) {
+      if (existingRecipe.imageUrl() != null && !existingRecipe.imageUrl().isBlank() && !recipePersistence.isImageUrlUsedByOtherRecipes(command.id(), existingRecipe.imageUrl())) {
         storageService.deleteImage(existingRecipe.imageUrl());
         logger.info("Old image deleted for recipe {}", command.id());
       }
@@ -158,10 +158,10 @@ public class RecipeService {
   public void deleteById(UUID id) {
     Objects.requireNonNull(id);
     var recipe = recipePersistence.findById(id).orElseThrow(() -> new RecipeNotFoundException(id));
-      if(!securityService.canDeleteRecipe(recipe)){
-          throw new RecipeOwnershipException(id, authPort.extractUsername());
-      }
-    if(recipe.imageUrl() != null && !recipePersistence.isImageUrlUsedByOtherRecipes(id, recipe.imageUrl())){
+    if(!securityService.canDeleteRecipe(recipe)){
+        throw new RecipeOwnershipException(id, authPort.extractUsername());
+    }
+    if(recipe.imageUrl() != null && !recipe.imageUrl().isBlank() && !recipePersistence.isImageUrlUsedByOtherRecipes(id, recipe.imageUrl())){
       storageService.deleteImage(recipe.imageUrl());
       logger.info("Image deleted for recipe {}", id);
     }
