@@ -44,6 +44,7 @@ class StripeWebhookControllerTest {
     private WalletService walletService;
 
 
+    
     @MockitoBean
     private AuthenticationPort authPort;
 
@@ -118,7 +119,7 @@ class StripeWebhookControllerTest {
         when(paymentGateway.initEvent(anyString(), anyString(), anyString()))
                 .thenReturn(mockEvent);
 
-        mockMvc.perform(post("/wallet/webhooks/stripe")
+        mockMvc.perform(post("/api/wallet/webhooks/stripe")
                         .content("{}")
                         .header("Stripe-Signature", "valid_signature")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -133,7 +134,7 @@ class StripeWebhookControllerTest {
                 .thenThrow(new StripEventException("Invalid Stripe signature",
                         new SignatureVerificationException("Invalid signature", "sig_header")));
 
-        mockMvc.perform(post("/wallet/webhooks/stripe")
+        mockMvc.perform(post("/api/wallet/webhooks/stripe")
                         .content("{}")
                         .header("Stripe-Signature", "invalid_sig")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -152,7 +153,7 @@ class StripeWebhookControllerTest {
         doThrow(new DuplicateTransactionException(stripeTxId))
                 .when(walletService).processPaymentConfirmation(eq(userId), eq(5000L), eq(stripeTxId));
 
-        mockMvc.perform(post("/wallet/webhooks/stripe")
+        mockMvc.perform(post("/api/wallet/webhooks/stripe")
                         .content("{}")
                         .header("Stripe-Signature", "valid_sig")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -171,7 +172,7 @@ class StripeWebhookControllerTest {
         doThrow(new WalletNotFoundException(userId))
                 .when(walletService).processPaymentConfirmation(eq(userId), eq(5000L), eq(stripeTxId));
 
-        mockMvc.perform(post("/wallet/webhooks/stripe")
+        mockMvc.perform(post("/api/wallet/webhooks/stripe")
                         .content("{}")
                         .header("Stripe-Signature", "valid_sig")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -209,7 +210,7 @@ class StripeWebhookControllerTest {
         when(paymentGateway.initEvent(anyString(), anyString(), anyString()))
                 .thenReturn(mockEvent);
 
-        mockMvc.perform(post("/wallet/webhooks/stripe")
+        mockMvc.perform(post("/api/wallet/webhooks/stripe")
                         .content("{}")
                         .header("Stripe-Signature", "valid_sig")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -226,7 +227,7 @@ class StripeWebhookControllerTest {
         when(paymentGateway.initEvent(anyString(), anyString(), anyString()))
                 .thenReturn(mockEvent);
 
-        mockMvc.perform(post("/wallet/webhooks/stripe")
+        mockMvc.perform(post("/api/wallet/webhooks/stripe")
                         .content("{}")
                         .header("Stripe-Signature", "valid_sig")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -244,7 +245,7 @@ class StripeWebhookControllerTest {
         var mockEvent = mockTransferEvent(transferId, pendingTxId);
         when(paymentGateway.initEvent(anyString(), anyString(), anyString())).thenReturn(mockEvent);
 
-        mockMvc.perform(post("/wallet/webhooks/stripe")
+        mockMvc.perform(post("/api/wallet/webhooks/stripe")
                         .content("{}")
                         .header("Stripe-Signature", "valid_signature")
                         .contentType(MediaType.APPLICATION_JSON))
@@ -260,7 +261,7 @@ class StripeWebhookControllerTest {
         var mockEvent = mockTransferEvent(transferId, null);
         when(paymentGateway.initEvent(anyString(), anyString(), anyString())).thenReturn(mockEvent);
 
-        mockMvc.perform(post("/wallet/webhooks/stripe")
+        mockMvc.perform(post("/api/wallet/webhooks/stripe")
                         .content("{}")
                         .header("Stripe-Signature", "valid_signature")
                         .contentType(MediaType.APPLICATION_JSON))

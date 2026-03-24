@@ -19,7 +19,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 @RestController
-@RequestMapping("/wallet/webhooks/stripe")
+@RequestMapping("/api/wallet/webhooks/stripe")
 public class StripeWebhook {
 
 	private static final Logger log = LoggerFactory.getLogger(StripeWebhook.class);
