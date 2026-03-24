@@ -1,0 +1,41 @@
+#__SSL_BLOCK_BEGIN__
+server {
+    listen 80;
+    server_name ${BASE_URL} www.${BASE_URL};
+    return 301 https://${BASE_URL}$request_uri;
+}
+#__SSL_BLOCK_END__
+
+server {
+    #__LISTEN__
+    server_name ${BASE_URL} www.${BASE_URL};
+
+    client_max_body_size 100M;
+
+    #__SSL_BLOCK_BEGIN__
+    ssl_certificate /etc/nginx/ssl/forkeat.crt;
+    ssl_certificate_key /etc/nginx/ssl/forkeat.key;
+
+    ssl_protocols TLSv1.2 TLSv1.3;
+    ssl_ciphers HIGH:!aNULL:!MD5;
+    #__SSL_BLOCK_END__
+
+    access_log /var/log/nginx/forkeat_access.log;
+    error_log /var/log/nginx/forkeat_error.log;
+
+    location / {
+        proxy_pass http://api:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+
+    location /ollama {
+        proxy_pass http://ollama:11434;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

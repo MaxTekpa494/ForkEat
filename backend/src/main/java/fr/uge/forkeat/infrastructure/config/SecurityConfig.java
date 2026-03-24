@@ -2,6 +2,7 @@ package fr.uge.forkeat.infrastructure.config;
 
 import fr.uge.forkeat.infrastructure.security.CustomOAuth2UserService;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -21,6 +22,8 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import jakarta.servlet.http.HttpServletResponse;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 
 @Configuration
 @EnableWebSecurity
@@ -48,6 +51,9 @@ public class SecurityConfig {
 		this.customAccessDeniedHandler = customAccessDeniedHandler;
 	}
 
+	@Value("${security.csrf.enabled:false}")
+	private boolean csrfEnabled;
+
 	@Bean
 	public AuthenticationManager authenticationManager(HttpSecurity http) {
 		AuthenticationManagerBuilder authenticationManagerBuilder = http
@@ -59,7 +65,17 @@ public class SecurityConfig {
 	@Bean
 	@Order(1)
 	public SecurityFilterChain apiFilterChain(HttpSecurity http) {
-		return http.securityMatcher("/api/**").csrf(AbstractHttpConfigurer::disable)
+		if (csrfEnabled) {
+			XorCsrfTokenRequestAttributeHandler requestHandler = new XorCsrfTokenRequestAttributeHandler();
+			requestHandler.setCsrfRequestAttributeName(null);
+			http.csrf(csrf -> csrf
+							.csrfTokenRequestHandler(requestHandler)
+							.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
+		} else {
+			http.csrf(AbstractHttpConfigurer::disable);
+		}
+
+		return http.securityMatcher("/api/**")
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
 				.exceptionHandling(ex -> ex
 						.authenticationEntryPoint((request, response, authException) -> {
@@ -90,11 +106,17 @@ public class SecurityConfig {
 	@Bean
 	@Order(2)
 	public SecurityFilterChain webFilterChain(HttpSecurity http) {
-		return http
-				// On garde CSRF désactivé pour le développement il faut pense a le réactiver
-				.csrf(AbstractHttpConfigurer::disable)
+				if (csrfEnabled) {
+					XorCsrfTokenRequestAttributeHandler requestHandler = new XorCsrfTokenRequestAttributeHandler();
+					requestHandler.setCsrfRequestAttributeName(null);
+					http.csrf(csrf -> csrf
+									.csrfTokenRequestHandler(requestHandler)
+									.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
+				} else {
+					http.csrf(AbstractHttpConfigurer::disable);
+				}
 
-				.exceptionHandling(ex -> ex
+				return http.exceptionHandling(ex -> ex
 						.accessDeniedHandler(customAccessDeniedHandler))
 
 				.authorizeHttpRequests(auth -> auth

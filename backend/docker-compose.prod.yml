@@ -1,0 +1,50 @@
+services:
+  api:
+    image : registry.gitlab.com/adben27/projet-recettes-uge
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: forkeat-api
+    environment:
+      SPRING_PROFILES_ACTIVE: prod
+      JAVA_TOOL_OPTIONS: "-Xms512m -Xmx1536m"
+    volumes:
+      - ~/.m2/repository:/root/.m2/repository
+    depends_on:
+      postgres:
+        condition: service_started
+      neo4j:
+        condition: service_started
+      stripe:
+        condition: service_started
+      ollama-init:
+        condition: service_completed_successfully
+    networks:
+      - forkeat-network
+    mem_reservation: 768m
+    mem_limit: 2g
+
+  nginx:
+    image: nginx:1.29.6
+    container_name: forkeat-nginx
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      - BASE_URL=${BASE_URL}
+    volumes:
+      - ./nginx/forkeat.conf.template:/etc/nginx/conf.d/forkeat.conf.template:ro
+      - ./nginx/entrypoint.sh:/entrypoint.sh:ro
+      - ./nginx/ssl:/etc/nginx/ssl:ro
+      - ./nginx/logs:/var/log/nginx
+    entrypoint: ["/bin/sh", "/entrypoint.sh"]
+    depends_on:
+      - api
+    networks:
+      - forkeat-network
+    mem_reservation: 128m
+    mem_limit: 512m
+
+networks:
+  forkeat-network:
+    driver: bridge

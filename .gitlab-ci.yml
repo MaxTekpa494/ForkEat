@@ -41,17 +41,6 @@ unit-tests:
   before_script:
     - apk add --no-cache docker docker-compose
     # Copier le fichier .env à partir des variables GitLab CI/CD
-    - cp $DOTENV_FILE backend/.env
+    - cp $TESTS_DOTENV_FILE backend/.env
   script:
     - cd backend && mvn test $MAVEN_SILENCE_FLAGS
-
-
-# 4. Création du fichier JAR
-build-jar:
-  stage: package
-  rules:
-    - if: $CI_COMMIT_BRANCH == "develop" && $CI_PIPELINE_SOURCE == "push"
-      when: always
-    - when: never
-  script:
-    - cd backend && mvn package -DskipTests # On skip les tests car ils ont été faits au stage précédent
