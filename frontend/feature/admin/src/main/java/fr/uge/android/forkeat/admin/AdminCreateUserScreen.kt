@@ -60,6 +60,7 @@ fun AdminCreateUserScreen(
     onNavigateToUsers: () -> Unit,
     onNavigateToRecipes: () -> Unit,
     onNavigateToWallets: () -> Unit,
+    onNavigateToPromotions: () -> Unit,
     onNavigateToReports: () -> Unit,
     onLogout: () -> Unit,
     viewModel: AdminCreateUserViewModel = viewModel()
@@ -97,6 +98,7 @@ fun AdminCreateUserScreen(
         onNavigateToRecipes = onNavigateToRecipes,
         onNavigateToWallets = onNavigateToWallets,
         onNavigateToCreate = {},
+        onNavigateToPromotions = onNavigateToPromotions,
         onNavigateToReports = onNavigateToReports,
         onLogout = onLogout
     ) { innerPadding ->

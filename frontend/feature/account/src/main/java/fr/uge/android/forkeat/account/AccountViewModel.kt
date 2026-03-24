@@ -29,7 +29,8 @@ data class AccountUiState(
     val showConfirmPasswordModal: Boolean = false,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val resendMessage: String? = null
+    val resendMessage: String? = null,
+    val showDeleteModal: Boolean = false
 )
 
 class AccountViewModel : ViewModel() {
@@ -417,7 +418,35 @@ class AccountViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(resendMessage = null)
     }
 
-    fun deleteAccount() {
-        // TODO: Implement logic to delete account
+    fun openDeleteModal() {
+        _uiState.value = _uiState.value.copy(showDeleteModal = true, error = null)
+    }
+
+    fun closeDeleteModal() {
+        _uiState.value = _uiState.value.copy(showDeleteModal = false, error = null)
+    }
+
+    fun deleteAccount(onLogout: () -> Unit) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val response = accountService.deleteAccount()
+                if (response.isSuccessful) {
+                    onLogout()
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        showDeleteModal = false,
+                        error = "Erreur lors de la suppression du compte."
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    showDeleteModal = false,
+                    error = "Erreur: ${e.message}"
+                )
+            }
+        }
     }
 }

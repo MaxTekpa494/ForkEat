@@ -1,23 +1,19 @@
 package fr.uge.forkeat.infrastructure.ai.adapter;
 
-import fr.uge.forkeat.service.exception.ModerationRagException;
 import fr.uge.forkeat.service.port.RagModerationPort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.ai.chat.messages.Message;
 import org.springframework.ai.chat.messages.UserMessage;
 import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.prompt.ChatOptions;
 import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.ai.ollama.api.OllamaChatOptions;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
-import java.util.List;
+import java.util.Optional;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.function.Consumer;
 import java.util.regex.Pattern;
 
 @Component
@@ -33,7 +29,6 @@ public final class RagModerationAdapter implements RagModerationPort {
 
   @Value("${app.rag.moderation.llm-timeout-seconds:15}")
   private int llmTimeoutSeconds;
-
 
   // Tentatives de prompt injection
   private static final Pattern PROMPT_INJECTION = Pattern.compile(
@@ -58,75 +53,61 @@ public final class RagModerationAdapter implements RagModerationPort {
 
   private final ChatModel chatModel;
 
-  private final Consumer<String> MODERATEUR = (input) -> {
-    applyJavaRules(input);
-    applyLlmModeration(input);
-  };
-
   public RagModerationAdapter(ChatModel chatModel) {
     this.chatModel = chatModel;
   }
 
-
-
-
-
   @Override
-  public void assertSafe(String input) {
-//    // Ici ça nous coute rien
-//    applyJavaRules(input);
-//
-//    // Par contre ici, faudrait voir si on peut integrer un timeout...
-//    applyLlmModeration(input);
-    MODERATEUR.accept(input);
+  public Optional<String> moderate(String input) {
+    var javaResult = applyJavaRules(input);
+    if (javaResult.isPresent()) {
+      return javaResult;
+    }
+    return applyLlmModeration(input);
   }
 
-  private void applyJavaRules(String input) {
+  private Optional<String> applyJavaRules(String input) {
     if (input == null || input.isBlank()) {
-      throw new ModerationRagException("La requête ne peut pas être vide.");
+      return Optional.of("La requête ne peut pas être vide.");
     }
     if (input.length() < minLength) {
-      throw new ModerationRagException("La requête est trop courte (minimum " + minLength + " caractères).");
+      return Optional.of("La requête est trop courte (minimum " + minLength + " caractères).");
     }
     if (input.length() > maxLength) {
-      throw new ModerationRagException("La requête est trop longue (maximum " + maxLength + " caractères).");
+      return Optional.of("La requête est trop longue (maximum " + maxLength + " caractères).");
     }
     if (SQL_INJECTION.matcher(input).find()) {
-      throw new ModerationRagException("Contenu non autorisé détecté (SQL).");
+      return Optional.of("Contenu non autorisé détecté (SQL).");
     }
     if (PROMPT_INJECTION.matcher(input).find()) {
-      throw new ModerationRagException("Tentative de manipulation du système détectée.");
+      return Optional.of("Tentative de manipulation du système détectée.");
     }
     if (DATA_EXFILTRATION.matcher(input).find()) {
-      throw new ModerationRagException("Requête non autorisée (données sensibles).");
+      return Optional.of("Requête non autorisée (données sensibles).");
     }
+    return Optional.empty();
   }
 
-  private void applyLlmModeration(String input){
+  private Optional<String> applyLlmModeration(String input) {
     try {
-      // UserMessage implements Message mais et Prompt prend Message en parametre
-      // Je ne comprends donc pas pourquoi il n'accepte pas mon UserMessage
-      // Par consequent je cast...
-      var message = (Message)new UserMessage(input);
+      var message = (Message) new UserMessage(input);
       var future = CompletableFuture.supplyAsync(() -> chatModel.call(new Prompt(message)));
       var response = future.get(llmTimeoutSeconds, TimeUnit.SECONDS);
 
       var result = response.getResult().getOutput().getText().trim().toLowerCase();
       log.debug("[MODERATION] llama-guard3 response: '{}'", result);
 
-      if (!result.startsWith("safe")) { // Il renvoie safe ou unsafe
+      if (!result.startsWith("safe")) {
         var category = result.contains("\n")
                 ? result.substring(result.indexOf("\n") + 1).trim()
                 : "non spécifiée";
-        throw new ModerationRagException("Contenu inapproprié détecté (catégorie : " + category + ").");
+        return Optional.of("Contenu inapproprié détecté (catégorie : " + category + ").");
       }
-    }catch (ModerationRagException e){
-      throw e;
-    } catch (TimeoutException e){
+    } catch (TimeoutException e) {
       log.warn("[MODERATION] llama-guard3 timeout ({}s), modération LLM ignorée", llmTimeoutSeconds);
-    }
-    catch (Exception e){ // fail-open
+    } catch (Exception e) { // fail-open
       log.warn("[MODERATION] llama-guard3 indisponible, modération LLM ignorée : {}", e.getMessage());
     }
+    return Optional.empty();
   }
 }

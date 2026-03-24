@@ -616,7 +616,8 @@ private fun PasswordModificationModal(
 @Composable
 fun AccountScreen(
     accountViewModel: AccountViewModel = viewModel(),
-    onNavigateBack: () -> Unit = {}
+    onNavigateBack: () -> Unit = {},
+    onLogout: () -> Unit = {}
 ) {
     val uiState by accountViewModel.uiState.collectAsState()
     val newEmail by accountViewModel.newEmail.collectAsState()
@@ -641,7 +642,7 @@ fun AccountScreen(
         ) {
             AccountInformationCard(uiState, accountViewModel)
             AccountSecurityCard(uiState, accountViewModel)
-            AccountDangerZoneCard(accountViewModel)
+            AccountDangerZoneCard(onDeleteClick = accountViewModel::openDeleteModal)
             Spacer(Modifier.height(24.dp))
         }
     }
@@ -706,6 +707,14 @@ fun AccountScreen(
             onDismiss = { accountViewModel.closeConfirmPasswordModal() },
             isLoading = uiState.isLoading,
             errorMessage = uiState.error
+        )
+    }
+
+    if (uiState.showDeleteModal) {
+        DeleteAccountConfirmationDialog(
+            isLoading = uiState.isLoading,
+            onConfirm = { accountViewModel.deleteAccount(onLogout) },
+            onDismiss = accountViewModel::closeDeleteModal
         )
     }
 
@@ -1015,7 +1024,89 @@ private fun AccountSecurityCard(uiState: AccountUiState, viewModel: AccountViewM
 }
 
 @Composable
-private fun AccountDangerZoneCard(viewModel: AccountViewModel) {
+private fun DeleteAccountConfirmationDialog(
+    isLoading: Boolean,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = { if (!isLoading) onDismiss() },
+        shape = RoundedCornerShape(24.dp),
+        containerColor = Color.White,
+        title = {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Warning, contentDescription = null, tint = Primary600, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Supprimer mon compte", fontWeight = FontWeight.Bold, color = Secondary900)
+            }
+        },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    "Cette action est irréversible. Veuillez lire les avertissements ci-dessous avant de confirmer.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = Gray500
+                )
+                // Amber warning — balance
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFFFF8E1), RoundedCornerShape(12.dp))
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Icon(Icons.Default.AccountBalanceWallet, contentDescription = null, tint = Color(0xFFF59E0B), modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Votre solde sera transféré à la plateforme. Retirez vos fonds avant de supprimer si vous ne souhaitez pas les perdre.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF92400E),
+                        lineHeight = 18.sp
+                    )
+                }
+                // Blue warning — recipes
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFEFF6FF), RoundedCornerShape(12.dp))
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    Icon(Icons.Default.MenuBook, contentDescription = null, tint = Color(0xFF3B82F6), modifier = Modifier.size(18.dp))
+                    Spacer(Modifier.width(8.dp))
+                    Text(
+                        "Toutes vos recettes seront réassignées à la plateforme. Supprimez-les au préalable si vous ne souhaitez pas les partager.",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = Color(0xFF1E3A8A),
+                        lineHeight = 18.sp
+                    )
+                }
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss, enabled = !isLoading) {
+                Text("Annuler", color = Gray500)
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = onConfirm,
+                enabled = !isLoading,
+                colors = ButtonDefaults.buttonColors(containerColor = Primary600),
+                shape = RoundedCornerShape(50)
+            ) {
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(16.dp), color = Color.White, strokeWidth = 2.dp)
+                    Spacer(Modifier.width(8.dp))
+                }
+                Text("Confirmer la suppression", fontWeight = FontWeight.Bold)
+            }
+        }
+    )
+}
+
+@Composable
+private fun AccountDangerZoneCard(onDeleteClick: () -> Unit) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(24.dp),
@@ -1056,7 +1147,7 @@ private fun AccountDangerZoneCard(viewModel: AccountViewModel) {
                 )
                 Spacer(Modifier.height(20.dp))
                 Button(
-                    onClick = viewModel::deleteAccount,
+                    onClick = onDeleteClick,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(containerColor = Primary600),
                     shape = RoundedCornerShape(50)

@@ -1,5 +1,8 @@
 package fr.uge.forkeat.service.port;
 
+import java.util.Optional;
+
 public interface RagModerationPort {
-  void assertSafe(String input);
+
+  Optional<String> moderate(String input);
 }

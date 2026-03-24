@@ -20,3 +20,9 @@ Thumbs.db
 # Docker
 Dockerfile
 backend/docker-compose.yml
+
+# Models
+ollama/
+
+# Nginx
+nginx/

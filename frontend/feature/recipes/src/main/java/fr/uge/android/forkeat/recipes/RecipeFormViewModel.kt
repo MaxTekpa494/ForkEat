@@ -298,7 +298,6 @@ class RecipeFormViewModel(
                     summary = state.summary.trim(),
                     preparationMinutes = prepMinutes,
                     draft = draft,
-                    status = if (mode is RecipeFormMode.Edit) if (draft) "DRAFT" else "PENDING_REVIEW" else null,
                     steps = state.steps.mapIndexed { i, s -> RecipeStepDTO(i + 1, s.instruction.trim()) },
                     ingredients = state.ingredients
                         .filter { it.name.isNotBlank() }

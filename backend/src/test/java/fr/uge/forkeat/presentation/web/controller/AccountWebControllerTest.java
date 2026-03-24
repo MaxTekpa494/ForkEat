@@ -30,6 +30,7 @@ import java.time.Instant;
 import java.util.UUID;
 
 import fr.uge.forkeat.service.exception.CheckProfileUpdateFailureException;
+import fr.uge.forkeat.service.exception.WalletNotFoundException;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -332,6 +333,42 @@ class AccountWebControllerTest {
 
             verify(emailVerificationService).confirmEmailChange(localUser.id(), "654321");
             verify(authPort).refreshAuthentication(updatedUser);
+        }
+    }
+
+    @Nested
+    class DeleteAccount {
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void shouldInvalidateSessionAndRedirectToLogin_WhenDeleteSucceeds() throws Exception {
+            doNothing().when(userService).deleteAccount("testuser");
+
+            mockMvc.perform(post("/account/delete").with(csrf()))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/auth/login?accountDeleted"));
+
+            verify(userService).deleteAccount("testuser");
+        }
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void shouldReturn404_WhenUserNotFound() throws Exception {
+            doThrow(new ResourceNotFoundException("User not found"))
+                    .when(userService).deleteAccount("testuser");
+
+            mockMvc.perform(post("/account/delete").with(csrf()))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void shouldReturn404_WhenWalletNotFound() throws Exception {
+            doThrow(new WalletNotFoundException(UUID.randomUUID()))
+                    .when(userService).deleteAccount("testuser");
+
+            mockMvc.perform(post("/account/delete").with(csrf()))
+                    .andExpect(status().isNotFound());
         }
     }
 

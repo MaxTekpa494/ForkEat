@@ -3,7 +3,9 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
 import fr.uge.forkeat.presentation.dto.user.UserProfileDTO;
 import fr.uge.forkeat.service.ProfileService;
+import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.UserReportService;
+import fr.uge.forkeat.service.model.superlike.SuperLikeConfig;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.UserAlreadyReportedException;
 import fr.uge.forkeat.service.model.user.UserReportType;
@@ -30,8 +32,10 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -62,6 +66,12 @@ class ProfileControllerTest {
     @MockitoBean
     private UserReportService userReportService;
 
+    @MockitoBean
+    private PromotionService promotionService;
+
+    private static final SuperLikeConfig DEFAULT_CONFIG = new SuperLikeConfig(
+            UUID.randomUUID(), 100L, new BigDecimal("0.7"), Instant.now());
+
     private User testUser;
 
     @Autowired
@@ -86,6 +96,8 @@ class ProfileControllerTest {
         );
 
         when(authPort.extractUsername()).thenReturn(testUser.username());
+        when(promotionService.getConfig()).thenReturn(DEFAULT_CONFIG);
+        when(promotionService.findActive()).thenReturn(Optional.empty());
     }
 
     @Nested

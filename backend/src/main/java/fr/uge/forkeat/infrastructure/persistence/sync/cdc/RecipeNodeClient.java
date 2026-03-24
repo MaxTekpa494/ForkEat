@@ -34,7 +34,7 @@ public class RecipeNodeClient {
             .bind(title).to("title")
             .bind(state).to("state")
             .fetchAs(Boolean.class)
-            .mappedBy((_, record) -> record.get("r.feed").asBoolean())
+            .mappedBy((_, record) -> record.get("r.feed").asBoolean(false))
             .one().orElse(true);
 
 

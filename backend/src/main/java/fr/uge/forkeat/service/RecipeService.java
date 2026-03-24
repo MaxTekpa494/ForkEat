@@ -31,6 +31,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -111,52 +112,56 @@ public class RecipeService {
   }
 
   @Transactional
-  public Recipe updateRecipe(UUID id, Recipe updatedRecipe, ImageUpload image) {
-    var existingRecipe = findById(id);
-    if(!securityService.canUpdateRecipe(existingRecipe)){
-        //Forbidden Exception de MAX
-        throw new RecipeOwnershipException(id, authPort.extractUsername());
+  public Recipe updateRecipe(UpdateRecipeCommand command) {
+    Objects.requireNonNull(command);
+    var existingRecipe = recipePersistence.findById(command.id()).orElseThrow(() -> new RecipeNotFoundException(command.id()));
+    if (!securityService.canUpdateRecipe(existingRecipe)) {
+      throw new RecipeOwnershipException(command.id(), authPort.extractUsername());
+    }
+    if (command.draft() && (command.title() == null || command.title().isBlank())) {
+      throw new IllegalArgumentException("Draft recipe must have a non-empty title");
     }
 
     var imageUrl = existingRecipe.imageUrl();
-    if (image != null) {
-      if (existingRecipe.imageUrl() != null) {
+    if (command.image() != null) {
+      if (existingRecipe.imageUrl() != null && !recipePersistence.isImageUrlUsedByOtherRecipes(command.id(), existingRecipe.imageUrl())) {
         storageService.deleteImage(existingRecipe.imageUrl());
-        logger.info("Old image deleted for recipe {}", id);
+        logger.info("Old image deleted for recipe {}", command.id());
       }
-      imageUrl = storageService.uploadImage(image, FOLDER_STORAGE);
-      logger.info("New image uploaded for recipe {}", id);
+      imageUrl = storageService.uploadImage(command.image(), FOLDER_STORAGE);
+      logger.info("New image uploaded for recipe {}", command.id());
     }
 
+    var status = command.draft() ? RecipeStatus.DRAFT : RecipeStatus.PENDING_REVIEW;
     var recipeToSave = new Recipe(
-            id,
-            updatedRecipe.title(),
-            updatedRecipe.summary(),
+            command.id(),
+            command.title(),
+            command.summary(),
             existingRecipe.parentId(),
             existingRecipe.usernameAuthor(),
-            updatedRecipe.preparationMinutes(),
+            command.preparationMinutes(),
             imageUrl,
-            updatedRecipe.status(),
-            updatedRecipe.stepByStepInstructions(),
-            updatedRecipe.ingredients(),
-            updatedRecipe.allergens(),
-            updatedRecipe.dietaries(),
+            status,
+            command.steps(),
+            command.ingredients(),
+            command.allergens(),
+            command.dietaries(),
             existingRecipe.createdAt(),
-            updatedRecipe.updatedAt()
+            Instant.now()
     );
 
-    logger.info("Recipe {} updated", id);
-    return recipePersistence.update(id, recipeToSave);
+    logger.info("Recipe {} updated", command.id());
+    return recipePersistence.update(command.id(), recipeToSave);
   }
 
   @Transactional
   public void deleteById(UUID id) {
-    var recipe = findById(id);
+    Objects.requireNonNull(id);
+    var recipe = recipePersistence.findById(id).orElseThrow(() -> new RecipeNotFoundException(id));
       if(!securityService.canDeleteRecipe(recipe)){
-          //Forbidden Exception de MAX
           throw new RecipeOwnershipException(id, authPort.extractUsername());
       }
-    if(recipe.imageUrl() != null){
+    if(recipe.imageUrl() != null && !recipePersistence.isImageUrlUsedByOtherRecipes(id, recipe.imageUrl())){
       storageService.deleteImage(recipe.imageUrl());
       logger.info("Image deleted for recipe {}", id);
     }
@@ -165,8 +170,15 @@ public class RecipeService {
   }
 
   public Recipe findById(UUID id) {
-    return recipePersistence.findById(id)
+    var recipe = recipePersistence.findById(id)
             .orElseThrow(() -> new RecipeNotFoundException(id));
+    if (!recipe.isPublished() && !authPort.isAdmin() && !authPort.isModerator()) {
+      var currentUsername = authPort.extractUsername();
+      if (currentUsername == null || !currentUsername.equals(recipe.usernameAuthor())) {
+        throw new RecipeNotFoundException(id);
+      }
+    }
+    return recipe;
   }
 
   public PersonalizedRecipe findPersonalizedRecipeById(UUID id, String currentUsername) {
@@ -183,7 +195,8 @@ public class RecipeService {
               : RecipeUserInteraction.NONE;
       RecipeDiff diff = null;
       if (recipe.isVariant()) {
-          var parent = findById(recipe.parentId());
+        var parent = recipePersistence.findById(recipe.parentId())
+                .orElseThrow(() -> new RecipeNotFoundException(recipe.parentId()));
           if (parent.isPublished()) {
               diff = recipeDiffService.computeDiff(parent, recipe);
           }
@@ -191,7 +204,14 @@ public class RecipeService {
       return new PersonalizedRecipe(recipe, counts, interaction, diff);
   }
 
+  public Optional<PersonalizedRecipeSummary> getTopLikedRecipe(String currentUsername) {
+      return recipePersistence.findTopLikedPublishedRecipe(currentUsername);
+  }
+
   public List<Recipe> findByStatus(RecipeStatus status) {
+    if(!authPort.isAdmin() && !authPort.isModerator()){
+      throw new IllegalArgumentException("Can't access !");
+    }
     return recipePersistence.findByStatus(status);
   }
 

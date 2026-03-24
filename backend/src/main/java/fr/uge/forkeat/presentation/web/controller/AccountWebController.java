@@ -2,13 +2,8 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.dto.user.PasswordChangeDTO;
 import fr.uge.forkeat.presentation.dto.user.UserUpdateProfileDTO;
-import fr.uge.forkeat.service.model.PasswordValidator;
 import fr.uge.forkeat.service.ProfileService;
-import fr.uge.forkeat.service.exception.RegisterFailureException;
-import fr.uge.forkeat.service.exception.ResourceNotFoundException;
-import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.port.PasswordHasherPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserUpdateService;
@@ -51,8 +46,7 @@ public class AccountWebController {
   }
 
   @PostMapping
-  public String updateProfile(UserUpdateProfileDTO userUpdateProfile,
-                              RedirectAttributes redirectAttributes){
+  public String updateProfile(UserUpdateProfileDTO userUpdateProfile, RedirectAttributes redirectAttributes){
 
     var currentUsername = authPort.extractUsername();
     var updatedUser = userUpdateService.updateProfile(currentUsername, userUpdateProfile.username(),
@@ -64,8 +58,7 @@ public class AccountWebController {
   }
 
   @PostMapping("/password-change-requests")
-  public String requestPasswordChange(PasswordChangeDTO passwordChangeDTO,
-                                      RedirectAttributes redirectAttributes) {
+  public String requestPasswordChange(PasswordChangeDTO passwordChangeDTO, RedirectAttributes redirectAttributes) {
 
     var username = authPort.extractUsername();
     userUpdateService.requestPasswordChange(username, passwordChangeDTO.currentPassword(), passwordChangeDTO.newPassword(), passwordChangeDTO.confirmPassword());
@@ -85,8 +78,7 @@ public class AccountWebController {
   }
 
   @PostMapping("/password-change-requests/confirm")
-  public String confirmPasswordChange(@RequestParam String code,
-                                      RedirectAttributes redirectAttributes) {
+  public String confirmPasswordChange(@RequestParam String code, RedirectAttributes redirectAttributes) {
     var username = authPort.extractUsername();
     var user = userService.getUserByUsername(username);
 
@@ -148,5 +140,13 @@ public class AccountWebController {
     redirectAttributes.addFlashAttribute("success",
             "Mot de passe défini ! Vous pouvez maintenant vous connecter avec votre email et mot de passe.");
     return "redirect:/account";
+  }
+
+  @PostMapping("/delete")
+  public String deleteAccount(HttpSession session) {
+    var username = authPort.extractUsername();
+    userService.deleteAccount(username);
+    session.invalidate();
+    return "redirect:/auth/login?accountDeleted";
   }
 }

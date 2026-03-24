@@ -16,6 +16,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.History
+import androidx.compose.material.icons.filled.PersonOff
+import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.Card
@@ -38,6 +41,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.uge.android.forkeat.admin.data.dto.PlatformWalletDTO
+import fr.uge.android.forkeat.admin.data.dto.PlatformWalletTransactionDTO
 import java.text.DecimalFormat
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -49,6 +53,7 @@ fun AdminWalletsScreen(
     onNavigateToRecipes: () -> Unit,
     onNavigateToReports : () -> Unit,
     onNavigateToCreate: () -> Unit,
+    onNavigateToPromotions: () -> Unit,
     onLogout: () -> Unit,
     viewModel: AdminWalletsViewModel = viewModel()
 ) {
@@ -62,6 +67,7 @@ fun AdminWalletsScreen(
         onNavigateToReports = onNavigateToReports,
         onNavigateToWallets = {},
         onNavigateToCreate = onNavigateToCreate,
+        onNavigateToPromotions = onNavigateToPromotions,
         onLogout = onLogout
     ) { innerPadding ->
         PullToRefreshBox(
@@ -135,9 +141,105 @@ fun AdminWalletsScreen(
                         .padding(horizontal = 16.dp)
                 )
 
+                Spacer(Modifier.height(16.dp))
+
+                // Transaction history
+                TransactionHistorySection(
+                    transactions = uiState.transactions,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp)
+                )
+
                 Spacer(Modifier.height(24.dp))
             }
         }
+    }
+}
+
+@Composable
+private fun TransactionHistorySection(
+    transactions: List<PlatformWalletTransactionDTO>,
+    modifier: Modifier = Modifier
+) {
+    val fmt = DecimalFormat("0.00")
+    Card(
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = Color.White),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        modifier = modifier
+    ) {
+        Column(modifier = Modifier.padding(20.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.History, contentDescription = null, tint = AdminPurple800, modifier = Modifier.size(22.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Historique des transactions", fontWeight = FontWeight.Bold, fontSize = 16.sp, color = AdminPurple900)
+            }
+            Spacer(Modifier.height(12.dp))
+            if (transactions.isEmpty()) {
+                Text("Aucune transaction", color = Color(0xFF9CA3AF), fontSize = 13.sp)
+            } else {
+                transactions.forEach { tx ->
+                    TransactionRow(tx, fmt)
+                    HorizontalDivider(color = Color(0xFFF3F4F6), thickness = 1.dp)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun TransactionRow(tx: PlatformWalletTransactionDTO, fmt: DecimalFormat) {
+    val (badgeBackground, badgeText, icon) = when (tx.reason) {
+        "ACCOUNT_DELETION" -> Triple(Color(0xFFFEE2E2), Color(0xFFDC2626), Icons.Default.PersonOff)
+        "SUPER_LIKE_EARNED" -> Triple(Color(0xFFDCFCE7), Color(0xFF16A34A), Icons.Default.Star)
+        else -> Triple(Color(0xFFF3F4F6), Color(0xFF6B7280), Icons.Default.History)
+    }
+    val label = when (tx.reason) {
+        "ACCOUNT_DELETION" -> "Suppression compte"
+        "SUPER_LIKE_EARNED" -> "SuperLike gagné"
+        "SUPER_LIKE_REDISTRIBUTION" -> "Redistribution"
+        "BONUS_FINANCED" -> "Bonus financé"
+        else -> tx.reason
+    }
+    val amountStr = if (tx.amountCents >= 0) "+${fmt.format(tx.amountCents / 100.0)} €"
+    else "${fmt.format(tx.amountCents / 100.0)} €"
+    val amountColor = if (tx.amountCents >= 0) Color(0xFF16A34A) else Color(0xFFDC2626)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Box(
+            modifier = Modifier
+                .size(36.dp)
+                .background(badgeBackground, RoundedCornerShape(10.dp)),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(icon, contentDescription = null, tint = badgeText, modifier = Modifier.size(18.dp))
+        }
+        Spacer(Modifier.width(12.dp))
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                fontSize = 13.sp,
+                fontWeight = FontWeight.SemiBold,
+                color = Color(0xFF111827)
+            )
+            Text(
+                text = tx.createdAt.take(10),
+                fontSize = 11.sp,
+                color = Color(0xFF9CA3AF)
+            )
+        }
+        Text(
+            text = amountStr,
+            fontSize = 14.sp,
+            fontWeight = FontWeight.Bold,
+            color = amountColor
+        )
     }
 }
 

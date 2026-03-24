@@ -4,7 +4,7 @@
 
 <!-- Fragment : modale de confirmation Super Like
      Paramètres : modalId, contentId, onConfirm, onCancel, onBackdrop -->
-<div th:fragment="superLikeModal(modalId, contentId, onConfirm, onCancel, onBackdrop)"
+<div th:fragment="superLikeModal(modalId, contentId, onConfirm, onCancel, onBackdrop, superLikeBasePriceCents, superLikePromoPriceCents)"
      th:id="${modalId}"
      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm"
      th:attr="onclick=${onBackdrop}">
@@ -37,6 +37,17 @@
             <div>
                 <h3 class="text-gray-800 font-semibold text-lg">Super Like cette recette ?</h3>
                 <p class="text-gray-500 text-sm mt-1">Vous allez mettre en avant cette recette avec un Super Like.</p>
+                <div class="flex items-center justify-center gap-2 mt-2">
+                    <span th:if="${superLikeBasePriceCents != null and superLikePromoPriceCents != null}"
+                          class="line-through text-gray-300 text-sm"
+                          th:text="${#numbers.formatDecimal(superLikeBasePriceCents / 100.0, 1, 2) + '€'}"></span>
+                    <span th:if="${superLikePromoPriceCents != null}"
+                          class="text-yellow-600 font-bold text-base"
+                          th:text="${#numbers.formatDecimal(superLikePromoPriceCents / 100.0, 1, 2) + '€'}"></span>
+                    <span th:if="${superLikeBasePriceCents != null and superLikePromoPriceCents == null}"
+                          class="text-gray-700 font-semibold text-sm"
+                          th:text="${#numbers.formatDecimal(superLikeBasePriceCents / 100.0, 1, 2) + '€'}"></span>
+                </div>
             </div>
             <div class="flex gap-3 w-full mt-2">
                 <button th:attr="onclick=${onCancel}"
