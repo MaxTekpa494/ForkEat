@@ -87,6 +87,7 @@ public class SecurityConfig {
 						.requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers("/api/recipes/*/like").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/auth/**").permitAll()
+						.requestMatchers("/api/wallet/webhooks/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
 						.requestMatchers("/api/recipes/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/wallet/**").hasAuthority("EMAIL_VERIFIED")
