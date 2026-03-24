@@ -25,7 +25,7 @@ public class CustomAccessDeniedHandler implements AccessDeniedHandler {
                     .anyMatch(a -> a.getAuthority().equals("EMAIL_VERIFIED"));
 
             if (!hasEmailVerified) {
-                response.sendRedirect(request.getContextPath() + "/auth/email-verification-required");
+                response.sendRedirect(request.getContextPath() + "/account/email-verification-required");
                 return;
             }
         }

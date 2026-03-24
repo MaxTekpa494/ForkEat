@@ -148,7 +148,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testGetRecipesFollowing() throws Exception {
-            testRights(get("/api/recipes/following"), AuthorizationTest.MEMBER);
+            testRights(get("/api/recipes/following"), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test
@@ -196,7 +196,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testMyRecipes() throws Exception {
-            testRights(get("/api/recipes/my-recipes"), AuthorizationTest.UNAUTHENTICATED);
+            testRights(get("/api/recipes/my-recipes"), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test
@@ -265,12 +265,12 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testMyRecipes() throws Exception {
-            testRightsMVCNoRedirect(get("/recipes/my-recipes"), AuthorizationTest.MEMBER);
+            testRightsMVCNoRedirect(get("/recipes/my-recipes"), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test
         void testListRecipesFollowing() throws Exception {
-            testRightsMVCNoRedirect(get("/recipes/following"), AuthorizationTest.MEMBER);
+            testRightsMVCNoRedirect(get("/recipes/following"), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test
@@ -296,7 +296,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testEditRecipeForm() throws Exception {
-            testRightsMVCNoRedirect(get("/recipes/{id}/edit", RECIPE_ID), AuthorizationTest.UNAUTHENTICATED);
+            testRightsMVCNoRedirect(get("/recipes/{id}/edit", RECIPE_ID), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test
@@ -319,7 +319,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testSmartSearchPage() throws Exception {
-            testRightsMVCNoRedirect(get("/recipes/smart-search"), AuthorizationTest.MEMBER);
+            testRightsMVCNoRedirect(get("/recipes/smart-search"), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test
@@ -351,7 +351,7 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testSuperLikeRecipe() throws Exception {
-            testRightsMVC(post("/recipes/{id}/super-like", RECIPE_ID), AuthorizationTest.MEMBER);
+            testRightsMVC(post("/recipes/{id}/super-like", RECIPE_ID), AuthorizationTest.EMAIL_VERIFIED);
         }
     }
 

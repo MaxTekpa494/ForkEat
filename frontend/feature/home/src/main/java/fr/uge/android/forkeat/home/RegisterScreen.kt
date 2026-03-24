@@ -89,11 +89,7 @@ fun RegisterScreen(
 
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(uiState.isSuccess) {
-        if (uiState.isSuccess) {
-            onRegisterSuccess()
-        }
-    }
+    // Navigation handled via the "Se connecter" button in success banner
 
     Scaffold(
         topBar = {
@@ -157,6 +153,42 @@ fun RegisterScreen(
                         fontSize = 14.sp,
                         fontWeight = FontWeight.Medium,
                     )
+                }
+            }
+
+            // Success banner — email sent
+            if (uiState.showEmailSentBanner) {
+                Spacer(Modifier.height(16.dp))
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(Color(0xFFF0FDF4), RoundedCornerShape(12.dp))
+                        .padding(16.dp),
+                ) {
+                    Text(
+                        text = "Compte créé avec succès !",
+                        color = Color(0xFF16A34A),
+                        fontSize = 15.sp,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Spacer(Modifier.height(6.dp))
+                    Text(
+                        text = "Un email de confirmation a été envoyé à votre adresse. Vous avez 24 heures pour valider votre compte avant que le lien n'expire.",
+                        color = Color(0xFF15803D),
+                        fontSize = 13.sp,
+                    )
+                    Spacer(Modifier.height(12.dp))
+                    Button(
+                        onClick = onNavigateToLogin,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(50),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF16A34A),
+                            contentColor = Color.White,
+                        ),
+                    ) {
+                        Text("Se connecter", fontWeight = FontWeight.Bold, fontSize = 14.sp)
+                    }
                 }
             }
 

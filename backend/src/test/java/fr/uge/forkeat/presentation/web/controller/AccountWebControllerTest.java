@@ -259,6 +259,11 @@ class AccountWebControllerTest {
         @Test
         @WithMockUser(username = "testuser")
         void shouldRedirectToConfirmAction_ForLocalUser() throws Exception {
+            var verifiedUser = new User(localUser.id(), localUser.username(), localUser.firstName(),
+                    localUser.lastName(), localUser.email(), localUser.role(), localUser.status(),
+                    localUser.authMode(), localUser.createdAt(), localUser.updatedAt(), true);
+            when(userService.getUserByUsername("testuser")).thenReturn(verifiedUser);
+
             mockMvc.perform(post("/account/email-change-requests").with(csrf())
                             .param("newEmail", "new@email.fr")
                             .param("currentPassword", "pass123"))
@@ -272,6 +277,11 @@ class AccountWebControllerTest {
         @Test
         @WithMockUser(username = "testuser")
         void shouldRedirectToConfirmAction_ForGoogleUser() throws Exception {
+            var verifiedUser = new User(localUser.id(), localUser.username(), localUser.firstName(),
+                    localUser.lastName(), localUser.email(), localUser.role(), localUser.status(),
+                    localUser.authMode(), localUser.createdAt(), localUser.updatedAt(), true);
+            when(userService.getUserByUsername("testuser")).thenReturn(verifiedUser);
+
             mockMvc.perform(post("/account/email-change-requests").with(csrf())
                             .param("newEmail", "new@email.fr")
                             .param("newPassword", "NewPass1!")
@@ -286,6 +296,10 @@ class AccountWebControllerTest {
         @Test
         @WithMockUser(username = "testuser")
         void shouldRedirectWithError_WhenCurrentPasswordIncorrect() throws Exception {
+            var verifiedUser = new User(localUser.id(), localUser.username(), localUser.firstName(),
+                    localUser.lastName(), localUser.email(), localUser.role(), localUser.status(),
+                    localUser.authMode(), localUser.createdAt(), localUser.updatedAt(), true);
+            when(userService.getUserByUsername("testuser")).thenReturn(verifiedUser);
             doThrow(new CheckProfileUpdateFailureException("Incorrect password"))
                     .when(userUpdateService).requestEmailChange("testuser", "new@email.fr", "wrong", null, null);
 
@@ -300,6 +314,10 @@ class AccountWebControllerTest {
         @Test
         @WithMockUser(username = "testuser")
         void shouldRedirectWithError_WhenEmailAlreadyTaken() throws Exception {
+            var verifiedUser = new User(localUser.id(), localUser.username(), localUser.firstName(),
+                    localUser.lastName(), localUser.email(), localUser.role(), localUser.status(),
+                    localUser.authMode(), localUser.createdAt(), localUser.updatedAt(), true);
+            when(userService.getUserByUsername("testuser")).thenReturn(verifiedUser);
             doThrow(new CheckProfileUpdateFailureException("Cet email est déjà utilisé"))
                     .when(userUpdateService).requestEmailChange("testuser", "taken@email.fr", "pass123", null, null);
 
@@ -337,14 +355,37 @@ class AccountWebControllerTest {
     }
 
     @Nested
-    class DeleteAccount {
+    class RequestAccountDeletion {
 
         @Test
         @WithMockUser(username = "testuser")
-        void shouldInvalidateSessionAndRedirectToLogin_WhenDeleteSucceeds() throws Exception {
+        void shouldSendCodeAndRedirectToConfirmAction() throws Exception {
+            var verifiedUser = new User(localUser.id(), localUser.username(), localUser.firstName(),
+                    localUser.lastName(), localUser.email(), localUser.role(), localUser.status(),
+                    localUser.authMode(), localUser.createdAt(), localUser.updatedAt(), true);
+            when(userService.getUserByUsername("testuser")).thenReturn(verifiedUser);
+            doNothing().when(emailVerificationService).sendAccountDeletionCode(any(), any());
+
+            mockMvc.perform(post("/account/delete-requests").with(csrf()))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/account/confirm-action"));
+
+            verify(emailVerificationService).sendAccountDeletionCode(any(), any());
+        }
+    }
+
+    @Nested
+    class ConfirmAccountDeletion {
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void shouldDeleteAndRedirectToLogin_WhenCodeValid() throws Exception {
+            when(userService.getUserByUsername("testuser")).thenReturn(localUser);
+            doNothing().when(emailVerificationService).confirmAccountDeletion(any(), any());
             doNothing().when(userService).deleteAccount("testuser");
 
-            mockMvc.perform(post("/account/delete").with(csrf()))
+            mockMvc.perform(post("/account/delete-requests/confirm").with(csrf())
+                            .param("code", "123456"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/auth/login?accountDeleted"));
 
@@ -354,20 +395,26 @@ class AccountWebControllerTest {
         @Test
         @WithMockUser(username = "testuser")
         void shouldReturn404_WhenUserNotFound() throws Exception {
+            when(userService.getUserByUsername("testuser")).thenReturn(localUser);
+            doNothing().when(emailVerificationService).confirmAccountDeletion(any(), any());
             doThrow(new ResourceNotFoundException("User not found"))
                     .when(userService).deleteAccount("testuser");
 
-            mockMvc.perform(post("/account/delete").with(csrf()))
+            mockMvc.perform(post("/account/delete-requests/confirm").with(csrf())
+                            .param("code", "123456"))
                     .andExpect(status().isNotFound());
         }
 
         @Test
         @WithMockUser(username = "testuser")
         void shouldReturn404_WhenWalletNotFound() throws Exception {
+            when(userService.getUserByUsername("testuser")).thenReturn(localUser);
+            doNothing().when(emailVerificationService).confirmAccountDeletion(any(), any());
             doThrow(new WalletNotFoundException(UUID.randomUUID()))
                     .when(userService).deleteAccount("testuser");
 
-            mockMvc.perform(post("/account/delete").with(csrf()))
+            mockMvc.perform(post("/account/delete-requests/confirm").with(csrf())
+                            .param("code", "123456"))
                     .andExpect(status().isNotFound());
         }
     }

@@ -95,8 +95,17 @@ public class AccountWebController {
                                    @RequestParam(required = false) String confirmPassword,
                                    RedirectAttributes redirectAttributes) {
     var username = authPort.extractUsername();
-    userUpdateService.requestEmailChange(username, newEmail, currentPassword, newPassword, confirmPassword);
+    var user = userService.getUserByUsername(username);
 
+    if (!user.emailVerified()) {
+      var updatedUser = userUpdateService.changeEmailDirectly(username, newEmail, currentPassword, newPassword, confirmPassword);
+      emailVerificationService.sendEmailConfirmation(updatedUser.id(), updatedUser.email());
+      redirectAttributes.addFlashAttribute("success",
+              "Email mis à jour ! Un lien de confirmation a été envoyé à votre nouvelle adresse.");
+      return "redirect:/account";
+    }
+
+    userUpdateService.requestEmailChange(username, newEmail, currentPassword, newPassword, confirmPassword);
     redirectAttributes.addFlashAttribute("actionType", "EMAIL_CHANGE");
     redirectAttributes.addFlashAttribute("infoMessage",
             "Un code de vérification a été envoyé à votre adresse email actuelle.");
@@ -142,9 +151,48 @@ public class AccountWebController {
     return "redirect:/account";
   }
 
-  @PostMapping("/delete")
-  public String deleteAccount(HttpSession session) {
+  @GetMapping("/email-verification-required")
+  public String emailVerificationRequired() {
+    return "layout/email-verification-required";
+  }
+
+  @PostMapping("/resend-verification")
+  public String resendVerification(RedirectAttributes redirectAttributes) {
     var username = authPort.extractUsername();
+    var user = userService.getUserByUsername(username);
+    if (user.emailVerified()) {
+      redirectAttributes.addFlashAttribute("success", "Votre email est déjà confirmé.");
+      return "redirect:/account/email-verification-required";
+    }
+    emailVerificationService.sendEmailConfirmation(user.id(), user.email());
+    redirectAttributes.addFlashAttribute("success",
+            "Email de confirmation renvoyé ! Vérifiez votre boîte de réception.");
+    return "redirect:/account/email-verification-required";
+  }
+
+  @PostMapping("/delete-requests")
+  public String requestAccountDeletion(RedirectAttributes redirectAttributes, HttpSession session) {
+    var username = authPort.extractUsername();
+    var user = userService.getUserByUsername(username);
+    if (!user.emailVerified()) {
+      userService.deleteAccount(username);
+      session.invalidate();
+      return "redirect:/auth/login?accountDeleted";
+    }
+    emailVerificationService.sendAccountDeletionCode(user.id(), user.email());
+    redirectAttributes.addFlashAttribute("actionType", "ACCOUNT_DELETION");
+    redirectAttributes.addFlashAttribute("infoMessage",
+            "Un code de vérification a été envoyé à votre adresse email pour confirmer la suppression.");
+    return "redirect:/account/confirm-action";
+  }
+
+  @PostMapping("/delete-requests/confirm")
+  public String confirmAccountDeletion(@RequestParam String code,
+                                       RedirectAttributes redirectAttributes,
+                                       HttpSession session) {
+    var username = authPort.extractUsername();
+    var user = userService.getUserByUsername(username);
+    emailVerificationService.confirmAccountDeletion(user.id(), code);
     userService.deleteAccount(username);
     session.invalidate();
     return "redirect:/auth/login?accountDeleted";

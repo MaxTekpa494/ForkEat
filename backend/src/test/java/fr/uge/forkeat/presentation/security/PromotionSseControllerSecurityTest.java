@@ -43,7 +43,7 @@ public class PromotionSseControllerSecurityTest extends AbstractIntegrationTest 
 
         @Test
         void testStream() throws Exception {
-            testRights(get("/api/promotions/stream"), AuthorizationTest.MEMBER);
+            testRights(get("/api/promotions/stream"), AuthorizationTest.UNAUTHENTICATED);
         }
     }
 
