@@ -422,7 +422,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
         createSuperLike(userId1, recipeId2);
 
         var interactions = recipeRepository.findUserInteractionsByRecipeIds(
-                List.of(recipeId1.toString(), recipeId2.toString()), "user1");
+                List.of(recipeId1.toString(), recipeId2.toString()), userId1.toString());
 
         assertThat(interactions).hasSize(2);
         var interaction1 = interactions.stream().filter(i -> i.recipeId().equals(recipeId1.toString())).findFirst().orElseThrow();

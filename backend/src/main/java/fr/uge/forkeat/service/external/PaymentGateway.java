@@ -1,5 +1,7 @@
 package fr.uge.forkeat.service.external;
 
+// Cette classe ne respecte pas l'archi hexa, il y a une dépendence avec
+// l'api stripe
 import com.stripe.model.Event;
 import fr.uge.forkeat.service.model.payment.PaymentRequest;
 import fr.uge.forkeat.service.model.payment.PaymentResponse;

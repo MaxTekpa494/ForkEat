@@ -45,7 +45,8 @@ public class ProfileService {
         var summaries = recipePersistence.findUserRecipeSummaries(username, RecipeStatus.PUBLISHED, size, page);
         var ids = summaries.items().stream().map(RecipeSummary::id).toList();
         var countsMap = recipePersistence.findRecipeCounts(ids);
-        var interactions = recipePersistence.findUserRecipeInteractions(ids, currentUsername);
+        var currentUserId = userPersistence.findIdByUsernameOrThrow(currentUsername);
+        var interactions = recipePersistence.findUserRecipeInteractions(ids, currentUserId);
         var personalized = summaries.items().stream()
                 .map(s -> {
                     var counts = countsMap.getOrDefault(s.id(), RecipeCounts.ZERO);

@@ -415,7 +415,7 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
         void shouldReturnFalseWhenUserHasNotInteracted() {
             var saved = adapter.save(createRecipe(UUID.randomUUID(), "Recette", RecipeStatus.PUBLISHED));
 
-            var result = adapter.findUserRecipeInteractions(List.of(saved.id()), "other_user");
+            var result = adapter.findUserRecipeInteractions(List.of(saved.id()), UUID.randomUUID());
 
             var interaction = result.getOrDefault(saved.id(), RecipeUserInteraction.NONE);
             assertFalse(interaction.likedByCurrentUser());
@@ -424,7 +424,7 @@ class RecipePersistenceAdapterIntegrationTest extends AbstractIntegrationTest {
 
         @Test
         void shouldReturnEmptyMapForEmptyList() {
-            var result = adapter.findUserRecipeInteractions(List.of(), "other_user");
+            var result = adapter.findUserRecipeInteractions(List.of(), UUID.randomUUID());
 
             assertTrue(result.isEmpty());
         }
