@@ -38,6 +38,8 @@ fun RecipeCard(
     onLike: (UUID) -> Unit = {},
     onUnlike: (UUID) -> Unit = {},
     onSuperLike: (UUID) -> Unit = {},
+    superLikeBasePriceCents: Long? = null,
+    superLikePromoPriceCents: Long? = null,
     onFollow: (UUID) -> Unit = {},
     onUnfollow: (UUID) -> Unit = {},
 ) {
@@ -52,6 +54,8 @@ fun RecipeCard(
 
     if (showSuperLikeConfirm) {
         SuperLikeConfirmDialog(
+            basePriceCents = superLikeBasePriceCents,
+            promoPriceCents = superLikePromoPriceCents,
             onDismiss = { showSuperLikeConfirm = false },
             onConfirm = {
                 showSuperLikeConfirm = false

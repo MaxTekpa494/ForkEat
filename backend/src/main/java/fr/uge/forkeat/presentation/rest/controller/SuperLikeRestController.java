@@ -1,7 +1,9 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
+import fr.uge.forkeat.presentation.dto.superlike.SuperLikeConfigDTO;
 import fr.uge.forkeat.presentation.dto.superlike.SuperLikeHistoryDTO;
 import fr.uge.forkeat.presentation.response.HttpResponse;
+import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.RecipeService;
@@ -29,6 +31,11 @@ public class SuperLikeRestController {
         this.promotionService = promotionService;
         this.authPort = authPort;
         this.userService = userService;
+    }
+
+    @GetMapping("/price")
+    public ResponseEntity<HttpResponse<SuperLikeConfigDTO>> getSuperLikePrice() {
+        return ResponseEntity.ok(new ItemResponse<>(SuperLikeConfigDTO.from(promotionService.getConfig())));
     }
 
     @PostMapping("/{recipeId}")

@@ -5,6 +5,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.TokenManager
+import fr.uge.android.forkeat.promotions.data.api.PromotionApi
+import fr.uge.android.forkeat.promotions.data.dto.PromotionDTO
 import fr.uge.android.forkeat.recipes.data.api.RecipeApi
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
@@ -22,6 +24,13 @@ import java.util.UUID
 class RecipesViewModel(application: Application) : AndroidViewModel(application) {
 
     private val api: RecipeApiService = RecipeApi.service
+    private val promotionApi = PromotionApi.service
+
+    private val _activePromotion = MutableStateFlow<PromotionDTO?>(null)
+    val activePromotion: StateFlow<PromotionDTO?> = _activePromotion.asStateFlow()
+
+    private val _superLikeBasePriceCents = MutableStateFlow<Long?>(null)
+    val superLikeBasePriceCents: StateFlow<Long?> = _superLikeBasePriceCents.asStateFlow()
 
 
 
@@ -83,6 +92,30 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     init {
         loadRecipes(0)
         loadAllergens()
+        loadActivePromotion()
+        loadSuperLikeBasePrice()
+    }
+
+    fun loadSuperLikeBasePrice() {
+        viewModelScope.launch {
+            try {
+                val response = api.getSuperLikePrice()
+                if (response.isSuccessful) {
+                    _superLikeBasePriceCents.value = response.body()?.resource?.priceCents
+                }
+            } catch (_: Exception) {}
+        }
+    }
+
+    fun loadActivePromotion() {
+        viewModelScope.launch {
+            try {
+                val response = promotionApi.getActivePromotion()
+                _activePromotion.value = if (response.isSuccessful) response.body()?.resource else null
+            } catch (_: Exception) {
+                _activePromotion.value = null
+            }
+        }
     }
 
     fun onSearchQueryChange(query: String) {

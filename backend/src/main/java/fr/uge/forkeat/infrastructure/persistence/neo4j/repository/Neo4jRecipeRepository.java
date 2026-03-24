@@ -100,4 +100,16 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
             """)
     List<RecipeNode> getFeed(@Param("username") String username, @Param("offset") long offset, @Param("limit") long limit, @Param("sinceTime") ZonedDateTime sinceTime, @Param("beforeTime") ZonedDateTime beforeTime);
 
+
+    @Query("""
+            MATCH (r:Recipe)
+            WHERE r.deletedAt IS NULL
+            OPTIONAL MATCH (r)<-[l:LIKED]-()
+            OPTIONAL MATCH (r)<-[sl:SUPER_LIKED]-()
+            WITH r.id AS recipeId, count(DISTINCT l) + count(DISTINCT sl) AS score
+            ORDER BY score DESC
+            LIMIT $limit
+            RETURN recipeId
+            """)
+    List<String> findTopLikedRecipeIds(@Param("limit") int limit);
 }

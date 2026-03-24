@@ -53,6 +53,7 @@ fun AdminWalletsScreen(
     onNavigateToRecipes: () -> Unit,
     onNavigateToReports : () -> Unit,
     onNavigateToCreate: () -> Unit,
+    onNavigateToPromotions: () -> Unit,
     onLogout: () -> Unit,
     viewModel: AdminWalletsViewModel = viewModel()
 ) {
@@ -66,6 +67,7 @@ fun AdminWalletsScreen(
         onNavigateToReports = onNavigateToReports,
         onNavigateToWallets = {},
         onNavigateToCreate = onNavigateToCreate,
+        onNavigateToPromotions = onNavigateToPromotions,
         onLogout = onLogout
     ) { innerPadding ->
         PullToRefreshBox(

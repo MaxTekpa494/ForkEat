@@ -31,6 +31,7 @@ import java.time.Instant;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.UUID;
 
 @Service
@@ -203,7 +204,14 @@ public class RecipeService {
       return new PersonalizedRecipe(recipe, counts, interaction, diff);
   }
 
+  public Optional<PersonalizedRecipeSummary> getTopLikedRecipe(String currentUsername) {
+      return recipePersistence.findTopLikedPublishedRecipe(currentUsername);
+  }
+
   public List<Recipe> findByStatus(RecipeStatus status) {
+    if(!authPort.isAdmin() && !authPort.isModerator()){
+      throw new IllegalArgumentException("Can't access !");
+    }
     return recipePersistence.findByStatus(status);
   }
 

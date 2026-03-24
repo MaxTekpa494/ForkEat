@@ -3,7 +3,6 @@ package fr.uge.forkeat.presentation.web.controller;
 import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
 import fr.uge.forkeat.presentation.dto.recipe.PersonalizedRecipeSummaryDTO;
 import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
 import fr.uge.forkeat.presentation.dto.recipe.UpdateRecipeRequest;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.dto.recipe.RecipePaginationDTO;
@@ -11,13 +10,13 @@ import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.web.viewmodel.AuthorRecipesViewModel;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
+import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.SmartSearchConfigService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
-import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeReportType;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
@@ -49,6 +48,7 @@ public class RecipeWebController {
     private final RecipeSmartSearchService smartSearchService;
     private final WalletService walletService;
     private final RecipeReportService recipeReportService;
+    private final PromotionService promotionService;
     private final SmartSearchConfigService smartSearchConfigService;
 
     private final Logger logger = LoggerFactory.getLogger(RecipeWebController.class);
@@ -56,7 +56,7 @@ public class RecipeWebController {
     public RecipeWebController(RecipeService recipeService, UserService userService,
                                AuthenticationPort authPort, RecipeSmartSearchService smartSearchService,
                                WalletService walletService, RecipeReportService recipeReportService,
-                               SmartSearchConfigService smartSearchConfigService) {
+                               PromotionService promotionService, SmartSearchConfigService smartSearchConfigService) {
         this.recipeService = recipeService;
         this.userService = userService;
         this.authPort = authPort;
@@ -64,6 +64,15 @@ public class RecipeWebController {
         this.walletService = walletService;
         this.recipeReportService = recipeReportService;
         this.smartSearchConfigService = smartSearchConfigService;
+        this.promotionService = promotionService;
+    }
+
+    private void addSuperLikePriceToModel(Model model) {
+        model.addAttribute("superLikeBasePriceCents", promotionService.getConfig().priceCents());
+        promotionService.findActive().ifPresentOrElse(
+            promo -> model.addAttribute("superLikePromoPriceCents", promo.priceCents()),
+            () -> model.addAttribute("superLikePromoPriceCents", null)
+        );
     }
 
     @GetMapping("/create")
@@ -129,6 +138,8 @@ public class RecipeWebController {
                 allAllergens
         );
         model.addAttribute("vm", viewModel);
+        model.addAttribute("activePromotion", promotionService.findActive().orElse(null));
+        addSuperLikePriceToModel(model);
         return "recipes/index";
     }
 
@@ -183,6 +194,7 @@ public class RecipeWebController {
         model.addAttribute("recipe", recipeDTO);
         model.addAttribute("isOwner", isOwner);
         model.addAttribute("hasActiveDietaryFlags", hasActiveDietaryFlags);
+        addSuperLikePriceToModel(model);
         logger.info("Recipe {} viewed by {}", recipe, currentUser);
         return "recipes/detail";
     }
@@ -279,6 +291,7 @@ public class RecipeWebController {
             model.addAttribute("recipes", cached != null ? cached : List.of());
         }
 
+        addSuperLikePriceToModel(model);
         return "recipes/smart-search";
     }
 
