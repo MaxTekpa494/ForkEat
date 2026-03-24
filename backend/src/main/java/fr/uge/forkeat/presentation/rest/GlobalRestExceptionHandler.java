@@ -10,6 +10,11 @@ import org.springframework.web.bind.annotation.RestControllerAdvice;
 @RestControllerAdvice(basePackages = {"fr.uge.forkeat.presentation.rest", "fr.uge.forkeat.presentation.external"})
 public class GlobalRestExceptionHandler {
 
+    @ExceptionHandler(ForbiddenOperationException.class)
+    public ResponseEntity<HttpResponse<Void>> handleForbiddenOperation(ForbiddenOperationException e) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ForbiddenResponse(e.getMessage()));
+    }
+
     @ExceptionHandler(RecipeOwnershipException.class)
     public ResponseEntity<HttpResponse<Void>> handleRecipeOwnership(RecipeOwnershipException e) {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(new ForbiddenResponse(e.getMessage()));
