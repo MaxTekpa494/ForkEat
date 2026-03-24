@@ -17,6 +17,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -626,6 +627,10 @@ fun AccountScreen(
     val newPassword by accountViewModel.newPassword.collectAsState()
     val confirmNewPassword by accountViewModel.confirmNewPassword.collectAsState()
 
+    LaunchedEffect(uiState.isDeleted) {
+        if (uiState.isDeleted) onLogout()
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -713,8 +718,19 @@ fun AccountScreen(
     if (uiState.showDeleteModal) {
         DeleteAccountConfirmationDialog(
             isLoading = uiState.isLoading,
-            onConfirm = { accountViewModel.deleteAccount(onLogout) },
+            onConfirm = { accountViewModel.requestAccountDeletion() },
             onDismiss = accountViewModel::closeDeleteModal
+        )
+    }
+
+    if (uiState.showConfirmDeleteModal) {
+        ConfirmPasswordChangeModal(
+            title = "Confirmer la suppression",
+            description = "Un code de vérification a été envoyé à votre adresse email. Entrez-le pour confirmer la suppression définitive de votre compte.",
+            onConfirm = { code -> accountViewModel.confirmAccountDeletion(code) },
+            onDismiss = accountViewModel::closeConfirmDeleteModal,
+            isLoading = uiState.isLoading,
+            errorMessage = uiState.error
         )
     }
 

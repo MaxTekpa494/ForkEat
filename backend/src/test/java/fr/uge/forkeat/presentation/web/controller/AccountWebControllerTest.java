@@ -337,14 +337,34 @@ class AccountWebControllerTest {
     }
 
     @Nested
-    class DeleteAccount {
+    class RequestAccountDeletion {
 
         @Test
         @WithMockUser(username = "testuser")
-        void shouldInvalidateSessionAndRedirectToLogin_WhenDeleteSucceeds() throws Exception {
+        void shouldSendCodeAndRedirectToConfirmAction() throws Exception {
+            when(userService.getUserByUsername("testuser")).thenReturn(localUser);
+            doNothing().when(emailVerificationService).sendAccountDeletionCode(any(), any());
+
+            mockMvc.perform(post("/account/delete-requests").with(csrf()))
+                    .andExpect(status().is3xxRedirection())
+                    .andExpect(redirectedUrl("/account/confirm-action"));
+
+            verify(emailVerificationService).sendAccountDeletionCode(any(), any());
+        }
+    }
+
+    @Nested
+    class ConfirmAccountDeletion {
+
+        @Test
+        @WithMockUser(username = "testuser")
+        void shouldDeleteAndRedirectToLogin_WhenCodeValid() throws Exception {
+            when(userService.getUserByUsername("testuser")).thenReturn(localUser);
+            doNothing().when(emailVerificationService).confirmAccountDeletion(any(), any());
             doNothing().when(userService).deleteAccount("testuser");
 
-            mockMvc.perform(post("/account/delete").with(csrf()))
+            mockMvc.perform(post("/account/delete-requests/confirm").with(csrf())
+                            .param("code", "123456"))
                     .andExpect(status().is3xxRedirection())
                     .andExpect(redirectedUrl("/auth/login?accountDeleted"));
 
@@ -354,20 +374,26 @@ class AccountWebControllerTest {
         @Test
         @WithMockUser(username = "testuser")
         void shouldReturn404_WhenUserNotFound() throws Exception {
+            when(userService.getUserByUsername("testuser")).thenReturn(localUser);
+            doNothing().when(emailVerificationService).confirmAccountDeletion(any(), any());
             doThrow(new ResourceNotFoundException("User not found"))
                     .when(userService).deleteAccount("testuser");
 
-            mockMvc.perform(post("/account/delete").with(csrf()))
+            mockMvc.perform(post("/account/delete-requests/confirm").with(csrf())
+                            .param("code", "123456"))
                     .andExpect(status().isNotFound());
         }
 
         @Test
         @WithMockUser(username = "testuser")
         void shouldReturn404_WhenWalletNotFound() throws Exception {
+            when(userService.getUserByUsername("testuser")).thenReturn(localUser);
+            doNothing().when(emailVerificationService).confirmAccountDeletion(any(), any());
             doThrow(new WalletNotFoundException(UUID.randomUUID()))
                     .when(userService).deleteAccount("testuser");
 
-            mockMvc.perform(post("/account/delete").with(csrf()))
+            mockMvc.perform(post("/account/delete-requests/confirm").with(csrf())
+                            .param("code", "123456"))
                     .andExpect(status().isNotFound());
         }
     }

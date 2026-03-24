@@ -30,7 +30,9 @@ data class AccountUiState(
     val isLoading: Boolean = false,
     val error: String? = null,
     val resendMessage: String? = null,
-    val showDeleteModal: Boolean = false
+    val showDeleteModal: Boolean = false,
+    val showConfirmDeleteModal: Boolean = false,
+    val isDeleted: Boolean = false
 )
 
 class AccountViewModel : ViewModel() {
@@ -208,15 +210,24 @@ class AccountViewModel : ViewModel() {
                     }
                 )
                 if (response.isSuccessful) {
-                    _uiState.value = _uiState.value.copy(
-                        isLoading = false,
-                        showEmailModal = false,
-                        showConfirmEmailModal = true,
-                        error = null
-                    )
                     _currentPasswordEmailConfirm.value = ""
                     _newPassword.value = ""
                     _confirmNewPassword.value = ""
+                    if (!_uiState.value.emailVerified) {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            showEmailModal = false,
+                            error = null
+                        )
+                        loadAccount()
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            showEmailModal = false,
+                            showConfirmEmailModal = true,
+                            error = null
+                        )
+                    }
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
@@ -426,27 +437,54 @@ class AccountViewModel : ViewModel() {
         _uiState.value = _uiState.value.copy(showDeleteModal = false, error = null)
     }
 
-    fun deleteAccount(onLogout: () -> Unit) {
+    fun requestAccountDeletion() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val response = accountService.deleteAccount()
+                val response = accountService.requestAccountDeletion()
                 if (response.isSuccessful) {
-                    onLogout()
+                    if (!_uiState.value.emailVerified) {
+                        _uiState.value = _uiState.value.copy(isLoading = false, showDeleteModal = false, isDeleted = true)
+                    } else {
+                        _uiState.value = _uiState.value.copy(
+                            isLoading = false,
+                            showDeleteModal = false,
+                            showConfirmDeleteModal = true,
+                            error = null
+                        )
+                    }
                 } else {
                     _uiState.value = _uiState.value.copy(
                         isLoading = false,
-                        showDeleteModal = false,
-                        error = "Erreur lors de la suppression du compte."
+                        error = "Erreur lors de la suppression. Veuillez réessayer."
                     )
                 }
             } catch (e: Exception) {
-                _uiState.value = _uiState.value.copy(
-                    isLoading = false,
-                    showDeleteModal = false,
-                    error = "Erreur: ${e.message}"
-                )
+                _uiState.value = _uiState.value.copy(isLoading = false, error = "Erreur: ${e.message}")
             }
         }
+    }
+
+    fun confirmAccountDeletion(code: String) {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+            try {
+                val response = accountService.confirmAccountDeletion(code)
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(isLoading = false, showConfirmDeleteModal = false, isDeleted = true)
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Code invalide ou expiré."
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(isLoading = false, error = "Erreur: ${e.message}")
+            }
+        }
+    }
+
+    fun closeConfirmDeleteModal() {
+        _uiState.value = _uiState.value.copy(showConfirmDeleteModal = false, error = null)
     }
 }

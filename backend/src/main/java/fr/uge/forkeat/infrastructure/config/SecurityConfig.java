@@ -25,6 +25,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.XorCsrfTokenRequestAttributeHandler;
 
+
 @Configuration
 @EnableWebSecurity
 @EnableMethodSecurity
@@ -78,16 +79,28 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/api/wallet/webhooks/**").permitAll()
 						.requestMatchers("/api/auth/me").authenticated()
-                        .requestMatchers("/api/recipes/*/like").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/auth/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/promotions/active", "/api/promotions/upcoming").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/super-likes/price").permitAll()
-						.requestMatchers("/api/promotions/stream").authenticated()
+						.requestMatchers(HttpMethod.GET, "/api/super-likes/history").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers(HttpMethod.POST, "/api/super-likes/**").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers(HttpMethod.GET, "/api/promotions/stream").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/recipes/following").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers(HttpMethod.GET, "/api/recipes/my-recipes").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
 						.requestMatchers("/api/recipes/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/wallet/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/redistribution/**").hasAuthority("EMAIL_VERIFIED")
-						.requestMatchers("/api/account/**").authenticated()
+						.requestMatchers(HttpMethod.POST, "/api/profile/**").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers(HttpMethod.PUT, "/api/profile/**").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers(HttpMethod.DELETE, "/api/profile/**").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers(HttpMethod.GET, "/api/account/**").authenticated()
+						.requestMatchers("/api/account/email-confirmations").authenticated()
+						.requestMatchers(HttpMethod.POST, "/api/account/email-change-requests").authenticated()
+						.requestMatchers(HttpMethod.PUT, "/api/account/email-change-requests").authenticated()
+						.requestMatchers(HttpMethod.POST, "/api/account/delete-requests").authenticated()
+						.requestMatchers(HttpMethod.PUT, "/api/account/delete-requests").authenticated()
+						.requestMatchers("/api/account/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/profile/**").authenticated()
 						.requestMatchers("/api/admin/**").hasRole("ADMIN")
 						.requestMatchers("/api/moderator/**").hasRole("MODERATOR")
@@ -117,21 +130,29 @@ public class SecurityConfig {
 						.accessDeniedHandler(customAccessDeniedHandler))
 
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/", "/auth/**", "/login", "/error/**", "/css/**", "/js/**", "/images/**").permitAll()
-						.requestMatchers(HttpMethod.GET, "/recipes/create", "/recipes/create-variant").hasAuthority("EMAIL_VERIFIED")
-						.requestMatchers("/recipes/my-recipes").authenticated()
-						.requestMatchers("/recipes/smart-search").authenticated()
+						.requestMatchers("/error/**", "/css/**", "/js/**", "/images/**").permitAll() // Injection js ?
+						.requestMatchers("/").permitAll()
+						.requestMatchers("/auth/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/recipes/my-recipes").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers(HttpMethod.GET, "/recipes/create", "/recipes/create-variant", "/recipes/following",
+														 "/recipes/smart-search", "/recipes/*/edit").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
-						.requestMatchers("/recipes/create", "/recipes/*/edit").hasAuthority("EMAIL_VERIFIED")
-						.requestMatchers("/recipes/*/delete").authenticated() // edit et delete c pas EMAIL verified
-																				// à corriger quand on les fait
+						.requestMatchers("/recipes/**").hasAuthority("EMAIL_VERIFIED")
 
 						.requestMatchers("/wallet/webhooks/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/wallet").authenticated()
 						.requestMatchers("/wallet/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/admin/**").hasRole("ADMIN")
 						.requestMatchers("/moderator/**").hasRole("MODERATOR")
+						.requestMatchers(HttpMethod.POST, "/profile/*/follow", "/profile/*/unfollow", "/profile/*/report").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/profile/**").authenticated()
+						.requestMatchers(HttpMethod.GET, "/account/email-verification-required", "/account/confirm-action", "/account").authenticated()
+						.requestMatchers(HttpMethod.POST, "/account/email-confirmations", "/account/resend-verification").authenticated()
+						.requestMatchers(HttpMethod.POST, "/account/email-change-requests").authenticated()
+						.requestMatchers(HttpMethod.POST, "/account/email-change-requests/confirm").authenticated()
+						.requestMatchers(HttpMethod.POST, "/account/delete-requests").authenticated()
+						.requestMatchers(HttpMethod.POST, "/account/delete-requests/confirm").authenticated()
+						.requestMatchers("/account/**").hasAuthority("EMAIL_VERIFIED")
 						.anyRequest().authenticated())
 
 				.addFilterBefore(new RateLimitFilter(rateLimitProperties), UsernamePasswordAuthenticationFilter.class)

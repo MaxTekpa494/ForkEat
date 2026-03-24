@@ -69,7 +69,7 @@ public class EmailVerificationService {
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
-    public void confirmEmail(String tokenValue) {
+    public User confirmEmail(String tokenValue) {
         var token = tokenPersistence.findByToken(tokenValue)
                 .orElseThrow(() -> new VerificationException("Lien de confirmation invalide"));
 
@@ -84,6 +84,8 @@ public class EmailVerificationService {
 
         userPersistence.updateEmailVerified(token.userId(), true);
         tokenPersistence.deleteByUserIdAndType(token.userId(), VerificationTokenType.EMAIL_CONFIRMATION);
+        return userPersistence.findById(token.userId())
+                .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
     }
 
     @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
@@ -207,6 +209,40 @@ public class EmailVerificationService {
                 .orElseThrow(() -> new VerificationException("Utilisateur introuvable"));
 
         return new ValidatedEmailChange(user, token);
+    }
+
+    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 15)
+    public void sendAccountDeletionCode(UUID userId, String email) {
+        tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.ACCOUNT_DELETION);
+
+        var code = generateSixDigitCode();
+        var token = new VerificationToken(
+                UUID.randomUUID(), userId, code,
+                VerificationTokenType.ACCOUNT_DELETION, null, null,
+                Instant.now().plus(CODE_EXPIRY_MINUTES, ChronoUnit.MINUTES),
+                Instant.now()
+        );
+        tokenPersistence.save(token);
+
+        mailGateway.send(email, "ForkEat - Confirmation de suppression de compte",
+                "Votre code de confirmation pour la suppression de votre compte : " + code + "\n\n"
+                        + "Ce code expire dans 10 minutes.\n"
+                        + "Si vous n'avez pas demandé cette suppression, ignorez ce message et sécurisez votre compte.");
+    }
+
+    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
+    public void confirmAccountDeletion(UUID userId, String code) {
+        Objects.requireNonNull(code);
+        var token = tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.ACCOUNT_DELETION)
+                .orElseThrow(() -> new VerificationException("Aucune suppression de compte en attente"));
+        if (token.isExpired()) {
+            tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.ACCOUNT_DELETION);
+            throw new VerificationException("Le code a expiré. Veuillez recommencer.");
+        }
+        if (!token.token().equals(code)) {
+            throw new VerificationException("Code incorrect");
+        }
+        tokenPersistence.deleteByUserIdAndType(userId, VerificationTokenType.ACCOUNT_DELETION);
     }
 
     private void sendChangePasswordCodeMail(String email, String code) {

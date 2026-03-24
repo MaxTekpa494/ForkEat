@@ -72,6 +72,7 @@ class SmartSearchViewModel(application: Application) : AndroidViewModel(applicat
                     _results.value = emptyList()
                     when (response.code()) {
                         402 -> _error.value = "Solde insuffisant pour effectuer une recherche intelligente."
+                        403 -> _error.value = "Vous devez confirmer votre adresse email pour utiliser cette fonctionnalité."
                         422 -> _isModerationError.value = true
                         else -> _error.value = "Une erreur est survenue (${response.code()}). Veuillez réessayer."
                     }

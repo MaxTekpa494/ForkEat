@@ -709,7 +709,7 @@
                     body: new FormData(form)
                 });
 
-                if (response.url.includes('/login')) {
+                if (response.redirected && !new URL(response.url).pathname.startsWith('/recipes/')) {
                     window.location.href = response.url;
                     return;
                 }
@@ -776,6 +776,11 @@
                     const modal = document.getElementById('super-like-modal');
                     modal.classList.add('hidden');
                     modal.classList.remove('flex');
+
+                    if (response.redirected && !new URL(response.url).pathname.startsWith('/recipes/')) {
+                        window.location.href = response.url;
+                        return;
+                    }
 
                     if (!response.ok) {
                         if (response.status === 402) {
@@ -854,7 +859,7 @@
                     body: new FormData(form)
                 });
 
-                if (response.url.includes('/login')) {
+                if (response.redirected && !new URL(response.url).pathname.startsWith('/recipes/')) {
                     window.location.href = response.url;
                     return;
                 }

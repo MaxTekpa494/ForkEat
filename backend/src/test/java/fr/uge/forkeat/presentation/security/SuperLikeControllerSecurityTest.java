@@ -76,12 +76,12 @@ public class SuperLikeControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testSuperLikeRecipe() throws Exception {
-            testRights(post("/api/super-likes/" + recipeId), AuthorizationTest.MEMBER);
+            testRights(post("/api/super-likes/" + recipeId), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test
         void testGetSuperLikeHistory() throws Exception {
-            testRights(get("/api/super-likes/history"), AuthorizationTest.MEMBER);
+            testRights(get("/api/super-likes/history"), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test

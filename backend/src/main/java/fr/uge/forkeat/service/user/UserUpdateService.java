@@ -65,6 +65,46 @@ public class UserUpdateService {
     return userPersistence.updateUser(updatedUser);
   }
 
+  /**
+   * For unverified users: directly update the email (no code needed since old email is untrusted).
+   * Resets emailVerified to false so the user must confirm the new address.
+   */
+  @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 10)
+  public User changeEmailDirectly(String username, String newEmail, String currentPassword, String newPassword, String confirmPassword) {
+    var user = userService.getUserByUsername(username);
+
+    if (user.authMode() == AuthMode.LOCAL) {
+      var storedHash = userPersistence.findPasswordHashByUsername(username);
+      if (!passwordHasherPort.matches(currentPassword, storedHash)) {
+        throw new CheckProfileUpdateFailureException("Incorrect password");
+      }
+    }
+
+    if (!user.email().equals(newEmail) && userPersistence.existsByEmail(newEmail)) {
+      throw new CheckProfileUpdateFailureException("Cet email est déjà utilisé");
+    }
+
+    if (user.authMode() == AuthMode.GOOGLE && newPassword != null && !newPassword.isBlank()) {
+      if (!newPassword.equals(confirmPassword)) {
+        throw new CheckProfileUpdateFailureException("Les mots de passe ne correspondent pas");
+      }
+      try {
+        PasswordValidator.validate(newPassword);
+      } catch (RegisterFailureException e) {
+        throw new CheckProfileUpdateFailureException(e.getMessage());
+      }
+      var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
+              newEmail, user.role(), user.status(), AuthMode.LOCAL,
+              user.createdAt(), Instant.now(), false);
+      return userPersistence.updateUserAndPassword(updatedUser, passwordHasherPort.hash(newPassword));
+    }
+
+    var updatedUser = new User(user.id(), user.username(), user.firstName(), user.lastName(),
+            newEmail, user.role(), user.status(), user.authMode(),
+            user.createdAt(), Instant.now(), false);
+    return userPersistence.updateUser(updatedUser);
+  }
+
   @Transactional(
           isolation = Isolation.REPEATABLE_READ,
           timeout = 10

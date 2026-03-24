@@ -84,7 +84,6 @@ public class RecipeRestController {
   }
 
     @GetMapping("/following")
-    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<HttpResponse<PersonalizedRecipeSummaryDTO>> getRecipesFeed(@RequestParam(defaultValue = "0") int page,
                                                                                      @RequestParam(required = false) Instant instant) {
       instant = instant == null ? Instant.now() : instant;
@@ -156,6 +155,13 @@ public class RecipeRestController {
   public ResponseEntity<?> unlikeRecipe(@PathVariable UUID id) {
     var user = userService.getUserByUsername(authPort.extractUsername());
     recipeService.unlikeRecipe(user.id(), id);
+    return ResponseEntity.ok().build();
+  }
+
+  @PostMapping("/{id}/super-like")
+  public ResponseEntity<?> superLikeRecipe(@PathVariable UUID id) {
+    var user = userService.getUserByUsername(authPort.extractUsername());
+    recipeService.superLikeRecipe(user.id(), id);
     return ResponseEntity.ok().build();
   }
 

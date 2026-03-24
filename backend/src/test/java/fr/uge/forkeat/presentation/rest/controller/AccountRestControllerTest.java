@@ -433,16 +433,35 @@ class AccountRestControllerTest {
         }
     }
 
-    // ========== DELETE /api/account ==========
+    // ========== POST /api/account/delete-requests ==========
 
     @Nested
-    class DeleteAccount {
+    class RequestAccountDeletion {
+
+        @Test
+        void shouldSendCodeSuccessfully() throws Exception {
+            when(userService.getUserByUsername("viewer")).thenReturn(buildUser("viewer"));
+            doNothing().when(emailVerificationService).sendAccountDeletionCode(any(), any());
+
+            mockMvc.perform(post("/api/account/delete-requests"))
+                    .andExpect(status().isOk());
+
+            verify(emailVerificationService).sendAccountDeletionCode(any(), any());
+        }
+    }
+
+    // ========== PUT /api/account/delete-requests ==========
+
+    @Nested
+    class ConfirmAccountDeletion {
 
         @Test
         void shouldDeleteAccountSuccessfully() throws Exception {
+            when(userService.getUserByUsername("viewer")).thenReturn(buildUser("viewer"));
+            doNothing().when(emailVerificationService).confirmAccountDeletion(any(), any());
             doNothing().when(userService).deleteAccount("viewer");
 
-            mockMvc.perform(delete("/api/account"))
+            mockMvc.perform(put("/api/account/delete-requests").param("code", "123456"))
                     .andExpect(status().isOk());
 
             verify(userService).deleteAccount("viewer");
@@ -450,19 +469,23 @@ class AccountRestControllerTest {
 
         @Test
         void shouldReturn404WhenUserNotFound() throws Exception {
+            when(userService.getUserByUsername("viewer")).thenReturn(buildUser("viewer"));
+            doNothing().when(emailVerificationService).confirmAccountDeletion(any(), any());
             doThrow(new ResourceNotFoundException("User not found: viewer"))
                     .when(userService).deleteAccount("viewer");
 
-            mockMvc.perform(delete("/api/account"))
+            mockMvc.perform(put("/api/account/delete-requests").param("code", "123456"))
                     .andExpect(status().isNotFound());
         }
 
         @Test
         void shouldReturn404WhenWalletNotFound() throws Exception {
+            when(userService.getUserByUsername("viewer")).thenReturn(buildUser("viewer"));
+            doNothing().when(emailVerificationService).confirmAccountDeletion(any(), any());
             doThrow(new WalletNotFoundException(UUID.randomUUID()))
                     .when(userService).deleteAccount("viewer");
 
-            mockMvc.perform(delete("/api/account"))
+            mockMvc.perform(put("/api/account/delete-requests").param("code", "123456"))
                     .andExpect(status().isNotFound());
         }
     }

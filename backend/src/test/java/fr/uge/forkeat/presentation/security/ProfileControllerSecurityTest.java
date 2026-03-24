@@ -111,18 +111,18 @@ public class ProfileControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testFollow() throws Exception {
-            testRights(put("/api/profile/{username}/follow", "MaximusPrime"), AuthorizationTest.MEMBER);
+            testRights(put("/api/profile/{username}/follow", "MaximusPrime"), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test
         void testUnFollow() throws Exception {
-            testRights(delete("/api/profile/{username}/follow", "MaximusPrime"), AuthorizationTest.MEMBER);
+            testRights(delete("/api/profile/{username}/follow", "MaximusPrime"), AuthorizationTest.EMAIL_VERIFIED);
         }
 
         @Test
         void testReports() throws Exception {
             var mapper = new ObjectMapper();
-            testRights(post("/api/profile/{username}/reports", "MaximusPrime").contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(new UserReportRequestDTO(UserReportType.SPAM, "a"))), AuthorizationTest.MEMBER);
+            testRights(post("/api/profile/{username}/reports", "MaximusPrime").contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(new UserReportRequestDTO(UserReportType.SPAM, "a"))), AuthorizationTest.EMAIL_VERIFIED);
         }
     }
 
