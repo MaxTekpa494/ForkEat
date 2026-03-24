@@ -65,15 +65,7 @@ public class SecurityConfig {
 	@Bean
 	@Order(1)
 	public SecurityFilterChain apiFilterChain(HttpSecurity http) {
-		if (csrfEnabled) {
-			XorCsrfTokenRequestAttributeHandler requestHandler = new XorCsrfTokenRequestAttributeHandler();
-			requestHandler.setCsrfRequestAttributeName(null);
-			http.csrf(csrf -> csrf
-							.csrfTokenRequestHandler(requestHandler)
-							.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
-		} else {
-			http.csrf(AbstractHttpConfigurer::disable);
-		}
+		http.csrf(AbstractHttpConfigurer::disable);
 
 		return http.securityMatcher("/api/**")
 				.sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
@@ -84,10 +76,10 @@ public class SecurityConfig {
 							response.getWriter().write("{\"error\": \"Unauthorized\"}");
 						}))
 				.authorizeHttpRequests(auth -> auth
+						.requestMatchers("/api/wallet/webhooks/**").permitAll()
 						.requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers("/api/recipes/*/like").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/auth/**").permitAll()
-						.requestMatchers("/api/wallet/webhooks/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
 						.requestMatchers("/api/recipes/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/wallet/**").hasAuthority("EMAIL_VERIFIED")
@@ -112,7 +104,8 @@ public class SecurityConfig {
 					requestHandler.setCsrfRequestAttributeName(null);
 					http.csrf(csrf -> csrf
 									.csrfTokenRequestHandler(requestHandler)
-									.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()));
+									.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse())
+									.ignoringRequestMatchers("/wallet/webhooks/**"));
 				} else {
 					http.csrf(AbstractHttpConfigurer::disable);
 				}
