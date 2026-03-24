@@ -9,6 +9,7 @@ import fr.uge.forkeat.service.model.superlike.PromotionStatus;
 import fr.uge.forkeat.service.model.superlike.SuperLikeConfig;
 import fr.uge.forkeat.service.persistence.PromotionPersistence;
 import fr.uge.forkeat.service.persistence.SuperLikeConfigPersistence;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -33,13 +34,16 @@ class PromotionServiceTest {
     private PromotionPersistence promotionPersistence;
     @Mock
     private SuperLikeConfigPersistence superLikeConfigPersistence;
+    @Mock
+    private AuthenticationPort authenticationPort;
 
     private PromotionService promotionService;
     private SuperLikeConfig defaultConfig;
 
     @BeforeEach
     void setUp() {
-        promotionService = new PromotionService(promotionPersistence, superLikeConfigPersistence);
+        lenient().when(authenticationPort.isAdmin()).thenReturn(true);
+        promotionService = new PromotionService(promotionPersistence, superLikeConfigPersistence, authenticationPort);
         defaultConfig = new SuperLikeConfig(UUID.randomUUID(), 100L, new BigDecimal("0.40"), Instant.now());
     }
 

@@ -60,13 +60,15 @@ public class UserCDCHandler implements CDCTableHandler {
         }
         userNodeClient.reassignRecipesToSystemEarnings(id);
         logger.info("Reassigned recipes of user {} to system_earnings.", id);
-        userNodeClient.deleteAllUserRelationships(id);
-        if (userNodeClient.hasSuperLikedRelationships(id)) {
-            // Le noeud User est conservé et marqué comme supprimé pour le batch mensuel
+        if (userNodeClient.hasRecipeInteractionRelationships(id)) {
+            // L'utilisateur a des interactions avec des recettes (LIKED, FOLLOWS_RECIPE, SUPER_LIKED)
+            // On conserve ces relations pour ne pas altérer les compteurs des recettes
+            userNodeClient.deleteFollowRelationships(id);
             userNodeClient.markAsDeleted(id);
-            logger.info("User {} marked as deleted. Node kept for SUPER_LIKED financial records.", id);
+            logger.info("User {} marked as deleted. Recipe interactions (likes/follows/superLikes) preserved.", id);
         } else {
-            // Pas de SUPER_LIKED, suppression complète du nœud
+            // Aucune interaction avec des recettes, suppression complète
+            userNodeClient.deleteAllUserRelationships(id);
             userNodeClient.deleteUserNode(id);
             logger.info("Deleted user node: {}", id);
         }
