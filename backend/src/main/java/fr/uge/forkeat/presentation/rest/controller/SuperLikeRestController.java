@@ -39,7 +39,7 @@ public class SuperLikeRestController {
     }
 
     @PostMapping("/{recipeId}")
-    public ResponseEntity<?> superLikeRecipe(@PathVariable UUID recipeId) {
+    public ResponseEntity<HttpResponse<Void>> superLikeRecipe(@PathVariable UUID recipeId) {
         var user = userService.getUserByUsername(authPort.extractUsername());
         recipeService.superLikeRecipe(user.id(), recipeId);
         return ResponseEntity.ok().build();

@@ -104,7 +104,7 @@ public class AuthControllerSecurityTest extends AbstractIntegrationTest {
         doNothing().when(userUpdateService).confirmForgotPasswordChange(any(), any(), any(), any());
         when(userRegistrationService.registerUser(any())).thenReturn(createUser(UUID.randomUUID()));
         doNothing().when(emailVerificationService).sendEmailConfirmation(any(), any());
-        doNothing().when(emailVerificationService).confirmEmail(any());
+        when(emailVerificationService.confirmEmail(any())).thenReturn(createUser(UUID.randomUUID()));
     }
 
     @Nested
@@ -214,12 +214,7 @@ public class AuthControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testEmailVerificationRequired() throws Exception {
-            testRightsMVCNoRedirect(get("/auth/email-verification-required"), AuthorizationTest.UNAUTHENTICATED);
-        }
-
-        @Test
-        void testResendVerification() throws Exception {
-            testRightsMVCNoRedirect(post("/auth/resend-verification"), AuthorizationTest.UNAUTHENTICATED);
+            testRightsMVCNoRedirect(get("/account/email-verification-required"), AuthorizationTest.MEMBER);
         }
 
         @Test

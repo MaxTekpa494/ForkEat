@@ -23,6 +23,7 @@ data class RegisterUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isSuccess: Boolean = false,
+    val showEmailSentBanner: Boolean = false,
 )
 
 class RegisterViewModel(application: Application) : AndroidViewModel(application) {
@@ -47,7 +48,7 @@ class RegisterViewModel(application: Application) : AndroidViewModel(application
             try {
                 val response = ForkEatApi.authService.register(RegisterRequest(firstname, lastname, email, username, password))
                 if (response.isSuccessful) {
-                    _uiState.value = RegisterUiState(isSuccess = true)
+                    _uiState.value = RegisterUiState(isSuccess = true, showEmailSentBanner = true)
                 } else {
                     _uiState.value = RegisterUiState(
                         errorMessage = "Identifiant et/ou mot de passe incorrect"

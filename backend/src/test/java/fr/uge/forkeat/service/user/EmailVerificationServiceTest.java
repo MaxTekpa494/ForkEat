@@ -116,8 +116,10 @@ class EmailVerificationServiceTest {
             var userId = UUID.randomUUID();
             var token = createToken(userId, VerificationTokenType.EMAIL_CONFIRMATION, "valid-token",
                     null, Instant.now().plus(1, ChronoUnit.HOURS));
+            var user = createUser(userId);
 
             when(tokenPersistence.findByToken("valid-token")).thenReturn(Optional.of(token));
+            when(userPersistence.findById(userId)).thenReturn(Optional.of(user));
 
             service.confirmEmail("valid-token");
 
