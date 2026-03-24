@@ -70,13 +70,13 @@ public interface RecipePersistence {
 
   Map<UUID, RecipeCounts> findRecipeCounts(List<UUID> recipeIds);
 
-  RecipeUserInteraction findUserRecipeInteraction(UUID recipeId, String currentUsername);
+  RecipeUserInteraction findUserRecipeInteraction(UUID recipeId, UUID userId);
 
-  Map<UUID, RecipeUserInteraction> findUserRecipeInteractions(List<UUID> recipeIds, String currentUsername);
+  Map<UUID, RecipeUserInteraction> findUserRecipeInteractions(List<UUID> recipeIds, UUID userId);
 
   long countByAuthorUsername(String username);
 
-  Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe(String currentUsername);
+  Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe(UUID userId);
 
   void likeRecipe(UUID userId, UUID recipeId);
 

@@ -97,9 +97,7 @@ public class RecipeSmartSearchService {
     debit(user.id(), config.cost());
     var ids = summaries.stream().map(RecipeSummary::id).toList();
     var countsMap = recipePersistence.findRecipeCounts(ids);
-    var interactionsMap = currentUser != null
-            ? recipePersistence.findUserRecipeInteractions(ids, currentUser)
-            : Map.<UUID, RecipeUserInteraction>of();
+    var interactionsMap = recipePersistence.findUserRecipeInteractions(ids, user.id());
 
     return summaries.stream()
             .map(s -> new PersonalizedRecipeSummary(

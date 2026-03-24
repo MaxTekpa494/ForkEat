@@ -11,7 +11,8 @@ import org.springframework.stereotype.Service;
 import java.io.IOException;
 import java.security.GeneralSecurityException;
 import java.util.List;
-
+// Cette classe ne respecte pas l'architecture hexa, il y a des dépendences
+// directe avec google
 @Service
 public class GoogleTokenVerificationService {
 

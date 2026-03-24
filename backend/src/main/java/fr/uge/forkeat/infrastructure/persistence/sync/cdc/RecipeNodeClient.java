@@ -99,7 +99,8 @@ public class RecipeNodeClient {
             MATCH (u:User {username: $systemUsername})
             OPTIONAL MATCH (:User)-[oldPub:PUBLISHED]->(r)
             DELETE oldPub
-            MERGE (u)-[:PUBLISHED {date: datetime()}]->(r)
+            MERGE (u)-[rel:PUBLISHED]->(r)
+            ON CREATE SET rel.date = datetime()
             """;
         neo4jClient.query(cypher)
             .bind(recipeId).to("recipeId")

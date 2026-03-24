@@ -190,8 +190,9 @@ public class RecipeService {
           throw new RecipeNotFoundException(id);
       }
       var counts = recipePersistence.findRecipeCounts(id);
-      var interaction = currentUsername != null
-              ? recipePersistence.findUserRecipeInteraction(id, currentUsername)
+      var currentUserId = currentUsername != null ? userIdentityPort.findIdByUsername(currentUsername).orElse(null) : null;
+      var interaction = currentUserId != null
+              ? recipePersistence.findUserRecipeInteraction(id, currentUserId)
               : RecipeUserInteraction.NONE;
       RecipeDiff diff = null;
       if (recipe.isVariant()) {
@@ -205,7 +206,8 @@ public class RecipeService {
   }
 
   public Optional<PersonalizedRecipeSummary> getTopLikedRecipe(String currentUsername) {
-      return recipePersistence.findTopLikedPublishedRecipe(currentUsername);
+      var userId = currentUsername != null ? userIdentityPort.findIdByUsername(currentUsername).orElse(null) : null;
+      return recipePersistence.findTopLikedPublishedRecipe(userId);
   }
 
   public List<Recipe> findByStatus(RecipeStatus status) {
@@ -244,8 +246,9 @@ public class RecipeService {
 
     var ids = summaries.stream().map(RecipeSummary::id).toList();
     var countsMap = recipePersistence.findRecipeCounts(ids);
-    var interactionsMap = currentUsername != null
-            ? recipePersistence.findUserRecipeInteractions(ids, currentUsername)
+    var currentUserId = currentUsername != null ? userIdentityPort.findIdByUsername(currentUsername).orElse(null) : null;
+    var interactionsMap = currentUserId != null
+            ? recipePersistence.findUserRecipeInteractions(ids, currentUserId)
             : Map.<UUID, RecipeUserInteraction>of();
 
     var personalized = summaries.stream()
@@ -269,8 +272,9 @@ public class RecipeService {
 
         var ids = summaries.stream().map(RecipeSummary::id).toList();
         var countsMap = recipePersistence.findRecipeCounts(ids);
-        var interactionsMap = currentUsername != null
-                ? recipePersistence.findUserRecipeInteractions(ids, currentUsername)
+        var currentUserId = currentUsername != null ? userIdentityPort.findIdByUsername(currentUsername).orElse(null) : null;
+        var interactionsMap = currentUserId != null
+                ? recipePersistence.findUserRecipeInteractions(ids, currentUserId)
                 : Map.<UUID, RecipeUserInteraction>of();
 
         var personalized = summaries.stream()
