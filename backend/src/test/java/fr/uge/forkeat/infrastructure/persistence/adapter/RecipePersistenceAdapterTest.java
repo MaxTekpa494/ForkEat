@@ -1147,6 +1147,7 @@ class RecipePersistenceAdapterTest {
 
                 when(neo4jRecipeRepository.getFeed(USERNAME, 0L, 20L, SINCE_TIME_ZONED, BEFORE_TIME_ZONED))
                         .thenReturn(List.of(recipeNode));
+                when(neo4jRecipeRepository.countFeedRelationshipsBefore(any(), any())).thenReturn(1)
                 when(recipeRepository.findSummariesByIds(any()))
                         .thenReturn(List.of(summaryView));
 
@@ -1243,6 +1244,7 @@ class RecipePersistenceAdapterTest {
                         .thenReturn(nodes);
                 when(recipeRepository.findSummariesByIds(any()))
                         .thenReturn(List.of(summaryView, summaryView, summaryView));
+                when(neo4jRecipeRepository.countFeedRelationshipsBefore(any(), any())).thenReturn(3L);
 
                 // Act
                 var result = adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, 0);
