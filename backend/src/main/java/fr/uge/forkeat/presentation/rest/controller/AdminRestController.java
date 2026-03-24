@@ -3,6 +3,8 @@ package fr.uge.forkeat.presentation.rest.controller;
 import fr.uge.forkeat.presentation.dto.admin.AdminRecipeStatsDTO;
 import fr.uge.forkeat.presentation.dto.admin.AdminUserStatsDTO;
 import fr.uge.forkeat.presentation.dto.admin.PlatformWalletDTO;
+import fr.uge.forkeat.presentation.dto.admin.PlatformWalletTransactionDTO;
+import fr.uge.forkeat.service.model.SortOrder;
 import fr.uge.forkeat.presentation.dto.redistribution.RedistributionChainEntryDTO;
 import fr.uge.forkeat.service.RedistributionService;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
@@ -123,6 +125,15 @@ public class AdminRestController {
     public ResponseEntity<PlatformWalletDTO> getRedistributionWallet() {
         var wallet = platformWalletService.getWallet(PlatformWalletType.REDISTRIBUTION);
         return ResponseEntity.ok(new PlatformWalletDTO(wallet.type().name(), wallet.balance(), wallet.updatedAt()));
+    }
+
+    @GetMapping("/wallets/transactions")
+    public ResponseEntity<List<PlatformWalletTransactionDTO>> getWalletTransactions() {
+        var transactions = platformWalletService.getTransactionHistory(SortOrder.DESC).stream()
+                .map(t -> new PlatformWalletTransactionDTO(
+                        t.id(), t.walletType().name(), t.amountCents(), t.reason(), t.referenceId(), t.createdAt()))
+                .toList();
+        return ResponseEntity.ok(transactions);
     }
 
     @GetMapping("/redistribution")

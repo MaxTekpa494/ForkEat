@@ -270,6 +270,13 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
+    public void reassignRecipesToUser(UUID fromUserId, UUID toUserId) {
+        Objects.requireNonNull(fromUserId);
+        Objects.requireNonNull(toUserId);
+        recipeRepository.reassignAuthor(fromUserId, toUserId);
+    }
+
+    @Override
     public Recipe updateStatus(UUID id, RecipeStatus status) {
     Objects.requireNonNull(id);
     Objects.requireNonNull(status);

@@ -10,6 +10,8 @@ import fr.uge.android.forkeat.admin.data.dto.PlatformWalletDTO
 import fr.uge.android.forkeat.admin.data.dto.SuperLikeConfigDTO
 import fr.uge.android.forkeat.admin.data.dto.UpdatePromotionRequest
 import fr.uge.android.forkeat.admin.data.dto.UpdateSuperLikeConfigRequest
+import fr.uge.android.forkeat.admin.data.dto.PlatformWalletTransactionDTO
+import fr.uge.android.forkeat.network.dto.UserDTO
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.dto.UserDTO
 import fr.uge.android.forkeat.promotions.data.dto.PromotionDTO
@@ -44,6 +46,9 @@ interface AdminApiService {
 
     @GET("api/admin/wallets/redistribution")
     suspend fun getRedistributionWallet(): Response<PlatformWalletDTO>
+
+    @GET("api/admin/wallets/transactions")
+    suspend fun getWalletTransactions(): Response<List<PlatformWalletTransactionDTO>>
 
     @GET("api/admin/admins")
     suspend fun getAdmins(): Response<AdminUsersListResponse>

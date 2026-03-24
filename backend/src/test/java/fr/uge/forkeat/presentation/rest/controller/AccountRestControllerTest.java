@@ -25,6 +25,8 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.UUID;
 
+import fr.uge.forkeat.service.exception.WalletNotFoundException;
+
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
@@ -428,6 +430,40 @@ class AccountRestControllerTest {
                                     {"newPassword":"NewPass1!","confirmPassword":"NewPass1!"}
                                     """))
                     .andExpect(status().isBadRequest());
+        }
+    }
+
+    // ========== DELETE /api/account ==========
+
+    @Nested
+    class DeleteAccount {
+
+        @Test
+        void shouldDeleteAccountSuccessfully() throws Exception {
+            doNothing().when(userService).deleteAccount("viewer");
+
+            mockMvc.perform(delete("/api/account"))
+                    .andExpect(status().isOk());
+
+            verify(userService).deleteAccount("viewer");
+        }
+
+        @Test
+        void shouldReturn404WhenUserNotFound() throws Exception {
+            doThrow(new ResourceNotFoundException("User not found: viewer"))
+                    .when(userService).deleteAccount("viewer");
+
+            mockMvc.perform(delete("/api/account"))
+                    .andExpect(status().isNotFound());
+        }
+
+        @Test
+        void shouldReturn404WhenWalletNotFound() throws Exception {
+            doThrow(new WalletNotFoundException(UUID.randomUUID()))
+                    .when(userService).deleteAccount("viewer");
+
+            mockMvc.perform(delete("/api/account"))
+                    .andExpect(status().isNotFound());
         }
     }
 }

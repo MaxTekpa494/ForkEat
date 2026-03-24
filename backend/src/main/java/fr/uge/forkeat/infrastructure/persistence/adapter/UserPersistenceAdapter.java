@@ -224,6 +224,12 @@ public class UserPersistenceAdapter implements UserPersistence {
 		);
 	}
 
+	@Override
+	public void deleteById(UUID userId) {
+		Objects.requireNonNull(userId);
+		userRepository.deleteById(userId);
+	}
+
 	private UserEntity loadAndApplyUserFields(User user) {
 		var existing = userRepository.findById(user.id())
 						.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + user.id()));

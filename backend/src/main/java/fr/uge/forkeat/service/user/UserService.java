@@ -1,12 +1,18 @@
 package fr.uge.forkeat.service.user;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
+import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
+import fr.uge.forkeat.service.persistence.PlatformWalletPersistence;
+import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.persistence.UserPersistence;
+import fr.uge.forkeat.service.persistence.WalletPersistence;
 import fr.uge.forkeat.service.port.PasswordHasherPort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Objects;
@@ -18,10 +24,18 @@ import java.util.UUID;
 public class UserService {
     private final UserPersistence userPersistence;
     private final PasswordHasherPort passwordHasherPort;
+    private final WalletPersistence walletPersistence;
+    private final RecipePersistence recipePersistence;
+    private final PlatformWalletPersistence platformWalletPersistence;
 
-    public UserService(UserPersistence userPersistence, PasswordHasherPort passwordHasherPort) {
+    public UserService(UserPersistence userPersistence, PasswordHasherPort passwordHasherPort,
+                       WalletPersistence walletPersistence, RecipePersistence recipePersistence,
+                       PlatformWalletPersistence platformWalletPersistence) {
         this.userPersistence = Objects.requireNonNull(userPersistence);
         this.passwordHasherPort = Objects.requireNonNull(passwordHasherPort);
+        this.walletPersistence = Objects.requireNonNull(walletPersistence);
+        this.recipePersistence = Objects.requireNonNull(recipePersistence);
+        this.platformWalletPersistence = Objects.requireNonNull(platformWalletPersistence);
     }
 
     public User getUserByEmail(String email) {
@@ -76,6 +90,30 @@ public class UserService {
         var followerId = userPersistence.findIdByUsernameOrThrow(followerUsername);
         var followedId = userPersistence.findIdByUsernameOrThrow(followedUsername);
         userPersistence.unfollow(followerId, followedId);
+    }
+
+    @Transactional(isolation = Isolation.REPEATABLE_READ, timeout = 30)
+    public void deleteAccount(String username) {
+        Objects.requireNonNull(username);
+        var user = userPersistence.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        // Verrou pessimiste sur le wallet de l'utilisateur
+        var userWallet = walletPersistence.loadWalletWithLock(user.id()).orElseThrow(() -> new WalletNotFoundException(user.id()));
+        // Récupération du wallet earnings (le transfert via incrementBalanceById est atomique)
+        var earningsWallet = walletPersistence.getEarningsWallet();
+        // Transfert du solde vers le wallet des gains + trace dans l'historique plateforme
+        if (userWallet.balance() > 0) {
+            walletPersistence.incrementBalanceById(earningsWallet.id(), userWallet.balance());
+            platformWalletPersistence.recordTransaction(
+                    PlatformWalletType.EARNINGS,
+                    userWallet.balance(),
+                    "ACCOUNT_DELETION",
+                    user.id()   // referenceId = UUID de l'utilisateur supprimé (traçabilité)
+            );
+        }
+        // Réassignation de toutes les recettes vers l'utilisateur système earnings
+        recipePersistence.reassignRecipesToUser(user.id(), earningsWallet.userId());
+        // Suppression de l'utilisateur (cascade JPA : wallet + bankInfo supprimés automatiquement)
+        userPersistence.deleteById(user.id());
     }
 
 }
