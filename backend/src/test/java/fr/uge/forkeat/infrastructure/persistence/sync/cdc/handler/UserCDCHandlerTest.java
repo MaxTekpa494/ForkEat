@@ -43,29 +43,31 @@ class UserCDCHandlerTest {
     }
 
     @Test
-    void handle_ShouldDeleteUser_WhenOperationIsDelete_AndNoSuperLikes() {
+    void handle_ShouldDeleteUser_WhenOperationIsDelete_AndNoRecipeInteractions() {
         ObjectNode payload = mapper.createObjectNode();
         ObjectNode before = payload.putObject("before");
         before.put("id", "user-123");
-        when(userNodeClient.hasSuperLikedRelationships("user-123")).thenReturn(false);
+        when(userNodeClient.hasRecipeInteractionRelationships("user-123")).thenReturn(false);
         userCDCHandler.handle("d", payload);
         verify(userNodeClient).reassignRecipesToSystemEarnings("user-123");
         verify(userNodeClient).deleteAllUserRelationships("user-123");
         verify(userNodeClient).deleteUserNode("user-123");
         verify(userNodeClient, never()).markAsDeleted(anyString());
+        verify(userNodeClient, never()).deleteFollowRelationships(anyString());
     }
 
     @Test
-    void handle_ShouldMarkAsDeleted_WhenOperationIsDelete_AndHasSuperLikes() {
+    void handle_ShouldMarkAsDeleted_WhenOperationIsDelete_AndHasRecipeInteractions() {
         ObjectNode payload = mapper.createObjectNode();
         ObjectNode before = payload.putObject("before");
         before.put("id", "user-123");
-        when(userNodeClient.hasSuperLikedRelationships("user-123")).thenReturn(true);
+        when(userNodeClient.hasRecipeInteractionRelationships("user-123")).thenReturn(true);
         userCDCHandler.handle("d", payload);
         verify(userNodeClient).reassignRecipesToSystemEarnings("user-123");
-        verify(userNodeClient).deleteAllUserRelationships("user-123");
+        verify(userNodeClient).deleteFollowRelationships("user-123");
         verify(userNodeClient).markAsDeleted("user-123");
         verify(userNodeClient, never()).deleteUserNode(anyString());
+        verify(userNodeClient, never()).deleteAllUserRelationships(anyString());
     }
 
     @Test

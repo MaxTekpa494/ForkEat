@@ -647,11 +647,12 @@ class RecipePersistenceAdapterTest {
         @Test
         void shouldReturnInteractionsForUser() {
             var recipeId = UUID.randomUUID();
+            var userId = UUID.randomUUID();
             var projection = new RecipeUserInteractionProjection(recipeId.toString(), true, false, true);
-            when(neo4jRecipeRepository.findUserInteractionsByRecipeIds(List.of(recipeId.toString()), "viewer"))
+            when(neo4jRecipeRepository.findUserInteractionsByRecipeIds(List.of(recipeId.toString()), userId.toString()))
                     .thenReturn(List.of(projection));
 
-            var result = adapter.findUserRecipeInteractions(List.of(recipeId), "viewer");
+            var result = adapter.findUserRecipeInteractions(List.of(recipeId), userId);
 
             assertEquals(1, result.size());
             var interaction = result.get(recipeId);
@@ -663,7 +664,7 @@ class RecipePersistenceAdapterTest {
 
         @Test
         void shouldReturnEmptyMap_WhenRecipeIdsIsEmpty() {
-            var result = adapter.findUserRecipeInteractions(List.of(), "viewer");
+            var result = adapter.findUserRecipeInteractions(List.of(), UUID.randomUUID());
 
             assertTrue(result.isEmpty());
             verifyNoInteractions(neo4jRecipeRepository);
@@ -674,18 +675,18 @@ class RecipePersistenceAdapterTest {
             var recipeId = UUID.randomUUID();
             when(neo4jRecipeRepository.findUserInteractionsByRecipeIds(any(), any())).thenReturn(List.of());
 
-            var result = adapter.findUserRecipeInteractions(List.of(recipeId), "viewer");
+            var result = adapter.findUserRecipeInteractions(List.of(recipeId), UUID.randomUUID());
 
             assertTrue(result.isEmpty());
         }
 
         @Test
         void shouldThrow_WhenRecipeIdsIsNull() {
-            assertThrows(NullPointerException.class, () -> adapter.findUserRecipeInteractions(null, "viewer"));
+            assertThrows(NullPointerException.class, () -> adapter.findUserRecipeInteractions(null, UUID.randomUUID()));
         }
 
         @Test
-        void shouldThrow_WhenCurrentUsernameIsNull() {
+        void shouldThrow_WhenUserIdIsNull() {
             assertThrows(NullPointerException.class, () -> adapter.findUserRecipeInteractions(List.of(UUID.randomUUID()), null));
         }
     }

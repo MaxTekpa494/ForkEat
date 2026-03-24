@@ -13,7 +13,6 @@ import fr.uge.android.forkeat.admin.data.dto.UpdateSuperLikeConfigRequest
 import fr.uge.android.forkeat.admin.data.dto.PlatformWalletTransactionDTO
 import fr.uge.android.forkeat.network.dto.UserDTO
 import fr.uge.android.forkeat.network.ForkEatApi
-import fr.uge.android.forkeat.network.dto.UserDTO
 import fr.uge.android.forkeat.promotions.data.dto.PromotionDTO
 import fr.uge.android.forkeat.promotions.data.dto.PromotionItemResponse
 import fr.uge.android.forkeat.promotions.data.dto.PromotionListResponse

@@ -47,15 +47,41 @@ public class UserNodeClient {
             .run();
     }
 
-    public boolean hasSuperLikedRelationships(String userId) {
+    public void deleteFollowRelationships(String userId) {
         Objects.requireNonNull(userId);
-        var cypher = "MATCH (u:User {id: $userId})-[r:SUPER_LIKED]->() RETURN COUNT(r) > 0 AS hasSuperLikes";
+        var cypher = """
+            MATCH (u:User {id: $userId})
+            OPTIONAL MATCH (u)-[r1:FOLLOWS]->()
+            OPTIONAL MATCH (u)<-[r2:FOLLOWS]-()
+            DELETE r1, r2
+            """;
+        neo4jClient.query(cypher)
+            .bind(userId).to("userId")
+            .run();
+    }
+
+    public boolean hasRecipeInteractionRelationships(String userId) {
+        Objects.requireNonNull(userId);
+        var cypher = """
+            MATCH (u:User {id: $userId})
+            RETURN EXISTS((u)-[:LIKED|FOLLOWS_RECIPE|SUPER_LIKED]->()) AS hasInteractions
+            """;
         return neo4jClient.query(cypher)
             .bind(userId).to("userId")
             .fetchAs(Boolean.class)
             .one()
             .orElse(false);
     }
+
+//    public boolean hasSuperLikedRelationships(String userId) {
+//        Objects.requireNonNull(userId);
+//        var cypher = "MATCH (u:User {id: $userId})-[r:SUPER_LIKED]->() RETURN COUNT(r) > 0 AS hasSuperLikes";
+//        return neo4jClient.query(cypher)
+//            .bind(userId).to("userId")
+//            .fetchAs(Boolean.class)
+//            .one()
+//            .orElse(false);
+//    }
 
     public void deleteUserNode(String userId) {
         Objects.requireNonNull(userId);
@@ -79,7 +105,8 @@ public class UserNodeClient {
             MATCH (u:User {id: $userId})-[oldPub:PUBLISHED]->(r:Recipe)
             MATCH (system:User {username: $systemUsername})
             DELETE oldPub
-            MERGE (system)-[:PUBLISHED {date: datetime()}]->(r)
+            MERGE (system)-[rel:PUBLISHED]->(r)
+            ON CREATE SET rel.date = datetime()
             """;
         neo4jClient.query(cypher)
             .bind(userId).to("userId")
@@ -94,7 +121,8 @@ public class UserNodeClient {
         var cypher = """
             MATCH (u:User {id: $userId})
             MATCH (r:Recipe {id: $recipeId})
-            MERGE (u)-[:SUPER_LIKED {id: $superLikeId, amount: $amount, redist_amount_cents: $redistAmountCents, date: datetime()}]->(r)
+            MERGE (u)-[sl:SUPER_LIKED {id: $superLikeId}]->(r)
+            ON CREATE SET sl.amount = $amount, sl.redist_amount_cents = $redistAmountCents, sl.date = datetime()
             """;
         neo4jClient.query(cypher)
                 .bind(superLikeId).to("superLikeId")

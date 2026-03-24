@@ -352,22 +352,22 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public RecipeUserInteraction findUserRecipeInteraction(UUID recipeId, String currentUsername) {
+    public RecipeUserInteraction findUserRecipeInteraction(UUID recipeId, UUID userId) {
         Objects.requireNonNull(recipeId);
-        Objects.requireNonNull(currentUsername);
-        return findUserRecipeInteractions(List.of(recipeId), currentUsername)
+        Objects.requireNonNull(userId);
+        return findUserRecipeInteractions(List.of(recipeId), userId)
                 .getOrDefault(recipeId, RecipeUserInteraction.NONE);
     }
 
     @Override
-    public Map<UUID, RecipeUserInteraction> findUserRecipeInteractions(List<UUID> recipeIds, String currentUsername) {
+    public Map<UUID, RecipeUserInteraction> findUserRecipeInteractions(List<UUID> recipeIds, UUID userId) {
         Objects.requireNonNull(recipeIds);
-        Objects.requireNonNull(currentUsername);
+        Objects.requireNonNull(userId);
         if (recipeIds.isEmpty()) {
             return Map.of();
         }
         var recipeIdStrings = recipeIds.stream().map(UUID::toString).toList();
-        return neo4jRecipeRepository.findUserInteractionsByRecipeIds(recipeIdStrings, currentUsername).stream()
+        return neo4jRecipeRepository.findUserInteractionsByRecipeIds(recipeIdStrings, userId.toString()).stream()
                 .collect(Collectors.toMap(
                         r -> UUID.fromString(r.recipeId()),
                         r -> new RecipeUserInteraction(r.likedByCurrentUser(), r.superLikedByCurrentUser(), r.followedByCurrentUser())
@@ -375,7 +375,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe(String currentUsername) {
+    public Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe(UUID userId) {
         var topIds = neo4jRecipeRepository.findTopLikedRecipeIds(10);
         for (var idStr : topIds) {
             var uuid = UUID.fromString(idStr);
@@ -388,8 +388,8 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                         entity.getCreatedAt(), entity.getAuthor().getUsername()
                 );
                 var counts = findRecipeCounts(uuid);
-                var interaction = currentUsername != null
-                        ? findUserRecipeInteraction(uuid, currentUsername)
+                var interaction = userId != null
+                        ? findUserRecipeInteraction(uuid, userId)
                         : RecipeUserInteraction.NONE;
                 return Optional.of(new PersonalizedRecipeSummary(summary, counts, interaction));
             }
