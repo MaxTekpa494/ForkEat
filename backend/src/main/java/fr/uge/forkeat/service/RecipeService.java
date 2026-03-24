@@ -167,8 +167,15 @@ public class RecipeService {
   }
 
   public Recipe findById(UUID id) {
-    return recipePersistence.findById(id)
+    var recipe = recipePersistence.findById(id)
             .orElseThrow(() -> new RecipeNotFoundException(id));
+    if (!recipe.isPublished() && !authPort.isAdmin() && !authPort.isModerator()) {
+      var currentUsername = authPort.extractUsername();
+      if (currentUsername == null || !currentUsername.equals(recipe.usernameAuthor())) {
+        throw new RecipeNotFoundException(id);
+      }
+    }
+    return recipe;
   }
 
   public PersonalizedRecipe findPersonalizedRecipeById(UUID id, String currentUsername) {
@@ -185,7 +192,8 @@ public class RecipeService {
               : RecipeUserInteraction.NONE;
       RecipeDiff diff = null;
       if (recipe.isVariant()) {
-          var parent = findById(recipe.parentId());
+        var parent = recipePersistence.findById(recipe.parentId())
+                .orElseThrow(() -> new RecipeNotFoundException(recipe.parentId()));
           if (parent.isPublished()) {
               diff = recipeDiffService.computeDiff(parent, recipe);
           }
