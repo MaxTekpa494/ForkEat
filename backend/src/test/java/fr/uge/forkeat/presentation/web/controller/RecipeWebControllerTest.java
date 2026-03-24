@@ -2,10 +2,12 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.WalletService;
+import fr.uge.forkeat.service.model.superlike.SuperLikeConfig;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeAlreadyReportedException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
@@ -20,6 +22,7 @@ import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,8 +33,10 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -69,6 +74,18 @@ class RecipeWebControllerTest {
 
     @MockitoBean
     private RecipeReportService recipeReportService;
+
+    @MockitoBean
+    private PromotionService promotionService;
+
+    private static final SuperLikeConfig DEFAULT_CONFIG = new SuperLikeConfig(
+            UUID.randomUUID(), 100L, new BigDecimal("0.7"), Instant.now());
+
+    @BeforeEach
+    void setUpPromotion() {
+        when(promotionService.getConfig()).thenReturn(DEFAULT_CONFIG);
+        when(promotionService.findActive()).thenReturn(Optional.empty());
+    }
 
     @Nested
     class ListRecipes {
