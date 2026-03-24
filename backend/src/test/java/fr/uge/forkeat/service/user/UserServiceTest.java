@@ -1,11 +1,17 @@
 package fr.uge.forkeat.service.user;
 
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
+import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.*;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
+import fr.uge.forkeat.service.model.wallet.Wallet;
+import fr.uge.forkeat.service.persistence.PlatformWalletPersistence;
+import fr.uge.forkeat.service.persistence.RecipePersistence;
 import fr.uge.forkeat.service.persistence.UserPersistence;
+import fr.uge.forkeat.service.persistence.WalletPersistence;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -20,9 +26,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class UserServiceTest {
@@ -32,6 +36,15 @@ class UserServiceTest {
 
     @Mock
     private PasswordHasherPort passwordHasherPort;
+
+    @Mock
+    private WalletPersistence walletPersistence;
+
+    @Mock
+    private RecipePersistence recipePersistence;
+
+    @Mock
+    private PlatformWalletPersistence platformWalletPersistence;
 
     @InjectMocks
     private UserService userService;
@@ -380,6 +393,93 @@ class UserServiceTest {
         @Test
         void unfollow_ShouldThrow_WhenFollowedUsernameIsNull() {
             assertThrows(NullPointerException.class, () -> userService.unfollow("alice", null));
+        }
+    }
+
+    @Nested
+    class DeleteAccountTests {
+
+        private Wallet buildWallet(UUID walletId, UUID userId, long balance) {
+            return new Wallet(walletId, userId, balance, Instant.now());
+        }
+
+        @Test
+        void deleteAccount_ShouldTransferBalanceReassignRecipesAndDeleteUser_WhenBalancePositive() {
+            // Given
+            var userId = UUID.randomUUID();
+            var user = createTestUser(userId, "testuser", "test@example.com");
+            var userWallet = buildWallet(UUID.randomUUID(), userId, 500L);
+            var earningsUserId = UUID.randomUUID();
+            var earningsWallet = buildWallet(UUID.randomUUID(), earningsUserId, 1000L);
+
+            when(userPersistence.findByUsername("testuser")).thenReturn(Optional.of(user));
+            when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.of(userWallet));
+            when(walletPersistence.getEarningsWallet()).thenReturn(earningsWallet);
+
+            // When
+            userService.deleteAccount("testuser");
+
+            // Then
+            verify(walletPersistence).incrementBalanceById(earningsWallet.id(), 500L);
+            verify(platformWalletPersistence).recordTransaction(
+                    PlatformWalletType.EARNINGS, 500L, "ACCOUNT_DELETION", userId);
+            verify(recipePersistence).reassignRecipesToUser(userId, earningsUserId);
+            verify(userPersistence).deleteById(userId);
+        }
+
+        @Test
+        void deleteAccount_ShouldNotTransferBalanceNorRecordTransaction_WhenBalanceIsZero() {
+            // Given
+            var userId = UUID.randomUUID();
+            var user = createTestUser(userId, "testuser", "test@example.com");
+            var userWallet = buildWallet(UUID.randomUUID(), userId, 0L);
+            var earningsUserId = UUID.randomUUID();
+            var earningsWallet = buildWallet(UUID.randomUUID(), earningsUserId, 1000L);
+
+            when(userPersistence.findByUsername("testuser")).thenReturn(Optional.of(user));
+            when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.of(userWallet));
+            when(walletPersistence.getEarningsWallet()).thenReturn(earningsWallet);
+
+            // When
+            userService.deleteAccount("testuser");
+
+            // Then
+            verify(walletPersistence, never()).incrementBalanceById(any(), any(long.class));
+            verify(platformWalletPersistence, never()).recordTransaction(any(), any(long.class), any(), any());
+            verify(recipePersistence).reassignRecipesToUser(userId, earningsUserId);
+            verify(userPersistence).deleteById(userId);
+        }
+
+        @Test
+        void deleteAccount_ShouldThrow_WhenUserNotFound() {
+            // Given
+            when(userPersistence.findByUsername("unknown")).thenReturn(Optional.empty());
+
+            // When / Then
+            assertThrows(ResourceNotFoundException.class, () -> userService.deleteAccount("unknown"));
+
+            verify(walletPersistence, never()).loadWalletWithLock(any());
+            verify(userPersistence, never()).deleteById(any());
+        }
+
+        @Test
+        void deleteAccount_ShouldThrow_WhenWalletNotFound() {
+            // Given
+            var userId = UUID.randomUUID();
+            var user = createTestUser(userId, "testuser", "test@example.com");
+
+            when(userPersistence.findByUsername("testuser")).thenReturn(Optional.of(user));
+            when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.empty());
+
+            // When / Then
+            assertThrows(WalletNotFoundException.class, () -> userService.deleteAccount("testuser"));
+
+            verify(userPersistence, never()).deleteById(any());
+        }
+
+        @Test
+        void deleteAccount_ShouldThrow_WhenUsernameIsNull() {
+            assertThrows(NullPointerException.class, () -> userService.deleteAccount(null));
         }
     }
 }

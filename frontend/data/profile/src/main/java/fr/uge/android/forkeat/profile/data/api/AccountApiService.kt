@@ -39,4 +39,7 @@ interface AccountApiService {
 
     @POST("api/account/email-confirmations")
     suspend fun resendConfirmation(): Response<Unit>
+
+    @DELETE("api/account")
+    suspend fun deleteAccount(): Response<Unit>
 }

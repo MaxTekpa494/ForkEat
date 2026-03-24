@@ -434,6 +434,27 @@ class UserPersistenceAdapterTest {
     }
 
     @Nested
+    class DeleteByIdTests {
+
+        @Test
+        void deleteById_ShouldDelegateToRepository() {
+            // Given
+            var userId = UUID.randomUUID();
+
+            // When
+            adapter.deleteById(userId);
+
+            // Then
+            verify(userRepository).deleteById(userId);
+        }
+
+        @Test
+        void deleteById_ShouldThrow_WhenIdIsNull() {
+            assertThrows(NullPointerException.class, () -> adapter.deleteById(null));
+        }
+    }
+
+    @Nested
     class FollowTests {
 
         @Test

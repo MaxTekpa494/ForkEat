@@ -139,4 +139,8 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
     @Modifying
     @Query(value = "UPDATE recipes SET parent_id = :newParentId WHERE parent_id = :deletedId", nativeQuery = true)
     void reparentVariants(@Param("deletedId") UUID deletedId, @Param("newParentId") UUID newParentId);
+
+    @Modifying
+    @Query(value = "UPDATE recipes SET author_id = :newAuthorId WHERE author_id = :oldAuthorId", nativeQuery = true)
+    void reassignAuthor(@Param("oldAuthorId") UUID oldAuthorId, @Param("newAuthorId") UUID newAuthorId);
 }

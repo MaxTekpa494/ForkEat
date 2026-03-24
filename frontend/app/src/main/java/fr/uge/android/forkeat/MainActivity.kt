@@ -284,7 +284,7 @@ class MainActivity : ComponentActivity() {
             }
             composable("account") {
               AuthenticatedScreen(isLoggedIn, redirectToWelcome) {
-                AccountScreen(onNavigateBack = { navController.popBackStack() })
+                AccountScreen(onNavigateBack = { navController.popBackStack() }, onLogout = logout)
               }
             }
             composable("wallet") {

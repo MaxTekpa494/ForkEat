@@ -1271,6 +1271,35 @@ class RecipePersistenceAdapterTest {
             }
         }
 
+    @Nested
+    class ReassignRecipesToUserTests {
+
+        @Test
+        void reassignRecipesToUser_ShouldDelegateToRepository() {
+            // Given
+            var fromUserId = UUID.randomUUID();
+            var toUserId = UUID.randomUUID();
+
+            // When
+            adapter.reassignRecipesToUser(fromUserId, toUserId);
+
+            // Then
+            verify(recipeRepository).reassignAuthor(fromUserId, toUserId);
+        }
+
+        @Test
+        void reassignRecipesToUser_ShouldThrow_WhenFromUserIdIsNull() {
+            assertThrows(NullPointerException.class,
+                    () -> adapter.reassignRecipesToUser(null, UUID.randomUUID()));
+        }
+
+        @Test
+        void reassignRecipesToUser_ShouldThrow_WhenToUserIdIsNull() {
+            assertThrows(NullPointerException.class,
+                    () -> adapter.reassignRecipesToUser(UUID.randomUUID(), null));
+        }
+    }
+
     private RecipeEntity createRecipeEntity(UUID id, String title, RecipeStatus status) {
         var entity = new RecipeEntity();
         entity.setId(id);

@@ -62,4 +62,6 @@ public interface UserPersistence extends UserIdentityPort {
 
 	/** Emails de tous les membres actifs avec email vérifié (pour les notifications de promotion). */
 	List<String> findAllActiveMemberEmails();
+
+	void deleteById(UUID userId);
 }

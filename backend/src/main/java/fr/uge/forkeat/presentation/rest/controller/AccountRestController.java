@@ -43,8 +43,7 @@ public class AccountRestController {
     }
 
     @PutMapping
-    public ResponseEntity<HttpResponse<UserDTO>> updateProfile(
-            @RequestBody UserUpdateProfileDTO userUpdateProfile) {
+    public ResponseEntity<HttpResponse<UserDTO>> updateProfile(@RequestBody UserUpdateProfileDTO userUpdateProfile) {
         var currentUsername = authPort.extractUsername();
         var updatedUser = userUpdateService.updateProfile(
                 currentUsername,
@@ -55,16 +54,14 @@ public class AccountRestController {
     }
 
     @PostMapping("/password-change-requests")
-    public ResponseEntity<HttpResponse<Void>> requestPasswordChange(
-            @RequestBody PasswordChangeDTO passwordChangeDTO) {
+    public ResponseEntity<HttpResponse<Void>> requestPasswordChange(@RequestBody PasswordChangeDTO passwordChangeDTO) {
         var username = authPort.extractUsername();
         userUpdateService.requestPasswordChange(username, passwordChangeDTO.currentPassword(), passwordChangeDTO.newPassword(), passwordChangeDTO.confirmPassword());
         return ResponseEntity.ok(new SuccessResponse());
     }
 
     @PutMapping("/password-change-requests")
-    public ResponseEntity<HttpResponse<Void>> confirmPasswordChange(
-            @RequestParam String code) {
+    public ResponseEntity<HttpResponse<Void>> confirmPasswordChange(@RequestParam String code) {
         var username = authPort.extractUsername();
         var user = userService.getUserByUsername(username);
         emailVerificationService.confirmPasswordChange(user.id(), code);
@@ -72,16 +69,14 @@ public class AccountRestController {
     }
 
     @PostMapping("/email-change-requests")
-    public ResponseEntity<HttpResponse<Void>> requestEmailChange(
-            @RequestBody RequestEmailChangeDTO dto) {
+    public ResponseEntity<HttpResponse<Void>> requestEmailChange(@RequestBody RequestEmailChangeDTO dto) {
         var username = authPort.extractUsername();
         userUpdateService.requestEmailChange(username, dto.newEmail(), dto.currentPassword(), dto.newPassword(), dto.confirmPassword());
         return ResponseEntity.ok(new SuccessResponse());
     }
 
     @PutMapping("/email-change-requests")
-    public ResponseEntity<HttpResponse<UserDTO>> confirmEmailChange(
-            @RequestParam String code) {
+    public ResponseEntity<HttpResponse<UserDTO>> confirmEmailChange(@RequestParam String code) {
         var username = authPort.extractUsername();
         var user = userService.getUserByUsername(username);
         var updatedUser = emailVerificationService.confirmEmailChange(user.id(), code);
@@ -100,10 +95,16 @@ public class AccountRestController {
     }
 
     @PutMapping("/password")
-    public ResponseEntity<HttpResponse<Void>> setPasswordForOAuthUser(
-            @RequestBody SetPasswordDTO dto) {
+    public ResponseEntity<HttpResponse<Void>> setPasswordForOAuthUser(@RequestBody SetPasswordDTO dto) {
         var username = authPort.extractUsername();
         userUpdateService.setPasswordForOAuthUser(username, dto.newPassword(), dto.confirmPassword());
+        return ResponseEntity.ok(new SuccessResponse());
+    }
+
+    @DeleteMapping
+    public ResponseEntity<HttpResponse<Void>> deleteAccount() {
+        var username = authPort.extractUsername();
+        userService.deleteAccount(username);
         return ResponseEntity.ok(new SuccessResponse());
     }
 }

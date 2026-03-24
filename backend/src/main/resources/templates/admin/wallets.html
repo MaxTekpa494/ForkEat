@@ -115,9 +115,11 @@
                         <div class="flex items-center gap-4">
                             <!-- Icône wallet -->
                             <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
-                                 th:classappend="${tx.walletType().name() == 'EARNINGS'} ? 'bg-primary-50' : 'bg-secondary-50'">
+                                 th:classappend="${tx.reason() == 'ACCOUNT_DELETION'} ? 'bg-red-50' :
+                                                 (${tx.walletType().name() == 'EARNINGS'} ? 'bg-primary-50' : 'bg-secondary-50')">
                                 <i class="fas"
-                                   th:classappend="${tx.walletType().name() == 'EARNINGS'} ? 'fa-coins text-primary-500' : 'fa-exchange-alt text-secondary-600'"></i>
+                                   th:classappend="${tx.reason() == 'ACCOUNT_DELETION'} ? 'fa-user-slash text-red-500' :
+                                                   (${tx.walletType().name() == 'EARNINGS'} ? 'fa-coins text-primary-500' : 'fa-exchange-alt text-secondary-600')"></i>
                             </div>
                             <div>
                                 <!-- Wallet + raison -->
@@ -127,10 +129,12 @@
                                     <span class="text-xs px-2 py-0.5 rounded-full font-medium"
                                           th:classappend="${tx.reason() == 'SUPER_LIKE_EARNED'} ? 'bg-green-100 text-green-700' :
                                                           (${tx.reason() == 'SUPER_LIKE_REDISTRIBUTION'} ? 'bg-blue-100 text-blue-700' :
-                                                          (${tx.reason() == 'MONTHLY_REDISTRIBUTION'} ? 'bg-purple-100 text-purple-700' : 'bg-orange-100 text-orange-700'))"
+                                                          (${tx.reason() == 'MONTHLY_REDISTRIBUTION'} ? 'bg-purple-100 text-purple-700' :
+                                                          (${tx.reason() == 'ACCOUNT_DELETION'} ? 'bg-red-100 text-red-700' : 'bg-orange-100 text-orange-700')))"
                                           th:text="${tx.reason() == 'SUPER_LIKE_EARNED'} ? 'Gains super-like' :
                                                     (${tx.reason() == 'SUPER_LIKE_REDISTRIBUTION'} ? 'Redistribution SL' :
-                                                    (${tx.reason() == 'MONTHLY_REDISTRIBUTION'} ? 'Redistribution mensuelle' : 'Autre'))">Raison</span>
+                                                    (${tx.reason() == 'MONTHLY_REDISTRIBUTION'} ? 'Redistribution mensuelle' :
+                                                    (${tx.reason() == 'ACCOUNT_DELETION'} ? 'Suppression compte' : 'Autre')))">Raison</span>
                                 </div>
                                 <div class="text-xs text-gray-400 mt-0.5"
                                      th:text="${#temporals.format(tx.createdAt(), 'dd/MM/yyyy à HH:mm:ss')}">Date</div>

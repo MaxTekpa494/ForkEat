@@ -5,6 +5,7 @@ import fr.uge.android.forkeat.admin.data.dto.AdminRecipeStatsDTO
 import fr.uge.android.forkeat.admin.data.dto.AdminUserStatsDTO
 import fr.uge.android.forkeat.admin.data.dto.AdminUsersListResponse
 import fr.uge.android.forkeat.admin.data.dto.PlatformWalletDTO
+import fr.uge.android.forkeat.admin.data.dto.PlatformWalletTransactionDTO
 import fr.uge.android.forkeat.network.dto.UserDTO
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.recipes.data.dto.SimpleRecipesListResponse
@@ -33,6 +34,9 @@ interface AdminApiService {
 
     @GET("api/admin/wallets/redistribution")
     suspend fun getRedistributionWallet(): Response<PlatformWalletDTO>
+
+    @GET("api/admin/wallets/transactions")
+    suspend fun getWalletTransactions(): Response<List<PlatformWalletTransactionDTO>>
 
     @GET("api/admin/admins")
     suspend fun getAdmins(): Response<AdminUsersListResponse>
