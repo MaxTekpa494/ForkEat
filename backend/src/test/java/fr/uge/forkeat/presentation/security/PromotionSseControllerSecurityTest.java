@@ -1,14 +1,7 @@
 package fr.uge.forkeat.presentation.security;
 
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
-import fr.uge.forkeat.service.PromotionService;
-import fr.uge.forkeat.service.RecipeService;
-import fr.uge.forkeat.service.model.AuthMode;
-import fr.uge.forkeat.service.model.user.User;
-import fr.uge.forkeat.service.model.user.UserRole;
-import fr.uge.forkeat.service.model.user.UserStatus;
-import fr.uge.forkeat.service.port.AuthenticationPort;
-import fr.uge.forkeat.service.user.UserService;
+import fr.uge.forkeat.infrastructure.sse.SsePromotionNotifier;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,63 +14,36 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
-import java.util.List;
-import java.util.UUID;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest
 @AutoConfigureMockMvc(addFilters = true)
 @ActiveProfiles("test")
 @Transactional
-public class SuperLikeRestControllerSecurityTest extends AbstractIntegrationTest {
+public class PromotionSseControllerSecurityTest extends AbstractIntegrationTest {
 
     @Autowired
     private MockMvc mockMvc;
 
     @MockitoBean
-    private RecipeService recipeService;
-
-    @MockitoBean
-    private PromotionService promotionService;
-
-    @MockitoBean
-    private AuthenticationPort authPort;
-
-    @MockitoBean
-    private UserService userService;
-
-    private UUID recipeId;
+    private SsePromotionNotifier sseNotifier;
 
     @BeforeEach
     void setup() {
-        recipeId = UUID.randomUUID();
-        var mockUser = createUser(UUID.randomUUID());
-
-        when(authPort.extractUsername()).thenReturn("PAX");
-        when(userService.getUserByUsername("PAX")).thenReturn(mockUser);
-
-        doNothing().when(recipeService).superLikeRecipe(any(), any());
-        when(promotionService.findSuperLikeHistory(any())).thenReturn(List.of());
+        when(sseNotifier.subscribe()).thenReturn(new SseEmitter());
     }
 
     @Nested
-    class SuperLikeRestControllerSecurityTests {
+    class PromotionSseControllerSecurityTests {
 
         @Test
-        void testSuperLikeRecipe() throws Exception {
-            testRights(post("/api/super-likes/" + recipeId), AuthorizationTest.MEMBER);
-        }
-
-        @Test
-        void testGetSuperLikeHistory() throws Exception {
-            testRights(get("/api/super-likes/history"), AuthorizationTest.MEMBER);
+        void testStream() throws Exception {
+            testRights(get("/api/promotions/stream"), AuthorizationTest.MEMBER);
         }
     }
 
@@ -112,10 +78,5 @@ public class SuperLikeRestControllerSecurityTest extends AbstractIntegrationTest
         }
         mockMvc.perform(requestBuilder.with(jwt()
                 .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED")))).andExpect(expected);
-    }
-
-    private User createUser(UUID id) {
-        return new User(id, "PaxGPT", "Pax", "Pekpa", "a@gmail.com",
-                UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, null, null, true);
     }
 }
