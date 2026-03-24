@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -30,7 +29,6 @@ import fr.uge.android.forkeat.designsystem.theme.*
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import java.util.UUID
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SmartSearchScreen(
     query: String,
@@ -40,6 +38,7 @@ fun SmartSearchScreen(
     error: String?,
     isModerationError: Boolean,
     balance: Long?,
+    smartSearchCost: Long?,
     onQueryChange: (String) -> Unit,
     onSearch: () -> Unit,
     onNewSearch: () -> Unit,
@@ -58,35 +57,10 @@ fun SmartSearchScreen(
 ) {
     val focusManager = LocalFocusManager.current
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = {
-                        Text(
-                            "Recherche Intelligente",
-                            fontWeight = FontWeight.Bold,
-                            color = Secondary900
-                        )
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = "Retour",
-                                tint = Secondary900
-                            )
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(containerColor = SurfaceCream)
-                )
-            },
-            containerColor = SurfaceCream
-        ) { padding ->
+    Box(modifier = Modifier.fillMaxSize().background(SurfaceCream)) {
             LazyColumn(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(padding),
+                    .fillMaxSize(),
                 contentPadding = PaddingValues(bottom = 32.dp)
             ) {
 
@@ -184,7 +158,7 @@ fun SmartSearchScreen(
                                                 )
                                             }
                                             Text(
-                                                "Coût : 0,10 €",
+                                                if (smartSearchCost != null) "Coût : ${"%.2f".format(smartSearchCost / 100.0)} €" else "Coût : …",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = Color.White.copy(alpha = 0.5f)
                                             )
@@ -221,7 +195,7 @@ fun SmartSearchScreen(
                 // ── Contenu conditionnel ──────────────────────────────────────
                 when {
                     !hasSearched -> {
-                        item { HowItWorksSection() }
+                        item { HowItWorksSection(smartSearchCost) }
                     }
 
                     isModerationError -> {
@@ -346,7 +320,6 @@ fun SmartSearchScreen(
                     }
                 }
             }
-        }
 
         // ── Overlay de chargement (équivalent de la modale HTML) ─────────────
         AnimatedVisibility(
@@ -399,10 +372,9 @@ fun SmartSearchScreen(
     }
 }
 
-// ── État initial : comment ça fonctionne ? ────────────────────────────────────
 
 @Composable
-private fun HowItWorksSection() {
+private fun HowItWorksSection(smartSearchCost : Long?) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -450,7 +422,7 @@ private fun HowItWorksSection() {
         Spacer(Modifier.height(24.dp))
 
         Text(
-            "Chaque recherche intelligente coûte 0,10 € et est débitée de votre portefeuille ForkEat.",
+            "Chaque recherche intelligente coûte ${if (smartSearchCost != null) "${"%.2f".format(smartSearchCost / 100.0)} €" else "…"} et est débitée de votre portefeuille ForkEat.",
             style = MaterialTheme.typography.labelSmall,
             color = Gray500,
             textAlign = TextAlign.Center

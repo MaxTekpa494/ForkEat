@@ -43,6 +43,7 @@ dependencies {
     implementation(project(":core:network"))
     implementation(project(":data:admin"))
     implementation(project(":feature:moderator"))
+    implementation(project(":data:promotions"))
     implementation(project(":data:moderator"))
     implementation(project(":data:recipes"))
     implementation(libs.coil.compose)

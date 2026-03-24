@@ -1,17 +1,28 @@
 package fr.uge.android.forkeat.admin.data.api
 
 import fr.uge.android.forkeat.admin.data.dto.AdminCreateUserRequest
+import fr.uge.android.forkeat.admin.data.dto.AdminItemResponse
 import fr.uge.android.forkeat.admin.data.dto.AdminRecipeStatsDTO
 import fr.uge.android.forkeat.admin.data.dto.AdminUserStatsDTO
 import fr.uge.android.forkeat.admin.data.dto.AdminUsersListResponse
+import fr.uge.android.forkeat.admin.data.dto.CreatePromotionRequest
 import fr.uge.android.forkeat.admin.data.dto.PlatformWalletDTO
-import fr.uge.android.forkeat.network.dto.UserDTO
+import fr.uge.android.forkeat.admin.data.dto.SuperLikeConfigDTO
+import fr.uge.android.forkeat.admin.data.dto.UpdatePromotionRequest
+import fr.uge.android.forkeat.admin.data.dto.UpdateSuperLikeConfigRequest
 import fr.uge.android.forkeat.network.ForkEatApi
+import fr.uge.android.forkeat.network.dto.UserDTO
+import fr.uge.android.forkeat.promotions.data.dto.PromotionDTO
+import fr.uge.android.forkeat.promotions.data.dto.PromotionItemResponse
+import fr.uge.android.forkeat.promotions.data.dto.PromotionListResponse
 import fr.uge.android.forkeat.recipes.data.dto.SimpleRecipesListResponse
 import retrofit2.Response
 import retrofit2.http.Body
+import retrofit2.http.DELETE
 import retrofit2.http.GET
 import retrofit2.http.POST
+import retrofit2.http.PUT
+import retrofit2.http.Path
 import retrofit2.http.Query
 
 object AdminApi {
@@ -52,4 +63,31 @@ interface AdminApiService {
     @GET("api/admin/recipes/published")
     suspend fun getPublishedRecipes(@Query("page") page: Int = 0): Response<SimpleRecipesListResponse>
 
+    // ── Promotions ────────────────────────────────────────────────────────────
+
+    @GET("api/admin/promotions")
+    suspend fun getAllPromotions(): Response<PromotionListResponse<PromotionDTO>>
+
+    @GET("api/admin/promotions/{id}")
+    suspend fun getPromotion(@Path("id") id: String): Response<PromotionItemResponse>
+
+    @POST("api/admin/promotions")
+    suspend fun createPromotion(@Body request: CreatePromotionRequest): Response<PromotionItemResponse>
+
+    @PUT("api/admin/promotions/{id}")
+    suspend fun updatePromotion(
+        @Path("id") id: String,
+        @Body request: UpdatePromotionRequest
+    ): Response<PromotionItemResponse>
+
+    @DELETE("api/admin/promotions/{id}")
+    suspend fun cancelPromotion(@Path("id") id: String): Response<Void>
+
+    // ── Super-Like Config ─────────────────────────────────────────────────────
+
+    @GET("api/admin/super-like/config")
+    suspend fun getSuperLikeConfig(): Response<AdminItemResponse<SuperLikeConfigDTO>>
+
+    @PUT("api/admin/super-like/config")
+    suspend fun updateSuperLikeConfig(@Body request: UpdateSuperLikeConfigRequest): Response<AdminItemResponse<SuperLikeConfigDTO>>
 }

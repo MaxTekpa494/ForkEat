@@ -1,5 +1,6 @@
 package fr.uge.forkeat.infrastructure.persistence.adapter;
 
+import fr.uge.forkeat.infrastructure.persistence.neo4j.node.RecipeNode;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.projection.RecipeUserInteractionProjection;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.repository.Neo4jRecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.*;
@@ -26,10 +27,13 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Sort;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 
+import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -1088,6 +1092,184 @@ class RecipePersistenceAdapterTest {
             assertThrows(NullPointerException.class, () -> adapter.isAuthor(UUID.randomUUID(), null));
         }
     }
+
+        @Nested
+        class SearchPersonalizedFeedRecipes {
+
+            private static final String USERNAME = "john_doe";
+            private static final Instant BEFORE_TIME = Instant.parse("2024-06-01T12:00:00Z");
+            private static final ZonedDateTime BEFORE_TIME_ZONED = BEFORE_TIME.atZone(ZoneOffset.UTC);
+            private static final ZonedDateTime SINCE_TIME_ZONED = BEFORE_TIME.minusSeconds(2_678_400).atZone(ZoneOffset.UTC);
+            private static final RecipeSummaryView summaryView = new RecipeSummaryView(){
+                private final UUID id = UUID.randomUUID();
+                @Override
+                public UUID getId() {
+                    return id;
+                }
+
+                @Override
+                public String getTitle() {
+                    return "";
+                }
+
+                @Override
+                public String getSummary() {
+                    return "";
+                }
+
+                @Override
+                public String getImageUrl() {
+                    return "";
+                }
+
+                @Override
+                public int getPreparationMinutes() {
+                    return 0;
+                }
+
+                @Override
+                public Instant getCreatedAt() {
+                    return Instant.now();
+                }
+
+                @Override
+                public String getAuthorUsername() {
+                    return "";
+                }
+            };
+
+
+            @Test
+            void shouldReturnMappedRecipesForFirstPage() {
+                // Arrange
+                var recipeNode = mockRecipeNode(UUID.randomUUID());
+
+                when(neo4jRecipeRepository.getFeed(USERNAME, 0L, 20L, SINCE_TIME_ZONED, BEFORE_TIME_ZONED))
+                        .thenReturn(List.of(recipeNode));
+                when(recipeRepository.findSummariesByIds(any()))
+                        .thenReturn(List.of(summaryView));
+
+                // Act
+                var result = adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, 0);
+
+                // Assert
+                assertThat(result.total()).isEqualTo(1);
+                var summary = result.items().getFirst();
+                assertThat(summary.id()).isEqualTo(summaryView.getId());
+                assertThat(summary.title()).isEqualTo(summaryView.getTitle());
+                assertThat(summary.summary()).isEqualTo(summaryView.getSummary());
+                assertThat(summary.imageUrl()).isEqualTo(summaryView.getImageUrl());
+                assertThat(summary.preparationMinutes()).isEqualTo(summaryView.getPreparationMinutes());
+                assertThat(summary.authorUsername()).isEqualTo(summaryView.getAuthorUsername());
+            }
+
+            @Test
+            void shouldComputeCorrectPaginationOffsets() {
+                // Arrange
+                int page = 3;
+                when(neo4jRecipeRepository.getFeed(USERNAME, 60L, 80L, SINCE_TIME_ZONED, BEFORE_TIME_ZONED))
+                        .thenReturn(List.of());
+                when(recipeRepository.findSummariesByIds(List.of()))
+                        .thenReturn(List.of());
+
+                // Act
+                adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, page);
+
+                // Assert
+                verify(neo4jRecipeRepository).getFeed(USERNAME, 60L, 80L, SINCE_TIME_ZONED, BEFORE_TIME_ZONED);
+            }
+
+            @Test
+            void shouldComputeCorrectTimeWindow() {
+                // Arrange
+                when(neo4jRecipeRepository.getFeed(eq(USERNAME), anyLong(), anyLong(), any(), any()))
+                        .thenReturn(List.of());
+                when(recipeRepository.findSummariesByIds(any()))
+                        .thenReturn(List.of());
+
+                // Act
+                adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, 0);
+
+                // Assert — la fenêtre doit être exactement 31 jours (2 678 400 secondes)
+                verify(neo4jRecipeRepository).getFeed(
+                        eq(USERNAME),
+                        anyLong(),
+                        anyLong(),
+                        eq(SINCE_TIME_ZONED),
+                        eq(BEFORE_TIME_ZONED)
+                );
+            }
+
+            @Test
+            void shouldReturnEmptyPageWhenNoRecipesInFeed() {
+                // Arrange
+                when(neo4jRecipeRepository.getFeed(any(), anyLong(), anyLong(), any(), any()))
+                        .thenReturn(List.of());
+                when(recipeRepository.findSummariesByIds(List.of()))
+                        .thenReturn(List.of());
+
+                // Act
+                var result = adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, 0);
+
+                // Assert
+                assertThat(result.total()).isZero();
+            }
+
+            @Test
+            void shouldPassOnlyIdsFromNeo4jToRelationalRepository() {
+                // Arrange
+                var node1 = mockRecipeNode(UUID.randomUUID());
+                var node2 = mockRecipeNode(UUID.randomUUID());
+
+                when(neo4jRecipeRepository.getFeed(any(), anyLong(), anyLong(), any(), any()))
+                        .thenReturn(List.of(node1, node2));
+                when(recipeRepository.findSummariesByIds(any()))
+                        .thenReturn(List.of());
+
+                // Act
+                adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, 0);
+
+                // Assert
+                verify(recipeRepository).findSummariesByIds(any());
+            }
+
+            @Test
+            void shouldReturnPageResultWithSameSizeAsRecipes() {
+                // Arrange
+                var nodes = List.of(mockRecipeNode(UUID.randomUUID()), mockRecipeNode(UUID.randomUUID()), mockRecipeNode(UUID.randomUUID()));
+
+                when(neo4jRecipeRepository.getFeed(any(), anyLong(), anyLong(), any(), any()))
+                        .thenReturn(nodes);
+                when(recipeRepository.findSummariesByIds(any()))
+                        .thenReturn(List.of(summaryView, summaryView, summaryView));
+
+                // Act
+                var result = adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, 0);
+
+                // Assert
+                assertThat(result.total()).isEqualTo(3);
+            }
+
+            // ── Helpers ────────────────────────────────────────────────────────────
+
+            private RecipeNode mockRecipeNode(UUID id) {
+                var node = mock(RecipeNode.class);
+                when(node.getId()).thenReturn(id);
+                return node;
+            }
+
+            private RecipeEntity mockRecipeEntity(UUID id, String title, String summary,
+                                                  String imageUrl, int prepMinutes, String author) {
+                var entity = mock(RecipeEntity.class);
+                when(entity.getId()).thenReturn(id);
+                when(entity.getTitle()).thenReturn(title);
+                when(entity.getSummary()).thenReturn(summary);
+                when(entity.getImageUrl()).thenReturn(imageUrl);
+                when(entity.getPreparationMinutes()).thenReturn(prepMinutes);
+                when(entity.getCreatedAt()).thenReturn(Instant.now());
+                return entity;
+            }
+        }
 
     private RecipeEntity createRecipeEntity(UUID id, String title, RecipeStatus status) {
         var entity = new RecipeEntity();

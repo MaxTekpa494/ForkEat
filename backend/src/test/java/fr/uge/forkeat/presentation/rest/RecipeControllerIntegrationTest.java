@@ -15,7 +15,7 @@ import fr.uge.forkeat.infrastructure.persistence.postgres.repository.IngredientR
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.RecipeRepository;
 import fr.uge.forkeat.infrastructure.persistence.postgres.repository.UserRepository;
 import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
+import fr.uge.forkeat.presentation.dto.recipe.UpdateRecipeRequest;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
@@ -145,7 +145,8 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
                 .andExpect(jsonPath("$.resource.recipe.id").value(variant.getId().toString()))
                 .andExpect(jsonPath("$.resource.recipe.title").value("Variante"))
                 .andExpect(jsonPath("$.resource.recipe.parentId").value(parent.getId().toString()))
-                .andExpect(jsonPath("$.resource.parent.id").value(parent.getId().toString()));
+                .andExpect(jsonPath("$.resource.diff").exists())
+                .andExpect(jsonPath("$.resource.parent").doesNotExist());
     }
 
     @Test
@@ -376,11 +377,10 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
     void updateRecipe_shouldUpdateRecipeSuccessfully() throws Exception {
         var recipe = createAndSaveRecipe("Titre original", RecipeStatus.PUBLISHED, null);
 
-        var dto = new RecipeDTO(null, "Titre modifié", "Nouveau résumé", null,
-                null, 60, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
+        var request = new UpdateRecipeRequest("Titre modifié", "Nouveau résumé", 60, false, null, List.of(), List.of(), List.of(), List.of());
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
-                objectMapper.writeValueAsBytes(dto));
+                objectMapper.writeValueAsBytes(request));
 
         mockMvc.perform(multipart("/api/recipes/{id}/update", recipe.getId())
                         .file(recipePart))
@@ -392,15 +392,12 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
     @Test
     @WithMockUser(username = "other_user")
     void updateRecipe_shouldThrowWhenNotOwner() throws Exception {
-        // La recette appartient à "chef_integration", pas à "other_user"
-        // IllegalStateException non gérée dans GlobalRestExceptionHandler → Spring relance l'exception via MockMvc
         var recipe = createAndSaveRecipe("Recette de chef_integration", RecipeStatus.PUBLISHED, null);
 
-        var dto = new RecipeDTO(null, "Titre modifié", "Résumé", null,
-                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
+        var request = new UpdateRecipeRequest("Titre modifié", "Résumé", 30, false, null, List.of(), List.of(), List.of(), List.of());
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
-                objectMapper.writeValueAsBytes(dto));
+                objectMapper.writeValueAsBytes(request));
         mockMvc.perform(multipart("/api/recipes/{id}/update", recipe.getId())
                         .file(recipePart)).andExpect(status().isForbidden());
     }
@@ -410,11 +407,10 @@ class RecipeControllerIntegrationTest extends AbstractIntegrationTest {
     void updateRecipe_shouldReturn404WhenNotFound() throws Exception {
         var nonExistentId = UUID.randomUUID();
 
-        var dto = new RecipeDTO(null, "Titre", "Résumé", null,
-                null, 30, null, "PUBLISHED", List.of(), List.of(), List.of(), List.of(), null, null);
+        var request = new UpdateRecipeRequest("Titre", "Résumé", 30, false, null, List.of(), List.of(), List.of(), List.of());
         var recipePart = new MockMultipartFile(
                 "recipe", "", MediaType.APPLICATION_JSON_VALUE,
-                objectMapper.writeValueAsBytes(dto));
+                objectMapper.writeValueAsBytes(request));
 
         mockMvc.perform(multipart("/api/recipes/{id}/update", nonExistentId)
                         .file(recipePart))

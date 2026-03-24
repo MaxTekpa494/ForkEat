@@ -2,6 +2,7 @@ package fr.uge.android.forkeat.recipes.data.api
 
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
+import fr.uge.android.forkeat.recipes.data.dto.SuperLikePriceResponse
 import fr.uge.android.forkeat.recipes.data.dto.CreateRecipeFormDataResponse
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import fr.uge.android.forkeat.recipes.data.dto.AuthorRecipesResponse
@@ -10,6 +11,7 @@ import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsResponseDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeItemResponse
 import fr.uge.android.forkeat.recipes.data.dto.RecipeReportRequestDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipesListResponse
+import fr.uge.android.forkeat.recipes.data.dto.SmartSearchConfigResponse
 import fr.uge.android.forkeat.recipes.data.dto.SmartSearchRequestDTO
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
@@ -118,8 +120,14 @@ interface RecipeApiService {
         @Body request: RecipeReportRequestDTO
     ): Response<Unit>
 
+    @GET("api/recipes/smart-search/config")
+    suspend fun getSmartSearchConfig(): Response<SmartSearchConfigResponse>
+
     @POST("api/recipes/smart-search")
     suspend fun smartSearch(
         @Body request: SmartSearchRequestDTO
     ): Response<RecipesListResponse<PersonalizedRecipeSummaryDTO>>
+
+    @GET("api/super-likes/price")
+    suspend fun getSuperLikePrice(): Response<SuperLikePriceResponse>
 }

@@ -11,6 +11,7 @@ fun AdminReportsScreen(
     onNavigateToRecipes: () -> Unit,
     onNavigateToWallets: () -> Unit,
     onNavigateToCreate: () -> Unit,
+    onNavigateToPromotions: () -> Unit,
     onLogout: () -> Unit,
     onNavigateToRecipe: (String) -> Unit,
     onNavigateToUserProfile: (String) -> Unit
@@ -23,6 +24,7 @@ fun AdminReportsScreen(
         onNavigateToReports = {},
         onNavigateToWallets = onNavigateToWallets,
         onNavigateToCreate = onNavigateToCreate,
+        onNavigateToPromotions = onNavigateToPromotions,
         onLogout = onLogout
     ) { _ ->
         ModeratorReportsScreen(

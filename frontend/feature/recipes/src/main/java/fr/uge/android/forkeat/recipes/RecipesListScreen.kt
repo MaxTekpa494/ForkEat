@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import fr.uge.android.forkeat.promotions.data.dto.PromotionDTO
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -71,6 +72,7 @@ fun RecipesListScreen(
     onLikeRecipe: (UUID) -> Unit = {},
     onUnlikeRecipe: (UUID) -> Unit = {},
     onSuperLikeRecipe: (UUID) -> Unit = {},
+    superLikeBasePriceCents: Long? = null,
     onFollowRecipe: (UUID) -> Unit = {},
     onUnfollowRecipe: (UUID) -> Unit = {},
     insufficientFunds: Boolean = false,
@@ -81,6 +83,7 @@ fun RecipesListScreen(
     onNavigateToWallet: () -> Unit = {},
     onNavigateToAccount: () -> Unit = {},
     onNavigateToSmartSearch: () -> Unit = {},
+    activePromotion: PromotionDTO? = null,
 ) {
     val listState = rememberLazyListState()
     val currentUsername = remember(isLoggedIn) { if (isLoggedIn) ForkEatApi.getCurrentUsername() else null }
@@ -117,32 +120,9 @@ fun RecipesListScreen(
                 onAllergenToggle = onAllergenToggle,
                 onClearFilters = onClearFilters
             )
-
-            if (isLoggedIn) {
-                OutlinedButton(
-                    onClick = onNavigateToSmartSearch,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 4.dp),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Primary500),
-                    border = androidx.compose.foundation.BorderStroke(1.dp, Primary500.copy(alpha = 0.5f))
-                ) {
-                    Icon(Icons.Default.Search, contentDescription = null, modifier = Modifier.size(16.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Column {
-                        Text(
-                            "Recherche Intelligente par IA",
-                            fontWeight = FontWeight.SemiBold,
-                            style = MaterialTheme.typography.bodySmall
-                        )
-                        Text(
-                            "Décrivez votre envie en langage naturel — 0,10 €",
-                            style = MaterialTheme.typography.labelSmall,
-                            color = Gray500
-                        )
-                    }
-                }
+            if (activePromotion != null) {
+                Spacer(modifier = Modifier.height(8.dp))
+                PromotionBanner(promotion = activePromotion)
             }
 
             if (errorMessage != null) {
@@ -178,6 +158,8 @@ fun RecipesListScreen(
                         onLike = onLikeRecipe,
                         onUnlike = onUnlikeRecipe,
                         onSuperLike = onSuperLikeRecipe,
+                        superLikeBasePriceCents = superLikeBasePriceCents,
+                        superLikePromoPriceCents = activePromotion?.priceCents,
                         onFollow = onFollowRecipe,
                         onUnfollow = onUnfollowRecipe,
                     )
@@ -225,6 +207,38 @@ fun RecipesListScreen(
             ) {
                 Icon(Icons.Default.Add, contentDescription = "Créer une recette")
             }
+        }
+    }
+}
+
+@Composable
+fun PromotionBanner(promotion: PromotionDTO) {
+    val price = String.format("%.2f€", promotion.priceCents / 100.0)
+    val bonusText = promotion.bonusEveryN?.let { " · 1 gratuit tous les $it" } ?: ""
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(
+                color = androidx.compose.ui.graphics.Color(0xFFFF6B35),
+                shape = RoundedCornerShape(12.dp)
+            )
+            .padding(horizontal = 16.dp, vertical = 10.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = "Promotion en cours !",
+                style = Typography.labelLarge,
+                fontWeight = FontWeight.Bold,
+                color = androidx.compose.ui.graphics.Color.White
+            )
+            Text(
+                text = "${promotion.name} · Super-like à $price$bonusText",
+                style = Typography.bodySmall,
+                color = androidx.compose.ui.graphics.Color.White
+            )
         }
     }
 }

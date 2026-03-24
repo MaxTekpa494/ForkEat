@@ -2,6 +2,7 @@ package fr.uge.forkeat.infrastructure.persistence.sync.cdc;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.uge.forkeat.infrastructure.persistence.sync.cdc.handler.CDCTableHandler;
 import io.debezium.engine.RecordChangeEvent;
 import org.apache.kafka.connect.data.Struct;
 import org.apache.kafka.connect.source.SourceRecord;
@@ -11,18 +12,20 @@ import org.springframework.stereotype.Component;
 
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 @Component
 public class DebeziumCDCListener {
 
     private static final Logger log = LoggerFactory.getLogger(DebeziumCDCListener.class);
 
-    private final Neo4jSyncService neo4jSyncService;
+    private final Map<String, CDCTableHandler> handlers;
     private final ObjectMapper objectMapper;
 
-    public DebeziumCDCListener(Neo4jSyncService neo4jSyncService, ObjectMapper objectMapper) {
-        this.neo4jSyncService = neo4jSyncService;
+    public DebeziumCDCListener(List<CDCTableHandler> handlers, ObjectMapper objectMapper) {
         this.objectMapper = objectMapper;
+        this.handlers = handlers.stream()
+                .collect(java.util.stream.Collectors.toUnmodifiableMap(CDCTableHandler::tableName, h -> h));
     }
 
     public void handleChangeEvent(RecordChangeEvent<SourceRecord> record) {
@@ -42,11 +45,11 @@ public class DebeziumCDCListener {
                 var table = source.getString("table");
                 var payload = convertStructToJson(value);
                 log.debug("### Événement reçu - Table: {}, Operation: {} ###", table, operation);
-                switch (table) {
-                    case "users" -> neo4jSyncService.handleUserChange(operation, payload);
-                    case "recipes" -> neo4jSyncService.handleRecipeChange(operation, payload);
-                    case "super_likes" -> neo4jSyncService.handleSuperLikeChange(operation, payload);
-                    default -> log.debug("Ignoring change for table: {}", table);
+                var handler = handlers.get(table);
+                if (handler != null) {
+                    handler.handle(operation, payload);
+                } else {
+                    log.debug("Ignoring change for table: {}", table);
                 }
                 return; // succès : on sort de la boucle, l'offset peut avancer
             } catch (Exception e) {

@@ -207,12 +207,10 @@ class EmailVerificationServiceTest {
 
             when(tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE))
                     .thenReturn(Optional.of(token));
-            when(userPersistence.findById(userId)).thenReturn(Optional.of(user));
-            when(userPersistence.saveUser(any(), eq("hashed-pw"))).thenReturn(user);
 
             service.confirmPasswordChange(userId, "123456");
 
-            verify(userPersistence).saveUser(any(), eq("hashed-pw"));
+            verify(userPersistence).updatePassword(userId, "hashed-pw");
             verify(tokenPersistence).deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
         }
 
@@ -366,13 +364,13 @@ class EmailVerificationServiceTest {
             when(tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.EMAIL_CHANGE))
                     .thenReturn(Optional.of(token));
             when(userPersistence.findById(userId)).thenReturn(Optional.of(user));
-            when(userPersistence.saveUser(any(), eq("hashed-pw"))).thenAnswer(inv -> inv.getArgument(0));
+            when(userPersistence.updateUserAndPassword(any(), eq("hashed-pw"))).thenAnswer(inv -> inv.getArgument(0));
 
             var result = service.confirmEmailChange(userId, "654321");
 
             assertNotNull(result);
             var captor = ArgumentCaptor.forClass(User.class);
-            verify(userPersistence).saveUser(captor.capture(), eq("hashed-pw"));
+            verify(userPersistence).updateUserAndPassword(captor.capture(), eq("hashed-pw"));
             assertEquals(AuthMode.LOCAL, captor.getValue().authMode());
             assertEquals("new@forkeat.fr", captor.getValue().email());
         }
@@ -396,12 +394,10 @@ class EmailVerificationServiceTest {
 
             when(tokenPersistence.findByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE))
                     .thenReturn(Optional.of(token));
-            when(userPersistence.findById(userId)).thenReturn(Optional.of(user));
-            when(userPersistence.saveUser(any(), eq("new-hash"))).thenReturn(user);
 
             service.confirmPasswordReset(userId, "123456", "new-hash");
 
-            verify(userPersistence).saveUser(any(), eq("new-hash"));
+            verify(userPersistence).updatePassword(userId, "new-hash");
             verify(tokenPersistence).deleteByUserIdAndType(userId, VerificationTokenType.PASSWORD_CHANGE);
         }
 

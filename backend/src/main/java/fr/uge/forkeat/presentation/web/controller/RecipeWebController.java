@@ -2,21 +2,21 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.dto.recipe.AllergenDTO;
 import fr.uge.forkeat.presentation.dto.recipe.PersonalizedRecipeSummaryDTO;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeDiff;
 import fr.uge.forkeat.presentation.dto.recipe.CreateRecipeRequest;
-import fr.uge.forkeat.presentation.dto.recipe.RecipeDTO;
+import fr.uge.forkeat.presentation.dto.recipe.UpdateRecipeRequest;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.dto.recipe.RecipePaginationDTO;
 import fr.uge.forkeat.presentation.dto.recipe.RecipeSearchDTO;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.web.viewmodel.AuthorRecipesViewModel;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
+import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
+import fr.uge.forkeat.service.SmartSearchConfigService;
 import fr.uge.forkeat.service.WalletService;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
-import fr.uge.forkeat.service.exception.RecipeNotFoundException;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeReport;
 import fr.uge.forkeat.service.model.recipe.RecipeReportType;
 import fr.uge.forkeat.service.model.recipe.RecipeSearchCriteria;
@@ -32,6 +32,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
@@ -47,18 +48,31 @@ public class RecipeWebController {
     private final RecipeSmartSearchService smartSearchService;
     private final WalletService walletService;
     private final RecipeReportService recipeReportService;
+    private final PromotionService promotionService;
+    private final SmartSearchConfigService smartSearchConfigService;
 
     private final Logger logger = LoggerFactory.getLogger(RecipeWebController.class);
 
     public RecipeWebController(RecipeService recipeService, UserService userService,
                                AuthenticationPort authPort, RecipeSmartSearchService smartSearchService,
-                               WalletService walletService, RecipeReportService recipeReportService) {
+                               WalletService walletService, RecipeReportService recipeReportService,
+                               PromotionService promotionService, SmartSearchConfigService smartSearchConfigService) {
         this.recipeService = recipeService;
         this.userService = userService;
         this.authPort = authPort;
         this.smartSearchService = smartSearchService;
         this.walletService = walletService;
         this.recipeReportService = recipeReportService;
+        this.smartSearchConfigService = smartSearchConfigService;
+        this.promotionService = promotionService;
+    }
+
+    private void addSuperLikePriceToModel(Model model) {
+        model.addAttribute("superLikeBasePriceCents", promotionService.getConfig().priceCents());
+        promotionService.findActive().ifPresentOrElse(
+            promo -> model.addAttribute("superLikePromoPriceCents", promo.priceCents()),
+            () -> model.addAttribute("superLikePromoPriceCents", null)
+        );
     }
 
     @GetMapping("/create")
@@ -124,6 +138,42 @@ public class RecipeWebController {
                 allAllergens
         );
         model.addAttribute("vm", viewModel);
+        model.addAttribute("activePromotion", promotionService.findActive().orElse(null));
+        addSuperLikePriceToModel(model);
+        return "recipes/index";
+    }
+
+    @GetMapping("/following")
+    public String listRecipesFollowing(@RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
+        model.addAttribute("isFollowing", true);
+        if(session.getAttribute("instant") == null){
+            session.setAttribute("instant", Instant.now());
+        }
+        var attributeRaw = session.getAttribute("instant");
+        Instant attribute;
+        if(attributeRaw instanceof Instant) {
+            attribute = (Instant) attributeRaw;
+        }else {
+            attribute = Instant.now();
+        }
+        var pageResult = recipeService.getPersonalizedFeedRecipes(attribute, page);
+        System.out.println("############" + page);
+        var recipes = pageResult.items().stream()
+                .map(RecipeDTOMapper::toSummaryDTO)
+                .toList();
+        var allAllergens = recipeService.findAllAllergens().stream()
+                .map(RecipeDTOMapper::toDTO)
+                .toList();
+        var viewModel = new RecipeListViewModel(
+                recipes,
+                page,
+                (int) Math.ceil((double) pageResult.total() / 20),
+                pageResult.total(),
+                "",
+                List.of(),
+                allAllergens
+        );
+        model.addAttribute("vm", viewModel);
         return "recipes/index";
     }
 
@@ -135,11 +185,8 @@ public class RecipeWebController {
         var recipe = personalizedRecipe.recipe();
         var recipeDTO = RecipeDTOMapper.toPersonalizedRecipeDTO(personalizedRecipe);
 
-        if (recipe.isVariant()) {
-            var parent = recipeService.findById(recipe.parentId());
-            var parentDTO = RecipeDTOMapper.toDTO(parent);
-            model.addAttribute("parent", parentDTO);
-            model.addAttribute("diff", RecipeDiff.compute(parentDTO, recipeDTO.toRecipeDTO()));
+        if (personalizedRecipe.diff() != null) {
+            model.addAttribute("diff", personalizedRecipe.diff());
         }
 
         var isOwner = authPort.isAuthenticated() && currentUser != null && currentUser.equals(recipe.usernameAuthor());
@@ -147,6 +194,7 @@ public class RecipeWebController {
         model.addAttribute("recipe", recipeDTO);
         model.addAttribute("isOwner", isOwner);
         model.addAttribute("hasActiveDietaryFlags", hasActiveDietaryFlags);
+        addSuperLikePriceToModel(model);
         logger.info("Recipe {} viewed by {}", recipe, currentUser);
         return "recipes/detail";
     }
@@ -187,13 +235,13 @@ public class RecipeWebController {
 
     @PostMapping("/{id}/edit")
     public String updateRecipe(@PathVariable UUID id,
-                               @ModelAttribute RecipeDTO recipeDTO,
+                               @ModelAttribute UpdateRecipeRequest request,
                                @RequestPart(value = "image", required = false) MultipartFile image,
                                Model model) {
         var currentUser = authPort.extractUsername();
         logger.info("Updating recipe {}", id);
-        var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, currentUser));
-        var updatedRecipe = recipeService.updateRecipe(id, recipe, ImageMapper.toImageUpload(image));
+        var command = RecipeDTOMapper.toUpdateCommand(id, request, currentUser, ImageMapper.toImageUpload(image));
+        var updatedRecipe = recipeService.updateRecipe(command);
         logger.info("Recipe {} updated", updatedRecipe);
         return "redirect:/recipes/" + updatedRecipe.id();
     }
@@ -230,7 +278,9 @@ public class RecipeWebController {
     public String pageSmartSearch(Model model, HttpSession session) {
         var username = authPort.extractUsername();
         var balance  = walletService.getBalance(userService.getUserByUsername(username).id());
+        var smartSearchCost = smartSearchConfigService.getConfig().cost();
         model.addAttribute("balance", balance);
+        model.addAttribute("smartSearchCost", smartSearchCost);
 
         if (!model.containsAttribute("query")) {
             var cached = session.getAttribute("smartSearchQuery");
@@ -241,15 +291,15 @@ public class RecipeWebController {
             model.addAttribute("recipes", cached != null ? cached : List.of());
         }
 
+        addSuperLikePriceToModel(model);
         return "recipes/smart-search";
     }
 
     @PostMapping("/smart-search")
     public String smartSearch(@RequestParam("query") String query, HttpSession session,
                               RedirectAttributes redirectAttrs) {
-        var user = userService.getUserByUsername(authPort.extractUsername());
         try {
-            var dtos = smartSearchService.search(user.id(), query).stream()
+            var dtos = smartSearchService.search(query).stream()
                     .map(RecipeDTOMapper::toSummaryDTO)
                     .toList();
             session.setAttribute("smartSearchQuery",   query);

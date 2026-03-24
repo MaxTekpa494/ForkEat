@@ -1,9 +1,11 @@
 package fr.uge.android.forkeat.recipes
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -12,21 +14,55 @@ import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import fr.uge.android.forkeat.designsystem.theme.*
 
 @Composable
 fun SuperLikeConfirmDialog(
+    basePriceCents: Long? = null,
+    promoPriceCents: Long? = null,
     onDismiss: () -> Unit,
     onConfirm: () -> Unit,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text("Super Like cette recette ?", fontWeight = FontWeight.Bold, color = Secondary900) },
-        text = { Text("Vous allez mettre en avant cette recette avec un Super Like.", color = Gray500) },
+        text = {
+            Column {
+                Text("Vous allez mettre en avant cette recette avec un Super Like.", color = Gray500)
+                if (basePriceCents != null) {
+                    Spacer(Modifier.height(8.dp))
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        if (promoPriceCents != null) {
+                            Text(
+                                text = String.format("%.2f€", basePriceCents / 100.0),
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    textDecoration = TextDecoration.LineThrough
+                                ),
+                                color = Gray500
+                            )
+                            Spacer(Modifier.width(6.dp))
+                            Text(
+                                text = String.format("%.2f€", promoPriceCents / 100.0),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                color = Orange500
+                            )
+                        } else {
+                            Text(
+                                text = String.format("%.2f€", basePriceCents / 100.0),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = Gray500
+                            )
+                        }
+                    }
+                }
+            }
+        },
         confirmButton = {
             Button(
                 onClick = onConfirm,

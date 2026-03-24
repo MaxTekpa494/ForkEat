@@ -3,6 +3,7 @@ package fr.uge.forkeat.infrastructure.persistence.neo4j.repository;
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.node.RecipeNode;
 import fr.uge.forkeat.infrastructure.persistence.neo4j.node.UserNode;
+import org.junit.Before;
 import org.junit.jupiter.api.*;
 import org.neo4j.driver.Driver;
 import org.neo4j.driver.Session;
@@ -13,6 +14,8 @@ import org.springframework.data.neo4j.core.Neo4jClient;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -452,7 +455,191 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
         long count = recipeRepository.countByAuthorUsername("author1");
         assertThat(count).isEqualTo(2L);
     }
+    @Nested
+    @DisplayName("getFeed()")
+    class GetFeedTests {
 
+        private static final ZonedDateTime NOW    = ZonedDateTime.now(ZoneOffset.UTC);
+        private static final ZonedDateTime MINUS3 = NOW.minusDays(3);
+        private static final ZonedDateTime PLUS1  = NOW.plusDays(1);
+
+        private static final UUID R1 = UUID.randomUUID();
+        private static final UUID R2 = UUID.randomUUID();
+        private static final UUID R3 = UUID.randomUUID();
+        private static final UUID R4 = UUID.randomUUID();
+
+
+        @BeforeEach
+        void setUp() {
+            cleanDatabase();
+            try (Session session = driver.session()) {
+                session.executeWrite(tx -> {
+
+                    tx.run("""
+                                    CREATE (me:User {username: 'alice'})
+                                    CREATE (r1:Recipe {id: $r1, title: 'Soupe', createdAt: $t1})
+                                    CREATE (r2:Recipe {id: $r2, title: 'Tarte', createdAt: $t2})
+                                    CREATE (r3:Recipe {id: $r3, title: 'Cake',  createdAt: $t3})
+                                    CREATE (me)-[:FEED {depth: 1, createdAt: $fAt1}]->(r1)
+                                    CREATE (me)-[:FEED {depth: 2, createdAt: $fAt2}]->(r2)
+                                    CREATE (me)-[:FEED {depth: 1, createdAt: $fAt3}]->(r3)
+                                    CREATE (r4:Recipe {id: $r4, title: 'Risotto', createdAt: $t})
+                                    CREATE (me)-[:FEED {depth: 1, createdAt: $fAt}]->(r4)
+                                    """,
+                            Map.ofEntries(
+                                    Map.entry("r1", R1.toString()),
+                                    Map.entry("r2", R2.toString()),
+                                    Map.entry("r3", R3.toString()),
+                                    Map.entry("r4",  R4.toString()),
+                                    Map.entry("t",   NOW.minusDays(1)),
+                                    Map.entry("t1", NOW.minusDays(2)),
+                                    Map.entry("t2", NOW.minusDays(1)),
+                                    Map.entry("t3", NOW.minusDays(4)),
+                                    Map.entry("fAt1", NOW.minusDays(1)),
+                                    Map.entry("fAt2", NOW.minusDays(1)),
+                                    Map.entry("fAt3", NOW.minusDays(5)),
+                                    Map.entry("fAt", NOW.minusHours(12))
+                            )
+                    );
+                    return null;
+                });
+            }
+        }
+
+        // ── Cas nominaux ───────────────────────────────────────────────────────────
+
+        @Test
+        @DisplayName("Retourne les recettes dont la relation FEED est dans la fenêtre temporelle")
+        void nominal_returnsMatchingRecipes() {
+            List<RecipeNode> feed = recipeRepository.getFeed(
+                    "alice", 0, 10, MINUS3, PLUS1
+            );
+
+            assertThat(feed).hasSize(3);
+            assertThat(feed).extracting(RecipeNode::getId)
+                    .containsExactlyInAnyOrder(R4, R1, R2);
+        }
+
+        @Test
+        @DisplayName("Retourne une liste vide si aucune relation FEED n'existe pour cet user")
+        void unknownUser_returnsEmpty() {
+            List<RecipeNode> feed = recipeRepository.getFeed(
+                    "nobody", 0, 10, MINUS3, PLUS1
+            );
+
+            assertThat(feed).isEmpty();
+        }
+
+        // ── Pagination ─────────────────────────────────────────────────────────────
+
+        @Nested
+        @DisplayName("Pagination")
+        class PaginationTests {
+
+            @Test
+            @DisplayName("L'offset saute les N premiers résultats")
+            void withOffset_skipsItems() {
+                List<RecipeNode> feed = recipeRepository.getFeed(
+                        "alice", 1, 10, MINUS3, PLUS1
+                );
+
+                assertThat(feed).hasSize(2);
+            }
+
+            @Test
+            @DisplayName("Limit borne correctement le nombre de résultats")
+            void withLimit_truncatesResults() {
+                List<RecipeNode> feed = recipeRepository.getFeed(
+                        "alice", 0, 1, MINUS3, PLUS1
+                );
+
+                assertThat(feed).hasSize(1);
+            }
+
+            @Test
+            @DisplayName("offset >= total résultats retourne une liste vide")
+            void offsetBeyondResults_returnsEmpty() {
+                List<RecipeNode> feed = recipeRepository.getFeed(
+                        "alice", 99, 10, MINUS3, PLUS1
+                );
+
+                assertThat(feed).isEmpty();
+            }
+        }
+
+        // ── Filtres temporels ──────────────────────────────────────────────────────
+
+        @Nested
+        @DisplayName("Filtres temporels")
+        class TemporalFilterTests {
+
+            @Test
+            @DisplayName("sinceTime exclut les relations FEED trop anciennes")
+            void sinceTime_excludesOldFeedRelations() {
+                List<RecipeNode> feed = recipeRepository.getFeed(
+                        "alice", 0, 10,
+                        NOW.minusDays(2),
+                        PLUS1
+                );
+
+                assertThat(feed).extracting(RecipeNode::getId)
+                        .doesNotContain(R3);
+            }
+
+            @Test
+            @DisplayName("beforeTime exclut les relations FEED trop récentes")
+            void beforeTime_excludesRecentFeedRelations() {
+                List<RecipeNode> feed = recipeRepository.getFeed(
+                        "alice", 0, 10,
+                        MINUS3,
+                        NOW.minusDays(2)
+                );
+
+                assertThat(feed).isEmpty();
+            }
+
+            @Test
+            @DisplayName("Fenêtre nulle (sinceTime == beforeTime) ne retourne rien")
+            void emptyWindow_returnsEmpty() {
+                ZonedDateTime point = NOW.minusSeconds(1);
+
+                List<RecipeNode> feed = recipeRepository.getFeed(
+                        "alice", 0, 10, point, point
+                );
+
+                assertThat(feed).isEmpty();
+            }
+        }
+
+        // ── Tri ────────────────────────────────────────────────────────────────────
+
+        @Nested
+        @DisplayName("Tri")
+        class OrderingTests {
+
+            @Test
+            @DisplayName("Les recettes de depth 1 précèdent celles de depth 2")
+            void depthAsc_shallowerFirst() {
+                List<RecipeNode> feed = recipeRepository.getFeed(
+                        "alice", 0, 10, MINUS3, PLUS1
+                );
+
+                List<UUID> ids = feed.stream().map(RecipeNode::getId).toList();
+                assertThat(ids.indexOf(R1)).isLessThan(ids.indexOf(R2));
+            }
+
+            @Test
+            @DisplayName("À depth égal, la recette la plus récente est en tête")
+            void sameDepth_newestRecipeFirst() {
+                List<RecipeNode> feed = recipeRepository.getFeed(
+                        "alice", 0, 10, MINUS3, PLUS1
+                );
+
+                List<UUID> ids = feed.stream().map(RecipeNode::getId).toList();
+                assertThat(ids.indexOf(R4)).isLessThan(ids.indexOf(R1));
+            }
+        }
+    }
     // Helper methods
 
     private void createUser(UUID uuid, String username) {
@@ -473,6 +660,18 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
                 .run();
     }
 
+    private void createFeed(UUID userId, UUID recipeId){
+        neo4jClient.query("""
+                MATCH (recipe:Recipe {id: $recipeId})
+                MATCH path = (author:User {id: $authorId})<-[:FOLLOWS*1..3]-(follower:User)
+                WITH follower, recipe, min(length(path)) as depth
+                MERGE (follower)-[f:FEED]->(recipe)
+                ON CREATE SET f.depth = depth, f.createdAt = $now
+                ON MATCH SET f.depth = CASE WHEN depth < f.depth THEN depth ELSE f.depth END
+                SET recipe.feed = true
+            """).bindAll(Map.of("userId", userId.toString(), "recipeId", recipeId.toString()))
+                .run();
+    }
     private long countLikes(UUID userId, UUID recipeId) {
         return neo4jClient.query("""
                 MATCH (r:Recipe {id: $recipeId})

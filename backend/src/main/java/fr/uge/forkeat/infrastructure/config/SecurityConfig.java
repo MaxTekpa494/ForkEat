@@ -80,6 +80,9 @@ public class SecurityConfig {
 						.requestMatchers("/api/auth/me").authenticated()
                         .requestMatchers("/api/recipes/*/like").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/auth/**").permitAll()
+						.requestMatchers(HttpMethod.GET, "/api/promotions/active", "/api/promotions/upcoming").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/api/super-likes/price").permitAll()
+						.requestMatchers("/api/promotions/stream").authenticated()
 						.requestMatchers(HttpMethod.GET, "/api/recipes/**").permitAll()
 						.requestMatchers("/api/recipes/**").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/api/wallet/**").hasAuthority("EMAIL_VERIFIED")
@@ -116,8 +119,9 @@ public class SecurityConfig {
 				.authorizeHttpRequests(auth -> auth
 						.requestMatchers("/", "/auth/**", "/login", "/error/**", "/css/**", "/js/**", "/images/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/recipes/create", "/recipes/create-variant").hasAuthority("EMAIL_VERIFIED")
+						.requestMatchers("/recipes/my-recipes").authenticated()
+						.requestMatchers("/recipes/smart-search").authenticated()
 						.requestMatchers(HttpMethod.GET, "/recipes/**").permitAll()
-						.requestMatchers("/recipes/my").authenticated()
 						.requestMatchers("/recipes/create", "/recipes/*/edit").hasAuthority("EMAIL_VERIFIED")
 						.requestMatchers("/recipes/*/delete").authenticated() // edit et delete c pas EMAIL verified
 																				// à corriger quand on les fait

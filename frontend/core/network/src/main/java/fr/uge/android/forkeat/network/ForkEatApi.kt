@@ -34,7 +34,7 @@ object ForkEatApi {
 
     // 10.0.2.2 = host machine depuis l'émulateur Android
     // Pour un device physique, utiliser l'IP locale de la machine (ex: 192.168.x.x)
-    private const val BASE_URL = "http://192.168.0.159:8080/"
+    private const val BASE_URL = "http://10.0.2.2:8080/"
 
     private var tokenManager: TokenManager? = null
 
@@ -85,6 +85,8 @@ object ForkEatApi {
             .addConverterFactory(GsonConverterFactory.create(gson))
             .build()
     }
+
+    fun getBaseUrl(): String = BASE_URL
 
     fun <T> createService(serviceClass: Class<T>): T = retrofit.create(serviceClass)
     val authService: AuthApiService by lazy { retrofit.create(AuthApiService::class.java) }

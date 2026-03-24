@@ -57,19 +57,26 @@
 
                 <div class="hidden md:block relative animate-float">
                     <div class="bg-white/5 backdrop-blur-md border border-white/10 rounded-3xl p-6 shadow-2xl transform rotate-3 hover:rotate-0 transition duration-500">
-                        <div class="aspect-square bg-gradient-to-b from-secondary-700 to-secondary-800 rounded-2xl flex items-center justify-center relative overflow-hidden group">
-                            <i class="fas fa-utensils text-8xl text-secondary-600/30 group-hover:scale-110 transition duration-700"></i>
+                        <a th:href="${topRecipe != null} ? @{/recipes/{id}(id=${topRecipe.id})} : '#'"
+                           class="aspect-square bg-gradient-to-b from-secondary-700 to-secondary-800 rounded-2xl flex items-center justify-center relative overflow-hidden group block">
+                            <img th:if="${topRecipe != null and topRecipe.imageUrl != null}"
+                                 th:src="${topRecipe.imageUrl}"
+                                 th:alt="${topRecipe.title}"
+                                 class="w-full h-full object-cover group-hover:scale-105 transition duration-700 absolute inset-0">
+                            <i th:if="${topRecipe == null or topRecipe.imageUrl == null}"
+                               class="fas fa-utensils text-8xl text-secondary-600/30 group-hover:scale-110 transition duration-700"></i>
 
                             <div class="absolute bottom-6 left-6 right-6 bg-white p-4 rounded-xl shadow-lg flex items-center gap-4">
-                                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600">
+                                <div class="w-10 h-10 rounded-full bg-primary-100 flex items-center justify-center text-primary-600 shrink-0">
                                     <i class="fas fa-heart"></i>
                                 </div>
-                                <div>
-                                    <div class="text-xs text-gray-500 font-bold uppercase">Plat du jour</div>
-                                    <div class="text-secondary-900 font-bold">Pasta à la truffe</div>
+                                <div class="min-w-0">
+                                    <div class="text-xs text-gray-500 font-bold uppercase">Recette la plus aimée</div>
+                                    <div class="text-secondary-900 font-bold truncate"
+                                         th:text="${topRecipe != null} ? ${topRecipe.title} : 'Aucune recette'">—</div>
                                 </div>
                             </div>
-                        </div>
+                        </a>
                     </div>
                 </div>
             </div>
