@@ -15,8 +15,6 @@ services:
         condition: service_started
       neo4j:
         condition: service_started
-      stripe:
-        condition: service_started
       ollama-init:
         condition: service_completed_successfully
     networks:
@@ -44,6 +42,10 @@ services:
       - forkeat-network
     mem_reservation: 128m
     mem_limit: 512m
+
+  stripe:
+    profiles:
+      - production
 
 networks:
   forkeat-network:
