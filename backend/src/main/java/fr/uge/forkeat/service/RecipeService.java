@@ -199,7 +199,7 @@ public class RecipeService {
   }
 
   public List<Recipe> findByStatus(RecipeStatus status) {
-    if(!authPort.isAdmin() || !authPort.isModerator()){
+    if(!authPort.isAdmin() && !authPort.isModerator()){
       throw new IllegalArgumentException("Can't access !");
     }
     return recipePersistence.findByStatus(status);
