@@ -3,7 +3,6 @@ image: maven:3.9-eclipse-temurin-25-alpine
 
 workflow:
   rules:
-    # Condition 1 : C'est un push direct sur la branche develop
     - if: $CI_COMMIT_BRANCH == "feat/production-pipeline" && $CI_PIPELINE_SOURCE == "push"
 
 stages:
@@ -22,8 +21,6 @@ build-and-push-api:
   script:
     - cd backend && docker build -t registry.gitlab.com/adben27/projet-recettes-uge .
     - docker push registry.gitlab.com/adben27/projet-recettes-uge
-  only:
-    - main
 
 deploy-prod:
   stage: deploy
