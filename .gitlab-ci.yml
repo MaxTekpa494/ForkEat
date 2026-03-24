@@ -65,6 +65,7 @@ deploy-prod:
   rules:
     - if: $CI_COMMIT_BRANCH == "feat/production-pipeline" && $CI_PIPELINE_SOURCE == "push"
   before_script:
+    - apk add --no-cache openssh-keygen openssl
     - mkdir -p ~/.ssh
     - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
     - ssh-keyscan -H $DEPLOY_SERVER_IP >> ~/.ssh/known_hosts
