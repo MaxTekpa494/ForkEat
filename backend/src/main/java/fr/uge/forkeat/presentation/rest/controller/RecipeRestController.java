@@ -83,6 +83,7 @@ public class RecipeRestController {
   }
 
     @GetMapping("/following")
+    @PreAuthorize("isAuthenticated()")
     public ResponseEntity<HttpResponse<PersonalizedRecipeSummaryDTO>> getRecipesFeed(@RequestParam(defaultValue = "0") int page,
                                                                                      @RequestParam(required = false) Instant instant) {
       instant = instant == null ? Instant.now() : instant;

@@ -163,6 +163,11 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
          void testGetRedistributionWallet() throws Exception {
              testRights(get("/api/admin/wallets/redistribution"), AuthorizationTest.ADMIN);
          }
+
+         @Test
+         void testGetRedistribution() throws Exception {
+             testRights(get("/api/admin/wallets/redistribution").content("{\"recipeId\": \""+UUID.randomUUID()+"\", \"month\": \"May\"}"), AuthorizationTest.ADMIN);
+         }
      }
 
     @Nested
