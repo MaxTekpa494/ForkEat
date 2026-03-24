@@ -68,7 +68,7 @@ deploy-prod:
     # Ajout de la clé privée SSH pour la connexion au serveur
     - 'echo "$SSH_PRIVATE_KEY" > id_rsa && chmod 600 id_rsa'
     # Ajout du serveur à known_hosts pour éviter les prompts
-    - 'ssh-keyscan -H $DEPLOY_SERVER_IP >> ~/.ssh/known_hosts'
+    - 'ssh-keyscan -H $DEPLOY_SERVER_IP >> /home/$DEPLOY_SERVER_USERNAME/.ssh/known_hosts'
     # Copier le fichier .env de production sur le serveur
     - 'scp -i id_rsa -o StrictHostKeyChecking=no $PROD_DOTENV_FILE $DEPLOY_SERVER_USERNAME@$DEPLOY_SERVER_IP:/home/$DEPLOY_SERVER_USERNAME/projet-recettes-uge/backend/.env'
   script:
