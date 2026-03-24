@@ -34,6 +34,8 @@ public interface RecipePersistence {
 
   List<Recipe> findByAuthorUsername(String authorUsername);
 
+  void updateFeed(String followerUsername, String followedUsername);
+
   List<Allergen> findAllAllergens();
 
   List<String> findAllIngredientNames();

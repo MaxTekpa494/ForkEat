@@ -100,6 +100,37 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
             """)
     List<RecipeNode> getFeed(@Param("username") String username, @Param("offset") long offset, @Param("limit") long limit, @Param("sinceTime") ZonedDateTime sinceTime, @Param("beforeTime") ZonedDateTime beforeTime);
 
+    @Query("""
+        MATCH (follower:User {username: $followerUsername})
+        MATCH (followed:User {username: $followedUsername})
+        MATCH (followed)-[:FOLLOWS*0..2]->(relay:User)-[:PUBLISHED]->(recipe:Recipe)
+        WITH follower, recipe,
+             min(length(shortestPath((followed)-[:FOLLOWS*0..2]->(relay))) + 1) AS depth
+        MERGE (follower)-[f:FEED]->(recipe)
+        ON CREATE SET f.depth = depth, f.createdAt = $now
+        ON MATCH SET f.depth = CASE WHEN depth < f.depth THEN depth ELSE f.depth END
+        WITH recipe
+        MATCH path = (follower)<-[:FOLLOWS*1..2]-(upstream:User)
+        WITH upstream, recipe, min(length(path)) + 1 AS upstreamDepth
+        MERGE (upstream)-[f:FEED]->(recipe)
+        ON CREATE SET f.depth = upstreamDepth, f.createdAt = $now
+        ON MATCH SET f.depth = CASE WHEN upstreamDepth < f.depth THEN upstreamDepth ELSE f.depth END
+        """)
+    void propagateFeedOnFollow(
+            @Param("followerUsername") String followerUsername,
+            @Param("followedUsername") String followedUsername,
+            @Param("now") ZonedDateTime now
+    );
+
+
+    @Query("MATCH (:User {username: $username})-[r:FEED]->() " +
+            "WHERE r.createdAt >= $date " +
+            "RETURN count(r)")
+    long countFeedRelationshipsBefore(
+            @Param("username") String username,
+            @Param("date") ZonedDateTime date
+    );
+
 
     @Query("""
             MATCH (r:Recipe)
