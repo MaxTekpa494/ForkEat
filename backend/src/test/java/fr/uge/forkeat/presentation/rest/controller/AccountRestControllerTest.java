@@ -234,6 +234,7 @@ class AccountRestControllerTest {
 
         @Test
         void shouldRequestEmailChangeForLocalUser() throws Exception {
+            when(userService.getUserByUsername("viewer")).thenReturn(buildUser("viewer"));
             doNothing().when(userUpdateService).requestEmailChange(any(), any(), any(), any(), any());
 
             mockMvc.perform(post("/api/account/email-change-requests")
@@ -248,6 +249,7 @@ class AccountRestControllerTest {
 
         @Test
         void shouldRequestEmailChangeForGoogleUser() throws Exception {
+            when(userService.getUserByUsername("viewer")).thenReturn(buildUser("viewer"));
             doNothing().when(userUpdateService).requestEmailChange(any(), any(), any(), any(), any());
 
             mockMvc.perform(post("/api/account/email-change-requests")
@@ -262,6 +264,7 @@ class AccountRestControllerTest {
 
         @Test
         void shouldReturn400WhenCurrentPasswordIncorrect() throws Exception {
+            when(userService.getUserByUsername("viewer")).thenReturn(buildUser("viewer"));
             doThrow(new CheckProfileUpdateFailureException("Incorrect password"))
                     .when(userUpdateService).requestEmailChange("viewer", "new@example.com", "wrong", "", "");
 
@@ -275,6 +278,7 @@ class AccountRestControllerTest {
 
         @Test
         void shouldReturn400WhenEmailAlreadyTaken() throws Exception {
+            when(userService.getUserByUsername("viewer")).thenReturn(buildUser("viewer"));
             doThrow(new CheckProfileUpdateFailureException("Cet email est déjà utilisé"))
                     .when(userUpdateService).requestEmailChange("viewer", "taken@example.com", "pass", "", "");
 
@@ -288,6 +292,7 @@ class AccountRestControllerTest {
 
         @Test
         void shouldReturn400WhenGoogleUserPasswordTooShort() throws Exception {
+            when(userService.getUserByUsername("viewer")).thenReturn(buildUser("viewer"));
             doThrow(new CheckProfileUpdateFailureException("New password must be at least 8 characters"))
                     .when(userUpdateService).requestEmailChange("viewer", "new@example.com", "", "short", "short");
 
@@ -301,6 +306,7 @@ class AccountRestControllerTest {
 
         @Test
         void shouldReturn400WhenGoogleUserPasswordsDontMatch() throws Exception {
+            when(userService.getUserByUsername("viewer")).thenReturn(buildUser("viewer"));
             doThrow(new CheckProfileUpdateFailureException("Les mots de passe ne correspondent pas"))
                     .when(userUpdateService).requestEmailChange("viewer", "new@example.com", "", "newPass1!", "different");
 

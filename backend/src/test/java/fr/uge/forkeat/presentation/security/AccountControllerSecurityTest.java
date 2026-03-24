@@ -128,13 +128,13 @@ public class AccountControllerSecurityTest extends AbstractIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content("""
                 {"newEmail": "new@example.com", "currentPassword": "pass123", "newPassword": "newpass123", "confirmPassword": "newpass123"}
-            """), AuthorizationTest.EMAIL_VERIFIED);
+            """), AuthorizationTest.MEMBER);
         }
 
         @Test
         void testConfirmEmailChange() throws Exception {
             testRights(put("/api/account/email-change-requests")
-                    .param("code", "123456"), AuthorizationTest.EMAIL_VERIFIED);
+                    .param("code", "123456"), AuthorizationTest.MEMBER);
         }
 
         @Test
@@ -153,13 +153,13 @@ public class AccountControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testRequestAccountDeletion() throws Exception {
-            testRights(post("/api/account/delete-requests"), AuthorizationTest.EMAIL_VERIFIED);
+            testRights(post("/api/account/delete-requests"), AuthorizationTest.MEMBER);
         }
 
         @Test
         void testConfirmAccountDeletion() throws Exception {
             testRights(put("/api/account/delete-requests")
-                    .param("code", "123456"), AuthorizationTest.EMAIL_VERIFIED);
+                    .param("code", "123456"), AuthorizationTest.MEMBER);
         }
     }
 
@@ -213,13 +213,13 @@ public class AccountControllerSecurityTest extends AbstractIntegrationTest {
                     .param("newEmail", "new@example.com")
                     .param("currentPassword", "pass123")
                     .param("newPassword", "newpass123")
-                    .param("confirmPassword", "newpass123"), AuthorizationTest.EMAIL_VERIFIED);
+                    .param("confirmPassword", "newpass123"), AuthorizationTest.MEMBER);
         }
 
         @Test
         void testConfirmEmailChange() throws Exception {
             testRightsMVC(post("/account/email-change-requests/confirm")
-                    .param("code", "123456"), AuthorizationTest.EMAIL_VERIFIED);
+                    .param("code", "123456"), AuthorizationTest.MEMBER);
         }
 
         @Test
@@ -237,13 +237,13 @@ public class AccountControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testRequestAccountDeletion() throws Exception {
-            testRightsMVC(post("/account/delete-requests"), AuthorizationTest.EMAIL_VERIFIED);
+            testRightsMVC(post("/account/delete-requests"), AuthorizationTest.MEMBER);
         }
 
         @Test
         void testConfirmAccountDeletion() throws Exception {
             testRightsMVC(post("/account/delete-requests/confirm")
-                    .param("code", "123456"), AuthorizationTest.EMAIL_VERIFIED);
+                    .param("code", "123456"), AuthorizationTest.MEMBER);
         }
     }
 

@@ -69,7 +69,7 @@ public class AuthRestController {
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<?> login(@RequestBody UserLoginDTO userLogin) {
+	public ResponseEntity<HttpResponse<Void>> login(@RequestBody UserLoginDTO userLogin) {
 		Objects.requireNonNull(userLogin);
 		try {
 			authenticationManager
@@ -92,7 +92,7 @@ public class AuthRestController {
 	}
 
 	@PostMapping("/google-login")
-	public ResponseEntity<?> loginWithGoogle(@RequestBody GoogleIdTokenRequestDTO request) {
+	public ResponseEntity<HttpResponse<Void>> loginWithGoogle(@RequestBody GoogleIdTokenRequestDTO request) {
 		Objects.requireNonNull(request);
 		try {
 			var googleIdToken = googleTokenVerificationService.verify(request.idToken());
@@ -122,14 +122,14 @@ public class AuthRestController {
 	}
 
 	@PostMapping("/forgot-password")
-	public ResponseEntity<?> forgotPassword(@RequestBody ChangePasswordDTO changePasswordDTO) {
+	public ResponseEntity<HttpResponse<Void>> forgotPassword(@RequestBody ChangePasswordDTO changePasswordDTO) {
 		userService.findByEmail(changePasswordDTO.email())
 				.ifPresent(user -> emailVerificationService.sendPasswordChangeCode(user.id(), user.email()));
 		return ResponseEntity.ok().build();
 	}
 
 	@PostMapping("/forgot-password/confirm-code")
-	public ResponseEntity<?> forgotPasswordConfirmCode(@RequestBody ChangePasswordConfirmCodeDTO changePasswordConfirmCodeDTO) {
+	public ResponseEntity<HttpResponse<Void>> forgotPasswordConfirmCode(@RequestBody ChangePasswordConfirmCodeDTO changePasswordConfirmCodeDTO) {
 		userUpdateService.confirmForgotPasswordChange(
 				changePasswordConfirmCodeDTO.email(),
 				changePasswordConfirmCodeDTO.code(),
