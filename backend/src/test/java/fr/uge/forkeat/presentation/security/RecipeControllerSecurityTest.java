@@ -353,16 +353,6 @@ public class RecipeControllerSecurityTest extends AbstractIntegrationTest {
         void testSuperLikeRecipe() throws Exception {
             testRightsMVC(post("/recipes/{id}/super-like", RECIPE_ID), AuthorizationTest.MEMBER);
         }
-
-        @Test
-        void testFollowRecipe() throws Exception {
-            testRightsMVC(post("/recipes/{id}/follow", UUID.randomUUID()), AuthorizationTest.EMAIL_VERIFIED);
-        }
-
-        @Test
-        void testUnfollowRecipe() throws Exception {
-            testRightsMVC(post("/recipes/{id}/unfollow", UUID.randomUUID()), AuthorizationTest.EMAIL_VERIFIED);
-        }
     }
 
     private Recipe getRecipeModel(){

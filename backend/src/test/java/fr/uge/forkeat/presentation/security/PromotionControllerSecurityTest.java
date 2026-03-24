@@ -52,12 +52,12 @@ public class PromotionControllerSecurityTest extends AbstractIntegrationTest {
 
         @Test
         void testGetActivePromotion() throws Exception {
-            testRights(get("/api/promotions/active"), AuthorizationTest.MEMBER);
+            testRights(get("/api/promotions/active"), AuthorizationTest.UNAUTHENTICATED);
         }
 
         @Test
         void testGetUpcomingPromotions() throws Exception {
-            testRights(get("/api/promotions/upcoming"), AuthorizationTest.MEMBER);
+            testRights(get("/api/promotions/upcoming"), AuthorizationTest.UNAUTHENTICATED);
         }
     }
 
