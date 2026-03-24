@@ -3,7 +3,7 @@ package fr.uge.forkeat.infrastructure.scheduler;
 import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.service.model.superlike.Promotion;
 import fr.uge.forkeat.service.port.PromotionSchedulingPort;
-import fr.uge.forkeat.service.port.FcmGateway;
+import fr.uge.forkeat.service.port.PromotionSsePort;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.boot.ApplicationArguments;
@@ -28,16 +28,16 @@ import java.util.concurrent.ScheduledFuture;
 public class PromotionSchedulingService implements ApplicationRunner, PromotionSchedulingPort {
 
     private final PromotionService promotionService;
-    private final FcmGateway fcmGateway;
+    private final PromotionSsePort ssePort;
     private final TaskScheduler taskScheduler;
     private final ConcurrentHashMap<UUID, List<ScheduledFuture<?>>> futures = new ConcurrentHashMap<>();
     private final Logger logger = LoggerFactory.getLogger(PromotionSchedulingService.class);
 
     public PromotionSchedulingService(PromotionService promotionService,
-                                      FcmGateway fcmGateway,
+                                      PromotionSsePort ssePort,
                                       TaskScheduler taskScheduler) {
         this.promotionService = promotionService;
-        this.fcmGateway = fcmGateway;
+        this.ssePort = ssePort;
         this.taskScheduler = taskScheduler;
     }
 
@@ -59,10 +59,10 @@ public class PromotionSchedulingService implements ApplicationRunner, PromotionS
     public void run(ApplicationArguments args) {
         // Activer/expirer les promotions en retard (serveur était down)
         var activated = promotionService.activateDuePromotions();
-        activated.forEach(p -> fcmGateway.sendToTopic("promotions", "Promotion en cours !", p.name()));
+        activated.forEach(ssePort::notifyActivated);
 
         var expired = promotionService.expireDuePromotions();
-        expired.forEach(p -> fcmGateway.sendToTopic("promotions", "Fin de promotion", p.name()));
+        expired.forEach(ssePort::notifyExpired);
 
         // Planifier les promotions SCHEDULED futures
         promotionService.findUpcoming().forEach(this::schedule);
@@ -120,7 +120,7 @@ public class PromotionSchedulingService implements ApplicationRunner, PromotionS
     private void doActivate(UUID id, String name) {
         try {
             promotionService.activate(id);
-            fcmGateway.sendToTopic("promotions", "Promotion en cours !", name);
+            ssePort.notifyActivated(promotionService.findById(id));
         } catch (Exception e) {
             logger.error("Failed to activate promotion {}: {}", id, e.getMessage(), e);
         }
@@ -129,7 +129,7 @@ public class PromotionSchedulingService implements ApplicationRunner, PromotionS
     private void doExpire(UUID id, String name) {
         try {
             promotionService.expire(id);
-            fcmGateway.sendToTopic("promotions", "Fin de promotion", name);
+            ssePort.notifyExpired(promotionService.findById(id));
         } catch (Exception e) {
             logger.error("Failed to expire promotion {}: {}", id, e.getMessage(), e);
         }

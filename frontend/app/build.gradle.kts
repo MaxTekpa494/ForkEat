@@ -42,6 +42,7 @@ dependencies {
   coreLibraryDesugaring(libs.desugarJdkLibs)
   implementation(project(":core:designsystem"))
   implementation(project(":core:network"))
+  implementation(project(":data:promotions"))
   implementation(project(":feature:home"))
   implementation(project(":feature:profile"))
   implementation(project(":data:recipes"))

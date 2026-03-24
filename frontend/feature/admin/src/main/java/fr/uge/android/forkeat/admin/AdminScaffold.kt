@@ -12,11 +12,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Dashboard
+import androidx.compose.material.icons.filled.Flag
 import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.LocalOffer
 import androidx.compose.material.icons.filled.MenuBook
-import androidx.compose.material.icons.filled.Report
+import androidx.compose.material.icons.filled.PersonAdd
 import androidx.compose.material.icons.filled.Restaurant
 import androidx.compose.material.icons.filled.Wallet
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,7 +52,13 @@ val AdminPurple300 = Color(0xFFA78BFA)
 val AdminPurple200 = Color(0xFFDDD6FE)
 val AdminPurple100 = Color(0xFFEDE9FE)
 
-private enum class AdminTab { DASHBOARD, USERS, RECIPES, REPORTS, WALLETS, CREATE }
+private enum class AdminTab { DASHBOARD, USERS, RECIPES, WALLETS, PROMOTIONS, REPORTS, CREATE }
+
+// 5 onglets bottom nav + Reports & Create dans la TopAppBar
+private val BOTTOM_TABS = listOf(
+    AdminTab.DASHBOARD, AdminTab.USERS, AdminTab.RECIPES,
+    AdminTab.WALLETS, AdminTab.PROMOTIONS
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -63,6 +70,7 @@ fun AdminScaffold(
     onNavigateToReports: () -> Unit,
     onNavigateToWallets: () -> Unit,
     onNavigateToCreate: () -> Unit,
+    onNavigateToPromotions: () -> Unit,
     onLogout: () -> Unit,
     content: @Composable (PaddingValues) -> Unit
 ) {
@@ -72,6 +80,7 @@ fun AdminScaffold(
         "admin-recipes"   -> AdminTab.RECIPES
         "admin-reports"   -> AdminTab.REPORTS
         "admin-wallets"   -> AdminTab.WALLETS
+        "admin-promotions"  -> AdminTab.PROMOTIONS
         "admin-create"    -> AdminTab.CREATE
         else              -> AdminTab.DASHBOARD
     }
@@ -121,11 +130,27 @@ fun AdminScaffold(
                     }
                 },
                 actions = {
+                    IconButton(onClick = { if (selectedTab != AdminTab.REPORTS) onNavigateToReports() }) {
+                        Icon(
+                            imageVector = Icons.Default.Flag,
+                            contentDescription = "Signalements",
+                            tint = if (selectedTab == AdminTab.REPORTS) AdminPurple300
+                                   else Color.White.copy(alpha = 0.7f)
+                        )
+                    }
+                    IconButton(onClick = { if (selectedTab != AdminTab.CREATE) onNavigateToCreate() }) {
+                        Icon(
+                            imageVector = Icons.Default.PersonAdd,
+                            contentDescription = "Créer un utilisateur",
+                            tint = if (selectedTab == AdminTab.CREATE) AdminPurple300
+                                   else Color.White.copy(alpha = 0.7f)
+                        )
+                    }
                     IconButton(onClick = onLogout) {
                         Icon(
                             imageVector = Icons.AutoMirrored.Filled.ExitToApp,
                             contentDescription = "Déconnexion",
-                            tint = AdminPurple300
+                            tint = Color.White.copy(alpha = 0.7f)
                         )
                     }
                 },
@@ -139,83 +164,47 @@ fun AdminScaffold(
                 containerColor = AdminPurple900,
                 tonalElevation = 0.dp
             ) {
+                val itemColors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = AdminPurple300,
+                    selectedTextColor = AdminPurple300,
+                    unselectedIconColor = Color.White.copy(alpha = 0.5f),
+                    unselectedTextColor = Color.White.copy(alpha = 0.5f),
+                    indicatorColor = AdminPurple700
+                )
                 NavigationBarItem(
                     selected = selectedTab == AdminTab.DASHBOARD,
                     onClick = { if (selectedTab != AdminTab.DASHBOARD) onNavigateToDashboard() },
-                    icon = { Icon(Icons.Default.Dashboard, contentDescription = "Tableau de bord") },
+                    icon = { Icon(Icons.Default.Dashboard, contentDescription = null) },
                     label = { Text("Dashboard", fontSize = 10.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = AdminPurple300,
-                        selectedTextColor = AdminPurple300,
-                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                        indicatorColor = AdminPurple700
-                    )
+                    colors = itemColors
                 )
                 NavigationBarItem(
                     selected = selectedTab == AdminTab.USERS,
                     onClick = { if (selectedTab != AdminTab.USERS) onNavigateToUsers() },
-                    icon = { Icon(Icons.Default.Group, contentDescription = "Utilisateurs") },
+                    icon = { Icon(Icons.Default.Group, contentDescription = null) },
                     label = { Text("Utilisateurs", fontSize = 10.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = AdminPurple300,
-                        selectedTextColor = AdminPurple300,
-                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                        indicatorColor = AdminPurple700
-                    )
+                    colors = itemColors
                 )
                 NavigationBarItem(
                     selected = selectedTab == AdminTab.RECIPES,
                     onClick = { if (selectedTab != AdminTab.RECIPES) onNavigateToRecipes() },
-                    icon = { Icon(Icons.Default.MenuBook, contentDescription = "Recettes") },
+                    icon = { Icon(Icons.Default.MenuBook, contentDescription = null) },
                     label = { Text("Recettes", fontSize = 10.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = AdminPurple300,
-                        selectedTextColor = AdminPurple300,
-                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                        indicatorColor = AdminPurple700
-                    )
-                )
-                NavigationBarItem(
-                    selected = selectedTab == AdminTab.REPORTS,
-                    onClick = { if (selectedTab != AdminTab.REPORTS) onNavigateToReports() },
-                    icon = { Icon(Icons.Default.Report, contentDescription = "Signalements") },
-                    label = { Text("Signalements", fontSize = 8.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = AdminPurple300,
-                        selectedTextColor = AdminPurple300,
-                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                        indicatorColor = AdminPurple700
-                    )
+                    colors = itemColors
                 )
                 NavigationBarItem(
                     selected = selectedTab == AdminTab.WALLETS,
                     onClick = { if (selectedTab != AdminTab.WALLETS) onNavigateToWallets() },
-                    icon = { Icon(Icons.Default.Wallet, contentDescription = "Wallets") },
+                    icon = { Icon(Icons.Default.Wallet, contentDescription = null) },
                     label = { Text("Wallets", fontSize = 10.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = AdminPurple300,
-                        selectedTextColor = AdminPurple300,
-                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                        indicatorColor = AdminPurple700
-                    )
+                    colors = itemColors
                 )
                 NavigationBarItem(
-                    selected = selectedTab == AdminTab.CREATE,
-                    onClick = { if (selectedTab != AdminTab.CREATE) onNavigateToCreate() },
-                    icon = { Icon(Icons.Default.Add, contentDescription = "Créer") },
-                    label = { Text("Créer", fontSize = 10.sp) },
-                    colors = NavigationBarItemDefaults.colors(
-                        selectedIconColor = AdminPurple300,
-                        selectedTextColor = AdminPurple300,
-                        unselectedIconColor = Color.White.copy(alpha = 0.5f),
-                        unselectedTextColor = Color.White.copy(alpha = 0.5f),
-                        indicatorColor = AdminPurple700
-                    )
+                    selected = selectedTab == AdminTab.PROMOTIONS,
+                    onClick = { if (selectedTab != AdminTab.PROMOTIONS) onNavigateToPromotions() },
+                    icon = { Icon(Icons.Default.LocalOffer, contentDescription = null) },
+                    label = { Text("Promos", fontSize = 10.sp) },
+                    colors = itemColors
                 )
             }
         }

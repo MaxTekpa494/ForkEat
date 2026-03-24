@@ -5,10 +5,27 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -18,6 +35,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
+import fr.uge.android.forkeat.designsystem.theme.Primary500
+import fr.uge.android.forkeat.designsystem.theme.Secondary900
+import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
+import kotlinx.coroutines.delay
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -28,7 +53,10 @@ import androidx.navigation.navArgument
 import fr.uge.android.forkeat.account.AccountScreen
 import fr.uge.android.forkeat.admin.AdminCreateUserScreen
 import fr.uge.android.forkeat.admin.AdminDashboardScreen
+import fr.uge.android.forkeat.admin.AdminPromotionFormScreen
+import fr.uge.android.forkeat.admin.AdminPromotionsScreen
 import fr.uge.android.forkeat.admin.AdminRecipesScreen
+import fr.uge.android.forkeat.admin.AdminSuperLikeConfigScreen
 import fr.uge.android.forkeat.admin.AdminReportsScreen
 import fr.uge.android.forkeat.admin.AdminUsersScreen
 import fr.uge.android.forkeat.admin.AdminWalletsScreen
@@ -44,6 +72,7 @@ import fr.uge.android.forkeat.moderator.ModeratorRecipesScreen
 import fr.uge.android.forkeat.moderator.ModeratorReportsScreen
 import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.profile.ProfileScreen
+import fr.uge.android.forkeat.service.PromotionSseService
 import fr.uge.android.forkeat.profile.UserProfileScreen
 import fr.uge.android.forkeat.recipes.MyRecipesScreen
 import fr.uge.android.forkeat.recipes.MyRecipesViewModel
@@ -75,6 +104,14 @@ fun AuthenticatedScreen(
 class MainActivity : ComponentActivity() {
   private var pendingDeepLink: String? = null
 
+  private fun startSseService() {
+    startService(Intent(this, PromotionSseService::class.java))
+  }
+
+  private fun stopSseService() {
+    stopService(Intent(this, PromotionSseService::class.java))
+  }
+
   override fun onNewIntent(intent: Intent) {
     super.onNewIntent(intent)
     handleDeepLink(intent)
@@ -91,6 +128,7 @@ class MainActivity : ComponentActivity() {
     super.onCreate(savedInstanceState)
     ForkEatApi.init(this)
     handleDeepLink(intent)
+    if (ForkEatApi.isLoggedIn()) startSseService()
     enableEdgeToEdge()
     setContent {
       ForkEatTheme {
@@ -103,12 +141,26 @@ class MainActivity : ComponentActivity() {
                 && currentRoute !in hideBarsRoutes
                 && !currentRoute.startsWith("admin-")
                 && !currentRoute.startsWith("moderator-")
+                && currentRoute != "admin-superlike-config"
         var isLoggedIn by remember { mutableStateOf(ForkEatApi.isLoggedIn()) }
         var isAdmin by remember { mutableStateOf(ForkEatApi.isAdmin()) }
         var isModerator by remember { mutableStateOf(ForkEatApi.isModerator()) }
         var startDestination by remember { mutableStateOf(if (isAdmin) "admin-dashboard" else "home") }
         val recipesViewModel: RecipesViewModel = viewModel()
         val smartSearchViewModel: SmartSearchViewModel = viewModel()
+        val activePromotion by recipesViewModel.activePromotion.collectAsState()
+
+        // ── Bannière in-app promotion ─────────────────────────────────────
+        var inAppBanner by remember { mutableStateOf<PromotionEventBus.Event?>(null) }
+        LaunchedEffect(Unit) {
+          PromotionEventBus.events.collect { event ->
+            // Resynchronise l'état local avec l'API (promo active ou null si expirée)
+            recipesViewModel.loadActivePromotion()
+            inAppBanner = event
+            delay(5_000L)
+            inAppBanner = null
+          }
+        }
 
         var showWelcomeOnLaunch by remember { mutableStateOf(!isLoggedIn) }
 
@@ -140,6 +192,7 @@ class MainActivity : ComponentActivity() {
 
         val logout: () -> Unit = {
           ForkEatApi.logout()
+          stopSseService()
           isLoggedIn = false
           isAdmin = false
           isModerator = false
@@ -173,6 +226,7 @@ class MainActivity : ComponentActivity() {
             }
           }
         }
+        Box(modifier = Modifier.fillMaxSize()) {
         if (showWelcomeOnLaunch && currentRoute == "home") {
           WelcomeScreen(
             onNavigateToLogin = {
@@ -222,6 +276,7 @@ class MainActivity : ComponentActivity() {
                   isAdmin = ForkEatApi.isAdmin()
                   isModerator = ForkEatApi.isModerator()
                   startDestination = if (isAdmin) "admin-dashboard" else "home"
+                  startSseService()
                   val destination = if (isAdmin) "admin-dashboard" else "recipes"
                   navController.navigate(destination) {
                     popUpTo("home") { inclusive = true }
@@ -252,6 +307,7 @@ class MainActivity : ComponentActivity() {
                   isLoggedIn = true
                   isAdmin = ForkEatApi.isAdmin()
                   isModerator = ForkEatApi.isModerator()
+                  startSseService()
                   val destination = if (isAdmin) "admin-dashboard" else "recipes"
                   navController.navigate(destination) {
                     popUpTo("home") { inclusive = true }
@@ -335,7 +391,8 @@ class MainActivity : ComponentActivity() {
                 onDismissEmailNotVerified = { recipesViewModel.dismissEmailNotVerified() },
                 onNavigateToWallet = { navController.navigate("wallet") },
                 onNavigateToAccount = { navController.navigate("account") },
-                onNavigateToSmartSearch = { runAuth { navController.navigate("smart-search") } }
+                onNavigateToSmartSearch = { runAuth { navController.navigate("smart-search") } },
+                activePromotion = activePromotion
               )
             }
             composable(
@@ -493,6 +550,7 @@ class MainActivity : ComponentActivity() {
                 onNavigateToReports = { navController.navigate("admin-reports") },
                 onNavigateToWallets = { navController.navigate("admin-wallets") },
                 onNavigateToCreate = { navController.navigate("admin-create") },
+                onNavigateToPromotions = { navController.navigate("admin-promotions") },
                 onLogout = logout
               )
             }
@@ -504,6 +562,7 @@ class MainActivity : ComponentActivity() {
                 onNavigateToRecipes = { navController.navigate("admin-recipes") },
                 onNavigateToWallets = { navController.navigate("admin-wallets") },
                 onNavigateToCreate = { navController.navigate("admin-create") },
+                onNavigateToPromotions = { navController.navigate("admin-promotions") },
                 onLogout = logout,
                 onNavigateToRecipe = { id -> navController.navigate("recipes/$id") },
                 onNavigateToUserProfile = { username -> navController.navigate("user/$username") }
@@ -521,6 +580,7 @@ class MainActivity : ComponentActivity() {
                 onNavigateToRecipes = { navController.navigate("admin-recipes") },
                 onNavigateToWallets = { navController.navigate("admin-wallets") },
                 onNavigateToCreate = { navController.navigate("admin-create") },
+                onNavigateToPromotions = { navController.navigate("admin-promotions") },
                 onNavigateToReports = { navController.navigate("admin-reports") },
                 onLogout = logout
               )
@@ -532,6 +592,7 @@ class MainActivity : ComponentActivity() {
                 onNavigateToUsers = { navController.navigate("admin-users") },
                 onNavigateToWallets = { navController.navigate("admin-wallets") },
                 onNavigateToCreate = { navController.navigate("admin-create") },
+                onNavigateToPromotions = { navController.navigate("admin-promotions") },
                 onNavigateToReports = { navController.navigate("admin-reports") },
                 onLogout = logout
               )
@@ -543,6 +604,7 @@ class MainActivity : ComponentActivity() {
                 onNavigateToUsers = { navController.navigate("admin-users") },
                 onNavigateToRecipes = { navController.navigate("admin-recipes") },
                 onNavigateToCreate = { navController.navigate("admin-create") },
+                onNavigateToPromotions = { navController.navigate("admin-promotions") },
                 onNavigateToReports = { navController.navigate("admin-reports") },
                 onLogout = logout
               )
@@ -555,7 +617,44 @@ class MainActivity : ComponentActivity() {
                 onNavigateToRecipes = { navController.navigate("admin-recipes") },
                 onNavigateToWallets = { navController.navigate("admin-wallets") },
                 onNavigateToReports = { navController.navigate("admin-reports") },
+                onNavigateToPromotions = { navController.navigate("admin-promotions") },
                 onLogout = logout
+              )
+            }
+            composable("admin-promotions") {
+              AdminPromotionsScreen(
+                currentRoute = "admin-promotions",
+                onNavigateToDashboard = { navController.navigate("admin-dashboard") },
+                onNavigateToUsers = { navController.navigate("admin-users") },
+                onNavigateToRecipes = { navController.navigate("admin-recipes") },
+                onNavigateToWallets = { navController.navigate("admin-wallets") },
+                onNavigateToCreate = { navController.navigate("admin-create") },
+                onNavigateToPromotions = {},
+                onNavigateToReports = { navController.navigate("admin-reports") },
+                onNavigateToCreatePromotion = { navController.navigate("admin-promotion-form") },
+                onNavigateToEditPromotion = { id -> navController.navigate("admin-promotion-form?promotionId=$id") },
+                onNavigateToSuperLikeConfig = { navController.navigate("admin-superlike-config") },
+                onLogout = logout
+              )
+            }
+            composable(
+              route = "admin-promotion-form?promotionId={promotionId}",
+              arguments = listOf(navArgument("promotionId") { type = NavType.StringType; nullable = true; defaultValue = null })
+            ) { backStackEntry ->
+              val promotionId = backStackEntry.arguments?.getString("promotionId")
+              AdminPromotionFormScreen(
+                promotionId = promotionId,
+                onBack = { navController.popBackStack() },
+                onSuccess = {
+                  navController.navigate("admin-promotions") {
+                    popUpTo("admin-promotions") { inclusive = true }
+                  }
+                }
+              )
+            }
+            composable("admin-superlike-config") {
+              AdminSuperLikeConfigScreen(
+                onBack = { navController.popBackStack() }
               )
             }
             // Moderator routes
@@ -578,6 +677,55 @@ class MainActivity : ComponentActivity() {
             }
           }
         }
+
+        // ── Bannière in-app flottante ─────────────────────────────────────
+        AnimatedVisibility(
+          visible = inAppBanner != null,
+          enter = slideInVertically { -it } + fadeIn(),
+          exit = slideOutVertically { -it } + fadeOut(),
+          modifier = Modifier
+            .align(Alignment.TopCenter)
+            .zIndex(10f)
+            .padding(top = 16.dp, start = 16.dp, end = 16.dp)
+        ) {
+          inAppBanner?.let { event ->
+            Card(
+              shape = RoundedCornerShape(14.dp),
+              elevation = CardDefaults.cardElevation(defaultElevation = 8.dp),
+              colors = CardDefaults.cardColors(containerColor = SurfaceCream),
+              modifier = Modifier.fillMaxWidth()
+            ) {
+              Row(modifier = Modifier.fillMaxWidth()) {
+                // barre d'accentuation corail à gauche
+                Box(
+                  modifier = Modifier
+                    .width(5.dp)
+                    .height(72.dp)
+                    .background(Primary500, RoundedCornerShape(topStart = 14.dp, bottomStart = 14.dp))
+                )
+                Column(
+                  modifier = Modifier
+                    .padding(horizontal = 14.dp, vertical = 12.dp)
+                    .weight(1f)
+                ) {
+                  Text(
+                    text = event.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    fontWeight = FontWeight.Bold,
+                    color = Primary500
+                  )
+                  Spacer(Modifier.height(2.dp))
+                  Text(
+                    text = event.body,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Secondary900
+                  )
+                }
+              }
+            }
+          }
+        }
+        } // end Box
       }
     }
   }

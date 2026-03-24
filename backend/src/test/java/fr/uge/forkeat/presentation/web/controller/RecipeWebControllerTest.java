@@ -2,12 +2,14 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.infrastructure.config.JwtFilter;
 import fr.uge.forkeat.infrastructure.security.CustomUserDetailsService;
+import fr.uge.forkeat.service.PromotionService;
 import fr.uge.forkeat.presentation.web.viewmodel.RecipeListViewModel;
 import fr.uge.forkeat.service.RecipeReportService;
 import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RecipeSmartSearchService;
 import fr.uge.forkeat.service.SmartSearchConfigService;
 import fr.uge.forkeat.service.WalletService;
+import fr.uge.forkeat.service.model.superlike.SuperLikeConfig;
 import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.RecipeAlreadyReportedException;
 import fr.uge.forkeat.service.exception.RecipeNotFoundException;
@@ -36,8 +38,10 @@ import org.springframework.test.web.servlet.MvcResult;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
 
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 import java.util.UUID;
 
 import static org.hamcrest.Matchers.*;
@@ -79,6 +83,18 @@ class RecipeWebControllerTest {
 
     @MockitoBean
     private SmartSearchConfigService smartSearchConfigService;
+
+    @MockitoBean
+    private PromotionService promotionService;
+
+    private static final SuperLikeConfig DEFAULT_CONFIG = new SuperLikeConfig(
+            UUID.randomUUID(), 100L, new BigDecimal("0.7"), Instant.now());
+
+    @BeforeEach
+    void setUpPromotion() {
+        when(promotionService.getConfig()).thenReturn(DEFAULT_CONFIG);
+        when(promotionService.findActive()).thenReturn(Optional.empty());
+    }
 
     @Nested
     class ListRecipes {

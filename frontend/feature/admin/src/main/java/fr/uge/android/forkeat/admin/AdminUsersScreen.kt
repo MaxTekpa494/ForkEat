@@ -53,6 +53,7 @@ fun AdminUsersScreen(
     onNavigateToWallets: () -> Unit,
     onNavigateToReports : () -> Unit,
     onNavigateToCreate: () -> Unit,
+    onNavigateToPromotions: () -> Unit,
     onLogout: () -> Unit,
     viewModel: AdminUsersViewModel = viewModel()
 ) {
@@ -76,6 +77,7 @@ fun AdminUsersScreen(
         onNavigateToRecipes = onNavigateToRecipes,
         onNavigateToWallets = onNavigateToWallets,
         onNavigateToCreate = onNavigateToCreate,
+        onNavigateToPromotions = onNavigateToPromotions,
         onNavigateToReports = onNavigateToReports,
         onLogout = onLogout
     ) { innerPadding ->

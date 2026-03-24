@@ -223,7 +223,7 @@
                         </form>
 
                         <!-- Modale de confirmation Super Like -->
-                        <div th:replace="~{fragments/modals :: superLikeModal('super-like-modal', 'super-like-modal-content', 'confirmSuperLike()', 'closeSuperLikeModal()', 'closeSuperLikeModal(event)')}"></div>
+                        <div th:replace="~{fragments/modals :: superLikeModal('super-like-modal', 'super-like-modal-content', 'confirmSuperLike()', 'closeSuperLikeModal()', 'closeSuperLikeModal(event)', ${superLikeBasePriceCents}, ${superLikePromoPriceCents})}"></div>
 
                         <!-- Modale fonds insuffisants -->
                         <th:block th:with="fundsMsg='Fonds insuffisants pour effectuer un Super Like. Rechargez votre wallet pour continuer.'">

@@ -86,6 +86,8 @@ object ForkEatApi {
             .build()
     }
 
+    fun getBaseUrl(): String = BASE_URL
+
     fun <T> createService(serviceClass: Class<T>): T = retrofit.create(serviceClass)
     val authService: AuthApiService by lazy { retrofit.create(AuthApiService::class.java) }
     val walletService: WalletApiService by lazy { retrofit.create(WalletApiService::class.java) }

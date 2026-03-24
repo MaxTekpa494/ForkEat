@@ -56,6 +56,7 @@ fun AdminDashboardScreen(
     onNavigateToReports : () -> Unit,
     onNavigateToWallets: () -> Unit,
     onNavigateToCreate: () -> Unit,
+    onNavigateToPromotions: () -> Unit,
     onLogout: () -> Unit,
     viewModel: AdminDashboardViewModel = viewModel()
 ) {
@@ -69,6 +70,7 @@ fun AdminDashboardScreen(
         onNavigateToReports = onNavigateToReports,
         onNavigateToWallets = onNavigateToWallets,
         onNavigateToCreate = onNavigateToCreate,
+        onNavigateToPromotions = onNavigateToPromotions,
         onLogout = onLogout
     ) { innerPadding ->
         PullToRefreshBox(

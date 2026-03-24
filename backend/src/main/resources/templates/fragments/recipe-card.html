@@ -22,7 +22,9 @@
         |card-sl-modal-content-${recipe.id}|,
         |confirmCardSl('${recipe.id}')|,
         |closeCardSlModal('${recipe.id}')|,
-        |cardSlModalBackdropClick(event, '${recipe.id}')|
+        |cardSlModalBackdropClick(event, '${recipe.id}')|,
+        ${superLikeBasePriceCents},
+        ${superLikePromoPriceCents}
     )}"></div>
 
     <!-- Modale fonds insuffisants -->
@@ -81,7 +83,7 @@
                         <span th:text="${recipe.likeCount}">0</span>
                     </button>
 
-                    <!-- Super-like (fill="currentColor" → couleur pilotée par les classes du bouton) -->
+                    <!-- Super-like -->
                     <button type="button"
                             class="relative z-10 flex items-center gap-1 px-2.5 py-1 rounded-full border border-gray-200 text-gray-400 text-sm cursor-pointer transition-all duration-200 hover:border-yellow-500 hover:text-yellow-500 hover:bg-yellow-50"
                             th:classappend="${recipe.superLikedByCurrentUser} ? ' border-yellow-500 text-yellow-500 bg-yellow-50' : ''"
