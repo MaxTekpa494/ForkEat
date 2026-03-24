@@ -1,6 +1,7 @@
 package fr.uge.forkeat.presentation.rest.controller;
 
 import fr.uge.forkeat.presentation.dto.recipe.*;
+import fr.uge.forkeat.presentation.dto.recipe.UpdateRecipeRequest;
 import fr.uge.forkeat.service.model.recipe.projection.AuthorRecipesPage;
 import fr.uge.forkeat.presentation.mapper.ImageMapper;
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
@@ -120,11 +121,11 @@ public class RecipeRestController {
   }
 
   @PostMapping(value = "/{id}/update", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-  public ResponseEntity<HttpResponse<RecipeDTO>> updateRecipe(@PathVariable UUID id, @RequestPart("recipe") RecipeDTO recipeDTO, @RequestPart(value = "image", required = false) MultipartFile image) {
-    Objects.requireNonNull(recipeDTO);
+  public ResponseEntity<HttpResponse<RecipeDTO>> updateRecipe(@PathVariable UUID id, @RequestPart("recipe") UpdateRecipeRequest request, @RequestPart(value = "image", required = false) MultipartFile image) {
+    Objects.requireNonNull(request);
     var username = authPort.extractUsername();
-    var recipe = RecipeDTOMapper.toDomain(RecipeDTOMapper.recipeDTOWithUser(recipeDTO, username));
-    var updatedRecipe = recipeService.updateRecipe(id, recipe, ImageMapper.toImageUpload(image));
+    var command = RecipeDTOMapper.toUpdateCommand(id, request, username, ImageMapper.toImageUpload(image));
+    var updatedRecipe = recipeService.updateRecipe(command);
     return ResponseEntity.ok(new ItemResponse<>(RecipeDTOMapper.toDTO(updatedRecipe)));
   }
 

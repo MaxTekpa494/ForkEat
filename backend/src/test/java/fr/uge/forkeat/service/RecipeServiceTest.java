@@ -451,14 +451,14 @@ class RecipeServiceTest {
         void shouldUpdateRecipeWithoutImage() {
             var recipeId = UUID.randomUUID();
             var existingRecipe = createRecipe(recipeId, "Old Title", RecipeStatus.DRAFT);
-            var updatedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PUBLISHED);
+            var savedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PENDING_REVIEW);
+            var command = new UpdateRecipeCommand(recipeId, "chef_test", "New Title", "Summary", 30, false, null, null, List.of(), List.of(), List.of(), List.of());
 
-            when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(existingRecipe));
-            when(recipePersistence.update(eq(recipeId), any(Recipe.class))).thenReturn(updatedRecipe);
+            when(recipePersistence.update(eq(recipeId), any(Recipe.class))).thenReturn(savedRecipe);
             when(securityService.canUpdateRecipe(any())).thenReturn(true);
 
-            var result = recipeService.updateRecipe(recipeId, updatedRecipe, null);
+            var result = recipeService.updateRecipe(command);
 
             assertNotNull(result);
             assertEquals("New Title", result.title());
@@ -473,16 +473,16 @@ class RecipeServiceTest {
                     recipeId, "Old Title", "Summary", null, "chef_test", 30,
                     "https://old.image.url", RecipeStatus.DRAFT, List.of(), List.of(), List.of(), List.of(), now, now
             );
-            var updatedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PUBLISHED);
+            var savedRecipe = createRecipe(recipeId, "New Title", RecipeStatus.PENDING_REVIEW);
             var newImage = new ImageUpload(new byte[]{1, 2, 3}, "image/jpeg", "new.jpg");
+            var command = new UpdateRecipeCommand(recipeId, "chef_test", "New Title", "Summary", 30, false, newImage, null, List.of(), List.of(), List.of(), List.of());
 
-            when(authPort.extractUsername()).thenReturn("chef_test");
             when(recipePersistence.findById(recipeId)).thenReturn(Optional.of(existingRecipe));
             when(storageService.uploadImage(newImage, "recipes")).thenReturn("https://new.image.url");
-            when(recipePersistence.update(eq(recipeId), any(Recipe.class))).thenReturn(updatedRecipe);
+            when(recipePersistence.update(eq(recipeId), any(Recipe.class))).thenReturn(savedRecipe);
             when(securityService.canUpdateRecipe(any())).thenReturn(true);
 
-            recipeService.updateRecipe(recipeId, updatedRecipe, newImage);
+            recipeService.updateRecipe(command);
 
             verify(storageService).deleteImage("https://old.image.url");
             verify(storageService).uploadImage(newImage, "recipes");
