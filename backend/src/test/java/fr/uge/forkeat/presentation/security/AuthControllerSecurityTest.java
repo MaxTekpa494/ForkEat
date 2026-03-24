@@ -1,7 +1,6 @@
 package fr.uge.forkeat.presentation.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
 import fr.uge.forkeat.infrastructure.config.RateLimitFilter;
 import fr.uge.forkeat.presentation.dto.user.UserRegisterDTO;
@@ -9,7 +8,9 @@ import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.user.User;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.model.user.GoogleUserInfo;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.port.GoogleTokenVerificationPort;
 import fr.uge.forkeat.service.user.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
@@ -64,7 +65,7 @@ public class AuthControllerSecurityTest extends AbstractIntegrationTest {
     private EmailVerificationService emailVerificationService;
 
     @MockitoBean
-    private GoogleTokenVerificationService googleTokenVerificationService;
+    private GoogleTokenVerificationPort googleTokenVerificationPort;
 
     @MockitoBean
     private UserUpdateService userUpdateService;
@@ -87,13 +88,7 @@ public class AuthControllerSecurityTest extends AbstractIntegrationTest {
         when(userService.getUserByUsername("Pid3ALI")).thenReturn(createUser(UUID.randomUUID()));
         when(userService.findByEmail("sid@gmail.com")).thenReturn(Optional.of(createUser(UUID.randomUUID())));
 
-        var mockGoogleToken = mock(GoogleIdToken.class);
-        var mockPayload = mock(GoogleIdToken.Payload.class);
-        when(mockGoogleToken.getPayload()).thenReturn(mockPayload);
-        when(mockPayload.getEmail()).thenReturn("sid@gmail.com");
-        when(mockPayload.get("given_name")).thenReturn("John");
-        when(mockPayload.get("family_name")).thenReturn("Doe");
-        when(googleTokenVerificationService.verify(any())).thenReturn(mockGoogleToken);
+        when(googleTokenVerificationPort.verify(any())).thenReturn(new GoogleUserInfo("sid@gmail.com", "John", "Doe"));
         when(userRegistrationService.registerUserFromOAuth2(any(), any(), any(), any())).thenReturn(createUser(UUID.randomUUID()));
 
         doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any());
