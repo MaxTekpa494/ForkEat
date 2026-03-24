@@ -65,12 +65,11 @@ deploy-prod:
   rules:
     - if: $CI_COMMIT_BRANCH == "feat/production-pipeline" && $CI_PIPELINE_SOURCE == "push"
   before_script:
-    # Ajout de la clé privée SSH pour la connexion au serveur
-    - 'echo "$SSH_PRIVATE_KEY" > id_rsa && chmod 600 id_rsa'
-    # Ajout du serveur à known_hosts pour éviter les prompts
-    - 'ssh-keyscan -H $DEPLOY_SERVER_IP >> /home/$DEPLOY_SERVER_USERNAME/.ssh/known_hosts'
-    # Copier le fichier .env de production sur le serveur
-    - 'scp -i id_rsa -o StrictHostKeyChecking=no $PROD_DOTENV_FILE $DEPLOY_SERVER_USERNAME@$DEPLOY_SERVER_IP:/home/$DEPLOY_SERVER_USERNAME/projet-recettes-uge/backend/.env'
+    - mkdir -p ~/.ssh
+    - echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H $DEPLOY_SERVER_IP >> ~/.ssh/known_hosts
+    - scp -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no $PROD_DOTENV_FILE $DEPLOY_SERVER_USERNAME@$DEPLOY_SERVER_IP:/home/$DEPLOY_SERVER_USERNAME/projet-recettes-uge/backend/.env
   script:
-    # Se connecter au registry, pull la dernière image, puis lancer docker compose
-    - 'ssh -i id_rsa $DEPLOY_SERVER_USERNAME@$DEPLOY_SERVER_IP "cd /home/$DEPLOY_SERVER_USERNAME/projet-recettes-uge/backend && git fetch origin main && git reset --hard origin/main && docker login $CI_REGISTRY -u $DEPLOY_TOKEN_USERNAME -p $DEPLOY_TOKEN_PASSWORD && docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d"'
+    - ssh -i ~/.ssh/id_rsa $DEPLOY_SERVER_USERNAME@$DEPLOY_SERVER_IP "cd /home/$DEPLOY_SERVER_USERNAME/projet-recettes-uge/backend && git fetch origin main && git reset --hard origin/main && docker login registry.gitlab.com -u $DEPLOY_TOKEN_USERNAME -p $DEPLOY_TOKEN_PASSWORD && docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d"
+  after_script:
+    - rm -f ~/.ssh/id_rsa
