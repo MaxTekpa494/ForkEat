@@ -264,7 +264,8 @@ public class RecipeService {
 
     public PageResult<PersonalizedRecipeSummary> getPersonalizedFeedRecipes(Instant instant, int nbPage) {
         var currentUsername = authPort.extractUsername();
-        var page = recipePersistence.searchPersonalizedFeedRecipes(currentUsername, instant, nbPage);
+        var userId = userIdentityPort.findIdByUsernameOrThrow(currentUsername);
+        var page = recipePersistence.searchPersonalizedFeedRecipes(userId, instant, nbPage);
         var summaries = page.items();
         if (summaries.isEmpty()) {
             return new PageResult<>(List.of(), page.total());

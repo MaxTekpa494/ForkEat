@@ -34,7 +34,7 @@ public interface RecipePersistence {
 
   List<Recipe> findByAuthorUsername(String authorUsername);
 
-  void updateFeed(String followerUsername, String followedUsername);
+  void updateFeed(UUID followerId, UUID followedId);
 
   List<Allergen> findAllAllergens();
 
@@ -60,7 +60,7 @@ public interface RecipePersistence {
 
   long countByStatus(RecipeStatus status);
 
-  PageResult<RecipeSummary> searchPersonalizedFeedRecipes(String username, Instant beforeTime, int nbPage);
+  PageResult<RecipeSummary> searchPersonalizedFeedRecipes(UUID id, Instant beforeTime, int nbPage);
 
   // Alors ici on ne fait pas Page<RecipeSummary> parce qu'on
   // n'est pas sensé renvoyer plein de recette quand c'est du RAG...

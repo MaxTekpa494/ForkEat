@@ -91,18 +91,18 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
     void unfollowRecipe(@Param("userId") UUID userId, @Param("recipeId") UUID recipeId);
 
     @Query("""
-            MATCH (me:User {username: $username})-[f:FEED]->(r:Recipe)
+            MATCH (me:User {id: $id})-[f:FEED]->(r:Recipe)
             WHERE f.createdAt >= $sinceTime
                   AND f.createdAt <= $beforeTime
             RETURN r
             ORDER BY f.depth ASC, r.createdAt DESC
             SKIP $offset LIMIT $limit
             """)
-    List<RecipeNode> getFeed(@Param("username") String username, @Param("offset") long offset, @Param("limit") long limit, @Param("sinceTime") ZonedDateTime sinceTime, @Param("beforeTime") ZonedDateTime beforeTime);
+    List<RecipeNode> getFeed(@Param("id") UUID userId, @Param("offset") long offset, @Param("limit") long limit, @Param("sinceTime") ZonedDateTime sinceTime, @Param("beforeTime") ZonedDateTime beforeTime);
 
     @Query("""
-        MATCH (follower:User {username: $followerUsername})
-        MATCH (followed:User {username: $followedUsername})
+        MATCH (follower:User {id: $followerId})
+        MATCH (followed:User {id: $followedId})
         MATCH (followed)-[:FOLLOWS*0..2]->(relay:User)-[:PUBLISHED]->(recipe:Recipe)
         WITH follower, recipe,
              min(length(shortestPath((followed)-[:FOLLOWS*0..2]->(relay))) + 1) AS depth
@@ -117,17 +117,17 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
         ON MATCH SET f.depth = CASE WHEN upstreamDepth < f.depth THEN upstreamDepth ELSE f.depth END
         """)
     void propagateFeedOnFollow(
-            @Param("followerUsername") String followerUsername,
-            @Param("followedUsername") String followedUsername,
+            @Param("followerId") UUID followerId,
+            @Param("followedId") UUID followedId,
             @Param("now") ZonedDateTime now
     );
 
 
-    @Query("MATCH (:User {username: $username})-[r:FEED]->() " +
+    @Query("MATCH (:User {id: $userId})-[r:FEED]->() " +
             "WHERE r.createdAt >= $date " +
             "RETURN count(r)")
     long countFeedRelationshipsBefore(
-            @Param("username") String username,
+            @Param("userId") UUID id,
             @Param("date") ZonedDateTime date
     );
 

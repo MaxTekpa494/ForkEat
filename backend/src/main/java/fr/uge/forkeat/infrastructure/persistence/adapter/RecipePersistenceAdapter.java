@@ -119,10 +119,10 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public PageResult<RecipeSummary> searchPersonalizedFeedRecipes(String username, Instant beforeTime, int nbPage) {
+    public PageResult<RecipeSummary> searchPersonalizedFeedRecipes(UUID id, Instant beforeTime, int nbPage) {
         var sinceTime = beforeTime.minusSeconds(2678400/*nb secondes in a month*/);
-        var pageResult = neo4jRecipeRepository.getFeed(username, nbPage * 20L, nbPage* 20L + 20, sinceTime.atZone(ZoneOffset.UTC), beforeTime.atZone(ZoneOffset.UTC));
-        var total = neo4jRecipeRepository.countFeedRelationshipsBefore(username, sinceTime.atZone(ZoneOffset.UTC));
+        var pageResult = neo4jRecipeRepository.getFeed(id, nbPage * 20L, nbPage* 20L + 20, sinceTime.atZone(ZoneOffset.UTC), beforeTime.atZone(ZoneOffset.UTC));
+        var total = neo4jRecipeRepository.countFeedRelationshipsBefore(id, sinceTime.atZone(ZoneOffset.UTC));
         var recipes = recipeRepository.findSummariesByIds(pageResult.stream()
                 .map(RecipeNode::getId)
                 .toList()).stream().map(r-> new RecipeSummary(r.getId(), r.getTitle(), r.getSummary(), r.getImageUrl(), r.getPreparationMinutes(), r.getCreatedAt(), r.getAuthorUsername())).toList();
@@ -176,8 +176,8 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public void updateFeed(String followerUsername, String followedUsername){
-        this.neo4jRecipeRepository.propagateFeedOnFollow(followerUsername, followedUsername, Instant.now().atZone(ZoneOffset.UTC));
+    public void updateFeed(UUID followerId, UUID followedId){
+        this.neo4jRecipeRepository.propagateFeedOnFollow(followerId, followedId, Instant.now().atZone(ZoneOffset.UTC));
     }
     @Override
     public Recipe save(Recipe recipe) {
