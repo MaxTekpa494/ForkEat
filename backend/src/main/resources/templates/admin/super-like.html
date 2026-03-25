@@ -141,15 +141,12 @@
                                            class="text-secondary-700 hover:text-secondary-900 text-xs font-semibold px-3 py-1.5 border border-secondary-200 rounded-lg hover:bg-secondary-50 transition">
                                             <i class="fas fa-edit mr-1"></i>Modifier
                                         </a>
-                                        <form th:if="${promo.status().name() == 'SCHEDULED'}"
-                                              th:action="@{/admin/promotions/{id}/cancel(id=${promo.id()})}"
-                                              method="post"
-                                              onsubmit="return confirm('Annuler cette promotion ?')">
-                                            <button type="submit"
-                                                    class="text-red-600 hover:text-red-800 text-xs font-semibold px-3 py-1.5 border border-red-200 rounded-lg hover:bg-red-50 transition">
-                                                <i class="fas fa-ban mr-1"></i>Annuler
-                                            </button>
-                                        </form>
+                                        <button th:if="${promo.status().name() == 'SCHEDULED'}"
+                                                type="button"
+                                                th:onclick="'openCancelModal(\'' + ${promo.id()} + '\', \'' + ${promo.name()} + '\')'"
+                                                class="text-red-600 hover:text-red-800 text-xs font-semibold px-3 py-1.5 border border-red-200 rounded-lg hover:bg-red-50 transition">
+                                            <i class="fas fa-ban mr-1"></i>Annuler
+                                        </button>
                                         <span th:if="${promo.status().name() != 'SCHEDULED'}" class="text-xs text-gray-400 italic">—</span>
                                     </div>
                                 </td>
@@ -163,5 +160,67 @@
     </section>
 
 </div>
+
+<!-- Modal annulation promotion -->
+<div id="cancel-promo-modal"
+     class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm"
+     onclick="closeCancelModal(event)">
+    <div id="cancel-promo-modal-content"
+         class="bg-white rounded-2xl shadow-xl p-6 max-w-sm w-full mx-4 transform transition-all duration-200 scale-95 opacity-0">
+        <div class="flex flex-col items-center text-center gap-4">
+            <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
+                <i class="fas fa-ban text-red-500 text-2xl"></i>
+            </div>
+            <div>
+                <h3 class="text-gray-800 font-semibold text-lg">Annuler la promotion ?</h3>
+                <p class="text-gray-500 text-sm mt-1">
+                    Êtes-vous sûr de vouloir annuler
+                    <span id="cancel-promo-name" class="font-medium text-gray-700"></span> ?
+                    Cette action est irréversible.
+                </p>
+            </div>
+            <div class="flex gap-3 w-full mt-2">
+                <button onclick="closeCancelModal()"
+                        class="flex-1 px-4 py-2 rounded-full border border-gray-200 text-gray-500 text-sm font-medium hover:bg-gray-50 transition-colors duration-150">
+                    Retour
+                </button>
+                <button onclick="document.getElementById('cancel-promo-form').submit()"
+                        class="flex-1 px-4 py-2 rounded-full bg-red-500 hover:bg-red-600 text-white text-sm font-semibold transition-colors duration-150">
+                    Annuler la promotion
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<form id="cancel-promo-form" method="post" class="hidden"></form>
+
+<script>
+    function openCancelModal(promoId, promoName) {
+        document.getElementById('cancel-promo-name').textContent = promoName;
+        document.getElementById('cancel-promo-form').action = '/admin/promotions/' + promoId + '/cancel';
+        const modal = document.getElementById('cancel-promo-modal');
+        const content = document.getElementById('cancel-promo-modal-content');
+        modal.classList.remove('hidden');
+        modal.classList.add('flex');
+        requestAnimationFrame(() => {
+            content.classList.remove('scale-95', 'opacity-0');
+            content.classList.add('scale-100', 'opacity-100');
+        });
+    }
+
+    function closeCancelModal(event) {
+        if (event && event.target !== document.getElementById('cancel-promo-modal')) return;
+        const modal = document.getElementById('cancel-promo-modal');
+        const content = document.getElementById('cancel-promo-modal-content');
+        content.classList.remove('scale-100', 'opacity-100');
+        content.classList.add('scale-95', 'opacity-0');
+        setTimeout(() => {
+            modal.classList.add('hidden');
+            modal.classList.remove('flex');
+        }, 200);
+    }
+</script>
+
 </body>
 </html>

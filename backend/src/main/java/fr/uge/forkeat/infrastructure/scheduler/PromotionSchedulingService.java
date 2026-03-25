@@ -22,7 +22,7 @@ import java.util.concurrent.ScheduledFuture;
  * Gère le scheduling précis des promotions via le TaskScheduler de Spring.
  * - Zéro latence : les tâches s'exécutent à l'instant exact de startsAt/endsAt.
  * - Résilient aux redémarrages : ApplicationRunner recharge depuis la BDD au boot.
- * - FCM appelé directement sans système d'événements intermédiaire.
+ * - SSE appelé directement.
  */
 @Component
 public class PromotionSchedulingService implements ApplicationRunner, PromotionSchedulingPort {
@@ -78,12 +78,12 @@ public class PromotionSchedulingService implements ApplicationRunner, PromotionS
         var scheduled = new ArrayList<ScheduledFuture<?>>();
         var now = Instant.now();
 
-        if (promo.startsAt().isAfter(now)) {
-            scheduled.add(taskScheduler.schedule(
-                    () -> doActivate(promo.id(), promo.name()),
-                    promo.startsAt()
-            ));
-        }
+        // Si startsAt est déjà passé ou présent, planifier une activation immédiate
+        var activationTime = promo.startsAt().isAfter(now) ? promo.startsAt() : now;
+        scheduled.add(taskScheduler.schedule(
+                () -> doActivate(promo.id(), promo.name()),
+                activationTime
+        ));
 
         if (promo.endsAt() != null && promo.endsAt().isAfter(now)) {
             scheduled.add(taskScheduler.schedule(
@@ -92,11 +92,9 @@ public class PromotionSchedulingService implements ApplicationRunner, PromotionS
             ));
         }
 
-        if (!scheduled.isEmpty()) {
-            futures.put(promo.id(), scheduled);
-            logger.info("Scheduled tasks for promotion {} (starts={}, ends={})",
-                    promo.id(), promo.startsAt(), promo.endsAt());
-        }
+        futures.put(promo.id(), scheduled);
+        logger.info("Scheduled tasks for promotion {} (starts={}, ends={})",
+                promo.id(), promo.startsAt(), promo.endsAt());
     }
 
     private void scheduleExpiryOnly(Promotion promo) {

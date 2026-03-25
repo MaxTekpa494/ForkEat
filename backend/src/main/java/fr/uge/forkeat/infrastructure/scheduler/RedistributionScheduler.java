@@ -11,7 +11,7 @@ import java.time.YearMonth;
 @Component
 public class RedistributionScheduler {
 
-    private static final Logger logger = LoggerFactory.getLogger(RedistributionScheduler.class);
+    private static final Logger logger = LoggerFactory.getLogger( RedistributionScheduler.class);
 
     private final RedistributionService redistributionService;
 
