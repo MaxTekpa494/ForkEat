@@ -827,9 +827,11 @@ class RecipeServiceTest {
 
             @Test
             void shouldReturnEmptyPageResult() {
+                var id = UUID.randomUUID();
                 // Given
                 when(authPort.extractUsername()).thenReturn(USERNAME);
-                when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
+                when(userIdentityPort.findIdByUsernameOrThrow(any())).thenReturn(id);
+                when(recipePersistence.searchPersonalizedFeedRecipes(id, NOW, PAGE))
                         .thenReturn(new PageResult<>(List.of(), 0L));
 
                 // When
@@ -842,9 +844,11 @@ class RecipeServiceTest {
 
             @Test
             void shouldNotFetchCountsNorInteractions() {
+                var id = UUID.randomUUID();
                 // Given
                 when(authPort.extractUsername()).thenReturn(USERNAME);
-                when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
+                when(userIdentityPort.findIdByUsernameOrThrow(any())).thenReturn(id);
+                when(recipePersistence.searchPersonalizedFeedRecipes(id, NOW, PAGE))
                         .thenReturn(new PageResult<>(List.of(), 0L));
 
                 // When
@@ -862,6 +866,7 @@ class RecipeServiceTest {
             @Test
             void shouldReturnPersonalizedSummariesWithCountsAndInteractions() {
                 // Given
+                var id = UUID.randomUUID();
                 var summary1 = aRecipeSummary(RECIPE_ID_1);
                 var summary2 = aRecipeSummary(RECIPE_ID_2);
                 var counts1 = new RecipeCounts(10, 5, 0);
@@ -871,7 +876,8 @@ class RecipeServiceTest {
 
                 when(authPort.extractUsername()).thenReturn(USERNAME);
                 when(userIdentityPort.findIdByUsername(USERNAME)).thenReturn(Optional.of(USER_ID));
-                when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
+                when(userIdentityPort.findIdByUsernameOrThrow(any())).thenReturn(id);
+                when(recipePersistence.searchPersonalizedFeedRecipes(id, NOW, PAGE))
                         .thenReturn(new PageResult<>(List.of(summary1, summary2), 2L));
                 when(recipePersistence.findRecipeCounts(List.of(RECIPE_ID_1, RECIPE_ID_2)))
                         .thenReturn(Map.of(RECIPE_ID_1, counts1, RECIPE_ID_2, counts2));
@@ -899,10 +905,12 @@ class RecipeServiceTest {
             void shouldFallbackToZeroCountsWhenRecipeNotInCountsMap() {
                 // Given
                 var summary = aRecipeSummary(RECIPE_ID_1);
+                var id = UUID.randomUUID();
 
                 when(authPort.extractUsername()).thenReturn(USERNAME);
                 when(userIdentityPort.findIdByUsername(USERNAME)).thenReturn(Optional.of(USER_ID));
-                when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
+                when(userIdentityPort.findIdByUsernameOrThrow(any())).thenReturn(id);
+                when(recipePersistence.searchPersonalizedFeedRecipes(id, NOW, PAGE))
                         .thenReturn(new PageResult<>(List.of(summary), 1L));
                 when(recipePersistence.findRecipeCounts(List.of(RECIPE_ID_1)))
                         .thenReturn(Map.of());
@@ -920,10 +928,12 @@ class RecipeServiceTest {
             void shouldFallbackToNoneInteractionWhenRecipeNotInInteractionsMap() {
                 // Given
                 var summary = aRecipeSummary(RECIPE_ID_1);
+                var id = UUID.randomUUID();
 
                 when(authPort.extractUsername()).thenReturn(USERNAME);
                 when(userIdentityPort.findIdByUsername(USERNAME)).thenReturn(Optional.of(USER_ID));
-                when(recipePersistence.searchPersonalizedFeedRecipes(USERNAME, NOW, PAGE))
+                when(userIdentityPort.findIdByUsernameOrThrow(any())).thenReturn(id);
+                when(recipePersistence.searchPersonalizedFeedRecipes(id, NOW, PAGE))
                         .thenReturn(new PageResult<>(List.of(summary), 1L));
                 when(recipePersistence.findRecipeCounts(List.of(RECIPE_ID_1)))
                         .thenReturn(Map.of(RECIPE_ID_1, new RecipeCounts(5, 2, 0)));
