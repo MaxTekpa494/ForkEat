@@ -34,7 +34,6 @@ public class RegisterFormDTO {
     public RegisterFormDTO() {
     }
 
-    // Getters et Setters
     public String getFirstName() {
         return firstName;
     }

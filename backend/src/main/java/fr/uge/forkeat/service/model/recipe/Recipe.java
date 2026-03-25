@@ -6,10 +6,9 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 
-public record Recipe(UUID id, String title, String summary, UUID parentId, // Ici on met l'ID du parent et non pas
-                     // Recipe directement
-                     // (c'est entre le mapping du Recipe à RecipeDTO qu'on va cherche la recipe
-                     // parent
+public record Recipe(UUID id, String title, String summary, UUID parentId,
+                     // Ici on met l'ID du parent et non pas Recipe directement
+                     // (c'est entre le mapping du Recipe à RecipeDTO qu'on va cherche la recipe parent
                      String usernameAuthor, int preparationMinutes, String imageUrl, RecipeStatus status,
                      List<RecipeStep> stepByStepInstructions, List<RecipeIngredient> ingredients,
                      List<Allergen> allergens,

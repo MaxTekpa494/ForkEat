@@ -10,9 +10,11 @@ Membres du groupe :
 - Thierno Sy : thierno.sy@edu.univ-eiffel.fr
 - Adel Ziani : adel.ziani@edu.univ.eiffel.fr
 
-## Installation pour l'équipe dev :
+## Lancement du projet en local :
 
 1. Clonez le projet.
-2. À la racine, dupliquez le fichier .env.example et renommez-le en .env
-3. Ouvrez .env et faites un copier coller du fichier .env que vous avez reçu via Discord (#Ressources)
-4. Lancez docker compose up -d
+2. À la racine, dupliquez le fichier `.env.example` et renommez-le en `.env`.
+3. Ouvrez `.env` et renseignez les variables nécessaires. Pour obtenir le contenu du fichier `.env`, contactez l’équipe projet.
+4. Lancez `docker compose up -d`.
+5. Lancez le backend avec `mvn clean spring-boot:run`.
+6. 

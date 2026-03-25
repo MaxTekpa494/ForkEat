@@ -24,7 +24,6 @@
     <section class="py-12 bg-surface">
         <div class="container mx-auto px-4 max-w-7xl">
 
-            <!-- Statistiques par statut -->
             <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
                 <a th:href="@{/recipes/my-recipes(status='PUBLISHED', page=0)}"
                    th:class="${vm.currentStatus() == 'PUBLISHED'} ? 'bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md transition ring-2 ring-green-500' : 'bg-white rounded-xl p-4 shadow-sm border border-gray-100 text-center hover:shadow-md transition'">
@@ -90,7 +89,6 @@
                                 <span th:text="${recipe.summary().preparationMinutes() + ' min'}">30 min</span>
                             </div>
 
-                            <!-- Badge statut -->
                             <div class="absolute top-3 left-3">
                                 <span th:if="${recipe.status().name() == 'PUBLISHED'}"
                                       class="inline-flex items-center gap-1 bg-green-500 text-white text-xs font-bold px-2.5 py-1 rounded-full shadow-sm">
@@ -125,7 +123,6 @@
                             Description de la recette...
                         </p>
 
-                        <!-- Motif de refus -->
                         <div th:if="${recipe.rejectionInfo() != null}"
                              class="flex items-start gap-2 bg-red-50 border border-red-200 rounded-lg px-3 py-2 mb-3 text-xs text-red-600">
                             <i class="fas fa-exclamation-circle mt-0.5 flex-shrink-0"></i>
@@ -157,7 +154,6 @@
                 </div>
             </div>
 
-            <!-- Pagination -->
             <div th:if="${vm.totalPages() > 1}" class="flex justify-center mt-12">
                 <nav class="flex items-center space-x-2">
                     <a th:if="${vm.currentPage() > 0}"

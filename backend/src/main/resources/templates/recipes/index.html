@@ -8,7 +8,6 @@
 <body>
 <div layout:fragment="content">
 
-    <!-- Header avec recherche — masqué sur le feed communauté -->
     <section id="search-section" class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
         <div class="container mx-auto px-4">
             <div class="text-center mb-8">
@@ -20,7 +19,6 @@
                 </p>
             </div>
 
-            <!-- Barre de recherche -->
             <div class="max-w-2xl mx-auto">
                 <form th:action="@{/recipes}" method="get" class="relative">
                     <input type="text"
@@ -44,7 +42,6 @@
         </div>
     </section>
 
-    <!-- Bannière promotion active -->
     <div th:if="${activePromotion != null}"
          class="bg-gradient-to-r from-orange-500 to-orange-400 text-white py-3 px-4">
         <div class="container mx-auto flex items-center justify-center gap-3 text-sm font-medium flex-wrap">
@@ -66,11 +63,9 @@
         </div>
     </div>
 
-    <!-- Contenu principal -->
     <section class="py-12 bg-surface">
         <div class="container mx-auto px-4">
 
-            <!-- Toggle Feed -->
             <div th:if="${authenticated}" class="flex justify-center mb-8">
                 <div class="inline-flex bg-white border border-gray-200 rounded-full p-1 shadow-sm">
                     <button id="btn-feed-all"
@@ -88,7 +83,6 @@
 
             <div class="flex flex-col lg:flex-row gap-8">
 
-                <!-- Sidebar Filtres — masquée sur le feed communauté -->
                 <aside id="filters-sidebar" class="w-full lg:w-1/4">
                     <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 sticky top-24">
                         <div class="flex items-center justify-between mb-4">
@@ -124,7 +118,6 @@
                     </div>
                 </aside>
 
-                <!-- Liste des résultats -->
                 <div id="recipes-grid" class="w-full lg:w-3/4">
                     <div class="flex items-center justify-between mb-8">
                         <p class="text-secondary-600">
@@ -153,7 +146,6 @@
 
             </div>
 
-            <!-- Pagination -->
             <div th:if="${vm.totalPages > 1}" class="flex justify-center mt-12">
                 <nav class="flex items-center space-x-2">
                     <a th:if="${vm.currentPage > 0}"

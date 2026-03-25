@@ -8,9 +8,7 @@
 <body>
 <div layout:fragment="content">
 
-    <!-- Hero header -->
     <section class="relative bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-16">
-        <!-- Bouton signalement discret (coin supérieur droit) -->
         <button th:if="${isAuthenticated and currentUsername != vm.profile().publicProfile().username()}"
                 onclick="openReportModal()"
                 class="absolute top-4 right-4 text-white/40 hover:text-red-400 transition-colors duration-200"
@@ -20,12 +18,10 @@
         <div class="container mx-auto px-4">
             <div class="flex flex-col md:flex-row items-center md:items-start space-y-6 md:space-y-0 md:space-x-8">
 
-                <!-- Avatar -->
                 <div class="w-28 h-28 bg-primary-500 rounded-full flex items-center justify-center text-white font-bold text-5xl shadow-xl ring-4 ring-white/20 flex-shrink-0">
                     <span th:text="${vm.initials()}">AB</span>
                 </div>
 
-                <!-- Infos -->
                 <div class="text-center md:text-left flex-1">
                     <h1 class="font-display font-bold text-4xl md:text-5xl mb-2">
                         <span th:text="${vm.profile().publicProfile().firstName() + ' ' + vm.profile().publicProfile().lastName()}">Nom Utilisateur</span>
@@ -34,7 +30,6 @@
                         @<span th:text="${vm.profile().publicProfile().username()}">username</span>
                     </p>
 
-                    <!-- Bouton Suivre -->
                     <div class="mb-6">
                         <form id="follow-form"
                               th:action="@{/profile/{username}/follow(username=${vm.profile().publicProfile().username()})}"
@@ -52,7 +47,6 @@
                         </button>
                     </div>
 
-                    <!-- Compteurs -->
                     <div class="flex flex-wrap items-center justify-between">
                         <div class="flex space-x-8">
                             <div class="text-center">
@@ -99,7 +93,6 @@
         </div>
     </section>
 
-    <!-- Flash messages signalement -->
     <div class="container mx-auto px-4 mt-4">
         <div th:if="${reportSuccess != null}"
              class="flex items-center gap-3 bg-green-50 border border-green-200 text-green-700 rounded-xl px-4 py-3 text-sm font-medium">
@@ -113,7 +106,6 @@
         </div>
     </div>
 
-    <!-- Recettes -->
     <section class="py-12 bg-surface">
         <div class="container mx-auto px-4">
 
@@ -124,7 +116,6 @@
                 </h2>
             </div>
 
-            <!-- Message si aucune recette -->
             <div th:if="${#lists.isEmpty(vm.recipes())}" class="text-center py-16 bg-white rounded-2xl border border-gray-100 shadow-sm">
                 <div class="w-24 h-24 bg-secondary-100 rounded-full flex items-center justify-center mx-auto mb-6">
                     <i class="fas fa-utensils text-4xl text-secondary-400"></i>
@@ -133,24 +124,20 @@
                 <p class="text-secondary-500">Cet utilisateur n'a pas encore publie de recette.</p>
             </div>
 
-            <!-- Grille de recettes -->
             <div th:unless="${#lists.isEmpty(vm.recipes())}" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 <th:block th:each="recipe : ${vm.recipes()}">
                     <div th:replace="~{fragments/recipe-card :: recipeCard(${recipe})}"></div>
                 </th:block>
             </div>
 
-            <!-- Pagination -->
             <div th:if="${vm.totalPages() > 1}" class="flex justify-center mt-12">
                 <nav class="flex items-center space-x-2">
-                    <!-- Bouton precedent -->
                     <a th:if="${vm.currentPage() > 0}"
                        th:href="@{/profile/{username}(username=${vm.profile().publicProfile().username()}, page=${vm.currentPage() - 1})}"
                        class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition">
                         <i class="fas fa-chevron-left"></i>
                     </a>
 
-                    <!-- Numeros de page -->
                     <th:block th:each="i : ${vm.paginationPages()}">
                         <span th:if="${i == -1}" class="px-3 py-2 text-secondary-400">...</span>
                         <a th:unless="${i == -1}"
@@ -161,7 +148,6 @@
                         </a>
                     </th:block>
 
-                    <!-- Bouton suivant -->
                     <a th:if="${vm.currentPage() < vm.totalPages() - 1}"
                        th:href="@{/profile/{username}(username=${vm.profile().publicProfile().username()}, page=${vm.currentPage() + 1})}"
                        class="px-4 py-2 bg-white border border-gray-200 rounded-lg text-secondary-700 hover:bg-gray-50 transition">
@@ -172,9 +158,6 @@
         </div>
     </section>
 
-    <!-- ═══════════════════════════════════════════════════════════════ -->
-    <!-- MODALE DE SIGNALEMENT                                          -->
-    <!-- ═══════════════════════════════════════════════════════════════ -->
     <div th:if="${isAuthenticated and currentUsername != vm.profile().publicProfile().username()}"
          id="report-modal"
          class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm"
@@ -182,7 +165,6 @@
         <div id="report-modal-content"
              class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4 transform transition-all duration-200 scale-95 opacity-0">
 
-            <!-- Étape 1 : Avertissement -->
             <div id="report-step-1">
                 <div class="flex flex-col items-center text-center gap-4 mb-5">
                     <div class="w-14 h-14 rounded-full bg-red-50 flex items-center justify-center">
@@ -210,7 +192,6 @@
                 </div>
             </div>
 
-            <!-- Étape 2 : Formulaire -->
             <div id="report-step-2" class="hidden">
                 <h3 class="text-gray-800 font-semibold text-lg mb-4">
                     <i class="fas fa-flag text-red-500 mr-2"></i>Motif du signalement

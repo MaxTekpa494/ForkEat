@@ -75,8 +75,7 @@ public class RecipeSmartSearchService {
       throw new InsufficientFundsException(wallet.balance(), config.cost());
     }
 
-    // si l'utilisateur triche, on le debite quand meme puis on lance l'exception
-    // Alors ce code fait objet de discussion donc voilà
+    // On débite l'utilisateur avant de lancer l'exception
     var moderationRejection = moderationPort.moderate(userQuery);
     if (moderationRejection.isPresent()) {
       debit(user.id(), config.cost());
@@ -86,10 +85,7 @@ public class RecipeSmartSearchService {
     var recipeIds = ragSearchPort.findSimilarRecipeIds(userQuery, config.topK());
     var summaries = recipePersistence.findSummariesByIds(recipeIds);
 
-    // Là egalement, est-ce qu'on est gentil avec l'utilisateur et on ne le debite pas
-    // Quand on ne trouve pas de recettes ressemblantes ...
-    // Je suis gentil, je debite l'utilisateur que quand on lui trouve des recettes proches
-    //debit(user.id(), config.cost());
+    // On debite l'utilisateur que quand on lui trouve des recettes proches
 
     if (summaries.isEmpty()) {
       return List.of();

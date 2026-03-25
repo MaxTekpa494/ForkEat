@@ -2,8 +2,6 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <body>
 
-<!-- Fragment : modale de confirmation Super Like
-     Paramètres : modalId, contentId, onConfirm, onCancel, onBackdrop -->
 <div th:fragment="superLikeModal(modalId, contentId, onConfirm, onCancel, onBackdrop, superLikeBasePriceCents, superLikePromoPriceCents)"
      th:id="${modalId}"
      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm"
@@ -63,8 +61,6 @@
     </div>
 </div>
 
-<!-- Fragment : modale fonds insuffisants
-     Paramètres : modalId, contentId, onCancel, message -->
 <div th:fragment="insufficientFundsModal(modalId, contentId, onCancel, message)"
      th:id="${modalId}"
      class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -94,7 +90,6 @@
     </div>
 </div>
 
-<!-- Fragment : modale de rejet recette ave justification -->
 <div th:fragment="ModerationRejectModal(modalId, formId)"
      th:id="${modalId}"
      class="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40 hidden">
