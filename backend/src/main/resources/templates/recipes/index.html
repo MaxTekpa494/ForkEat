@@ -71,7 +71,7 @@
         <div class="container mx-auto px-4">
 
             <!-- Toggle Feed -->
-            <div class="flex justify-center mb-8">
+            <div th:if="${authenticated}" class="flex justify-center mb-8">
                 <div class="inline-flex bg-white border border-gray-200 rounded-full p-1 shadow-sm">
                     <button id="btn-feed-all"
                             onclick="switchFeed('all')"

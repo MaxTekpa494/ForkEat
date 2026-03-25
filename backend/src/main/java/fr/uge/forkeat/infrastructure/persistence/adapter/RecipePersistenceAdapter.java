@@ -367,7 +367,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe(UUID userId) {
+    public Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe() {
         var topIds = neo4jRecipeRepository.findTopLikedRecipeIds(10);
         for (var idStr : topIds) {
             var uuid = UUID.fromString(idStr);
@@ -380,10 +380,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                         entity.getCreatedAt(), entity.getAuthor().getUsername()
                 );
                 var counts = findRecipeCounts(uuid);
-                var interaction = userId != null
-                        ? findUserRecipeInteraction(uuid, userId)
-                        : RecipeUserInteraction.NONE;
-                return Optional.of(new PersonalizedRecipeSummary(summary, counts, interaction));
+                return Optional.of(new PersonalizedRecipeSummary(summary, counts, RecipeUserInteraction.NONE));
             }
         }
         return Optional.empty();

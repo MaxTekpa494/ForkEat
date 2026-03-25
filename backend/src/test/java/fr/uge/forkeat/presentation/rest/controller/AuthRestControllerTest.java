@@ -18,7 +18,7 @@ import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
-import fr.uge.forkeat.service.user.GoogleTokenVerificationService;
+import fr.uge.forkeat.service.port.GoogleTokenVerificationPort;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserUpdateService;
@@ -63,7 +63,7 @@ class AuthRestControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
     @MockitoBean
-    private GoogleTokenVerificationService googleTokenVerificationService;
+    private GoogleTokenVerificationPort googleTokenVerificationPort;
     @MockitoBean
     private AuthenticationPort authPort;
     @MockitoBean

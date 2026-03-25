@@ -205,9 +205,8 @@ public class RecipeService {
       return new PersonalizedRecipe(recipe, counts, interaction, diff);
   }
 
-  public Optional<PersonalizedRecipeSummary> getTopLikedRecipe(String currentUsername) {
-      var userId = currentUsername != null ? userIdentityPort.findIdByUsername(currentUsername).orElse(null) : null;
-      return recipePersistence.findTopLikedPublishedRecipe(userId);
+  public Optional<PersonalizedRecipeSummary> getTopLikedRecipe() {
+      return recipePersistence.findTopLikedPublishedRecipe();
   }
 
   public List<Recipe> findByStatus(RecipeStatus status) {

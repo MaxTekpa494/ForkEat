@@ -41,7 +41,7 @@ class HomeControllerTest {
 
     @BeforeEach
     void setUp() {
-        when(recipeService.getTopLikedRecipe(any())).thenReturn(Optional.empty());
+        when(recipeService.getTopLikedRecipe()).thenReturn(Optional.empty());
     }
 
     @Test

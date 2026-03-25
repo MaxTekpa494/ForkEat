@@ -2,7 +2,6 @@ package fr.uge.forkeat.presentation.web.controller;
 
 import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.service.RecipeService;
-import fr.uge.forkeat.service.port.AuthenticationPort;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -11,11 +10,9 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class HomeWebController {
 
     private final RecipeService recipeService;
-    private final AuthenticationPort authPort;
 
-    HomeWebController(RecipeService recipeService, AuthenticationPort authPort) {
+    HomeWebController(RecipeService recipeService) {
         this.recipeService = recipeService;
-        this.authPort = authPort;
     }
 
     @GetMapping("/error/403")
@@ -32,8 +29,7 @@ public class HomeWebController {
         model.addAttribute("totalUsers", 8500);
         model.addAttribute("totalChefs", 450);
 
-        var currentUsername = authPort.extractUsername();
-        recipeService.getTopLikedRecipe(currentUsername)
+        recipeService.getTopLikedRecipe()
                 .map(RecipeDTOMapper::toSummaryDTO)
                 .ifPresent(r -> model.addAttribute("topRecipe", r));
 
