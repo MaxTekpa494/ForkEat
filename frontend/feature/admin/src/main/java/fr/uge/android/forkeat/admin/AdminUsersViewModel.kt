@@ -17,7 +17,10 @@ data class AdminUsersUiState(
     val moderators: List<UserResource> = emptyList(),
     val admins: List<UserResource> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val searchQuery: String = "",
+    val userToPromote: UserResource? = null,
+    val promoteSuccess: String? = null
 )
 
 class AdminUsersViewModel : ViewModel() {
@@ -35,7 +38,8 @@ class AdminUsersViewModel : ViewModel() {
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(isLoading = true, error = null)
             try {
-                val membersDeferred    = async { adminService.getMembers() }
+                val query = _uiState.value.searchQuery
+                val membersDeferred    = async { adminService.getMembers(query) }
                 val moderatorsDeferred = async { adminService.getModerators() }
                 val adminsDeferred     = async { adminService.getAdmins() }
 
@@ -65,5 +69,49 @@ class AdminUsersViewModel : ViewModel() {
                 )
             }
         }
+    }
+
+    fun onSearchQueryChange(query: String) {
+        _uiState.value = _uiState.value.copy(searchQuery = query)
+        loadUsers()
+    }
+
+    fun requestPromote(user: UserResource) {
+        _uiState.value = _uiState.value.copy(userToPromote = user)
+    }
+
+    fun cancelPromote() {
+        _uiState.value = _uiState.value.copy(userToPromote = null)
+    }
+
+    fun confirmPromote() {
+        val user = _uiState.value.userToPromote ?: return
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(userToPromote = null, isLoading = true, error = null)
+            try {
+                val response = adminService.promoteToModerator(user.username)
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(
+                        promoteSuccess = "${user.firstName} ${user.lastName} est maintenant modérateur",
+                        isLoading = false
+                    )
+                    loadUsers()
+                } else {
+                    _uiState.value = _uiState.value.copy(
+                        isLoading = false,
+                        error = "Erreur lors de la promotion (${response.code()})"
+                    )
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(
+                    isLoading = false,
+                    error = "Erreur réseau : ${e.message}"
+                )
+            }
+        }
+    }
+
+    fun clearPromoteSuccess() {
+        _uiState.value = _uiState.value.copy(promoteSuccess = null)
     }
 }

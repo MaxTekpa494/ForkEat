@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service.user;
 
+import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.model.PageResult;
@@ -61,6 +62,29 @@ public class UserService {
     public PageResult<User> getUsersByRole(UserRole role) {
         Objects.requireNonNull(role);
         return userPersistence.findAllByRole(role);
+    }
+
+    @Transactional(readOnly = true)
+    public PageResult<User> searchMembers(String query) {
+        Objects.requireNonNull(query);
+        if (query.isBlank()) {
+            return getUsersByRole(UserRole.MEMBER);
+        }
+        return userPersistence.searchByRoleAndQuery(UserRole.MEMBER, query);
+    }
+
+    @Transactional
+    public void promoteToModerator(String username) {
+        Objects.requireNonNull(username);
+        var user = userPersistence.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("Utilisateur introuvable : " + username));
+        if (user.role() != UserRole.MEMBER) {
+            throw new RegisterFailureException("Seul un membre peut être promu modérateur");
+        }
+        if (!user.emailVerified()) {
+            throw new RegisterFailureException("L'utilisateur doit avoir confirmé son email");
+        }
+        userPersistence.updateUser(user.promoteToModerator());
     }
 
     @Transactional(readOnly = true)

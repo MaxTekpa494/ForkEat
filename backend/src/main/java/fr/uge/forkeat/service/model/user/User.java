@@ -41,4 +41,8 @@ public record User(UUID id, String username, String firstName, String lastName, 
     return new User(id, username, firstName, lastName, email, role, UserStatus.ACTIVE, authMode, createdAt, Instant.now(), emailVerified);
   }
 
+  public User promoteToModerator() {
+    return new User(id, username, firstName, lastName, email, UserRole.MODERATOR, status, authMode, createdAt, Instant.now(), emailVerified);
+  }
+
 }
