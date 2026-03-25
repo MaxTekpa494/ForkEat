@@ -403,16 +403,32 @@ class UserUpdateServiceTest {
     class ConfirmForgotPasswordChangeTests {
 
         @Test
-        void confirmForgotPasswordChange_ShouldResetPassword_WhenCodeValid() {
+        void confirmForgotPasswordChange_ShouldResetPasswordViaCode_WhenEmailVerified() {
             var userId = UUID.randomUUID();
-            var user = createTestUser(userId, "testuser", "test@example.com");
+            var verifiedUser = new User(userId, "testuser", "John", "Doe", "test@example.com",
+                    UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL, Instant.now(), Instant.now(), true);
 
-            when(userService.getUserByEmail("test@example.com")).thenReturn(user);
+            when(userService.getUserByEmail("test@example.com")).thenReturn(verifiedUser);
             when(passwordHasherPort.hash("NewPass1")).thenReturn("hashedNew");
 
             userUpdateService.confirmForgotPasswordChange("test@example.com", "123456", "NewPass1", "NewPass1");
 
             verify(emailVerificationService).confirmPasswordReset(userId, "123456", "hashedNew");
+            verify(userPersistence, never()).updatePassword(any(), any());
+        }
+
+        @Test
+        void confirmForgotPasswordChange_ShouldDirectlyUpdatePassword_WhenEmailNotVerified() {
+            var userId = UUID.randomUUID();
+            var unverifiedUser = createTestUser(userId, "testuser", "test@example.com");
+
+            when(userService.getUserByEmail("test@example.com")).thenReturn(unverifiedUser);
+            when(passwordHasherPort.hash("NewPass1")).thenReturn("hashedNew");
+
+            userUpdateService.confirmForgotPasswordChange("test@example.com", "", "NewPass1", "NewPass1");
+
+            verify(userPersistence).updatePassword(userId, "hashedNew");
+            verifyNoInteractions(emailVerificationService);
         }
 
         @Test

@@ -80,6 +80,12 @@ class AuthRestControllerTest {
                 Instant.now(), Instant.now(), false);
     }
 
+    private User createVerifiedUser() {
+        return new User(UUID.randomUUID(), "testuser", "Test", "User",
+                "test@forkeat.fr", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL,
+                Instant.now(), Instant.now(), true);
+    }
+
     @Nested
     class RegisterTests {
 
@@ -173,31 +179,44 @@ class AuthRestControllerTest {
     class ForgotPasswordTests {
 
         @Test
-        void shouldSendResetCode_WhenEmailExists() throws Exception {
+        void shouldSendCodeAndReturnRequiresCodeTrue_WhenEmailVerified() throws Exception {
             var dto = new ChangePasswordDTO("test@forkeat.fr");
-            var user = createUser();
-
-            when(userService.findByEmail("test@forkeat.fr")).thenReturn(java.util.Optional.of(user));
+            when(userService.findByEmail("test@forkeat.fr")).thenReturn(java.util.Optional.of(createVerifiedUser()));
             doNothing().when(emailVerificationService).sendPasswordChangeCode(any(), any());
 
             mockMvc.perform(post("/api/auth/forgot-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resource.requiresCode").value(true));
 
             verify(emailVerificationService).sendPasswordChangeCode(any(), any());
         }
 
         @Test
-        void shouldReturnOk_WhenEmailDoesNotExist() throws Exception {
-            var dto = new ChangePasswordDTO("unknown@forkeat.fr");
+        void shouldNotSendCodeAndReturnRequiresCodeFalse_WhenEmailNotVerified() throws Exception {
+            var dto = new ChangePasswordDTO("test@forkeat.fr");
+            when(userService.findByEmail("test@forkeat.fr")).thenReturn(java.util.Optional.of(createUser()));
 
+            mockMvc.perform(post("/api/auth/forgot-password")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(objectMapper.writeValueAsString(dto)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resource.requiresCode").value(false));
+
+            verifyNoInteractions(emailVerificationService);
+        }
+
+        @Test
+        void shouldReturnRequiresCodeTrue_WhenEmailDoesNotExist() throws Exception {
+            var dto = new ChangePasswordDTO("unknown@forkeat.fr");
             when(userService.findByEmail("unknown@forkeat.fr")).thenReturn(java.util.Optional.empty());
 
             mockMvc.perform(post("/api/auth/forgot-password")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
-                    .andExpect(status().isOk());
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resource.requiresCode").value(true));
 
             verifyNoInteractions(emailVerificationService);
         }
