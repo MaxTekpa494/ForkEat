@@ -12,7 +12,6 @@
         <div class="max-w-md w-full mx-auto px-4">
             <div class="bg-white rounded-2xl shadow-xl border border-gray-100 p-8 text-center">
 
-                <!-- Icône -->
                 <div class="w-20 h-20 bg-amber-50 rounded-full flex items-center justify-center mx-auto mb-6">
                     <i class="fas fa-envelope-circle-check text-amber-500 text-3xl"></i>
                 </div>
@@ -26,21 +25,18 @@
                     Vérifiez votre boîte de réception et cliquez sur le lien que nous vous avons envoyé.
                 </p>
 
-                <!-- Flash success -->
                 <div th:if="${success}"
                      class="mb-5 bg-green-50 border border-green-200 rounded-xl p-4 flex items-center gap-3 text-left">
                     <i class="fas fa-check-circle text-green-500 flex-shrink-0"></i>
                     <p class="text-sm text-green-700" th:text="${success}"></p>
                 </div>
 
-                <!-- Flash error -->
                 <div th:if="${errorMessage}"
                      class="mb-5 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3 text-left">
                     <i class="fas fa-exclamation-circle text-red-500 flex-shrink-0"></i>
                     <p class="text-sm text-red-700" th:text="${errorMessage}"></p>
                 </div>
 
-                <!-- Info délai -->
                 <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 mb-6">
                     <div class="flex items-start space-x-3">
                         <i class="fas fa-clock text-amber-600 mt-1 flex-shrink-0"></i>
@@ -51,9 +47,7 @@
                     </div>
                 </div>
 
-                <!-- Actions -->
                 <div class="space-y-3">
-                    <!-- Renvoyer l'email -->
                     <form th:action="@{/account/resend-verification}" method="POST">
                         <button type="submit"
                                 class="w-full bg-primary-500 hover:bg-primary-600 text-white px-6 py-3 rounded-full font-bold transition shadow-md flex items-center justify-center gap-2">
@@ -62,7 +56,6 @@
                         </button>
                     </form>
 
-                    <!-- Retour -->
                     <a th:href="@{/recipes}"
                        class="block w-full border-2 border-secondary-100 text-secondary-700 hover:bg-secondary-50 px-6 py-3 rounded-full font-semibold transition text-center">
                         <i class="fas fa-arrow-left mr-2"></i>

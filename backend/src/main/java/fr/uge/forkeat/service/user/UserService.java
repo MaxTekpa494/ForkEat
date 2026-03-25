@@ -121,21 +121,17 @@ public class UserService {
     public void deleteAccount(String username) {
         Objects.requireNonNull(username);
         var user = userPersistence.findByUsername(username).orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
-        // Verrou pessimiste sur le wallet de l'utilisateur
         var userWallet = walletPersistence.loadWalletWithLock(user.id()).orElseThrow(() -> new WalletNotFoundException(user.id()));
-        // Récupération du wallet earnings (le transfert via incrementBalanceById est atomique)
         var earningsWallet = walletPersistence.getEarningsWallet();
-        // Transfert du solde vers le wallet des gains + trace dans l'historique plateforme
         if (userWallet.balance() > 0) {
             walletPersistence.incrementBalanceById(earningsWallet.id(), userWallet.balance());
             platformWalletPersistence.recordTransaction(
                     PlatformWalletType.EARNINGS,
                     userWallet.balance(),
                     "ACCOUNT_DELETION",
-                    user.id()   // referenceId = UUID de l'utilisateur supprimé (traçabilité)
+                    user.id()
             );
         }
-        // Réassignation de toutes les recettes vers l'utilisateur système earnings
         recipePersistence.reassignRecipesToUser(user.id(), earningsWallet.userId());
         // Suppression de l'utilisateur (cascade JPA : wallet + bankInfo supprimés automatiquement)
         userPersistence.deleteById(user.id());

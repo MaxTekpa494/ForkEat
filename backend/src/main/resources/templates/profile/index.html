@@ -47,11 +47,9 @@
         </div>
     </section>
 
-    <!-- Statistiques -->
     <section class="py-12 bg-surface">
         <div class="container mx-auto px-4">
             <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
-                <!-- Solde Wallet -->
                 <a th:href="@{/wallet}" class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-6 text-white shadow-xl hover:from-primary-600 hover:to-primary-700 transition-all duration-200 block">
                     <div class="flex items-center justify-between mb-4">
                         <div class="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center">
@@ -64,7 +62,6 @@
                     <div class="text-primary-100 text-sm font-medium">Solde disponible</div>
                 </a>
 
-                <!-- Recettes -->
                 <a th:href="@{/recipes/my-recipes}" class="bg-white rounded-2xl p-6 shadow-md border border-gray-100 hover:shadow-lg hover:border-secondary-200 transition-all duration-200 block">
                     <div class="flex items-center justify-between mb-4">
                         <div class="w-12 h-12 bg-secondary-50 rounded-xl flex items-center justify-center">
@@ -75,7 +72,6 @@
                     <div class="text-gray-500 text-sm font-medium">Mes recettes</div>
                 </a>
 
-                <!-- Abonnés -->
                 <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
                     <div class="flex items-center justify-between mb-4">
                         <div class="w-12 h-12 bg-blue-50 rounded-xl flex items-center justify-center">
@@ -86,7 +82,6 @@
                     <div class="text-gray-500 text-sm font-medium">Abonnés</div>
                 </div>
 
-                <!-- Abonnements -->
                 <div class="bg-white rounded-2xl p-6 shadow-md border border-gray-100">
                     <div class="flex items-center justify-between mb-4">
                         <div class="w-12 h-12 bg-green-50 rounded-xl flex items-center justify-center">
@@ -100,7 +95,6 @@
         </div>
     </section>
 
-    <!-- Actions rapides -->
     <section class="py-12 bg-white">
         <div class="container mx-auto px-4">
             <h2 class="font-display font-bold text-2xl text-secondary-900 mb-6">Actions rapides</h2>
@@ -135,20 +129,6 @@
             </div>
         </div>
     </section>
-
-    <!-- Activité récente (placeholder) PAS MVP -->
-    <section class="py-12 bg-surface">
-        <div class="container mx-auto px-4">
-            <h2 class="font-display font-bold text-2xl text-secondary-900 mb-6">Activité récente</h2>
-
-            <div class="bg-white rounded-2xl p-8 text-center border border-gray-100">
-                <i class="fas fa-inbox text-4xl text-gray-300 mb-4"></i>
-                <p class="text-gray-500">Aucune activité récente pour le moment.</p>
-                <p class="text-gray-400 text-sm mt-2">Créez votre première recette pour commencer !</p>
-            </div>
-        </div>
-    </section>
-
 </div>
 </body>
 </html>

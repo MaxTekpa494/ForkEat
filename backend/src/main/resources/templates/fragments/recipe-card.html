@@ -4,7 +4,6 @@
 
 <div th:fragment="recipeCard(recipe)" class="recipe-card relative group">
 
-    <!-- Formulaires CSRF cachés (like et super-like toujours présents, follow seulement si connecté) -->
     <form th:id="'card-like-form-' + ${recipe.id}"
           th:action="@{/recipes/{id}/like(id=${recipe.id})}"
           method="post" class="hidden"></form>
@@ -16,7 +15,6 @@
           th:action="@{/recipes/{id}/follow(id=${recipe.id})}"
           method="post" class="hidden"></form>
 
-    <!-- Modale confirmation Super Like -->
     <div th:replace="~{fragments/modals :: superLikeModal(
         |card-sl-modal-${recipe.id}|,
         |card-sl-modal-content-${recipe.id}|,
@@ -27,7 +25,6 @@
         ${superLikePromoPriceCents}
     )}"></div>
 
-    <!-- Modale fonds insuffisants -->
     <th:block th:with="fundsMsg='Fonds insuffisants pour effectuer un Super Like. Rechargez votre wallet pour continuer.'">
         <div th:replace="~{fragments/modals :: insufficientFundsModal(
             |card-funds-modal-${recipe.id}|,
@@ -39,7 +36,6 @@
 
     <div class="bg-white rounded-2xl shadow-sm group-hover:shadow-xl transition-all duration-300 overflow-hidden border border-gray-100 h-full flex flex-col">
 
-        <!-- Image -->
         <div class="aspect-[4/3] bg-secondary-100 overflow-hidden relative">
             <img th:if="${recipe.imageUrl != null and !recipe.imageUrl.isEmpty()}"
                  th:src="${recipe.imageUrl}"
@@ -70,7 +66,6 @@
             <div class="flex items-center justify-between pt-4 border-t border-gray-100 mt-auto">
                 <div class="flex items-center space-x-2">
 
-                    <!-- Like -->
                     <button type="button"
                             class="relative z-10 flex items-center gap-1 px-2.5 py-1 rounded-full border border-gray-200 text-gray-500 text-sm cursor-pointer transition-all duration-200 hover:border-red-300 hover:text-red-500 hover:bg-red-50"
                             th:classappend="${recipe.likedByCurrentUser} ? ' border-red-500 text-red-500 bg-red-50' : ''"
@@ -83,7 +78,6 @@
                         <span th:text="${recipe.likeCount}">0</span>
                     </button>
 
-                    <!-- Super-like -->
                     <button type="button"
                             class="relative z-10 flex items-center gap-1 px-2.5 py-1 rounded-full border border-gray-200 text-gray-400 text-sm cursor-pointer transition-all duration-200 hover:border-yellow-500 hover:text-yellow-500 hover:bg-yellow-50"
                             th:classappend="${recipe.superLikedByCurrentUser} ? ' border-yellow-500 text-yellow-500 bg-yellow-50' : ''"
@@ -100,7 +94,6 @@
                         <span th:text="${recipe.superLikeCount}">0</span>
                     </button>
 
-                    <!-- Follow (toujours un bouton, même non connecté) -->
                     <button type="button"
                             class="relative z-10 flex items-center gap-1 px-2.5 py-1 rounded-full border border-gray-200 text-sm cursor-pointer transition-all duration-200 hover:border-primary-400 hover:text-primary-500 hover:bg-primary-50"
                             th:classappend="${recipe.followedByCurrentUser} ? ' border-primary-500 text-primary-500 bg-primary-50' : ' text-gray-400'"
@@ -115,7 +108,6 @@
 
                 </div>
 
-                <!-- Auteur cliquable, en bas à droite -->
                 <a th:if="${recipe.authorUsername != null}"
                    th:href="@{/profile/{username}(username=${recipe.authorUsername})}"
                    class="relative z-10 text-sm text-secondary-400 hover:text-primary-500 transition font-medium"
@@ -126,17 +118,10 @@
         </div>
     </div>
 
-    <!-- Lien étiré couvrant toute la carte (z-0, sous les boutons) -->
     <a th:href="@{/recipes/{id}(id=${recipe.id})}"
        class="absolute inset-0 z-0 rounded-2xl"
        aria-label="Voir la recette"></a>
 
-    <!--
-        Script à l'intérieur du fragment.
-        Les fonctions sont assignées sur window pour éviter le block-scoping ES6.
-        Le guard sur window._cardActionsRegistered empêche la redéfinition quand
-        plusieurs cartes sont présentes sur la même page.
-    -->
     <script th:inline="none">
         if (!window._cardActionsRegistered) {
             window._cardActionsRegistered = true;

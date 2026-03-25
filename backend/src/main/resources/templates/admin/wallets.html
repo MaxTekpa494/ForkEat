@@ -8,7 +8,6 @@
 <body>
 <div layout:fragment="content">
 
-    <!-- En-tête -->
     <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-12">
         <div class="container mx-auto px-4">
             <a id="back-to-dashboard" th:href="@{/admin}" class="hidden text-secondary-300 hover:text-white text-sm mb-3 inline-flex items-center gap-1.5">
@@ -25,13 +24,11 @@
         </div>
     </section>
 
-    <!-- Soldes -->
     <section class="py-10 bg-surface">
         <div class="container mx-auto px-4">
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
 
-                <!-- Wallet Bénéfices -->
                 <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-8 text-white shadow-xl">
                     <div class="flex items-center justify-between mb-6">
                         <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -61,7 +58,6 @@
                     </div>
                 </div>
 
-                <!-- Wallet Redistribution -->
                 <div class="bg-gradient-to-br from-secondary-700 to-secondary-900 rounded-2xl p-8 text-white shadow-xl">
                     <div class="flex items-center justify-between mb-6">
                         <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -92,7 +88,6 @@
                 </div>
             </div>
 
-            <!-- Historique des transactions -->
             <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mb-8">
                 <div class="p-6 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-display font-bold text-lg text-secondary-900 flex items-center gap-2">
@@ -113,7 +108,6 @@
                     <div th:each="tx : ${walletTransactions}"
                          class="px-6 py-4 hover:bg-gray-50 transition flex items-center justify-between">
                         <div class="flex items-center gap-4">
-                            <!-- Icône wallet -->
                             <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                                  th:classappend="${tx.reason() == 'ACCOUNT_DELETION'} ? 'bg-red-50' :
                                                  (${tx.walletType().name() == 'EARNINGS'} ? 'bg-primary-50' : 'bg-secondary-50')">
@@ -122,7 +116,6 @@
                                                    (${tx.walletType().name() == 'EARNINGS'} ? 'fa-coins text-primary-500' : 'fa-exchange-alt text-secondary-600')"></i>
                             </div>
                             <div>
-                                <!-- Wallet + raison -->
                                 <div class="flex items-center gap-2">
                                     <span class="font-medium text-secondary-900 text-sm"
                                           th:text="${tx.walletType().name() == 'EARNINGS'} ? 'Bénéfices' : 'Redistribution'">Wallet</span>
@@ -140,7 +133,6 @@
                                      th:text="${#temporals.format(tx.createdAt(), 'dd/MM/yyyy à HH:mm:ss')}">Date</div>
                             </div>
                         </div>
-                        <!-- Montant signé -->
                         <div class="font-bold text-lg flex-shrink-0"
                              th:classappend="${tx.amountCents() >= 0} ? 'text-green-600' : 'text-red-500'"
                              th:text="${(tx.amountCents() >= 0 ? '+' : '') + #numbers.formatDecimal(tx.amountCents() / 100.0, 1, 2) + ' €'}">
@@ -150,7 +142,6 @@
                 </div>
             </div>
 
-            <!-- Redistribution mensuelle -->
             <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mb-8">
                 <div class="p-6 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-display font-bold text-lg text-secondary-900 flex items-center gap-2">
@@ -169,7 +160,6 @@
                      class="overflow-y-auto divide-y divide-gray-50"
                      style="max-height: 480px;">
                     <div th:each="entry : ${redistributionSummary}">
-                        <!-- Ligne cliquable -->
                         <div class="px-6 py-4 hover:bg-gray-50 transition cursor-pointer flex items-center justify-between"
                              th:data-recipe-id="${entry.sourceRecipeId()}"
                              th:data-batch-month="${entry.batchMonth()}"
@@ -196,7 +186,6 @@
                                 <i class="fas fa-chevron-down text-gray-400 text-xs chain-chevron transition-transform"></i>
                             </div>
                         </div>
-                        <!-- Détail de la chaîne (masqué par défaut) -->
                         <div class="chain-detail hidden bg-gray-50 border-t border-gray-100 px-6 py-4">
                             <div class="chain-content text-sm text-gray-500 italic">Chargement...</div>
                         </div>
@@ -204,7 +193,6 @@
                 </div>
             </div>
 
-            <!-- Résumé global -->
             <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
                 <h2 class="font-display font-bold text-lg text-secondary-900 mb-5 flex items-center gap-2">
                     <i class="fas fa-chart-pie text-primary-500"></i> Résumé global

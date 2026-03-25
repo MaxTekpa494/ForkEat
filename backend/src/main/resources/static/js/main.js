@@ -1,4 +1,3 @@
-// Bouton "Retour au tableau de bord" - visible uniquement si on vient de /admin
 document.addEventListener('DOMContentLoaded', function() {
     const backBtn = document.getElementById('back-to-dashboard');
     if (backBtn) {
@@ -32,7 +31,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // Auto-fermeture des messages flash après 5 secondes
     setTimeout(() => {
         const alerts = document.querySelectorAll('[th\\:if="${success}"], [th\\:if="${error}"]');
         alerts.forEach(alert => {
@@ -56,7 +54,6 @@ if (userMenuButton && userMenuDropdown) {
         }
     });
 
-    // Fermer si clic ailleurs
     document.addEventListener('click', function(e) {
         if (!userMenuButton.contains(e.target) && !userMenuDropdown.contains(e.target)) {
             userMenuDropdown.classList.add('hidden');
@@ -67,7 +64,6 @@ if (userMenuButton && userMenuDropdown) {
     });
 }
 
-// Smooth scroll
 document.querySelectorAll('a[href^="#"]').forEach(anchor => {
     anchor.addEventListener('click', function (e) {
         e.preventDefault();
