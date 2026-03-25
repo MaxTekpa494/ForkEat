@@ -32,8 +32,6 @@ public interface RecipePersistence {
 
   List<Recipe> findByAuthorId(UUID authorId);
 
-  List<Recipe> findByAuthorUsername(String authorUsername);
-
   void updateFeed(UUID followerId, UUID followedId);
 
   List<Allergen> findAllAllergens();
