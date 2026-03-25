@@ -7,8 +7,8 @@ import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.service.exception.AuthenticationTokenException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.port.GoogleTokenVerificationPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
-import fr.uge.forkeat.service.user.GoogleTokenVerificationService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserUpdateService;
@@ -34,7 +34,7 @@ public class AuthRestController {
 	private final AuthenticationPort authPort;
 	private final UserService userService;
 	private final EmailVerificationService emailVerificationService;
-	private final GoogleTokenVerificationService googleTokenVerificationService;
+	private final GoogleTokenVerificationPort googleTokenVerificationPort;
 	private final UserUpdateService userUpdateService;
 
 	public AuthRestController(UserRegistrationService userRegistrationService,
@@ -42,14 +42,14 @@ public class AuthRestController {
 			AuthenticationPort authPort,
 			UserService userService,
 			EmailVerificationService emailVerificationService,
-			GoogleTokenVerificationService googleTokenVerificationService,
+			GoogleTokenVerificationPort googleTokenVerificationPort,
 			UserUpdateService userUpdateService) {
 		this.userRegistrationService = userRegistrationService;
 		this.authenticationManager = authenticationManager;
 		this.authPort = authPort;
 		this.userService = userService;
 		this.emailVerificationService = emailVerificationService;
-		this.googleTokenVerificationService = googleTokenVerificationService;
+		this.googleTokenVerificationPort = googleTokenVerificationPort;
 		this.userUpdateService = Objects.requireNonNull(userUpdateService);
 	}
 
@@ -92,22 +92,12 @@ public class AuthRestController {
 	public ResponseEntity<HttpResponse<AuthTokenDTO>> loginWithGoogle(@RequestBody GoogleIdTokenRequestDTO request) {
 		Objects.requireNonNull(request);
 		try {
-			var googleIdToken = googleTokenVerificationService.verify(request.idToken());
-			if (googleIdToken == null) {
-				throw new AuthenticationTokenException("Invalid Google ID token");
-			}
-
-			var payload = googleIdToken.getPayload();
-			var email = payload.getEmail();
-			var givenName = (String) payload.get("given_name");
-			var familyName = (String) payload.get("family_name");
-
+			var googleUserInfo = googleTokenVerificationPort.verify(request.idToken());
 			var user = userRegistrationService.registerUserFromOAuth2(
-					givenName != null ? givenName : "",
-					familyName != null ? familyName : "",
-					email,
+					googleUserInfo.givenName(),
+					googleUserInfo.familyName(),
+					googleUserInfo.email(),
 					AuthMode.GOOGLE);
-
 			return ResponseEntity.ok(new ItemResponse<>(new AuthTokenDTO(authPort.generateToken(user.username()), "Bearer")));
 		} catch (AuthenticationTokenException e) {
 			throw e;

@@ -76,7 +76,7 @@ public interface RecipePersistence {
 
   long countByAuthorUsername(String username);
 
-  Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe(UUID userId);
+  Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe();
 
   void likeRecipe(UUID userId, UUID recipeId);
 
