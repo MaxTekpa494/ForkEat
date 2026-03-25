@@ -408,7 +408,8 @@ public class RecipeService {
           fullPrice = promo.priceCents();
           if (promo.bonusEveryN() != null) {
               int paidCount = promotionPersistence.countPaidSuperLikesByUserAndPromotion(userId, promo.id());
-              if (paidCount > 0 && paidCount % promo.bonusEveryN() == 0) {
+              int freeReceived = promotionPersistence.countFreeSuperLikesByUserAndPromotion(userId, promo.id());
+              if (paidCount / promo.bonusEveryN() > freeReceived) {
                   isBonusFree = true;
               }
           }

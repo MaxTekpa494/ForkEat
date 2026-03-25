@@ -15,9 +15,11 @@ public interface SuperLikeRepository extends JpaRepository<SuperLikeEntity, UUID
 
     boolean existsByRecipeIdAndUserId(UUID recipeId, UUID userId);
 
-    /** Nombre de super-likes payants d'un utilisateur pour une promotion donnée (pour le calcul du bonus). */
     @Query("SELECT COUNT(s) FROM SuperLikeEntity s WHERE s.userId = :userId AND s.promotionId = :promotionId AND s.isBonusFree = false")
     int countPaidByUserAndPromotion(@Param("userId") UUID userId, @Param("promotionId") UUID promotionId);
+
+    @Query("SELECT COUNT(s) FROM SuperLikeEntity s WHERE s.userId = :userId AND s.promotionId = :promotionId AND s.isBonusFree = true")
+    int countFreeByUserAndPromotion(@Param("userId") UUID userId, @Param("promotionId") UUID promotionId);
 
     /** Historique des super-likes d'un utilisateur, du plus récent au plus ancien. */
     @Query("SELECT s FROM SuperLikeEntity s WHERE s.userId = :userId ORDER BY s.createdAt DESC")

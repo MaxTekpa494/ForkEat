@@ -4,6 +4,7 @@ import fr.uge.forkeat.service.exception.ForbiddenOperationException;
 import fr.uge.forkeat.service.exception.PromotionModificationForbiddenException;
 import fr.uge.forkeat.service.exception.PromotionNotFoundException;
 import fr.uge.forkeat.service.exception.PromotionNotProfitableException;
+import fr.uge.forkeat.service.exception.PromotionPriceException;
 import fr.uge.forkeat.service.exception.PromotionOverlapException;
 import fr.uge.forkeat.service.model.superlike.Promotion;
 import fr.uge.forkeat.service.model.superlike.PromotionStatus;
@@ -72,6 +73,7 @@ public class PromotionService {
         }
 
         var config = superLikeConfigPersistence.get();
+        validatePrice(priceCents, config);
         validateProfitability(bonusEveryN, config);
         validateNoOverlap(startsAt, endsAt);
 
@@ -101,6 +103,8 @@ public class PromotionService {
 
         var config = superLikeConfigPersistence.get();
         var newBonusEveryN = bonusEveryN != null ? bonusEveryN : existing.bonusEveryN();
+        var newPriceCents = priceCents != null ? priceCents : existing.priceCents();
+        validatePrice(newPriceCents, config);
         validateProfitability(newBonusEveryN, config);
 
         var newStartsAt = startsAt != null ? startsAt : existing.startsAt();
@@ -112,7 +116,7 @@ public class PromotionService {
                 name       != null ? name       : existing.name(),
                 newStartsAt,
                 newEndsAt,
-                priceCents != null ? priceCents : existing.priceCents(),
+                newPriceCents,
                 newBonusEveryN,
                 existing.status(),
                 existing.createdAt()
@@ -156,8 +160,6 @@ public class PromotionService {
         return updated;
     }
 
-    // ─── Appelé par PromotionSchedulingService (tâches précises) ──────────
-
     @Transactional
     public void activate(UUID id) {
         var promo = promotionPersistence.findById(id)
@@ -181,8 +183,6 @@ public class PromotionService {
         promotionPersistence.transitionStatus(id, PromotionStatus.EXPIRED);
         logger.info("Promotion {} expired", id);
     }
-
-    // ─── Réconciliation au démarrage (appelé par PromotionSchedulingService) ─
 
     @Transactional
     public List<Promotion> activateDuePromotions() {
@@ -214,7 +214,11 @@ public class PromotionService {
         return toExpire;
     }
 
-    // ─── Validation ───────────────────────────────────────────────────────
+    private void validatePrice(long priceCents, SuperLikeConfig config) {
+        if (priceCents >= config.priceCents()) {
+            throw new PromotionPriceException(priceCents, config.priceCents());
+        }
+    }
 
     private void validateProfitability(Integer bonusEveryN, SuperLikeConfig config) {
         if (bonusEveryN == null) return;

@@ -81,6 +81,11 @@ public class PromotionPersistenceAdapter implements PromotionPersistence {
     }
 
     @Override
+    public int countFreeSuperLikesByUserAndPromotion(UUID userId, UUID promotionId) {
+        return superLikeRepository.countFreeByUserAndPromotion(userId, promotionId);
+    }
+
+    @Override
     public void transitionStatus(UUID id, PromotionStatus newStatus) {
         promotionRepository.updateStatus(id, newStatus);
     }

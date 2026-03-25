@@ -174,4 +174,11 @@ public class GlobalWebExceptionHandler {
 		model.addAttribute("pageTitle", "Promotion non rentable");
 		return "error/422";
 	}
+
+	@ExceptionHandler(PromotionPriceException.class)
+	public String handlePromotionPrice(PromotionPriceException ex, RedirectAttributes redirectAttributes, HttpServletRequest request) {
+		redirectAttributes.addFlashAttribute("error", ex.getMessage());
+		String uri = request.getRequestURI();
+		return "redirect:" + uri;
+	}
 }
