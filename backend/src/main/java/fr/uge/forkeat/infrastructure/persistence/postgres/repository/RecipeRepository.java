@@ -104,6 +104,20 @@ public interface RecipeRepository extends JpaRepository<RecipeEntity, UUID> {
             """)
     List<RecipeSummaryView> findSummariesByIds(@Param("ids") List<UUID> ids);
 
+    @Query("""
+            SELECT r.id AS id,
+                   r.title AS title,
+                   r.summary AS summary,
+                   r.imageUrl AS imageUrl,
+                   r.preparationMinutes AS preparationMinutes,
+                   r.createdAt AS createdAt,
+                   u.username AS authorUsername
+            FROM RecipeEntity r
+            JOIN r.author u
+            WHERE r.id IN :ids AND r.status = :status
+            """)
+    List<RecipeSummaryView> findSummariesByIdsAndStatus(@Param("ids") List<UUID> ids, @Param("status") RecipeStatus status);
+
     @Query(value = """
             SELECT r.id, r.title, r.summary, r.image_url AS imageUrl,
                    r.preparation_minutes AS preparationMinutes, r.created_at AS createdAt,
