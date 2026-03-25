@@ -54,10 +54,10 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
     );
 
     @Query("""
-            MATCH (u:User {username: $username})-[:PUBLISHED]->(r:Recipe)
+            MATCH (u:User {id: $authorId})-[:PUBLISHED]->(r:Recipe)
             RETURN count(r)
             """)
-    long countByAuthorUsername(@Param("username") String username);
+    long countByAuthorId(@Param("authorId") UUID authorId);
 
     @Query("""
             MATCH (u:User {id: $userId})

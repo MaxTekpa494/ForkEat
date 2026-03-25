@@ -170,10 +170,10 @@ public class UserPersistenceAdapter implements UserPersistence {
 	}
 
 	@Override
-	public boolean isFollowing(String followerUsername, String followedUsername) {
-		Objects.requireNonNull(followerUsername);
-		Objects.requireNonNull(followedUsername);
-		return neo4jUserRepository.isFollowing(followerUsername, followedUsername);
+	public boolean isFollowing(UUID followerId, UUID followedId) {
+		Objects.requireNonNull(followerId);
+		Objects.requireNonNull(followedId);
+		return neo4jUserRepository.isFollowing(followerId, followedId);
 	}
 
 	@Override
@@ -191,10 +191,10 @@ public class UserPersistenceAdapter implements UserPersistence {
 	}
 
 	@Override
-	public UserPublicProfile findPublicProfile(String username) {
-		Objects.requireNonNull(username);
-		var user = userRepository.findProfileByUsername(username)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
+	public UserPublicProfile findPublicProfile(UUID userId) {
+		Objects.requireNonNull(userId);
+		var user = userRepository.findProfileById(userId)
+				.orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
 		return new UserPublicProfile(
 				user.getUsername(),
 				user.getFirstName(),
@@ -203,11 +203,9 @@ public class UserPersistenceAdapter implements UserPersistence {
 	}
 
 	@Override
-	public UserSocialStats findUserSocialStats(String username) {
-		Objects.requireNonNull(username);
-		var user = userRepository.findByUsername(username)
-				.orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
-		var counts = neo4jUserRepository.findSocialCountsByUserId(user.getId());
+	public UserSocialStats findUserSocialStats(UUID userId) {
+		Objects.requireNonNull(userId);
+		var counts = neo4jUserRepository.findSocialCountsByUserId(userId);
 		return new UserSocialStats(
 				counts != null ? counts.followerCount() : 0,
 				counts != null ? counts.followingCount() : 0,

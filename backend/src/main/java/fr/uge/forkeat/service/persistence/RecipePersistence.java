@@ -32,8 +32,6 @@ public interface RecipePersistence {
 
   List<Recipe> findByAuthorId(UUID authorId);
 
-  List<Recipe> findByAuthorUsername(String authorUsername);
-
   List<Allergen> findAllAllergens();
 
   List<String> findAllIngredientNames();
@@ -74,7 +72,7 @@ public interface RecipePersistence {
 
   Map<UUID, RecipeUserInteraction> findUserRecipeInteractions(List<UUID> recipeIds, UUID userId);
 
-  long countByAuthorUsername(String username);
+  long countByAuthorId(UUID authorId);
 
   Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe(UUID userId);
 

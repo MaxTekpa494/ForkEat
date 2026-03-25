@@ -304,10 +304,6 @@ public class RecipeService {
     return recipePersistence.findAllDietaryNames();
   }
 
-  public List<Recipe> findByAuthorUsername(String authorUsername) {
-    return recipePersistence.findByAuthorUsername(authorUsername);
-  }
-
   public AuthorRecipesPage findRecipesByAuthor(String username, RecipeStatus status, int page, int size) {
     Objects.requireNonNull(username);
     Objects.requireNonNull(status);
