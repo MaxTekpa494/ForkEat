@@ -130,7 +130,7 @@ public class SecurityConfig {
 						.accessDeniedHandler(customAccessDeniedHandler))
 
 				.authorizeHttpRequests(auth -> auth
-						.requestMatchers("/error/**", "/css/**", "/js/**", "/images/**").permitAll() // Injection js ?
+						.requestMatchers("/error/**", "/css/**", "/js/**", "/images/**", "/favicon.svg", "/favicon.ico").permitAll() // Injection js ?
 						.requestMatchers("/").permitAll()
 						.requestMatchers("/auth/**").permitAll()
 						.requestMatchers(HttpMethod.GET, "/recipes/my-recipes").hasAuthority("EMAIL_VERIFIED")
