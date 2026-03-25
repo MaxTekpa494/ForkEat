@@ -217,17 +217,17 @@ class PromotionServiceTest {
         void shouldUpdateScheduledPromotion() {
             var id = UUID.randomUUID();
             var existing = scheduled(id);
-            var updated = new Promotion(id, "Updated", existing.startsAt(), existing.endsAt(), 200L, null, PromotionStatus.SCHEDULED, existing.createdAt());
+            var updated = new Promotion(id, "Updated", existing.startsAt(), existing.endsAt(), 100L, null, PromotionStatus.SCHEDULED, existing.createdAt());
 
             when(promotionPersistence.findById(id)).thenReturn(Optional.of(existing));
             when(superLikeConfigPersistence.get()).thenReturn(defaultConfig);
-            when(promotionPersistence.hasOverlapping(any(), any())).thenReturn(false);
+            when(promotionPersistence.hasOverlappingExcluding(any(), any(), any())).thenReturn(false);
             when(promotionPersistence.update(any())).thenReturn(updated);
 
-            var result = promotionService.update(id, "Updated", null, null, 200L, null);
+            var result = promotionService.update(id, "Updated", null, null, 100L, null);
 
             assertEquals("Updated", result.name());
-            assertEquals(200L, result.priceCents());
+            assertEquals(100L, result.priceCents());
             verify(promotionPersistence).update(any());
         }
 
@@ -272,7 +272,7 @@ class PromotionServiceTest {
 
             when(promotionPersistence.findById(id)).thenReturn(Optional.of(existing));
             when(superLikeConfigPersistence.get()).thenReturn(defaultConfig);
-            when(promotionPersistence.hasOverlapping(any(), any())).thenReturn(false);
+            when(promotionPersistence.hasOverlappingExcluding(any(), any(), any())).thenReturn(false);
             when(promotionPersistence.update(any())).thenReturn(preserved);
 
             var result = promotionService.update(id, null, null, null, null, null);

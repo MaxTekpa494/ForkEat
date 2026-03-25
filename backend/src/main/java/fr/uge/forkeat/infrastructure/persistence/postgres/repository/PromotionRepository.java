@@ -34,7 +34,6 @@ public interface PromotionRepository extends JpaRepository<PromotionEntity, UUID
             """)
     List<PromotionEntity> findScheduledOrActive();
 
-    /** Chevauchement sans exclusion (création d'une promo). */
     @Query(nativeQuery = true, value = """
             SELECT COUNT(*) > 0 FROM promotions p
             WHERE p.status::text NOT IN ('CANCELLED', 'EXPIRED')
@@ -43,6 +42,17 @@ public interface PromotionRepository extends JpaRepository<PromotionEntity, UUID
             """)
     boolean hasOverlappingAny(@Param("startsAt") Instant startsAt,
                               @Param("endsAt") Instant endsAt);
+
+    @Query(nativeQuery = true, value = """
+            SELECT COUNT(*) > 0 FROM promotions p
+            WHERE p.id != CAST(:excludeId AS uuid)
+            AND p.status::text NOT IN ('CANCELLED', 'EXPIRED')
+            AND p.starts_at < COALESCE(CAST(:endsAt AS timestamptz), 'infinity'::timestamptz)
+            AND (p.ends_at IS NULL OR p.ends_at > CAST(:startsAt AS timestamptz))
+            """)
+    boolean hasOverlappingExcluding(@Param("startsAt") Instant startsAt,
+                                    @Param("endsAt") Instant endsAt,
+                                    @Param("excludeId") UUID excludeId);
 
     @Modifying
     @Query("UPDATE PromotionEntity p SET p.status = :newStatus WHERE p.id = :id")

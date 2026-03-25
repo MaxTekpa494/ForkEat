@@ -109,7 +109,7 @@ public class PromotionService {
 
         var newStartsAt = startsAt != null ? startsAt : existing.startsAt();
         var newEndsAt   = endsAt   != null ? endsAt   : existing.endsAt();
-        validateNoOverlap(newStartsAt, newEndsAt);
+        validateNoOverlapExcluding(newStartsAt, newEndsAt, id);
 
         var updated = new Promotion(
                 id,
@@ -215,7 +215,7 @@ public class PromotionService {
     }
 
     private void validatePrice(long priceCents, SuperLikeConfig config) {
-        if (priceCents >= config.priceCents()) {
+        if (priceCents > config.priceCents()) {
             throw new PromotionPriceException(priceCents, config.priceCents());
         }
     }
@@ -230,6 +230,12 @@ public class PromotionService {
 
     private void validateNoOverlap(Instant startsAt, Instant endsAt) {
         if (promotionPersistence.hasOverlapping(startsAt, endsAt)) {
+            throw new PromotionOverlapException();
+        }
+    }
+
+    private void validateNoOverlapExcluding(Instant startsAt, Instant endsAt, UUID excludeId) {
+        if (promotionPersistence.hasOverlappingExcluding(startsAt, endsAt, excludeId)) {
             throw new PromotionOverlapException();
         }
     }

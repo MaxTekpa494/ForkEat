@@ -76,6 +76,11 @@ public class PromotionPersistenceAdapter implements PromotionPersistence {
     }
 
     @Override
+    public boolean hasOverlappingExcluding(Instant startsAt, Instant endsAt, UUID excludeId) {
+        return promotionRepository.hasOverlappingExcluding(startsAt, endsAt, excludeId);
+    }
+
+    @Override
     public int countPaidSuperLikesByUserAndPromotion(UUID userId, UUID promotionId) {
         return superLikeRepository.countPaidByUserAndPromotion(userId, promotionId);
     }

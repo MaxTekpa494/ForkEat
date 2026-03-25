@@ -193,7 +193,9 @@
     </div>
 </div>
 
-<form id="cancel-promo-form" method="post" class="hidden"></form>
+<form id="cancel-promo-form" method="post" class="hidden">
+    <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+</form>
 
 <script>
     function openCancelModal(promoId, promoName) {
