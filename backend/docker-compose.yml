@@ -6,6 +6,8 @@ services:
       POSTGRES_DB: ${POSTGRES_DB}
       POSTGRES_USER: ${POSTGRES_USER}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Europe/Paris
+      PGTZ: Europe/Paris
     command:
       - "postgres"
       - "-c"
@@ -37,6 +39,7 @@ services:
       NEO4J_server_memory_heap_initial__size: 1g
       NEO4J_server_memory_heap_max__size: 2g
       NEO4J_server_memory_pagecache_size: 1g
+      TZ: Europe/Paris
     ports:
       - "7474:7474"  # HTTP
       - "7687:7687"  # Bolt
@@ -72,6 +75,7 @@ services:
     environment:
       OLLAMA_MAX_LOADED_MODELS: "1"
       OLLAMA_NUM_PARALLEL: "1"
+      TZ: Europe/Paris
     mem_reservation: 4g
     mem_limit: 8g
 
