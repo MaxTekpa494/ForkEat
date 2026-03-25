@@ -8,6 +8,7 @@
 <body>
 <div layout:fragment="content">
 
+    <!-- En-tête -->
     <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-12">
         <div class="container mx-auto px-4">
             <a id="back-to-dashboard" th:href="@{/admin}" class="hidden text-secondary-300 hover:text-white text-sm mb-3 inline-flex items-center gap-1.5">
@@ -24,11 +25,13 @@
         </div>
     </section>
 
+    <!-- Soldes -->
     <section class="py-10 bg-surface">
         <div class="container mx-auto px-4">
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-10">
 
+                <!-- Wallet Bénéfices -->
                 <div class="bg-gradient-to-br from-primary-500 to-primary-600 rounded-2xl p-8 text-white shadow-xl">
                     <div class="flex items-center justify-between mb-6">
                         <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -58,6 +61,7 @@
                     </div>
                 </div>
 
+                <!-- Wallet Redistribution -->
                 <div class="bg-gradient-to-br from-secondary-700 to-secondary-900 rounded-2xl p-8 text-white shadow-xl">
                     <div class="flex items-center justify-between mb-6">
                         <div class="w-14 h-14 bg-white/20 rounded-2xl flex items-center justify-center">
@@ -88,6 +92,7 @@
                 </div>
             </div>
 
+            <!-- Historique des transactions -->
             <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mb-8">
                 <div class="p-6 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-display font-bold text-lg text-secondary-900 flex items-center gap-2">
@@ -108,6 +113,7 @@
                     <div th:each="tx : ${walletTransactions}"
                          class="px-6 py-4 hover:bg-gray-50 transition flex items-center justify-between">
                         <div class="flex items-center gap-4">
+                            <!-- Icône wallet -->
                             <div class="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0"
                                  th:classappend="${tx.reason() == 'ACCOUNT_DELETION'} ? 'bg-red-50' :
                                                  (${tx.walletType().name() == 'EARNINGS'} ? 'bg-primary-50' : 'bg-secondary-50')">
@@ -116,6 +122,7 @@
                                                    (${tx.walletType().name() == 'EARNINGS'} ? 'fa-coins text-primary-500' : 'fa-exchange-alt text-secondary-600')"></i>
                             </div>
                             <div>
+                                <!-- Wallet + raison -->
                                 <div class="flex items-center gap-2">
                                     <span class="font-medium text-secondary-900 text-sm"
                                           th:text="${tx.walletType().name() == 'EARNINGS'} ? 'Bénéfices' : 'Redistribution'">Wallet</span>
@@ -133,6 +140,7 @@
                                      th:text="${#temporals.format(tx.createdAt(), 'dd/MM/yyyy à HH:mm:ss')}">Date</div>
                             </div>
                         </div>
+                        <!-- Montant signé -->
                         <div class="font-bold text-lg flex-shrink-0"
                              th:classappend="${tx.amountCents() >= 0} ? 'text-green-600' : 'text-red-500'"
                              th:text="${(tx.amountCents() >= 0 ? '+' : '') + #numbers.formatDecimal(tx.amountCents() / 100.0, 1, 2) + ' €'}">
@@ -142,13 +150,25 @@
                 </div>
             </div>
 
+            <!-- Redistribution mensuelle -->
+            <div th:if="${redistributionSuccess}" class="mb-4 p-4 rounded-xl bg-green-50 border border-green-200 text-green-700 flex items-center gap-2">
+                <i class="fas fa-check-circle"></i>
+                <span>Redistribution lancée avec succès.</span>
+            </div>
+
             <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mb-8">
                 <div class="p-6 border-b border-gray-100 flex items-center justify-between">
                     <h2 class="font-display font-bold text-lg text-secondary-900 flex items-center gap-2">
                         <i class="fas fa-exchange-alt text-purple-500"></i> Redistribution mensuelle
                     </h2>
-                    <span class="text-xs text-gray-400"
-                          th:text="${#lists.size(redistributionSummary)} + ' entrée(s)'">0 entrée(s)</span>
+                    <div class="flex items-center gap-3">
+                        <span class="text-xs text-gray-400"
+                              th:text="${#lists.size(redistributionSummary)} + ' entrée(s)'">0 entrée(s)</span>
+                        <button type="button" onclick="document.getElementById('modal-redistribution').classList.remove('hidden')"
+                                class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition">
+                            <i class="fas fa-play"></i> Lancer la redistribution
+                        </button>
+                    </div>
                 </div>
 
                 <div th:if="${#lists.isEmpty(redistributionSummary)}" class="p-8 text-center">
@@ -186,6 +206,7 @@
                                 <i class="fas fa-chevron-down text-gray-400 text-xs chain-chevron transition-transform"></i>
                             </div>
                         </div>
+                        <!-- Détail de la chaîne (masqué par défaut) -->
                         <div class="chain-detail hidden bg-gray-50 border-t border-gray-100 px-6 py-4">
                             <div class="chain-content text-sm text-gray-500 italic">Chargement...</div>
                         </div>
@@ -193,6 +214,7 @@
                 </div>
             </div>
 
+            <!-- Résumé global -->
             <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
                 <h2 class="font-display font-bold text-lg text-secondary-900 mb-5 flex items-center gap-2">
                     <i class="fas fa-chart-pie text-primary-500"></i> Résumé global
@@ -227,6 +249,34 @@
 
         </div>
     </section>
+
+    <!-- Modal confirmation redistribution -->
+    <div id="modal-redistribution" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+        <div class="bg-white rounded-2xl shadow-xl p-8 max-w-md w-full mx-4">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 bg-purple-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                    <i class="fas fa-exchange-alt text-purple-600"></i>
+                </div>
+                <h3 class="font-display font-bold text-lg text-secondary-900">Lancer la redistribution</h3>
+            </div>
+            <p class="text-gray-600 text-sm mb-6">
+                Déclencher manuellement la redistribution mensuelle ?
+            </p>
+            <div class="flex justify-end gap-3">
+                <button type="button"
+                        onclick="document.getElementById('modal-redistribution').classList.add('hidden')"
+                        class="px-4 py-2 text-sm font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition">
+                    Annuler
+                </button>
+                <form th:action="@{/admin/redistribution/trigger}" method="post">
+                    <button type="submit"
+                            class="inline-flex items-center gap-2 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white text-sm font-medium rounded-lg transition">
+                        <i class="fas fa-play"></i> Confirmer
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
 
 </div>
 

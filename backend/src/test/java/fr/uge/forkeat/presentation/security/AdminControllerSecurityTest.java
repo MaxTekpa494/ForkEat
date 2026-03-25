@@ -204,6 +204,11 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
              testRights(get("/api/admin/redistribution").contentType(MediaType.APPLICATION_JSON).param("recipeId", UUID.randomUUID().toString())
                      .param("month", "May"), AuthorizationTest.ADMIN);
          }
+
+         @Test
+         void testTriggerRedistribution() throws Exception {
+             testRights(post("/api/admin/redistribution/trigger"), AuthorizationTest.ADMIN);
+         }
      }
 
     @Nested
@@ -365,6 +370,11 @@ public class AdminControllerSecurityTest extends AbstractIntegrationTest {
             testRightsMVCNoRedirect(get("/admin/redistribution/chain")
                     .param("recipeId", UUID.randomUUID().toString())
                     .param("month", "2025-06"), AuthorizationTest.ADMIN);
+        }
+
+        @Test
+        void testTriggerRedistribution() throws Exception {
+            testRightsMVC(post("/admin/redistribution/trigger"), AuthorizationTest.ADMIN);
         }
     }
 

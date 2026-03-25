@@ -44,7 +44,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
             try {
                 val response = ForkEatApi.authService.login(LoginRequest(username, password))
                 if (response.isSuccessful && response.body() != null) {
-                    val token = response.body()!!.token
+                    val token = response.body()!!.resource.token
                     tokenManager.saveToken(token)
                     try {
                         val meResponse = ForkEatApi.authService.me()
@@ -96,7 +96,7 @@ class LoginViewModel(application: Application) : AndroidViewModel(application) {
 
                 val response = ForkEatApi.authService.loginWithGoogle(GoogleLoginRequest(idToken))
                 if (response.isSuccessful && response.body() != null) {
-                    tokenManager.saveToken(response.body()!!.token)
+                    tokenManager.saveToken(response.body()!!.resource.token)
                     try {
                         val meResponse = ForkEatApi.authService.me()
                         if (meResponse.isSuccessful) {
