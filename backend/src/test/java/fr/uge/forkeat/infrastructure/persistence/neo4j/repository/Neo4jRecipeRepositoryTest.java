@@ -435,8 +435,8 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("countByAuthorUsername should return correct count")
-    void countByAuthorUsernameShouldReturnCorrectCount() {
+    @DisplayName("countByAuthorId should return correct count")
+    void countByAuthorIdShouldReturnCorrectCount() {
         createUser(userId1, "author1");
         createRecipe(recipeId1);
         createRecipe(recipeId2);
@@ -452,7 +452,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
                 .bindAll(Map.of("userId", userId1.toString(), "r1", recipeId1.toString(), "r2", recipeId2.toString()))
                 .run();
 
-        long count = recipeRepository.countByAuthorUsername("author1");
+        long count = recipeRepository.countByAuthorId(userId1);
         assertThat(count).isEqualTo(2L);
     }
     @Nested
