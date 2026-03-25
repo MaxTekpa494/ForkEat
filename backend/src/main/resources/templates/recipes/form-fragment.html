@@ -1,39 +1,16 @@
-<!--<!DOCTYPE html>-->
-<!--<html xmlns:th="http://www.thymeleaf.org">-->
-<!--
-  Fragment réutilisable pour le formulaire de recette.
-  Utilisé pour : création, édition, création de variante.
-
-  Variables attendues dans le model :
-  - formAction   : URL du POST (ex: "/recipes", "/recipes/{id}/edit")
-  - formTitle    : Titre affiché (ex: "Créer une recette")
-  - username     : Username de l'auteur (injecté depuis l'auth)
-  - allAllergens : List<AllergenDTO> (allergènes de la BDD)
-  - allIngredientNames : List<String> (noms d'ingrédients de la BDD)
-  - recipe       : RecipeDTO (optionnel, pour pré-remplissage en édition)
-  - parentId     : UUID (optionnel, pour les variantes)
--->
-
 <div th:fragment="recipeForm">
-    <!--          enctype="multipart/form-data"-->
-
-<!--<form id="recipeForm" class="space-y-8" th:data-action="@{${formAction}}">-->
     <form id="recipeForm"
           th:action="@{${formAction}}"
           method="POST"
           enctype="multipart/form-data"
           class="space-y-8">
 
-    <!-- Champs cachés -->
     <input type="hidden" name="username" th:value="${username}">
     <input type="hidden" name="status" id="statusField" value="PENDING_REVIEW">
     <input type="hidden" name="draft" id="draftField" value="false">
     <input th:if="${parentId != null}" type="hidden" name="parentId" th:value="${parentId}">
     <input type="hidden" name="imageUrl" th:value="${recipeBase != null ? recipeBase.imageUrl : ''}">
 
-    <!-- ═══════════════════════════════════════ -->
-    <!-- SECTION 1 : Informations générales     -->
-    <!-- ═══════════════════════════════════════ -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
         <h2 class="font-display font-bold text-xl text-secondary-900 mb-6 flex items-center">
             <i class="fas fa-pen-fancy text-primary-500 mr-3"></i>
@@ -41,7 +18,6 @@
         </h2>
 
         <div class="space-y-5">
-            <!-- Titre -->
             <div>
                 <label for="title" class="block text-sm font-medium text-secondary-900 mb-1">
                     Titre de la recette <span class="text-primary-500">*</span>
@@ -52,7 +28,6 @@
                        class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
             </div>
 
-            <!-- Description -->
             <div>
                 <label for="summary" class="block text-sm font-medium text-secondary-900 mb-1">
                     Description <span class="text-primary-500">*</span>
@@ -64,7 +39,6 @@
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
-                <!-- Temps de préparation -->
 
                 <div>
                     <label for="preparationMinutes" class="block text-sm font-medium text-secondary-900 mb-1">
@@ -77,18 +51,14 @@
                            class="block w-full px-4 py-3 border border-gray-200 rounded-xl bg-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm">
                 </div>
 
-                <!-- Image -->
                 <div>
                     <label for="image" class="block text-sm font-medium text-secondary-900 mb-1">
                         <i class="fas fa-camera text-primary-500 mr-1"></i>
                         Photo du plat
                     </label>
-                    <!-- Sélecteur galerie -->
                     <input id="image" name="image" type="file" accept="image/*"
                            onchange="previewImage(this)"
                            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2.5 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-primary-50 file:text-primary-600 hover:file:bg-primary-100 transition cursor-pointer">
-                    <!-- Capture caméra directe (mobile uniquement) -->
-                    <!-- Aperçu image -->
                     <div id="imagePreviewContainer" class="mt-2"
                          th:style="${recipe != null and recipe.imageUrl != null and !recipe.imageUrl.isEmpty()} ? '' : 'display:none'">
                         <img id="imagePreview"
@@ -102,27 +72,21 @@
         </div>
     </div>
 
-    <!-- ═══════════════════════════════════════ -->
-    <!-- SECTION 2 : Ingrédients                -->
-    <!-- ═══════════════════════════════════════ -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
         <h2 class="font-display font-bold text-xl text-secondary-900 mb-6 flex items-center">
             <i class="fas fa-carrot text-primary-500 mr-3"></i>
             Ingrédients
         </h2>
 
-        <!-- Datalist pour l'autocomplétion des ingrédients -->
         <datalist id="ingredientSuggestions">
             <option th:each="name : ${allIngredientNames}" th:value="${name}"></option>
         </datalist>
 
-        <!-- Datalist pour l'autocomplétion des unités -->
         <datalist id="unitSuggestions">
             <option th:each="unit : ${allUnitNames}" th:value="${unit}"></option>
         </datalist>
 
         <div id="ingredientsList" class="space-y-3">
-            <!-- Lignes préremplies (édition) -->
             <th:block th:if="${recipe != null and recipe.ingredients != null}">
                 <div th:each="ing, iterStat : ${recipe.ingredients}" class="ingredient-row flex items-center gap-3">
                     <input type="text" th:name="'ingredients[' + ${iterStat.index} + '].name'"
@@ -152,9 +116,6 @@
         </button>
     </div>
 
-    <!-- ═══════════════════════════════════════ -->
-    <!-- SECTION 3 : Étapes de préparation      -->
-    <!-- ═══════════════════════════════════════ -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
         <h2 class="font-display font-bold text-xl text-secondary-900 mb-6 flex items-center">
             <i class="fas fa-list-ol text-primary-500 mr-3"></i>
@@ -162,7 +123,6 @@
         </h2>
 
         <div id="stepsList" class="space-y-2">
-            <!-- Étapes préremplies (édition) -->
             <th:block th:if="${recipe != null and recipe.steps != null}">
                 <th:block th:each="step, iterStat : ${recipe.steps}">
                     <div class="step-row flex items-start gap-3">
@@ -180,7 +140,6 @@
                             <i class="fas fa-trash-alt"></i>
                         </button>
                     </div>
-                    <!-- Séparateur "Insérer" entre chaque étape (pas après la dernière) -->
                     <div th:if="${!iterStat.last}" class="step-separator flex items-center gap-2 py-0.5">
                         <div class="flex-1 border-t border-dashed border-gray-200"></div>
                         <button type="button" onclick="insertStepAfter(this)" title="Insérer une étape ici"
@@ -200,9 +159,6 @@
         </button>
     </div>
 
-    <!-- ═══════════════════════════════════════ -->
-    <!-- SECTION 4 : Allergènes                 -->
-    <!-- ═══════════════════════════════════════ -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
         <h2 class="font-display font-bold text-xl text-secondary-900 mb-6 flex items-center">
             <i class="fas fa-exclamation-triangle text-yellow-500 mr-3"></i>
@@ -230,13 +186,9 @@
             </th:block>
         </div>
 
-        <!-- Champs cachés pour les allergènes sélectionnés (remplis par JS) -->
         <div id="allergenHiddenFields"></div>
     </div>
 
-    <!-- ═══════════════════════════════════════ -->
-    <!-- SECTION 5 : Régimes alimentaires       -->
-    <!-- ═══════════════════════════════════════ -->
     <div class="bg-white rounded-2xl shadow-sm border border-gray-100 p-6 md:p-8">
         <h2 class="font-display font-bold text-xl text-secondary-900 mb-6 flex items-center">
             <i class="fas fa-leaf text-green-500 mr-3"></i>
@@ -255,9 +207,6 @@
         </div>
     </div>
 
-    <!-- ═══════════════════════════════════════ -->
-    <!-- Boutons de soumission                  -->
-    <!-- ═══════════════════════════════════════ -->
     <div class="flex justify-end gap-4">
         <a th:href="@{/recipes}"
            class="px-6 py-3 text-sm font-bold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-full transition">
@@ -281,24 +230,16 @@
 
 </form>
 
-<!-- ═══════════════════════════════════════════ -->
-<!-- JavaScript pour la gestion dynamique       -->
-<!-- ═══════════════════════════════════════════ -->
 <script th:inline="javascript">
-    /*<![CDATA[*/
-
-    // ── Caméra → transfère le fichier vers l'input principal et affiche l'aperçu ──
     function onCameraCapture(cameraInput) {
         var mainInput = document.getElementById('image');
         if (!cameraInput.files || !cameraInput.files[0]) return;
-        // Crée un DataTransfer pour injecter le fichier dans l'input principal
         var dt = new DataTransfer();
         dt.items.add(cameraInput.files[0]);
         mainInput.files = dt.files;
         previewImage(mainInput);
     }
 
-    // ── Aperçu image ─────────────────────────
     function previewImage(input) {
         var container = document.getElementById('imagePreviewContainer');
         var preview = document.getElementById('imagePreview');
@@ -314,7 +255,6 @@
         }
     }
 
-    // ── Ingrédients ──────────────────────────
     function addIngredient() {
         var list = document.getElementById('ingredientsList');
         var rows = list.querySelectorAll('.ingredient-row');
@@ -339,7 +279,6 @@
         list.appendChild(div);
     }
 
-    // ── Étapes ───────────────────────────────
     function createStepRow() {
         var div = document.createElement('div');
         div.className = 'step-row flex items-start gap-3 animate-fadeInUp';
@@ -382,14 +321,12 @@
         var separator = btn.closest('.step-separator');
         var newRow = createStepRow();
         var newSeparator = createStepSeparator();
-        // Résultat : stepA | [sep cliqué] | newRow | newSep | stepB
         var nextStep = separator.nextSibling;
         separator.parentNode.insertBefore(newRow, nextStep);
         separator.parentNode.insertBefore(newSeparator, nextStep);
         reindexSteps();
     }
 
-    // ── Supprimer une ligne ──────────────────
     function removeRow(btn, type) {
         var row = btn.closest('.' + type + '-row');
 
@@ -412,7 +349,6 @@
         }, 300);
     }
 
-    // ── Réindexer les ingrédients ────────────
     function reindexIngredients() {
         var rows = document.querySelectorAll('#ingredientsList .ingredient-row');
         rows.forEach(function(row, i) {
@@ -426,15 +362,12 @@
         });
     }
 
-    // ── Réindexer les étapes ─────────────────
     function reindexSteps() {
         var rows = document.querySelectorAll('#stepsList .step-row');
         rows.forEach(function(row, i) {
             var num = i + 1;
-            // Mettre à jour le numéro affiché
             var badge = row.querySelector('.step-number');
             if (badge) badge.textContent = num;
-            // Mettre à jour les noms et valeurs
             var inputs = row.querySelectorAll('input, textarea');
             inputs.forEach(function(input) {
                 var name = input.getAttribute('name');
@@ -448,7 +381,6 @@
         });
     }
 
-    // ── Allergènes : sync checkboxes → hidden fields ──
     function updateAllergenFields() {
         var container = document.getElementById('allergenHiddenFields');
         container.innerHTML = '';
@@ -461,20 +393,16 @@
         });
     }
 
-    // ── Réindexer tout avant soumission ──────
     document.getElementById('recipeForm').addEventListener('submit', function(e) {
         reindexIngredients();
         reindexSteps();
         updateAllergenFields();
     });
 
-    // Init : sync les allergènes cochés au chargement
     document.addEventListener('DOMContentLoaded', function() {
         updateAllergenFields();
     });
 
-    /*]]>*/
 </script>
 
 </div>
-<!--</html>-->

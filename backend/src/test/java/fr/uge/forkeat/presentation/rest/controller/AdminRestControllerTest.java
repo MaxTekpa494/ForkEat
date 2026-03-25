@@ -9,6 +9,7 @@ import fr.uge.forkeat.service.RecipeService;
 import fr.uge.forkeat.service.RedistributionService;
 import fr.uge.forkeat.service.model.redistribution.ChainEntry;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.wallet.PlatformWallet;
@@ -34,6 +35,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -154,12 +156,87 @@ class AdminRestControllerTest {
         }
 
         @Test
+        void shouldSearchMembersWithQuery() throws Exception {
+            var member = new User(UUID.randomUUID(), "alice", "Alice", "Martin",
+                    "alice@forkeat.fr", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL,
+                    Instant.now(), Instant.now(), true);
+            when(userQueryService.searchMembers("alice")).thenReturn(new PageResult<>(List.of(member), 1));
+
+            mockMvc.perform(get("/api/admin/users").param("query", "alice"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resources[0].username").value("alice"))
+                    .andExpect(jsonPath("$.total").value(1));
+
+            verify(userQueryService).searchMembers("alice");
+            verify(userQueryService, never()).getUsersByRole(any());
+        }
+
+        @Test
         void shouldReturnModeratorList() throws Exception {
             when(userQueryService.getUsersByRole(UserRole.MODERATOR)).thenReturn(new PageResult<>(List.of(createModerator()), 1));
 
             mockMvc.perform(get("/api/admin/moderators"))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.resources[0].username").value("mod_user"));
+        }
+    }
+
+    // ===== Promote to moderator =====
+
+    @Nested
+    class PromoteToModeratorTests {
+
+        private User createMemberWithVerifiedEmail() {
+            return new User(UUID.randomUUID(), "member1", "Jean", "Dupont",
+                    "jean@forkeat.fr", UserRole.MEMBER, UserStatus.ACTIVE, AuthMode.LOCAL,
+                    Instant.now(), Instant.now(), true);
+        }
+
+        private User createPromotedModerator() {
+            return new User(UUID.randomUUID(), "member1", "Jean", "Dupont",
+                    "jean@forkeat.fr", UserRole.MODERATOR, UserStatus.ACTIVE, AuthMode.LOCAL,
+                    Instant.now(), Instant.now(), true);
+        }
+
+        @Test
+        void shouldPromoteMemberToModeratorSuccessfully() throws Exception {
+            doNothing().when(userQueryService).promoteToModerator("member1");
+            when(userQueryService.getUserByUsername("member1")).thenReturn(createPromotedModerator());
+
+            mockMvc.perform(post("/api/admin/users/member1/promote-moderator"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.resource.username").value("member1"))
+                    .andExpect(jsonPath("$.resource.role").value("MODERATOR"));
+
+            verify(userQueryService).promoteToModerator("member1");
+            verify(userQueryService).getUserByUsername("member1");
+        }
+
+        @Test
+        void shouldReturnBadRequestWhenUserAlreadyModerator() throws Exception {
+            doThrow(new RegisterFailureException("Seul un membre peut être promu modérateur"))
+                    .when(userQueryService).promoteToModerator("mod_user");
+
+            mockMvc.perform(post("/api/admin/users/mod_user/promote-moderator"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void shouldReturnBadRequestWhenEmailNotVerified() throws Exception {
+            doThrow(new RegisterFailureException("L'utilisateur doit avoir confirmé son email"))
+                    .when(userQueryService).promoteToModerator("unverified");
+
+            mockMvc.perform(post("/api/admin/users/unverified/promote-moderator"))
+                    .andExpect(status().isBadRequest());
+        }
+
+        @Test
+        void shouldReturnNotFoundWhenUserDoesNotExist() throws Exception {
+            doThrow(new ResourceNotFoundException("Utilisateur introuvable : ghost"))
+                    .when(userQueryService).promoteToModerator("ghost");
+
+            mockMvc.perform(post("/api/admin/users/ghost/promote-moderator"))
+                    .andExpect(status().isNotFound());
         }
     }
 

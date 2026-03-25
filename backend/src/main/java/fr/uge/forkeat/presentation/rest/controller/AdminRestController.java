@@ -14,6 +14,7 @@ import fr.uge.forkeat.presentation.mapper.rest.RecipeDTOMapper;
 import fr.uge.forkeat.presentation.mapper.rest.UserDTOMapper;
 import fr.uge.forkeat.presentation.response.CreatedResponse;
 import fr.uge.forkeat.presentation.response.HttpResponse;
+import fr.uge.forkeat.presentation.response.ItemResponse;
 import fr.uge.forkeat.presentation.response.ListResponse;
 import fr.uge.forkeat.service.PlatformWalletService;
 import fr.uge.forkeat.service.RecipeService;
@@ -79,9 +80,19 @@ public class AdminRestController {
     }
 
     @GetMapping("/users")
-    public ResponseEntity<HttpResponse<UserDTO>> getMembers() {
-        var members = userService.getUsersByRole(UserRole.MEMBER);
+    public ResponseEntity<HttpResponse<UserDTO>> getMembers(
+            @RequestParam(required = false, defaultValue = "") String query) {
+        var members = query.isBlank()
+                ? userService.getUsersByRole(UserRole.MEMBER)
+                : userService.searchMembers(query);
         return ResponseEntity.ok(new ListResponse<>(members.items().stream().map(UserDTOMapper::toDTO).toList(), members.total()));
+    }
+
+    @PostMapping("/users/{username}/promote-moderator")
+    public ResponseEntity<HttpResponse<UserDTO>> promoteToModerator(@PathVariable String username) {
+        userService.promoteToModerator(username);
+        var updated = userService.getUserByUsername(username);
+        return ResponseEntity.ok(new ItemResponse<>(UserDTOMapper.toDTO(updated)));
     }
 
     @GetMapping("/moderators")

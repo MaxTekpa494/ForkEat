@@ -21,7 +21,6 @@
         </div>
     </div>
 
-    <!-- Toast paiement -->
     <div th:if="${paymentSuccess}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
         <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center">
             <i class="fas fa-check-circle text-green-500 text-xl mr-3"></i>
@@ -42,7 +41,6 @@
         </div>
     </div>
 
-    <!-- Toast retrait -->
     <div th:if="${withdrawalSuccess}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
         <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center">
             <i class="fas fa-check-circle text-green-500 text-xl mr-3"></i>
@@ -63,7 +61,6 @@
         </div>
     </div>
 
-    <!-- Toast compte bancaire -->
     <div th:if="${bankInfoSuccess}" class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 mb-4">
         <div class="bg-green-50 border border-green-200 rounded-xl p-4 flex items-center">
             <i class="fas fa-university text-green-500 text-xl mr-3"></i>
@@ -84,7 +81,6 @@
         </div>
     </div>
 
-    <!-- Header -->
     <section class="bg-gradient-to-br from-secondary-800 to-secondary-900 text-white py-12">
         <div class="container mx-auto px-4">
             <div class="flex items-center justify-between">
@@ -103,7 +99,6 @@
         <div class="container mx-auto px-4">
             <div class="grid lg:grid-cols-3 gap-8">
 
-                <!-- Carte virtuelle -->
                 <div class="lg:col-span-2">
                     <div class="bg-gradient-to-br from-primary-500 via-primary-600 to-orange-600 rounded-3xl p-8 text-white shadow-2xl mb-8 relative overflow-hidden">
                         <div class="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl"></div>
@@ -142,7 +137,6 @@
                         </div>
                     </div>
 
-                    <!-- Actions rapides -->
                     <div class="grid grid-cols-2 gap-4 mb-8">
                         <button onclick="document.getElementById('rechargeModal').classList.remove('hidden')"
                                 class="bg-white border-2 border-gray-200 hover:border-primary-500 rounded-2xl p-6 text-center transition group">
@@ -163,7 +157,6 @@
                         </button>
                     </div>
 
-                    <!-- Historique des transactions -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden">
                         <div class="p-6 border-b border-gray-100">
                             <h2 class="font-display font-bold text-xl text-secondary-900">
@@ -184,7 +177,6 @@
                             <div th:each="transaction : ${transactions}"
                                  class="p-4 hover:bg-gray-50 transition flex items-center justify-between">
                                 <div class="flex items-center space-x-4">
-                                    <!-- Icone selon le type -->
                                     <div class="w-10 h-10 rounded-full flex items-center justify-center"
                                          th:classappend="${transaction.type.name() == 'RECHARGE'} ? 'bg-green-50' :
                                                          (${transaction.type.name() == 'WITHDRAWAL'} ? 'bg-blue-50' : 'bg-red-50')">
@@ -198,15 +190,12 @@
                                            th:if="${transaction.type.name() == 'REDISTRIBUTION'}"></i>
                                     </div>
                                     <div>
-                                        <!-- Libelle -->
                                         <div class="font-medium text-secondary-900"
                                              th:text="${transaction.type.name() == 'RECHARGE'} ? 'Rechargement' :
                                                        (${transaction.type.name() == 'WITHDRAWAL'} ? 'Retrait bancaire' :
                                                        (${transaction.type.name() == 'SUPER_LIKE'} ? 'Super Like' : 'Redistribution'))">Type</div>
-                                        <!-- Date -->
                                         <div class="text-xs text-gray-500"
                                              th:text="${#temporals.format(transaction.createdAt, 'dd/MM/yyyy HH:mm')}">Date</div>
-                                        <!-- Badge statut pour les retraits -->
                                         <span th:if="${transaction.type.name() == 'WITHDRAWAL'}"
                                               class="text-xs font-medium px-2 py-0.5 rounded-full"
                                               th:classappend="${transaction.status.name() == 'SUCCEEDED'} ? 'bg-green-100 text-green-700' :
@@ -215,7 +204,6 @@
                                                         (${transaction.status.name() == 'PENDING'} ? 'En cours' : 'Echoue')">Statut</span>
                                     </div>
                                 </div>
-                                <!-- Montant -->
                                 <div class="font-bold text-lg"
                                      th:classappend="${transaction.type.name() == 'RECHARGE' or transaction.type.name() == 'REDISTRIBUTION'} ? 'text-green-600' :
                                                      (${transaction.type.name() == 'WITHDRAWAL'} ? 'text-blue-600' : 'text-red-600')"
@@ -225,7 +213,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Gains de redistribution -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mt-8">
                         <div class="p-6 border-b border-gray-100">
                             <h2 class="font-display font-bold text-xl text-secondary-900">
@@ -263,7 +250,6 @@
                             </div>
                         </div>
                     </div>
-                    <!-- Historique des super-likes -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 overflow-hidden mt-8">
                         <div class="p-6 border-b border-gray-100">
                             <h2 class="font-display font-bold text-xl text-secondary-900">
@@ -314,9 +300,7 @@
                     </div>
                 </div>
 
-                <!-- Sidebar -->
                 <div class="space-y-6">
-                    <!-- Compte bancaire -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
                         <h3 class="font-bold text-lg text-secondary-900 mb-4">
                             <i class="fas fa-university mr-2 text-secondary-600"></i>
@@ -349,7 +333,6 @@
                         </div>
                     </div>
 
-                    <!-- Statistiques -->
                     <div class="bg-white rounded-2xl shadow-md border border-gray-100 p-6">
                         <h3 class="font-bold text-lg text-secondary-900 mb-4">Statistiques</h3>
                         <div class="space-y-4">
@@ -372,7 +355,6 @@
                         </div>
                     </div>
 
-                    <!-- Aide -->
                     <div class="bg-surface rounded-2xl border-2 border-primary-200 p-6">
                         <div class="w-12 h-12 bg-primary-100 rounded-xl flex items-center justify-center mb-4">
                             <i class="fas fa-question-circle text-2xl text-primary-500"></i>
@@ -390,7 +372,6 @@
         </div>
     </section>
 
-    <!-- Modal Rechargement -->
     <div id="rechargeModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
             <div class="flex items-center justify-between mb-6">
@@ -435,7 +416,6 @@
         </div>
     </div>
 
-    <!-- Modal Retrait -->
     <div id="withdrawModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
             <div class="flex items-center justify-between mb-6">
@@ -446,7 +426,6 @@
                 </button>
             </div>
 
-            <!-- Pas de compte bancaire enregistre -->
             <div th:if="${bankInfo == null}" class="text-center py-4">
                 <div class="w-16 h-16 bg-orange-100 rounded-full flex items-center justify-center mx-auto mb-4">
                     <i class="fas fa-university text-2xl text-orange-500"></i>
@@ -460,7 +439,6 @@
                 </button>
             </div>
 
-            <!-- Compte bancaire present -->
             <div th:if="${bankInfo != null}">
                 <div class="bg-gray-50 rounded-xl p-4 mb-6 flex items-center space-x-3">
                     <div class="w-10 h-10 bg-secondary-100 rounded-full flex items-center justify-center">
@@ -510,7 +488,6 @@
         </div>
     </div>
 
-    <!-- Modal Compte bancaire -->
     <div id="bankInfoModal" class="hidden fixed inset-0 z-50 flex items-center justify-center bg-black/50">
         <div class="bg-white rounded-2xl shadow-2xl p-8 max-w-md w-full mx-4">
             <div class="flex items-center justify-between mb-6">

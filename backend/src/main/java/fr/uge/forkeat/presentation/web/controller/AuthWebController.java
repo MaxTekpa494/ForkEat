@@ -58,11 +58,16 @@ public class AuthWebController {
     public String forgotPasswordCode(
             @RequestParam("email") String email,
             Model model) {
-        // Always show the code page — don't reveal whether the email exists
         var userOpt = userService.findByEmail(email);
+        if (userOpt.isPresent() && !userOpt.get().emailVerified()) {
+            model.addAttribute("email", email);
+            model.addAttribute("requiresCode", false);
+            return "layout/forgot-password-code";
+        }
         userOpt.ifPresent(user ->
                 emailVerificationService.sendPasswordChangeCode(user.id(), user.email()));
         model.addAttribute("email", email);
+        model.addAttribute("requiresCode", true);
         return "layout/forgot-password-code";
     }
 

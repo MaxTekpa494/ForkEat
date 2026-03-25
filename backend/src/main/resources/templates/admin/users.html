@@ -28,17 +28,45 @@
     <!-- Filtres -->
     <section class="py-6 bg-white border-b border-gray-100">
         <div class="container mx-auto px-4">
-            <div class="flex gap-3">
-                <a th:href="@{/admin/users(role=MEMBER)}"
-                   th:classappend="${selectedRole.name() == 'MEMBER'} ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                   class="px-4 py-2 rounded-lg font-medium text-sm transition">
-                    <i class="fas fa-user mr-1"></i> Membres
-                </a>
-                <a th:href="@{/admin/users(role=MODERATOR)}"
-                   th:classappend="${selectedRole.name() == 'MODERATOR'} ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
-                   class="px-4 py-2 rounded-lg font-medium text-sm transition">
-                    <i class="fas fa-shield-alt mr-1"></i> Modérateurs
-                </a>
+            <div class="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+                <div class="flex gap-3">
+                    <a th:href="@{/admin/users(role=MEMBER)}"
+                       th:classappend="${selectedRole.name() == 'MEMBER'} ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                       class="px-4 py-2 rounded-lg font-medium text-sm transition">
+                        <i class="fas fa-user mr-1"></i> Membres
+                    </a>
+                    <a th:href="@{/admin/users(role=MODERATOR)}"
+                       th:classappend="${selectedRole.name() == 'MODERATOR'} ? 'bg-primary-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'"
+                       class="px-4 py-2 rounded-lg font-medium text-sm transition">
+                        <i class="fas fa-shield-alt mr-1"></i> Modérateurs
+                    </a>
+                </div>
+
+                <!-- Barre de recherche (membres uniquement) -->
+                <form th:if="${selectedRole.name() == 'MEMBER'}"
+                      th:action="@{/admin/users}" method="get" class="flex gap-2">
+                    <input type="hidden" name="role" value="MEMBER"/>
+                    <input type="text" name="query" th:value="${query}"
+                           placeholder="Rechercher par nom, username ou email..."
+                           class="border border-gray-300 rounded-lg px-4 py-2 text-sm w-72 focus:outline-none focus:ring-2 focus:ring-primary-400"/>
+                    <button type="submit"
+                            class="bg-primary-500 text-white px-4 py-2 rounded-lg text-sm hover:bg-primary-600 transition">
+                        <i class="fas fa-search"></i>
+                    </button>
+                    <a th:if="${!#strings.isEmpty(query)}" th:href="@{/admin/users(role=MEMBER)}"
+                       class="bg-gray-100 text-gray-600 px-4 py-2 rounded-lg text-sm hover:bg-gray-200 transition">
+                        <i class="fas fa-times"></i>
+                    </a>
+                </form>
+            </div>
+
+            <!-- Messages flash -->
+            <div th:if="${param.promoted}" class="mt-3 bg-green-50 border border-green-200 text-green-700 rounded-lg px-4 py-2 text-sm">
+                <i class="fas fa-check-circle mr-1"></i> L'utilisateur a été promu modérateur avec succès.
+            </div>
+            <div th:if="${param.promoteError}" class="mt-3 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-2 text-sm">
+                <i class="fas fa-exclamation-circle mr-1"></i>
+                <span th:text="${param.promoteError}">Erreur lors de la promotion.</span>
             </div>
         </div>
     </section>
@@ -64,6 +92,8 @@
                             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Email</th>
                             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Statut</th>
                             <th class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Inscrit le</th>
+                            <th th:if="${selectedRole.name() == 'MEMBER'}"
+                                class="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-gray-100">
@@ -89,6 +119,18 @@
                             </td>
                             <td class="px-6 py-4 text-sm text-gray-500"
                                 th:text="${#temporals.format(user.createdAt(), 'dd/MM/yyyy')}">01/01/2024</td>
+                            <td th:if="${selectedRole.name() == 'MEMBER'}" class="px-6 py-4">
+                                <button th:if="${user.emailVerified()}"
+                                        type="button"
+                                        th:data-username="${user.username()}"
+                                        th:data-user-name="${user.firstName() + ' ' + user.lastName()}"
+                                        onclick="openPromoteModal(this)"
+                                        class="bg-indigo-500 hover:bg-indigo-600 text-white text-xs px-3 py-1.5 rounded-lg transition font-medium">
+                                    <i class="fas fa-shield-alt mr-1"></i> Promouvoir
+                                </button>
+                                <span th:unless="${user.emailVerified()}"
+                                      class="text-xs text-gray-400 italic">Email non vérifié</span>
+                            </td>
                         </tr>
                     </tbody>
                 </table>
@@ -97,6 +139,61 @@
         </div>
     </section>
 
+    <!-- Modal de confirmation -->
+    <div id="promoteModal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl shadow-xl p-6 max-w-md w-full mx-4">
+            <div class="flex items-center gap-3 mb-4">
+                <div class="w-12 h-12 bg-indigo-100 rounded-full flex items-center justify-center">
+                    <i class="fas fa-shield-alt text-indigo-600 text-xl"></i>
+                </div>
+                <div>
+                    <h2 class="font-bold text-secondary-900 text-lg">Confirmer la promotion</h2>
+                    <p class="text-sm text-gray-500">Cette action est irréversible</p>
+                </div>
+            </div>
+            <p class="text-gray-700 mb-6">
+                Vous êtes sur le point de promouvoir <strong id="promoteUserName" class="text-secondary-900"></strong>
+                au rôle de <span class="text-indigo-600 font-semibold">Modérateur</span>.
+                L'utilisateur aura accès aux fonctions de modération.
+            </p>
+            <form id="promoteForm" method="post">
+                <input th:if="${_csrf != null}" type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+                <div class="flex gap-3 justify-end">
+                    <button type="button" onclick="closePromoteModal()"
+                            class="px-4 py-2 rounded-lg bg-gray-100 text-gray-700 hover:bg-gray-200 transition text-sm font-medium">
+                        Annuler
+                    </button>
+                    <button type="submit"
+                            class="px-4 py-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition text-sm font-medium">
+                        <i class="fas fa-shield-alt mr-1"></i> Confirmer la promotion
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
 </div>
+
+<th:block layout:fragment="scripts">
+    <script>
+        function openPromoteModal(btn) {
+            const username = btn.getAttribute('data-username');
+            const userName = btn.getAttribute('data-user-name');
+            document.getElementById('promoteUserName').textContent = userName;
+            document.getElementById('promoteForm').action = '/admin/users/' + username + '/promote-moderator';
+            document.getElementById('promoteModal').classList.remove('hidden');
+        }
+
+        function closePromoteModal() {
+            document.getElementById('promoteModal').classList.add('hidden');
+        }
+
+        document.getElementById('promoteModal').addEventListener('click', function(e) {
+            if (e.target === this) closePromoteModal();
+        });
+    </script>
+</th:block>
+
 </body>
 </html>

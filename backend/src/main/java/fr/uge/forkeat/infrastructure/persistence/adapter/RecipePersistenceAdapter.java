@@ -374,21 +374,23 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     @Override
     public Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe() {
         var topIds = neo4jRecipeRepository.findTopLikedRecipeIds(10);
-        for (var idStr : topIds) {
-            var uuid = UUID.fromString(idStr);
-            var opt = recipeRepository.findById(uuid);
-            if (opt.isPresent() && opt.get().getStatus() == RecipeStatus.PUBLISHED) {
-                var entity = opt.get();
-                var summary = new RecipeSummary(
-                        entity.getId(), entity.getTitle(), entity.getSummary(),
-                        entity.getImageUrl(), entity.getPreparationMinutes(),
-                        entity.getCreatedAt(), entity.getAuthor().getUsername()
-                );
-                var counts = findRecipeCounts(uuid);
-                return Optional.of(new PersonalizedRecipeSummary(summary, counts, RecipeUserInteraction.NONE));
-            }
-        }
-        return Optional.empty();
+        if (topIds.isEmpty()) return Optional.empty();
+        var uuids = topIds.stream().map(UUID::fromString).toList();
+        var publishedMap = recipeRepository.findSummariesByIdsAndStatus(uuids, RecipeStatus.PUBLISHED)
+                .stream().collect(Collectors.toMap(RecipeSummaryView::getId, v -> v));
+        return uuids.stream()
+                .map(publishedMap::get)
+                .filter(Objects::nonNull)
+                .findFirst()
+                .map(view -> {
+                    var summary = new RecipeSummary(
+                            view.getId(), view.getTitle(), view.getSummary(),
+                            view.getImageUrl(), view.getPreparationMinutes(),
+                            view.getCreatedAt(), view.getAuthorUsername()
+                    );
+                    var counts = findRecipeCounts(view.getId());
+                    return new PersonalizedRecipeSummary(summary, counts, RecipeUserInteraction.NONE);
+                });
     }
 
     @Override

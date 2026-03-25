@@ -132,6 +132,15 @@ public class UserPersistenceAdapter implements UserPersistence {
 		var users = pageResult.getContent().stream().map(UserEntityMapper::toDomain).toList();
 		return new PageResult<>(users, pageResult.getTotalElements());
 	}
+
+	@Override
+	public PageResult<User> searchByRoleAndQuery(UserRole role, String query) {
+		Objects.requireNonNull(role);
+		Objects.requireNonNull(query);
+		var pageResult = userRepository.searchByRoleAndQuery(role, query, Pageable.unpaged());
+		var users = pageResult.getContent().stream().map(UserEntityMapper::toDomain).toList();
+		return new PageResult<>(users, pageResult.getTotalElements());
+	}
 	
 	@Override
 	public long countByRole(UserRole role) {

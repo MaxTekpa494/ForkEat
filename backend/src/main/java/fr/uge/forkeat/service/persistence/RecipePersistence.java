@@ -60,8 +60,6 @@ public interface RecipePersistence {
 
   PageResult<RecipeSummary> searchPersonalizedFeedRecipes(UUID id, Instant beforeTime, int nbPage);
 
-  // Alors ici on ne fait pas Page<RecipeSummary> parce qu'on
-  // n'est pas sensé renvoyer plein de recette quand c'est du RAG...
   List<RecipeSummary> findSummariesByIds(List<UUID> ids);
 
   PageResult<RecipeSummary> findUserRecipeSummaries(String username, RecipeStatus status, int size, int page);

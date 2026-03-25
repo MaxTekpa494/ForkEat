@@ -5,6 +5,7 @@ import fr.uge.forkeat.presentation.dto.superlike.PromotionFormDTO;
 import fr.uge.forkeat.presentation.web.dto.UserModerationRequest;
 import fr.uge.forkeat.service.*;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
+import fr.uge.forkeat.service.exception.ResourceNotFoundException;
 import fr.uge.forkeat.service.model.SortOrder;
 import fr.uge.forkeat.service.model.recipe.CreateRecipeModerationAction;
 import fr.uge.forkeat.service.model.recipe.RecipeModerationActionType;
@@ -118,15 +119,30 @@ public class AdminWebController {
     }
 
     @GetMapping("/users")
-    public String users(@RequestParam(defaultValue = "MEMBER") String role, Model model) {
+    public String users(@RequestParam(defaultValue = "MEMBER") String role,
+                        @RequestParam(required = false, defaultValue = "") String query,
+                        Model model) {
         var userRole = UserRole.valueOf(role);
-        var users = userQueryService.getUsersByRole(userRole);
+        var users = (userRole == UserRole.MEMBER && !query.isBlank())
+                ? userQueryService.searchMembers(query)
+                : userQueryService.getUsersByRole(userRole);
 
         model.addAttribute("users", users);
         model.addAttribute("selectedRole", userRole);
+        model.addAttribute("query", query);
         model.addAttribute("pageTitle", "Gestion des utilisateurs - ForkEat");
 
         return "admin/users";
+    }
+
+    @PostMapping("/users/{username}/promote-moderator")
+    public String promoteToModerator(@PathVariable String username) {
+        try {
+            userQueryService.promoteToModerator(username);
+            return "redirect:/admin/users?role=MEMBER&promoted=true";
+        } catch (RegisterFailureException | ResourceNotFoundException e) {
+            return "redirect:/admin/users?role=MEMBER&promoteError=" + e.getMessage();
+        }
     }
 
     @GetMapping("/create-admin")

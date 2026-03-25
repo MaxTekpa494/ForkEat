@@ -183,7 +183,6 @@
                      class="overflow-y-auto divide-y divide-gray-50"
                      style="max-height: 480px;">
                     <div th:each="entry : ${redistributionSummary}">
-                        <!-- Ligne cliquable -->
                         <div class="px-6 py-4 hover:bg-gray-50 transition cursor-pointer flex items-center justify-between"
                              th:data-recipe-id="${entry.sourceRecipeId()}"
                              th:data-batch-month="${entry.batchMonth()}"
