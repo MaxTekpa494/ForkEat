@@ -108,10 +108,13 @@ public class AuthRestController {
 	}
 
 	@PostMapping("/forgot-password")
-	public ResponseEntity<HttpResponse<Void>> forgotPassword(@RequestBody ChangePasswordDTO changePasswordDTO) {
-		userService.findByEmail(changePasswordDTO.email())
-				.ifPresent(user -> emailVerificationService.sendPasswordChangeCode(user.id(), user.email()));
-		return ResponseEntity.ok().build();
+	public ResponseEntity<HttpResponse<ForgotPasswordStatusDTO>> forgotPassword(@RequestBody ChangePasswordDTO changePasswordDTO) {
+		var userOpt = userService.findByEmail(changePasswordDTO.email());
+		if (userOpt.isPresent() && !userOpt.get().emailVerified()) {
+			return ResponseEntity.ok(new ItemResponse<>(new ForgotPasswordStatusDTO(false)));
+		}
+		userOpt.ifPresent(user -> emailVerificationService.sendPasswordChangeCode(user.id(), user.email()));
+		return ResponseEntity.ok(new ItemResponse<>(new ForgotPasswordStatusDTO(true)));
 	}
 
 	@PostMapping("/forgot-password/confirm-code")

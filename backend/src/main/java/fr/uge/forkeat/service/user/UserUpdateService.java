@@ -192,7 +192,11 @@ public class UserUpdateService {
       throw new CheckProfileUpdateFailureException(e.getMessage());
     }
     var user = userService.getUserByEmail(email);
-    emailVerificationService.confirmPasswordReset(user.id(), code, passwordHasherPort.hash(newPassword));
+    if (!user.emailVerified()) {
+      userPersistence.updatePassword(user.id(), passwordHasherPort.hash(newPassword));
+    } else {
+      emailVerificationService.confirmPasswordReset(user.id(), code, passwordHasherPort.hash(newPassword));
+    }
   }
 
   @Transactional(
