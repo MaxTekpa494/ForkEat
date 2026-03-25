@@ -16,7 +16,10 @@ data class AdminWalletsUiState(
     val redistributionWallet: PlatformWalletDTO? = null,
     val transactions: List<PlatformWalletTransactionDTO> = emptyList(),
     val isLoading: Boolean = false,
-    val error: String? = null
+    val error: String? = null,
+    val redistributionTriggering: Boolean = false,
+    val redistributionSuccess: Boolean = false,
+    val redistributionError: String? = null
 )
 
 class AdminWalletsViewModel : ViewModel() {
@@ -28,6 +31,27 @@ class AdminWalletsViewModel : ViewModel() {
 
     init {
         loadWallets()
+    }
+
+    fun triggerRedistribution() {
+        viewModelScope.launch {
+            _uiState.value = _uiState.value.copy(redistributionTriggering = true, redistributionError = null, redistributionSuccess = false)
+            try {
+                val response = adminService.triggerRedistribution()
+                if (response.isSuccessful) {
+                    _uiState.value = _uiState.value.copy(redistributionTriggering = false, redistributionSuccess = true)
+                    loadWallets()
+                } else {
+                    _uiState.value = _uiState.value.copy(redistributionTriggering = false, redistributionError = "Erreur serveur : ${response.code()}")
+                }
+            } catch (e: Exception) {
+                _uiState.value = _uiState.value.copy(redistributionTriggering = false, redistributionError = "Erreur : ${e.message}")
+            }
+        }
+    }
+
+    fun dismissRedistributionFeedback() {
+        _uiState.value = _uiState.value.copy(redistributionSuccess = false, redistributionError = null)
     }
 
     fun loadWallets() {

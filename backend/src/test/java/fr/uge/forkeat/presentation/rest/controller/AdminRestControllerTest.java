@@ -311,6 +311,30 @@ class AdminRestControllerTest {
         }
     }
 
+    // ===== Trigger redistribution =====
+
+    @Nested
+    class TriggerRedistributionTests {
+
+        @Test
+        void shouldTriggerRedistributionAndReturnOk() throws Exception {
+            mockMvc.perform(post("/api/admin/redistribution/trigger"))
+                    .andExpect(status().isOk());
+
+            verify(redistributionService).processAllPending(any());
+        }
+
+        @Test
+        void shouldPassPreviousMonthAsBatchMonth() throws Exception {
+            var expectedMonth = java.time.YearMonth.now().minusMonths(1).toString();
+
+            mockMvc.perform(post("/api/admin/redistribution/trigger"))
+                    .andExpect(status().isOk());
+
+            verify(redistributionService).processAllPending(expectedMonth);
+        }
+    }
+
     // ===== Platform wallets =====
 
     @Nested
