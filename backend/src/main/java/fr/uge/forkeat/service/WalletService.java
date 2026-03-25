@@ -1,7 +1,6 @@
 package fr.uge.forkeat.service;
 
 import fr.uge.forkeat.service.exception.DuplicateTransactionException;
-import fr.uge.forkeat.service.exception.InsufficientFundsException;
 import fr.uge.forkeat.service.exception.WithdrawalException;
 import fr.uge.forkeat.service.exception.WalletNotFoundException;
 import fr.uge.forkeat.service.external.PaymentGateway;

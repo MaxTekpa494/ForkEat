@@ -361,46 +361,41 @@ class UserPersistenceAdapterTest {
             when(profileView.getFirstName()).thenReturn("John");
             when(profileView.getLastName()).thenReturn("Doe");
 
-            when(userRepository.findProfileByUsername("testuser")).thenReturn(Optional.of(profileView));
+            when(userRepository.findProfileById(userId)).thenReturn(Optional.of(profileView));
 
-            var result = adapter.findPublicProfile("testuser");
+            var result = adapter.findPublicProfile(userId);
 
             assertNotNull(result);
             assertEquals("testuser", result.username());
             assertEquals("John", result.firstName());
             assertEquals("Doe", result.lastName());
-            verify(userRepository).findProfileByUsername("testuser");
+            verify(userRepository).findProfileById(userId);
         }
 
         @Test
         void shouldReturnSocialStats_WhenUserExists() {
             var userId = UUID.randomUUID();
-            var userEntity = createTestUserEntity(userId, "testuser", "test@example.com");
             var counts = new UserSocialCountsProjection(10L, 5L, 30L, 2L);
 
-            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(userEntity));
             when(neo4jUserRepository.findSocialCountsByUserId(userId)).thenReturn(counts);
 
-            var result = adapter.findUserSocialStats("testuser");
+            var result = adapter.findUserSocialStats(userId);
 
             assertNotNull(result);
             assertEquals(10L, result.followerCount());
             assertEquals(5L, result.followingCount());
             assertEquals(30L, result.totalLikeCount());
             assertEquals(2L, result.totalSuperLikeCount());
-            verify(userRepository).findByUsername("testuser");
             verify(neo4jUserRepository).findSocialCountsByUserId(userId);
         }
 
         @Test
         void shouldReturnZeroStats_WhenNeo4jReturnsNull() {
             var userId = UUID.randomUUID();
-            var userEntity = createTestUserEntity(userId, "testuser", "test@example.com");
 
-            when(userRepository.findByUsername("testuser")).thenReturn(Optional.of(userEntity));
             when(neo4jUserRepository.findSocialCountsByUserId(userId)).thenReturn(null);
 
-            var result = adapter.findUserSocialStats("testuser");
+            var result = adapter.findUserSocialStats(userId);
 
             assertEquals(0L, result.followerCount());
             assertEquals(0L, result.followingCount());
@@ -410,25 +405,19 @@ class UserPersistenceAdapterTest {
 
         @Test
         void shouldThrow_WhenUserNotFound_ForPublicProfile() {
-            when(userRepository.findProfileByUsername("unknown")).thenReturn(Optional.empty());
+            var userId = UUID.randomUUID();
+            when(userRepository.findProfileById(userId)).thenReturn(Optional.empty());
 
-            assertThrows(ResourceNotFoundException.class, () -> adapter.findPublicProfile("unknown"));
+            assertThrows(ResourceNotFoundException.class, () -> adapter.findPublicProfile(userId));
         }
 
         @Test
-        void shouldThrow_WhenUserNotFound_ForSocialStats() {
-            when(userRepository.findByUsername("unknown")).thenReturn(Optional.empty());
-
-            assertThrows(ResourceNotFoundException.class, () -> adapter.findUserSocialStats("unknown"));
-        }
-
-        @Test
-        void shouldThrow_WhenUsernameIsNull_ForPublicProfile() {
+        void shouldThrow_WhenIdIsNull_ForPublicProfile() {
             assertThrows(NullPointerException.class, () -> adapter.findPublicProfile(null));
         }
 
         @Test
-        void shouldThrow_WhenUsernameIsNull_ForSocialStats() {
+        void shouldThrow_WhenIdIsNull_ForSocialStats() {
             assertThrows(NullPointerException.class, () -> adapter.findUserSocialStats(null));
         }
     }

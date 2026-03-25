@@ -119,27 +119,20 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public PageResult<RecipeSummary> searchPersonalizedFeedRecipes(String username, Instant beforeTime, int nbPage) {
-        var sinceTime = beforeTime.minusSeconds(2678400);
-        var pageResult = neo4jRecipeRepository.getFeed(username, nbPage * 20L, nbPage* 20L + 20, sinceTime.atZone(ZoneOffset.UTC), beforeTime.atZone(ZoneOffset.UTC));
+    public PageResult<RecipeSummary> searchPersonalizedFeedRecipes(UUID id, Instant beforeTime, int nbPage) {
+        var sinceTime = beforeTime.minusSeconds(2678400/*nb secondes in a month*/);
+        var pageResult = neo4jRecipeRepository.getFeed(id, nbPage * 20L, nbPage* 20L + 20, sinceTime.atZone(ZoneOffset.UTC), beforeTime.atZone(ZoneOffset.UTC));
+        var total = neo4jRecipeRepository.countFeedRelationshipsBefore(id, sinceTime.atZone(ZoneOffset.UTC));
         var recipes = recipeRepository.findSummariesByIds(pageResult.stream()
                 .map(RecipeNode::getId)
                 .toList()).stream().map(r-> new RecipeSummary(r.getId(), r.getTitle(), r.getSummary(), r.getImageUrl(), r.getPreparationMinutes(), r.getCreatedAt(), r.getAuthorUsername())).toList();
-        return new PageResult<>(recipes, recipes.size());
+        return new PageResult<>(recipes, total);
     }
 
     @Override
     public List<Recipe> findByAuthorId(UUID authorId) {
         Objects.requireNonNull(authorId);
         return recipeRepository.findByAuthorId(authorId)
-                .stream()
-                .map(RecipeEntityMapper::toDomain)
-                .toList();
-    }
-
-    @Override
-    public List<Recipe> findByAuthorUsername(String authorUsername) {
-        return recipeRepository.findByAuthorUsername(authorUsername)
                 .stream()
                 .map(RecipeEntityMapper::toDomain)
                 .toList();
@@ -169,11 +162,15 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     @Override
     public List<String> findAllDietaryNames() {
         return dietaryRepository.findAll().stream()
-                .map(d -> d.getName())
+                .map(DietaryEntity::getName)
                 .sorted()
                 .toList();
     }
 
+    @Override
+    public void updateFeed(UUID followerId, UUID followedId){
+        this.neo4jRecipeRepository.propagateFeedOnFollow(followerId, followedId, Instant.now().atZone(ZoneOffset.UTC));
+    }
     @Override
     public Recipe save(Recipe recipe) {
         Objects.requireNonNull(recipe);
@@ -352,22 +349,22 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public RecipeUserInteraction findUserRecipeInteraction(UUID recipeId, String currentUsername) {
+    public RecipeUserInteraction findUserRecipeInteraction(UUID recipeId, UUID userId) {
         Objects.requireNonNull(recipeId);
-        Objects.requireNonNull(currentUsername);
-        return findUserRecipeInteractions(List.of(recipeId), currentUsername)
+        Objects.requireNonNull(userId);
+        return findUserRecipeInteractions(List.of(recipeId), userId)
                 .getOrDefault(recipeId, RecipeUserInteraction.NONE);
     }
 
     @Override
-    public Map<UUID, RecipeUserInteraction> findUserRecipeInteractions(List<UUID> recipeIds, String currentUsername) {
+    public Map<UUID, RecipeUserInteraction> findUserRecipeInteractions(List<UUID> recipeIds, UUID userId) {
         Objects.requireNonNull(recipeIds);
-        Objects.requireNonNull(currentUsername);
+        Objects.requireNonNull(userId);
         if (recipeIds.isEmpty()) {
             return Map.of();
         }
         var recipeIdStrings = recipeIds.stream().map(UUID::toString).toList();
-        return neo4jRecipeRepository.findUserInteractionsByRecipeIds(recipeIdStrings, currentUsername).stream()
+        return neo4jRecipeRepository.findUserInteractionsByRecipeIds(recipeIdStrings, userId.toString()).stream()
                 .collect(Collectors.toMap(
                         r -> UUID.fromString(r.recipeId()),
                         r -> new RecipeUserInteraction(r.likedByCurrentUser(), r.superLikedByCurrentUser(), r.followedByCurrentUser())
@@ -375,7 +372,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe(String currentUsername) {
+    public Optional<PersonalizedRecipeSummary> findTopLikedPublishedRecipe() {
         var topIds = neo4jRecipeRepository.findTopLikedRecipeIds(10);
         for (var idStr : topIds) {
             var uuid = UUID.fromString(idStr);
@@ -388,19 +385,16 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
                         entity.getCreatedAt(), entity.getAuthor().getUsername()
                 );
                 var counts = findRecipeCounts(uuid);
-                var interaction = currentUsername != null
-                        ? findUserRecipeInteraction(uuid, currentUsername)
-                        : RecipeUserInteraction.NONE;
-                return Optional.of(new PersonalizedRecipeSummary(summary, counts, interaction));
+                return Optional.of(new PersonalizedRecipeSummary(summary, counts, RecipeUserInteraction.NONE));
             }
         }
         return Optional.empty();
     }
 
     @Override
-    public long countByAuthorUsername(String username) {
-        Objects.requireNonNull(username);
-        return neo4jRecipeRepository.countByAuthorUsername(username);
+    public long countByAuthorId(UUID authorId) {
+        Objects.requireNonNull(authorId);
+        return neo4jRecipeRepository.countByAuthorId(authorId);
     }
 
     @Override

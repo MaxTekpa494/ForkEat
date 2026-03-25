@@ -4,6 +4,7 @@ import fr.uge.forkeat.presentation.mapper.web.UserFormDTOMapper;
 import fr.uge.forkeat.presentation.web.form.RegisterFormDTO;
 import fr.uge.forkeat.service.exception.RegisterFailureException;
 import fr.uge.forkeat.service.exception.VerificationException;
+import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
@@ -26,15 +27,18 @@ public class AuthWebController {
     private final UserService userService;
     private final EmailVerificationService emailVerificationService;
     private final UserUpdateService userUpdateService;
+    private final AuthenticationPort authPort;
 
     public AuthWebController(UserRegistrationService userRegistrationService,
                              EmailVerificationService emailVerificationService,
                              UserService userService,
-                             UserUpdateService userUpdateService) {
+                             UserUpdateService userUpdateService,
+                             AuthenticationPort authPort) {
         this.userRegistrationService = userRegistrationService;
         this.emailVerificationService = emailVerificationService;
         this.userService = userService;
         this.userUpdateService = userUpdateService;
+        this.authPort = authPort;
     }
 
     @GetMapping("/login")
@@ -111,38 +115,16 @@ public class AuthWebController {
         return "layout/email-sent";
     }
 
-    @GetMapping("/email-verification-required")
-    public String emailVerificationRequired() {
-        return "layout/email-verification-required";
-    }
-
-    @PostMapping("/resend-verification")
-    public String resendVerification(RedirectAttributes redirectAttributes) {
-        var auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || auth instanceof AnonymousAuthenticationToken) {
-            return "redirect:/auth/login";
-        }
-        try {
-            var principal = auth.getName();
-            var userOpt = userService.findByEmail(principal);
-            if (userOpt.isEmpty()) {
-                userOpt = java.util.Optional.of(userService.getUserByUsername(principal));
-            }
-            userOpt.ifPresent(user ->
-                    emailVerificationService.sendEmailConfirmation(user.id(), user.email()));
-            redirectAttributes.addFlashAttribute("success",
-                    "Email de confirmation renvoyé ! Vérifiez votre boîte de réception.");
-        } catch (Exception e) {
-            redirectAttributes.addFlashAttribute("errorMessage",
-                    "Impossible de renvoyer l'email. Réessayez dans quelques instants.");
-        }
-        return "redirect:/auth/email-verification-required";
-    }
-
     @GetMapping("/confirm-email")
     public String confirmEmail(@RequestParam String token, RedirectAttributes redirectAttributes) {
         try {
-            emailVerificationService.confirmEmail(token);
+            var user = emailVerificationService.confirmEmail(token);
+            if (isAuthenticated()) {
+                authPort.refreshAuthentication(user);
+                redirectAttributes.addFlashAttribute("success",
+                        "Votre email a été confirmé avec succès !");
+                return "redirect:/account";
+            }
             redirectAttributes.addFlashAttribute("success",
                     "Votre email a été confirmé avec succès ! Vous pouvez maintenant vous connecter.");
         } catch (VerificationException e) {

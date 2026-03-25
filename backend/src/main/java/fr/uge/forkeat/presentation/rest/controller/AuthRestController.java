@@ -4,10 +4,11 @@ import fr.uge.forkeat.presentation.dto.user.*;
 import fr.uge.forkeat.presentation.mapper.rest.UserDTOMapper;
 import fr.uge.forkeat.presentation.response.HttpResponse;
 import fr.uge.forkeat.presentation.response.ItemResponse;
+import fr.uge.forkeat.service.exception.AuthenticationTokenException;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.port.GoogleTokenVerificationPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
-import fr.uge.forkeat.service.user.GoogleTokenVerificationService;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserUpdateService;
@@ -20,7 +21,6 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.AuthenticationException;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.HashMap;
 import java.util.Objects;
 
 @RestController
@@ -34,7 +34,7 @@ public class AuthRestController {
 	private final AuthenticationPort authPort;
 	private final UserService userService;
 	private final EmailVerificationService emailVerificationService;
-	private final GoogleTokenVerificationService googleTokenVerificationService;
+	private final GoogleTokenVerificationPort googleTokenVerificationPort;
 	private final UserUpdateService userUpdateService;
 
 	public AuthRestController(UserRegistrationService userRegistrationService,
@@ -42,14 +42,14 @@ public class AuthRestController {
 			AuthenticationPort authPort,
 			UserService userService,
 			EmailVerificationService emailVerificationService,
-			GoogleTokenVerificationService googleTokenVerificationService,
+			GoogleTokenVerificationPort googleTokenVerificationPort,
 			UserUpdateService userUpdateService) {
 		this.userRegistrationService = userRegistrationService;
 		this.authenticationManager = authenticationManager;
 		this.authPort = authPort;
 		this.userService = userService;
 		this.emailVerificationService = emailVerificationService;
-		this.googleTokenVerificationService = googleTokenVerificationService;
+		this.googleTokenVerificationPort = googleTokenVerificationPort;
 		this.userUpdateService = Objects.requireNonNull(userUpdateService);
 	}
 
@@ -69,17 +69,14 @@ public class AuthRestController {
 	}
 
 	@PostMapping("/login")
-	public ResponseEntity<?> login(@RequestBody UserLoginDTO userLogin) {
+	public ResponseEntity<HttpResponse<AuthTokenDTO>> login(@RequestBody UserLoginDTO userLogin) {
 		Objects.requireNonNull(userLogin);
 		try {
 			authenticationManager
 					.authenticate(new UsernamePasswordAuthenticationToken(userLogin.username(), userLogin.password()));
-			var authData = new HashMap<String, String>();
-			authData.put("token", authPort.generateToken(userLogin.username()));
-			authData.put("type", "Bearer");
-			return ResponseEntity.ok(authData);
+			return ResponseEntity.ok(new ItemResponse<>(new AuthTokenDTO(authPort.generateToken(userLogin.username()), "Bearer")));
 		} catch (AuthenticationException e) {
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid username or password");
+			throw new AuthenticationTokenException("Invalid username or password");
 		}
 	}
 
@@ -92,44 +89,33 @@ public class AuthRestController {
 	}
 
 	@PostMapping("/google-login")
-	public ResponseEntity<?> loginWithGoogle(@RequestBody GoogleIdTokenRequestDTO request) {
+	public ResponseEntity<HttpResponse<AuthTokenDTO>> loginWithGoogle(@RequestBody GoogleIdTokenRequestDTO request) {
 		Objects.requireNonNull(request);
 		try {
-			var googleIdToken = googleTokenVerificationService.verify(request.idToken());
-			if (googleIdToken == null) {
-				return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Invalid Google ID token");
-			}
-
-			var payload = googleIdToken.getPayload();
-			var email = payload.getEmail();
-			var givenName = (String) payload.get("given_name");
-			var familyName = (String) payload.get("family_name");
-
+			var googleUserInfo = googleTokenVerificationPort.verify(request.idToken());
 			var user = userRegistrationService.registerUserFromOAuth2(
-					givenName != null ? givenName : "",
-					familyName != null ? familyName : "",
-					email,
+					googleUserInfo.givenName(),
+					googleUserInfo.familyName(),
+					googleUserInfo.email(),
 					AuthMode.GOOGLE);
-
-			var authData = new HashMap<String, String>();
-			authData.put("token", authPort.generateToken(user.username()));
-			authData.put("type", "Bearer");
-			return ResponseEntity.ok(authData);
+			return ResponseEntity.ok(new ItemResponse<>(new AuthTokenDTO(authPort.generateToken(user.username()), "Bearer")));
+		} catch (AuthenticationTokenException e) {
+			throw e;
 		} catch (Exception e) {
 			logger.error("Google OAuth2 login failed", e);
-			return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("Google authentication failed");
+			throw new AuthenticationTokenException("Google authentication failed");
 		}
 	}
 
 	@PostMapping("/forgot-password")
-	public ResponseEntity<?> forgotPassword(@RequestBody ChangePasswordDTO changePasswordDTO) {
+	public ResponseEntity<HttpResponse<Void>> forgotPassword(@RequestBody ChangePasswordDTO changePasswordDTO) {
 		userService.findByEmail(changePasswordDTO.email())
 				.ifPresent(user -> emailVerificationService.sendPasswordChangeCode(user.id(), user.email()));
 		return ResponseEntity.ok().build();
 	}
 
 	@PostMapping("/forgot-password/confirm-code")
-	public ResponseEntity<?> forgotPasswordConfirmCode(@RequestBody ChangePasswordConfirmCodeDTO changePasswordConfirmCodeDTO) {
+	public ResponseEntity<HttpResponse<Void>> forgotPasswordConfirmCode(@RequestBody ChangePasswordConfirmCodeDTO changePasswordConfirmCodeDTO) {
 		userUpdateService.confirmForgotPasswordChange(
 				changePasswordConfirmCodeDTO.email(),
 				changePasswordConfirmCodeDTO.code(),

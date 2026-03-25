@@ -1,15 +1,18 @@
 package fr.uge.forkeat.presentation.security;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import fr.uge.forkeat.infrastructure.AbstractIntegrationTest;
+import fr.uge.forkeat.presentation.dto.user.UserReportRequestDTO;
 import fr.uge.forkeat.service.ProfileService;
+import fr.uge.forkeat.service.UserReportService;
 import fr.uge.forkeat.service.model.AuthMode;
 import fr.uge.forkeat.service.model.PageResult;
+import fr.uge.forkeat.service.model.ReportStatus;
 import fr.uge.forkeat.service.model.recipe.projection.PersonalizedRecipeSummary;
-import fr.uge.forkeat.service.model.user.User;
-import fr.uge.forkeat.service.model.user.UserRole;
-import fr.uge.forkeat.service.model.user.UserStatus;
+import fr.uge.forkeat.service.model.user.*;
 import fr.uge.forkeat.service.model.user.projection.*;
 import fr.uge.forkeat.service.port.AuthenticationPort;
+import fr.uge.forkeat.service.user.UserService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -17,6 +20,7 @@ import org.mockito.Mock;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.http.MediaType;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
@@ -24,11 +28,13 @@ import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.MockHttpServletRequestBuilder;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.jwt;
 import static org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors.user;
@@ -53,6 +59,12 @@ public class ProfileControllerSecurityTest extends AbstractIntegrationTest {
     @MockitoBean
     private AuthenticationPort authenticationPort;
 
+    @MockitoBean
+    private UserService userService;
+
+    @MockitoBean
+    private UserReportService userReportService;
+
     @BeforeEach
     void setup() {
 
@@ -67,6 +79,10 @@ public class ProfileControllerSecurityTest extends AbstractIntegrationTest {
 
         when(profileService.getProfileInfos(any(), anyInt(), anyInt(), any()))
                 .thenReturn(buildProfile("pax", false));
+
+        doNothing().when(userService).follow(any(), any());
+        doNothing().when(userService).unfollow(any(), any());
+        when(userReportService.reportUser(any())).thenReturn(new UserReport(UUID.randomUUID(), UUID.randomUUID(), UUID.randomUUID(), UserReportType.SPAM, ReportStatus.PENDING, "a", Instant.now(), Instant.now(), Instant.now(),UUID.randomUUID()));
     }
 
     @Nested
@@ -92,7 +108,25 @@ public class ProfileControllerSecurityTest extends AbstractIntegrationTest {
                     AuthorizationTest.MEMBER
             );
         }
+
+        @Test
+        void testFollow() throws Exception {
+            testRights(put("/api/profile/{username}/follow", "MaximusPrime"), AuthorizationTest.EMAIL_VERIFIED);
+        }
+
+        @Test
+        void testUnFollow() throws Exception {
+            testRights(delete("/api/profile/{username}/follow", "MaximusPrime"), AuthorizationTest.EMAIL_VERIFIED);
+        }
+
+        @Test
+        void testReports() throws Exception {
+            var mapper = new ObjectMapper();
+            testRights(post("/api/profile/{username}/reports", "MaximusPrime").contentType(MediaType.APPLICATION_JSON).content(mapper.writeValueAsString(new UserReportRequestDTO(UserReportType.SPAM, "a"))), AuthorizationTest.EMAIL_VERIFIED);
+        }
     }
+
+
     @Nested
     class ProfileWebControllerSecurityTest {
 
@@ -112,9 +146,66 @@ public class ProfileControllerSecurityTest extends AbstractIntegrationTest {
                     .param("page", "0")
                     .param("size", "12"), AuthorizationTest.MEMBER);
         }
+
+        @Test
+        void testFollow() throws Exception {
+            testRightsMVC(post("/profile/{username}/follow", "otheruser"),
+                    AuthorizationTest.EMAIL_VERIFIED);
+        }
+
+        @Test
+        void testUnfollow() throws Exception {
+            testRightsMVC(post("/profile/{username}/unfollow", "otheruser"),
+                    AuthorizationTest.EMAIL_VERIFIED);
+        }
+
+        @Test
+        void testReportUser() throws Exception {
+            testRightsMVC(post("/profile/{username}/report", "otheruser")
+                            .contentType(MediaType.APPLICATION_FORM_URLENCODED)
+                            .param("reportType", UserReportType.values()[0].name())
+                            .param("justification", "spam"),
+                    AuthorizationTest.EMAIL_VERIFIED);
+        }
     }
 
 
+
+    private void testRightsMVC(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
+        var expectedBlocked = status().is3xxRedirection();
+        var expectedSuccess = status().is3xxRedirection(); // POST redirige vers /account en cas de succès
+
+        // Non authentifié → toujours redirigé (vers /login ou succès si UNAUTHENTICATED)
+        mockMvc.perform(requestBuilders)
+                .andExpect(expectedBlocked);
+
+        var expected = authorization.equals(AuthorizationTest.MEMBER) || authorization.equals(AuthorizationTest.UNAUTHENTICATED)
+                ? expectedSuccess : expectedBlocked;
+
+        mockMvc.perform(requestBuilders.with(user("PAX").roles("MEMBER")))
+                .andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.EMAIL_VERIFIED)) {
+            expected = expectedSuccess;
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                        .authorities(new SimpleGrantedAuthority("ROLE_MEMBER"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
+                .andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.MODERATOR)) {
+            expected = expectedSuccess;
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                        .authorities(new SimpleGrantedAuthority("ROLE_MODERATOR"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
+                .andExpect(expected);
+
+        if (authorization.equals(AuthorizationTest.ADMIN)) {
+            expected = expectedSuccess;
+        }
+        mockMvc.perform(requestBuilders.with(user("PAX")
+                        .authorities(new SimpleGrantedAuthority("ROLE_ADMIN"), new SimpleGrantedAuthority("EMAIL_VERIFIED"))))
+                .andExpect(expected);
+    }
     private void testRights(MockHttpServletRequestBuilder requestBuilders, AuthorizationTest authorization) throws Exception {
         var expected = status().isForbidden();
 

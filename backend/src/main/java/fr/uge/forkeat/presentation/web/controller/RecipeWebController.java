@@ -26,6 +26,7 @@ import fr.uge.forkeat.service.user.UserService;
 import jakarta.servlet.http.HttpSession;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
@@ -137,6 +138,12 @@ public class RecipeWebController {
                 form.getAllergens(),
                 allAllergens
         );
+        var username = authPort.extractUsername();
+        if(username == null){
+            model.addAttribute("authenticated", false);
+        }else{
+            model.addAttribute("authenticated", true);
+        }
         model.addAttribute("vm", viewModel);
         model.addAttribute("activePromotion", promotionService.findActive().orElse(null));
         addSuperLikePriceToModel(model);
@@ -144,7 +151,9 @@ public class RecipeWebController {
     }
 
     @GetMapping("/following")
+    @PreAuthorize("isAuthenticated()")
     public String listRecipesFollowing(@RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
+        model.addAttribute("authenticated", true);
         model.addAttribute("isFollowing", true);
         if(session.getAttribute("instant") == null){
             session.setAttribute("instant", Instant.now());
@@ -157,7 +166,6 @@ public class RecipeWebController {
             attribute = Instant.now();
         }
         var pageResult = recipeService.getPersonalizedFeedRecipes(attribute, page);
-        System.out.println("############" + page);
         var recipes = pageResult.items().stream()
                 .map(RecipeDTOMapper::toSummaryDTO)
                 .toList();

@@ -154,7 +154,7 @@
                 form.action = '/recipes/' + recipeId + '/' + (isLiked ? 'unlike' : 'like');
                 try {
                     const response = await fetch(form.action, { method: 'POST', body: new FormData(form) });
-                    if (response.url && response.url.includes('/login')) { window.location.href = response.url; return; }
+                    if (response.redirected && !new URL(response.url).pathname.startsWith('/recipes/')) { window.location.href = response.url; return; }
                     if (response.ok) {
                         const icon = button.querySelector('i');
                         const span = button.querySelector('span');
@@ -216,6 +216,7 @@
                 modal.classList.remove('flex');
                 fetch(form.action, { method: 'POST', body: new FormData(form) })
                     .then(function(response) {
+                        if (response.redirected && !new URL(response.url).pathname.startsWith('/recipes/')) { window.location.href = response.url; return; }
                         if (!response.ok) {
                             if (response.status === 402) window.openCardFundsModal(recipeId);
                             return;
@@ -263,7 +264,7 @@
                 form.action = '/recipes/' + recipeId + '/' + (isFollowed ? 'unfollow' : 'follow');
                 try {
                     const response = await fetch(form.action, { method: 'POST', body: new FormData(form) });
-                    if (response.url && response.url.includes('/login')) { window.location.href = response.url; return; }
+                    if (response.redirected && !new URL(response.url).pathname.startsWith('/recipes/')) { window.location.href = response.url; return; }
                     if (response.ok) {
                         const icon = button.querySelector('i');
                         const span = button.querySelector('span');

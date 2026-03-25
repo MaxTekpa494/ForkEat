@@ -44,13 +44,13 @@ public interface UserPersistence extends UserIdentityPort {
 
 	long countTotalSuperLikesReceived(UUID userId);
 
-	UserPublicProfile findPublicProfile(String username);
+	UserPublicProfile findPublicProfile(UUID userId);
 
-	UserSocialStats findUserSocialStats(String username);
+	UserSocialStats findUserSocialStats(UUID userId);
 
 	Optional<UUID> findIdByUsername(String username);
 
-	boolean isFollowing(String followerUsername, String followedUsername);
+	boolean isFollowing(UUID followerId, UUID followedId);
 
 	void follow(UUID followerId, UUID followedId);
 

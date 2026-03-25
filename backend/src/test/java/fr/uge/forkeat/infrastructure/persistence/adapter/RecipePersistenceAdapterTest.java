@@ -647,11 +647,12 @@ class RecipePersistenceAdapterTest {
         @Test
         void shouldReturnInteractionsForUser() {
             var recipeId = UUID.randomUUID();
+            var userId = UUID.randomUUID();
             var projection = new RecipeUserInteractionProjection(recipeId.toString(), true, false, true);
-            when(neo4jRecipeRepository.findUserInteractionsByRecipeIds(List.of(recipeId.toString()), "viewer"))
+            when(neo4jRecipeRepository.findUserInteractionsByRecipeIds(List.of(recipeId.toString()), userId.toString()))
                     .thenReturn(List.of(projection));
 
-            var result = adapter.findUserRecipeInteractions(List.of(recipeId), "viewer");
+            var result = adapter.findUserRecipeInteractions(List.of(recipeId), userId);
 
             assertEquals(1, result.size());
             var interaction = result.get(recipeId);
@@ -663,7 +664,7 @@ class RecipePersistenceAdapterTest {
 
         @Test
         void shouldReturnEmptyMap_WhenRecipeIdsIsEmpty() {
-            var result = adapter.findUserRecipeInteractions(List.of(), "viewer");
+            var result = adapter.findUserRecipeInteractions(List.of(), UUID.randomUUID());
 
             assertTrue(result.isEmpty());
             verifyNoInteractions(neo4jRecipeRepository);
@@ -674,18 +675,18 @@ class RecipePersistenceAdapterTest {
             var recipeId = UUID.randomUUID();
             when(neo4jRecipeRepository.findUserInteractionsByRecipeIds(any(), any())).thenReturn(List.of());
 
-            var result = adapter.findUserRecipeInteractions(List.of(recipeId), "viewer");
+            var result = adapter.findUserRecipeInteractions(List.of(recipeId), UUID.randomUUID());
 
             assertTrue(result.isEmpty());
         }
 
         @Test
         void shouldThrow_WhenRecipeIdsIsNull() {
-            assertThrows(NullPointerException.class, () -> adapter.findUserRecipeInteractions(null, "viewer"));
+            assertThrows(NullPointerException.class, () -> adapter.findUserRecipeInteractions(null, UUID.randomUUID()));
         }
 
         @Test
-        void shouldThrow_WhenCurrentUsernameIsNull() {
+        void shouldThrow_WhenUserIdIsNull() {
             assertThrows(NullPointerException.class, () -> adapter.findUserRecipeInteractions(List.of(UUID.randomUUID()), null));
         }
     }
@@ -1142,15 +1143,18 @@ class RecipePersistenceAdapterTest {
             @Test
             void shouldReturnMappedRecipesForFirstPage() {
                 // Arrange
-                var recipeNode = mockRecipeNode(UUID.randomUUID());
+                var id = UUID.randomUUID();
 
-                when(neo4jRecipeRepository.getFeed(USERNAME, 0L, 20L, SINCE_TIME_ZONED, BEFORE_TIME_ZONED))
+                var recipeNode = mockRecipeNode(id);
+
+                when(neo4jRecipeRepository.getFeed(id, 0L, 20L, SINCE_TIME_ZONED, BEFORE_TIME_ZONED))
                         .thenReturn(List.of(recipeNode));
+                when(neo4jRecipeRepository.countFeedRelationshipsBefore(any(), any())).thenReturn(1L);
                 when(recipeRepository.findSummariesByIds(any()))
                         .thenReturn(List.of(summaryView));
 
                 // Act
-                var result = adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, 0);
+                var result = adapter.searchPersonalizedFeedRecipes(id, BEFORE_TIME, 0);
 
                 // Assert
                 assertThat(result.total()).isEqualTo(1);
@@ -1167,32 +1171,33 @@ class RecipePersistenceAdapterTest {
             void shouldComputeCorrectPaginationOffsets() {
                 // Arrange
                 int page = 3;
-                when(neo4jRecipeRepository.getFeed(USERNAME, 60L, 80L, SINCE_TIME_ZONED, BEFORE_TIME_ZONED))
+                var id = UUID.randomUUID();
+                when(neo4jRecipeRepository.getFeed(id, 60L, 80L, SINCE_TIME_ZONED, BEFORE_TIME_ZONED))
                         .thenReturn(List.of());
                 when(recipeRepository.findSummariesByIds(List.of()))
                         .thenReturn(List.of());
 
                 // Act
-                adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, page);
+                adapter.searchPersonalizedFeedRecipes(id, BEFORE_TIME, page);
 
                 // Assert
-                verify(neo4jRecipeRepository).getFeed(USERNAME, 60L, 80L, SINCE_TIME_ZONED, BEFORE_TIME_ZONED);
+                verify(neo4jRecipeRepository).getFeed(id, 60L, 80L, SINCE_TIME_ZONED, BEFORE_TIME_ZONED);
             }
 
             @Test
             void shouldComputeCorrectTimeWindow() {
                 // Arrange
-                when(neo4jRecipeRepository.getFeed(eq(USERNAME), anyLong(), anyLong(), any(), any()))
+                when(neo4jRecipeRepository.getFeed(any(), anyLong(), anyLong(), any(), any()))
                         .thenReturn(List.of());
                 when(recipeRepository.findSummariesByIds(any()))
                         .thenReturn(List.of());
 
                 // Act
-                adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, 0);
+                adapter.searchPersonalizedFeedRecipes(UUID.randomUUID(), BEFORE_TIME, 0);
 
                 // Assert — la fenêtre doit être exactement 31 jours (2 678 400 secondes)
                 verify(neo4jRecipeRepository).getFeed(
-                        eq(USERNAME),
+                        any(),
                         anyLong(),
                         anyLong(),
                         eq(SINCE_TIME_ZONED),
@@ -1209,7 +1214,7 @@ class RecipePersistenceAdapterTest {
                         .thenReturn(List.of());
 
                 // Act
-                var result = adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, 0);
+                var result = adapter.searchPersonalizedFeedRecipes(UUID.randomUUID(), BEFORE_TIME, 0);
 
                 // Assert
                 assertThat(result.total()).isZero();
@@ -1227,7 +1232,7 @@ class RecipePersistenceAdapterTest {
                         .thenReturn(List.of());
 
                 // Act
-                adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, 0);
+                adapter.searchPersonalizedFeedRecipes(UUID.randomUUID(), BEFORE_TIME, 0);
 
                 // Assert
                 verify(recipeRepository).findSummariesByIds(any());
@@ -1242,9 +1247,10 @@ class RecipePersistenceAdapterTest {
                         .thenReturn(nodes);
                 when(recipeRepository.findSummariesByIds(any()))
                         .thenReturn(List.of(summaryView, summaryView, summaryView));
+                when(neo4jRecipeRepository.countFeedRelationshipsBefore(any(), any())).thenReturn(3L);
 
                 // Act
-                var result = adapter.searchPersonalizedFeedRecipes(USERNAME, BEFORE_TIME, 0);
+                var result = adapter.searchPersonalizedFeedRecipes(UUID.randomUUID(), BEFORE_TIME, 0);
 
                 // Assert
                 assertThat(result.total()).isEqualTo(3);

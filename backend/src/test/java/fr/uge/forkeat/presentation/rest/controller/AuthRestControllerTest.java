@@ -18,7 +18,7 @@ import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import fr.uge.forkeat.service.port.AuthenticationPort;
 import fr.uge.forkeat.service.user.EmailVerificationService;
-import fr.uge.forkeat.service.user.GoogleTokenVerificationService;
+import fr.uge.forkeat.service.port.GoogleTokenVerificationPort;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 import fr.uge.forkeat.service.user.UserService;
 import fr.uge.forkeat.service.user.UserUpdateService;
@@ -63,7 +63,7 @@ class AuthRestControllerTest {
     @MockitoBean
     private CustomUserDetailsService customUserDetailsService;
     @MockitoBean
-    private GoogleTokenVerificationService googleTokenVerificationService;
+    private GoogleTokenVerificationPort googleTokenVerificationPort;
     @MockitoBean
     private AuthenticationPort authPort;
     @MockitoBean
@@ -148,8 +148,8 @@ class AuthRestControllerTest {
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(objectMapper.writeValueAsString(dto)))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.token").value("jwt-token-value"))
-                    .andExpect(jsonPath("$.type").value("Bearer"));
+                    .andExpect(jsonPath("$.resource.token").value("jwt-token-value"))
+                    .andExpect(jsonPath("$.resource.type").value("Bearer"));
 
             verify(authenticationManager).authenticate(any());
             verify(authPort).generateToken("testuser");

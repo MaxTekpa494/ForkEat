@@ -75,14 +75,18 @@ class ProfileServiceTest {
         void shouldReturnProfileWithEmptyRecipes() {
             var username = "chef";
             var currentUsername = "viewer";
+            var targetUserId = UUID.randomUUID();
+            var currentUserId = UUID.randomUUID();
             var publicProfile = createPublicProfile(username);
             var socialStats = createSocialStats();
 
-            when(userPersistence.findPublicProfile(username)).thenReturn(publicProfile);
-            when(userPersistence.findUserSocialStats(username)).thenReturn(socialStats);
+            when(userPersistence.findIdByUsernameOrThrow(username)).thenReturn(targetUserId);
+            when(userPersistence.findIdByUsernameOrThrow(currentUsername)).thenReturn(currentUserId);
+            when(userPersistence.findPublicProfile(targetUserId)).thenReturn(publicProfile);
+            when(userPersistence.findUserSocialStats(targetUserId)).thenReturn(socialStats);
             when(recipePersistence.findUserRecipeSummaries(eq(username), eq(RecipeStatus.PUBLISHED), anyInt(), anyInt()))
                     .thenReturn(new PageResult<>(List.of(), 0L));
-            when(userPersistence.isFollowing(currentUsername, username)).thenReturn(false);
+            when(userPersistence.isFollowing(currentUserId, targetUserId)).thenReturn(false);
 
             var result = service.getProfileInfos(username, 0, 10, currentUsername);
 
@@ -97,6 +101,8 @@ class ProfileServiceTest {
         void shouldReturnProfileWithPersonalizedRecipes() {
             var username = "chef";
             var currentUsername = "viewer";
+            var targetUserId = UUID.randomUUID();
+            var viewerId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
             var publicProfile = createPublicProfile(username);
             var socialStats = createSocialStats();
@@ -104,14 +110,16 @@ class ProfileServiceTest {
             var interaction = new RecipeUserInteraction(true, false, false);
             var counts = new RecipeCounts(5L, 1L, 0L);
 
-            when(userPersistence.findPublicProfile(username)).thenReturn(publicProfile);
-            when(userPersistence.findUserSocialStats(username)).thenReturn(socialStats);
+            when(userPersistence.findIdByUsernameOrThrow(username)).thenReturn(targetUserId);
+            when(userPersistence.findIdByUsernameOrThrow(currentUsername)).thenReturn(viewerId);
+            when(userPersistence.findPublicProfile(targetUserId)).thenReturn(publicProfile);
+            when(userPersistence.findUserSocialStats(targetUserId)).thenReturn(socialStats);
             when(recipePersistence.findUserRecipeSummaries(eq(username), eq(RecipeStatus.PUBLISHED), eq(10), eq(0)))
                     .thenReturn(new PageResult<>(List.of(summary), 1L));
             when(recipePersistence.findRecipeCounts(List.of(recipeId))).thenReturn(Map.of(recipeId, counts));
-            when(recipePersistence.findUserRecipeInteractions(List.of(recipeId), currentUsername))
+            when(recipePersistence.findUserRecipeInteractions(List.of(recipeId), viewerId))
                     .thenReturn(Map.of(recipeId, interaction));
-            when(userPersistence.isFollowing(currentUsername, username)).thenReturn(false);
+            when(userPersistence.isFollowing(viewerId, targetUserId)).thenReturn(false);
 
             var result = service.getProfileInfos(username, 0, 10, currentUsername);
 
@@ -126,16 +134,20 @@ class ProfileServiceTest {
         void shouldDefaultToNoneInteraction_WhenNotInMap() {
             var username = "chef";
             var currentUsername = "viewer";
+            var targetUserId = UUID.randomUUID();
+            var currentUserId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
             var summary = createRecipeSummary(recipeId);
 
-            when(userPersistence.findPublicProfile(username)).thenReturn(createPublicProfile(username));
-            when(userPersistence.findUserSocialStats(username)).thenReturn(createSocialStats());
+            when(userPersistence.findIdByUsernameOrThrow(username)).thenReturn(targetUserId);
+            when(userPersistence.findIdByUsernameOrThrow(currentUsername)).thenReturn(currentUserId);
+            when(userPersistence.findPublicProfile(targetUserId)).thenReturn(createPublicProfile(username));
+            when(userPersistence.findUserSocialStats(targetUserId)).thenReturn(createSocialStats());
             when(recipePersistence.findUserRecipeSummaries(any(), any(), anyInt(), anyInt()))
                     .thenReturn(new PageResult<>(List.of(summary), 1L));
             when(recipePersistence.findRecipeCounts(anyList())).thenReturn(Map.of());
             when(recipePersistence.findUserRecipeInteractions(anyList(), any())).thenReturn(Map.of());
-            when(userPersistence.isFollowing(currentUsername, username)).thenReturn(false);
+            when(userPersistence.isFollowing(currentUserId, targetUserId)).thenReturn(false);
 
             var result = service.getProfileInfos(username, 0, 10, currentUsername);
 
@@ -148,11 +160,15 @@ class ProfileServiceTest {
         void shouldReturnFollowedInteraction_WhenCurrentUserFollows() {
             var username = "chef";
             var currentUsername = "viewer";
-            when(userPersistence.findPublicProfile(username)).thenReturn(createPublicProfile(username));
-            when(userPersistence.findUserSocialStats(username)).thenReturn(createSocialStats());
+            var targetUserId = UUID.randomUUID();
+            var currentUserId = UUID.randomUUID();
+            when(userPersistence.findIdByUsernameOrThrow(username)).thenReturn(targetUserId);
+            when(userPersistence.findIdByUsernameOrThrow(currentUsername)).thenReturn(currentUserId);
+            when(userPersistence.findPublicProfile(targetUserId)).thenReturn(createPublicProfile(username));
+            when(userPersistence.findUserSocialStats(targetUserId)).thenReturn(createSocialStats());
             when(recipePersistence.findUserRecipeSummaries(any(), any(), anyInt(), anyInt()))
                     .thenReturn(new PageResult<>(List.of(), 0L));
-            when(userPersistence.isFollowing(currentUsername, username)).thenReturn(true);
+            when(userPersistence.isFollowing(currentUserId, targetUserId)).thenReturn(true);
 
             var result = service.getProfileInfos(username, 0, 10, currentUsername);
 
@@ -196,9 +212,9 @@ class ProfileServiceTest {
             var socialStats = createSocialStats();
 
             when(userPersistence.findByUsername(username)).thenReturn(Optional.of(user));
-            when(userPersistence.findUserSocialStats(username)).thenReturn(socialStats);
+            when(userPersistence.findUserSocialStats(user.id())).thenReturn(socialStats);
             when(walletService.getBalance(user.id())).thenReturn(1000L);
-            when(recipePersistence.countByAuthorUsername(username)).thenReturn(7L);
+            when(recipePersistence.countByAuthorId(user.id())).thenReturn(7L);
 
             var result = service.getAccountDetails(username);
 

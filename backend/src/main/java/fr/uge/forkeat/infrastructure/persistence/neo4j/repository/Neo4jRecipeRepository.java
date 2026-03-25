@@ -41,23 +41,23 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
 
     @Query("""
             UNWIND $recipeIds AS rid
-            OPTIONAL MATCH (u:User {username: $username})-[l:LIKED]->(:Recipe {id: rid})
+            OPTIONAL MATCH (u:User {id: $userId})-[l:LIKED]->(:Recipe {id: rid})
             WITH rid, l IS NOT NULL AS likedByCurrentUser
-            OPTIONAL MATCH (u2:User {username: $username})-[sl:SUPER_LIKED]->(:Recipe {id: rid})
+            OPTIONAL MATCH (u2:User {id: $userId})-[sl:SUPER_LIKED]->(:Recipe {id: rid})
             WITH rid, likedByCurrentUser, sl IS NOT NULL AS superLikedByCurrentUser
-            OPTIONAL MATCH (u3:User {username: $username})-[f:FOLLOWS_RECIPE]->(:Recipe {id: rid})
+            OPTIONAL MATCH (u3:User {id: $userId})-[f:FOLLOWS_RECIPE]->(:Recipe {id: rid})
             RETURN rid AS recipeId, likedByCurrentUser, superLikedByCurrentUser, f IS NOT NULL AS followedByCurrentUser
             """)
     List<RecipeUserInteractionProjection> findUserInteractionsByRecipeIds(
             @Param("recipeIds") List<String> recipeIds,
-            @Param("username") String username
+            @Param("userId") String userId
     );
 
     @Query("""
-            MATCH (u:User {username: $username})-[:PUBLISHED]->(r:Recipe)
+            MATCH (u:User {id: $authorId})-[:PUBLISHED]->(r:Recipe)
             RETURN count(r)
             """)
-    long countByAuthorUsername(@Param("username") String username);
+    long countByAuthorId(@Param("authorId") UUID authorId);
 
     @Query("""
             MATCH (u:User {id: $userId})
@@ -91,14 +91,45 @@ public interface Neo4jRecipeRepository extends Neo4jRepository<RecipeNode, UUID>
     void unfollowRecipe(@Param("userId") UUID userId, @Param("recipeId") UUID recipeId);
 
     @Query("""
-            MATCH (me:User {username: $username})-[f:FEED]->(r:Recipe)
+            MATCH (me:User {id: $id})-[f:FEED]->(r:Recipe)
             WHERE f.createdAt >= $sinceTime
                   AND f.createdAt <= $beforeTime
             RETURN r
             ORDER BY f.depth ASC, r.createdAt DESC
             SKIP $offset LIMIT $limit
             """)
-    List<RecipeNode> getFeed(@Param("username") String username, @Param("offset") long offset, @Param("limit") long limit, @Param("sinceTime") ZonedDateTime sinceTime, @Param("beforeTime") ZonedDateTime beforeTime);
+    List<RecipeNode> getFeed(@Param("id") UUID userId, @Param("offset") long offset, @Param("limit") long limit, @Param("sinceTime") ZonedDateTime sinceTime, @Param("beforeTime") ZonedDateTime beforeTime);
+
+    @Query("""
+        MATCH (follower:User {id: $followerId})
+        MATCH (followed:User {id: $followedId})
+        MATCH (followed)-[:FOLLOWS*0..2]->(relay:User)-[:PUBLISHED]->(recipe:Recipe)
+        WITH follower, recipe,
+             min(length(shortestPath((followed)-[:FOLLOWS*0..2]->(relay))) + 1) AS depth
+        MERGE (follower)-[f:FEED]->(recipe)
+        ON CREATE SET f.depth = depth, f.createdAt = $now
+        ON MATCH SET f.depth = CASE WHEN depth < f.depth THEN depth ELSE f.depth END
+        WITH recipe
+        MATCH path = (follower)<-[:FOLLOWS*1..2]-(upstream:User)
+        WITH upstream, recipe, min(length(path)) + 1 AS upstreamDepth
+        MERGE (upstream)-[f:FEED]->(recipe)
+        ON CREATE SET f.depth = upstreamDepth, f.createdAt = $now
+        ON MATCH SET f.depth = CASE WHEN upstreamDepth < f.depth THEN upstreamDepth ELSE f.depth END
+        """)
+    void propagateFeedOnFollow(
+            @Param("followerId") UUID followerId,
+            @Param("followedId") UUID followedId,
+            @Param("now") ZonedDateTime now
+    );
+
+
+    @Query("MATCH (:User {id: $userId})-[r:FEED]->() " +
+            "WHERE r.createdAt >= $date " +
+            "RETURN count(r)")
+    long countFeedRelationshipsBefore(
+            @Param("userId") UUID id,
+            @Param("date") ZonedDateTime date
+    );
 
 
     @Query("""

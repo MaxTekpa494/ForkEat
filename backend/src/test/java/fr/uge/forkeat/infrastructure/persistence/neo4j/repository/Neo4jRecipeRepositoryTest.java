@@ -422,7 +422,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
         createSuperLike(userId1, recipeId2);
 
         var interactions = recipeRepository.findUserInteractionsByRecipeIds(
-                List.of(recipeId1.toString(), recipeId2.toString()), "user1");
+                List.of(recipeId1.toString(), recipeId2.toString()), userId1.toString());
 
         assertThat(interactions).hasSize(2);
         var interaction1 = interactions.stream().filter(i -> i.recipeId().equals(recipeId1.toString())).findFirst().orElseThrow();
@@ -435,8 +435,8 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
     }
 
     @Test
-    @DisplayName("countByAuthorUsername should return correct count")
-    void countByAuthorUsernameShouldReturnCorrectCount() {
+    @DisplayName("countByAuthorId should return correct count")
+    void countByAuthorIdShouldReturnCorrectCount() {
         createUser(userId1, "author1");
         createRecipe(recipeId1);
         createRecipe(recipeId2);
@@ -452,7 +452,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
                 .bindAll(Map.of("userId", userId1.toString(), "r1", recipeId1.toString(), "r2", recipeId2.toString()))
                 .run();
 
-        long count = recipeRepository.countByAuthorUsername("author1");
+        long count = recipeRepository.countByAuthorId(userId1);
         assertThat(count).isEqualTo(2L);
     }
     @Nested
@@ -463,6 +463,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
         private static final ZonedDateTime MINUS3 = NOW.minusDays(3);
         private static final ZonedDateTime PLUS1  = NOW.plusDays(1);
 
+        private static final UUID R0 = UUID.randomUUID();
         private static final UUID R1 = UUID.randomUUID();
         private static final UUID R2 = UUID.randomUUID();
         private static final UUID R3 = UUID.randomUUID();
@@ -476,7 +477,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
                 session.executeWrite(tx -> {
 
                     tx.run("""
-                                    CREATE (me:User {username: 'alice'})
+                                    CREATE (me:User {id: $userId})
                                     CREATE (r1:Recipe {id: $r1, title: 'Soupe', createdAt: $t1})
                                     CREATE (r2:Recipe {id: $r2, title: 'Tarte', createdAt: $t2})
                                     CREATE (r3:Recipe {id: $r3, title: 'Cake',  createdAt: $t3})
@@ -487,6 +488,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
                                     CREATE (me)-[:FEED {depth: 1, createdAt: $fAt}]->(r4)
                                     """,
                             Map.ofEntries(
+                                    Map.entry("userId", R0.toString()),
                                     Map.entry("r1", R1.toString()),
                                     Map.entry("r2", R2.toString()),
                                     Map.entry("r3", R3.toString()),
@@ -512,7 +514,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
         @DisplayName("Retourne les recettes dont la relation FEED est dans la fenêtre temporelle")
         void nominal_returnsMatchingRecipes() {
             List<RecipeNode> feed = recipeRepository.getFeed(
-                    "alice", 0, 10, MINUS3, PLUS1
+                    R0, 0, 10, MINUS3, PLUS1
             );
 
             assertThat(feed).hasSize(3);
@@ -524,7 +526,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
         @DisplayName("Retourne une liste vide si aucune relation FEED n'existe pour cet user")
         void unknownUser_returnsEmpty() {
             List<RecipeNode> feed = recipeRepository.getFeed(
-                    "nobody", 0, 10, MINUS3, PLUS1
+                    UUID.randomUUID(), 0, 10, MINUS3, PLUS1
             );
 
             assertThat(feed).isEmpty();
@@ -540,7 +542,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
             @DisplayName("L'offset saute les N premiers résultats")
             void withOffset_skipsItems() {
                 List<RecipeNode> feed = recipeRepository.getFeed(
-                        "alice", 1, 10, MINUS3, PLUS1
+                        R0, 1, 10, MINUS3, PLUS1
                 );
 
                 assertThat(feed).hasSize(2);
@@ -550,7 +552,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
             @DisplayName("Limit borne correctement le nombre de résultats")
             void withLimit_truncatesResults() {
                 List<RecipeNode> feed = recipeRepository.getFeed(
-                        "alice", 0, 1, MINUS3, PLUS1
+                        R0, 0, 1, MINUS3, PLUS1
                 );
 
                 assertThat(feed).hasSize(1);
@@ -560,7 +562,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
             @DisplayName("offset >= total résultats retourne une liste vide")
             void offsetBeyondResults_returnsEmpty() {
                 List<RecipeNode> feed = recipeRepository.getFeed(
-                        "alice", 99, 10, MINUS3, PLUS1
+                        UUID.randomUUID(), 99, 10, MINUS3, PLUS1
                 );
 
                 assertThat(feed).isEmpty();
@@ -577,7 +579,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
             @DisplayName("sinceTime exclut les relations FEED trop anciennes")
             void sinceTime_excludesOldFeedRelations() {
                 List<RecipeNode> feed = recipeRepository.getFeed(
-                        "alice", 0, 10,
+                        UUID.randomUUID(), 0, 10,
                         NOW.minusDays(2),
                         PLUS1
                 );
@@ -590,7 +592,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
             @DisplayName("beforeTime exclut les relations FEED trop récentes")
             void beforeTime_excludesRecentFeedRelations() {
                 List<RecipeNode> feed = recipeRepository.getFeed(
-                        "alice", 0, 10,
+                        UUID.randomUUID(), 0, 10,
                         MINUS3,
                         NOW.minusDays(2)
                 );
@@ -604,7 +606,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
                 ZonedDateTime point = NOW.minusSeconds(1);
 
                 List<RecipeNode> feed = recipeRepository.getFeed(
-                        "alice", 0, 10, point, point
+                        UUID.randomUUID(), 0, 10, point, point
                 );
 
                 assertThat(feed).isEmpty();
@@ -621,7 +623,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
             @DisplayName("Les recettes de depth 1 précèdent celles de depth 2")
             void depthAsc_shallowerFirst() {
                 List<RecipeNode> feed = recipeRepository.getFeed(
-                        "alice", 0, 10, MINUS3, PLUS1
+                        R0, 0, 10, MINUS3, PLUS1
                 );
 
                 List<UUID> ids = feed.stream().map(RecipeNode::getId).toList();
@@ -632,7 +634,7 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
             @DisplayName("À depth égal, la recette la plus récente est en tête")
             void sameDepth_newestRecipeFirst() {
                 List<RecipeNode> feed = recipeRepository.getFeed(
-                        "alice", 0, 10, MINUS3, PLUS1
+                        R0, 0, 10, MINUS3, PLUS1
                 );
 
                 List<UUID> ids = feed.stream().map(RecipeNode::getId).toList();

@@ -331,9 +331,13 @@ class RecipeFormViewModel(
                         resultRecipeId = response.body()?.resource?.id
                     )
                 } else {
+                    val message = when (response.code()) {
+                        403 -> "Vous devez confirmer votre adresse email pour créer une recette."
+                        else -> "Erreur (${response.code()})"
+                    }
                     _uiState.value = _uiState.value.copy(
                         isSubmitting = false,
-                        errorMessage = "Erreur (${response.code()})"
+                        errorMessage = message
                     )
                 }
             } catch (e: Exception) {

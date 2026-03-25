@@ -81,6 +81,7 @@ public class UserService {
         var followerId = userPersistence.findIdByUsernameOrThrow(followerUsername);
         var followedId = userPersistence.findIdByUsernameOrThrow(followedUsername);
         userPersistence.follow(followerId, followedId);
+        this.recipePersistence.updateFeed(followerId, followedId);
     }
 
     @Transactional
