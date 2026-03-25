@@ -39,13 +39,14 @@ public class ProfileService {
         if (page < 0 || size <= 0) {
             throw new IllegalArgumentException("Invalid page or size");
         }
-        var publicProfile = userPersistence.findPublicProfile(username);
-        var socialStats = userPersistence.findUserSocialStats(username);
+        var targetUserId = userPersistence.findIdByUsernameOrThrow(username);
+        var currentUserId = userPersistence.findIdByUsernameOrThrow(currentUsername);
+        var publicProfile = userPersistence.findPublicProfile(targetUserId);
+        var socialStats = userPersistence.findUserSocialStats(targetUserId);
         var profile = new UserProfile(publicProfile, socialStats);
         var summaries = recipePersistence.findUserRecipeSummaries(username, RecipeStatus.PUBLISHED, size, page);
         var ids = summaries.items().stream().map(RecipeSummary::id).toList();
         var countsMap = recipePersistence.findRecipeCounts(ids);
-        var currentUserId = userPersistence.findIdByUsernameOrThrow(currentUsername);
         var interactions = recipePersistence.findUserRecipeInteractions(ids, currentUserId);
         var personalized = summaries.items().stream()
                 .map(s -> {
@@ -56,7 +57,7 @@ public class ProfileService {
                 .toList();
         var recipes = new PageResult<>(personalized, summaries.total());
         var profileWithRecipes = new UserProfileWithRecipes(profile, recipes);
-        var followedByCurrentUser = userPersistence.isFollowing(currentUsername, username);
+        var followedByCurrentUser = userPersistence.isFollowing(currentUserId, targetUserId);
         return new PersonalizedUserProfile(profileWithRecipes, followedByCurrentUser);
     }
 
@@ -64,9 +65,9 @@ public class ProfileService {
         Objects.requireNonNull(username);
         var user = userPersistence.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
-        var socialStats = userPersistence.findUserSocialStats(username);
+        var socialStats = userPersistence.findUserSocialStats(user.id());
         var balance = walletService.getBalance(user.id());
-        var recipeCount = recipePersistence.countByAuthorUsername(username);
+        var recipeCount = recipePersistence.countByAuthorId(user.id());
         return new UserAccountDetails(user, socialStats, balance, recipeCount);
     }
 }

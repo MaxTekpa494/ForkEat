@@ -51,10 +51,10 @@ public interface Neo4jUserRepository extends Neo4jRepository<UserNode, UUID> {
     long countTotalSuperLikesReceived(@Param("userId") UUID userId);
 
     @Query("""
-            RETURN EXISTS((:User {username: $followerUsername})-[:FOLLOWS]->(:User {username: $followedUsername}))
+            RETURN EXISTS((:User {id: $followerId})-[:FOLLOWS]->(:User {id: $followedId}))
             """)
-    boolean isFollowing(@Param("followerUsername") String followerUsername,
-                        @Param("followedUsername") String followedUsername);
+    boolean isFollowing(@Param("followerId") UUID followerId,
+                        @Param("followedId") UUID followedId);
 
     @Query("""
             MATCH (follower:User {id: $followerId})

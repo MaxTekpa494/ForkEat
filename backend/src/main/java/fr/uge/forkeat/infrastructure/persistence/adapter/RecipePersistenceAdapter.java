@@ -139,14 +139,6 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public List<Recipe> findByAuthorUsername(String authorUsername) {
-        return recipeRepository.findByAuthorUsername(authorUsername)
-                .stream()
-                .map(RecipeEntityMapper::toDomain)
-                .toList();
-    }
-
-    @Override
     public List<Allergen> findAllAllergens() {
         return allergenRepository.findAll().stream()
                 .map(RecipeEntityMapper::toDomain)
@@ -170,7 +162,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     @Override
     public List<String> findAllDietaryNames() {
         return dietaryRepository.findAll().stream()
-                .map(d -> d.getName())
+                .map(DietaryEntity::getName)
                 .sorted()
                 .toList();
     }
@@ -400,9 +392,9 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     }
 
     @Override
-    public long countByAuthorUsername(String username) {
-        Objects.requireNonNull(username);
-        return neo4jRecipeRepository.countByAuthorUsername(username);
+    public long countByAuthorId(UUID authorId) {
+        Objects.requireNonNull(authorId);
+        return neo4jRecipeRepository.countByAuthorId(authorId);
     }
 
     @Override
