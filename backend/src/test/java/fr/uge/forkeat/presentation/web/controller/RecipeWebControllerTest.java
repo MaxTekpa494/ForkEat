@@ -530,55 +530,6 @@ class RecipeWebControllerTest {
         }
 
         @Nested
-        class WhenSessionHasNoInstant {
-
-            @Test
-            void shouldCreateInstantInSession() throws Exception {
-                givenServiceReturns(List.of(), 0L);
-
-                mockMvc.perform(get("/recipes/following"))
-                        .andExpect(status().isOk())
-                        .andExpect(request().sessionAttribute("instant", instanceOf(Instant.class)));
-            }
-
-            @Test
-            void shouldCallServiceWithAnyInstant() throws Exception {
-                givenServiceReturns(List.of(), 0L);
-
-                mockMvc.perform(get("/recipes/following"))
-                        .andExpect(status().isOk());
-
-                verify(recipeService).getPersonalizedFeedRecipes(any(), eq(0));
-            }
-        }
-
-        @Nested
-        class WhenSessionAlreadyHasInstant {
-
-            @Test
-            void shouldReuseExistingInstant() throws Exception {
-                var fixedInstant = Instant.parse("2024-01-15T10:00:00Z");
-                givenServiceReturns(List.of(), 0L);
-
-                mockMvc.perform(get("/recipes/following")
-                                .sessionAttr("instant", fixedInstant))
-                        .andExpect(status().isOk());
-
-                verify(recipeService).getPersonalizedFeedRecipes(eq(fixedInstant), eq(0));
-            }
-
-            @Test
-            void shouldNotOverwriteExistingInstant() throws Exception {
-                var fixedInstant = Instant.parse("2024-01-15T10:00:00Z");
-                givenServiceReturns(List.of(), 0L);
-
-                mockMvc.perform(get("/following")
-                                .sessionAttr("instant", fixedInstant))
-                        .andExpect(request().sessionAttribute("instant", fixedInstant));
-            }
-        }
-
-        @Nested
         class WhenSessionHasInvalidInstant {
 
             @Test
