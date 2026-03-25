@@ -155,17 +155,7 @@ public class RecipeWebController {
     public String listRecipesFollowing(@RequestParam(defaultValue = "0") int page, HttpSession session, Model model) {
         model.addAttribute("authenticated", true);
         model.addAttribute("isFollowing", true);
-        if(session.getAttribute("instant") == null){
-            session.setAttribute("instant", Instant.now());
-        }
-        var attributeRaw = session.getAttribute("instant");
-        Instant attribute;
-        if(attributeRaw instanceof Instant) {
-            attribute = (Instant) attributeRaw;
-        }else {
-            attribute = Instant.now();
-        }
-        var pageResult = recipeService.getPersonalizedFeedRecipes(attribute, page);
+        var pageResult = recipeService.getPersonalizedFeedRecipes(Instant.now(), page);
         var recipes = pageResult.items().stream()
                 .map(RecipeDTOMapper::toSummaryDTO)
                 .toList();
