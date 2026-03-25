@@ -58,6 +58,8 @@ public interface UserPersistence extends UserIdentityPort {
 
 	PageResult<User> findAllByRole(UserRole role);
 
+	PageResult<User> searchByRoleAndQuery(UserRole role, String query);
+
 	long countByRole(UserRole role);
 
 	/** Emails de tous les membres actifs avec email vérifié (pour les notifications de promotion). */
