@@ -31,6 +31,16 @@ public interface UserRepository extends JpaRepository<UserEntity, UUID> {
     @Query("SELECT u.id FROM UserEntity u WHERE u.username = :username")
     Optional<UUID> findIdByUsername(@org.springframework.data.repository.query.Param("username") String username);
 
+    @Query("SELECT u FROM UserEntity u WHERE u.role = :role AND (" +
+           "LOWER(u.username) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(u.email) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(u.firstName) LIKE LOWER(CONCAT('%', :query, '%')) OR " +
+           "LOWER(u.lastName) LIKE LOWER(CONCAT('%', :query, '%')))")
+    Page<UserEntity> searchByRoleAndQuery(
+            @org.springframework.data.repository.query.Param("role") UserRole role,
+            @org.springframework.data.repository.query.Param("query") String query,
+            Pageable pageable);
+
     /** Emails de tous les membres actifs avec email vérifié (pour les notifications de promotion). */
     @Query("SELECT u.email FROM UserEntity u WHERE u.status = :status AND u.emailVerified = true AND u.role = :role")
     List<String> findEmailsByStatusAndRole(@org.springframework.data.repository.query.Param("status") UserStatus status,

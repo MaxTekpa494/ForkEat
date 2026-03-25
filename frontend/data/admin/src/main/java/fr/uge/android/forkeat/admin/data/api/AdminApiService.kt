@@ -53,7 +53,10 @@ interface AdminApiService {
     suspend fun getAdmins(): Response<AdminUsersListResponse>
 
     @GET("api/admin/users")
-    suspend fun getMembers(): Response<AdminUsersListResponse>
+    suspend fun getMembers(@Query("query") query: String = ""): Response<AdminUsersListResponse>
+
+    @POST("api/admin/users/{username}/promote-moderator")
+    suspend fun promoteToModerator(@Path("username") username: String): Response<UserDTO>
 
     @GET("api/admin/moderators")
     suspend fun getModerators(): Response<AdminUsersListResponse>
