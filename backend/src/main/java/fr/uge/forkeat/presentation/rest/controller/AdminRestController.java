@@ -22,6 +22,7 @@ import fr.uge.forkeat.service.model.wallet.PlatformWalletType;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.user.UserRegistrationService;
 
+import java.time.YearMonth;
 import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
@@ -134,6 +135,14 @@ public class AdminRestController {
                         t.id(), t.walletType().name(), t.amountCents(), t.reason(), t.referenceId(), t.createdAt()))
                 .toList();
         return ResponseEntity.ok(transactions);
+    }
+
+    @PostMapping("/redistribution/trigger")
+    public ResponseEntity<Void> triggerRedistribution() {
+        var batchMonth = YearMonth.now().minusMonths(1).toString();
+        logger.info("POST /api/admin/redistribution/trigger — batchMonth={}", batchMonth);
+        redistributionService.processAllPending(batchMonth);
+        return ResponseEntity.ok().build();
     }
 
     @GetMapping("/redistribution")

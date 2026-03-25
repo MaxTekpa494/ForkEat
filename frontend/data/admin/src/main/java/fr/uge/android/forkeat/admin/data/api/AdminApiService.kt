@@ -87,6 +87,11 @@ interface AdminApiService {
     @DELETE("api/admin/promotions/{id}")
     suspend fun cancelPromotion(@Path("id") id: String): Response<Void>
 
+    // ── Redistribution ───────────────────────────────────────────────────────
+
+    @POST("api/admin/redistribution/trigger")
+    suspend fun triggerRedistribution(): Response<Void>
+
     // ── Super-Like Config ─────────────────────────────────────────────────────
 
     @GET("api/admin/super-like/config")

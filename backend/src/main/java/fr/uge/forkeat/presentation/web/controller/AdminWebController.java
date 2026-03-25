@@ -22,9 +22,11 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.servlet.mvc.support.RedirectAttributes;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 import java.time.ZoneId;
 import java.util.List;
 import java.util.Objects;
@@ -148,6 +150,14 @@ public class AdminWebController {
             model.addAttribute("pageTitle", "Créer un compte admin - ForkEat");
             return "admin/create-admin";
         }
+    }
+
+    @PostMapping("/redistribution/trigger")
+    public String triggerRedistribution(RedirectAttributes redirectAttributes) {
+        var batchMonth = YearMonth.now().minusMonths(1).toString();
+        redistributionService.processAllPending(batchMonth);
+        redirectAttributes.addFlashAttribute("redistributionSuccess", true);
+        return "redirect:/admin/wallets";
     }
 
     @GetMapping("/redistribution/chain")

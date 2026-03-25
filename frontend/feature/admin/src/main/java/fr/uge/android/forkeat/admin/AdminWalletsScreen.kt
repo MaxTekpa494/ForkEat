@@ -18,19 +18,29 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.History
 import androidx.compose.material.icons.filled.PersonOff
+import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.TrendingUp
 import androidx.compose.material.icons.filled.Wallet
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
@@ -58,6 +68,31 @@ fun AdminWalletsScreen(
     viewModel: AdminWalletsViewModel = viewModel()
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    var showConfirmDialog by remember { mutableStateOf(false) }
+
+    if (showConfirmDialog) {
+        AlertDialog(
+            onDismissRequest = { showConfirmDialog = false },
+            title = { Text("Lancer la redistribution") },
+            text = { Text("Déclencher manuellement la redistribution ?") },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showConfirmDialog = false
+                        viewModel.triggerRedistribution()
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = AdminPurple800)
+                ) {
+                    Text("Confirmer")
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showConfirmDialog = false }) {
+                    Text("Annuler")
+                }
+            }
+        )
+    }
 
     AdminScaffold(
         currentRoute = currentRoute,
@@ -109,6 +144,38 @@ fun AdminWalletsScreen(
                     }
                 }
 
+                if (uiState.redistributionSuccess) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .background(Color(0xFFDCFCE7), RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("Redistribution lancée avec succès.", color = Color(0xFF16A34A), fontSize = 13.sp, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { viewModel.dismissRedistributionFeedback() }) {
+                            Text("OK", color = Color(0xFF16A34A), fontSize = 12.sp)
+                        }
+                    }
+                }
+
+                if (uiState.redistributionError != null) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp, vertical = 8.dp)
+                            .background(Color(0xFFFEF2F2), RoundedCornerShape(12.dp))
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(uiState.redistributionError!!, color = Color(0xFFDC2626), fontSize = 13.sp, modifier = Modifier.weight(1f))
+                        TextButton(onClick = { viewModel.dismissRedistributionFeedback() }) {
+                            Text("OK", color = Color(0xFFDC2626), fontSize = 12.sp)
+                        }
+                    }
+                }
+
                 Spacer(Modifier.height(16.dp))
 
                 // Wallet EARNINGS
@@ -140,6 +207,29 @@ fun AdminWalletsScreen(
                         .fillMaxWidth()
                         .padding(horizontal = 16.dp)
                 )
+
+                Spacer(Modifier.height(16.dp))
+
+                // Bouton redistribution
+                OutlinedButton(
+                    onClick = { showConfirmDialog = true },
+                    enabled = !uiState.redistributionTriggering,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(14.dp),
+                    colors = ButtonDefaults.outlinedButtonColors(contentColor = AdminPurple800)
+                ) {
+                    if (uiState.redistributionTriggering) {
+                        CircularProgressIndicator(modifier = Modifier.size(16.dp), strokeWidth = 2.dp, color = AdminPurple800)
+                        Spacer(Modifier.width(8.dp))
+                        Text("Redistribution en cours…", fontSize = 14.sp)
+                    } else {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Lancer la redistribution", fontSize = 14.sp, fontWeight = FontWeight.SemiBold)
+                    }
+                }
 
                 Spacer(Modifier.height(16.dp))
 
