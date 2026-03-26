@@ -66,6 +66,7 @@ fun ForgotPasswordScreen(
     LaunchedEffect(uiState.isSuccess) {
         if (uiState.isSuccess) {
             onAskingSuccess()
+            viewModel.resetSuccess()
         }
     }
 

@@ -2,6 +2,7 @@ package fr.uge.android.forkeat.home
 
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import fr.uge.android.forkeat.network.ForkEatApi
@@ -15,6 +16,7 @@ data class ForgotPasswordUiState(
     val isLoading: Boolean = false,
     val errorMessage: String? = null,
     val isSuccess: Boolean = false,
+    val requiresCode: Boolean = true
 )
 
 class ForgotPasswordViewModel(application: Application) : AndroidViewModel(application) {
@@ -28,10 +30,22 @@ class ForgotPasswordViewModel(application: Application) : AndroidViewModel(appli
 
         viewModelScope.launch {
             try {
+
                 MailForPasswordForgot.email = email
                 val response = ForkEatApi.authService.askForgottenPassword(ForgottenPasswordRequest(email))
                 if (response.isSuccessful) {
-                    _uiState.value = ForgotPasswordUiState(isSuccess = true)
+                    val statusDto = response.body()
+                    if (statusDto != null) {
+                        Log.d("ForgotPasswordViewModel", "Response: $statusDto")
+                        _uiState.value = ForgotPasswordUiState(
+                            isSuccess = true,
+                            requiresCode = statusDto.resource.requiresCode
+                        )
+                    } else {
+                        _uiState.value = ForgotPasswordUiState(
+                            errorMessage = "Erreur lors du traitement de la réponse"
+                        )
+                    }
                 } else {
                     _uiState.value = ForgotPasswordUiState(
                         errorMessage = "Email inexistant"
@@ -80,5 +94,8 @@ class ForgotPasswordViewModel(application: Application) : AndroidViewModel(appli
     }
     fun clearError() {
         _uiState.value = _uiState.value.copy(errorMessage = null)
+    }
+    fun resetSuccess() {
+        _uiState.value = _uiState.value.copy(isSuccess = false)
     }
 }

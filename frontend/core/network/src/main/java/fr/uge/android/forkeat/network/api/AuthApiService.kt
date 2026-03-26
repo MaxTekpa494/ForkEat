@@ -1,5 +1,6 @@
 package fr.uge.android.forkeat.network.api
 
+import fr.uge.android.forkeat.network.dto.ForgotPasswordStatusDTO
 import fr.uge.android.forkeat.network.dto.ForgottenPasswordCodeRequest
 import fr.uge.android.forkeat.network.dto.ForgottenPasswordRequest
 import fr.uge.android.forkeat.network.dto.GoogleLoginRequest
@@ -21,10 +22,10 @@ interface AuthApiService {
     suspend fun register(@Body request: RegisterRequest): Response<Unit>
 
     @POST("api/auth/forgot-password")
-    suspend fun askForgottenPassword(@Body request: ForgottenPasswordRequest): Response<Unit>
+    suspend fun askForgottenPassword(@Body request: ForgottenPasswordRequest): Response<ForgotPasswordStatusDTO>
 
     @POST("api/auth/forgot-password/confirm-code")
-     suspend fun sendForgottenPasswordCode(@Body request: ForgottenPasswordCodeRequest): Response<Unit>
+    suspend fun sendForgottenPasswordCode(@Body request: ForgottenPasswordCodeRequest): Response<Unit>
 
     @POST("api/auth/google-login")
     suspend fun loginWithGoogle(@Body request: GoogleLoginRequest): Response<LoginApiResponse>
