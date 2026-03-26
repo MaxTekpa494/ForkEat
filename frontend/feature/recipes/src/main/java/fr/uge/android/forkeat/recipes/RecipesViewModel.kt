@@ -3,7 +3,6 @@ package fr.uge.android.forkeat.recipes
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import fr.uge.android.forkeat.network.ForkEatApi
 import fr.uge.android.forkeat.network.TokenManager
 import fr.uge.android.forkeat.promotions.data.api.PromotionApi
 import fr.uge.android.forkeat.promotions.data.dto.PromotionDTO
@@ -11,7 +10,6 @@ import fr.uge.android.forkeat.recipes.data.api.RecipeApi
 import fr.uge.android.forkeat.recipes.data.api.RecipeApiService
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
-import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDiffDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeReportRequestDTO
@@ -31,10 +29,6 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
 
     private val _superLikeBasePriceCents = MutableStateFlow<Long?>(null)
     val superLikeBasePriceCents: StateFlow<Long?> = _superLikeBasePriceCents.asStateFlow()
-
-
-
-    private val tokenManager = TokenManager(application)
 
     private val _recipes = MutableStateFlow<List<PersonalizedRecipeSummaryDTO>>(emptyList())
     val recipes: StateFlow<List<PersonalizedRecipeSummaryDTO>> = _recipes.asStateFlow()
@@ -147,8 +141,7 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             updateRecipeStates(recipeId, liked = true)
             try {
-                val token = tokenManager.getToken() ?: ""
-                val response = api.likeRecipe(token = token, id = recipeId)
+                val response = api.likeRecipe(id = recipeId)
                 if (!response.isSuccessful) {
                     updateRecipeStates(recipeId, liked = false)
                     handleError(response.code())
@@ -164,8 +157,7 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             updateRecipeStates(recipeId, liked = false)
             try {
-                val token = tokenManager.getToken() ?: ""
-                val response = api.unlikeRecipe(token = token, id = recipeId)
+                val response = api.unlikeRecipe(id = recipeId)
                 if (!response.isSuccessful) {
                     updateRecipeStates(recipeId, liked = true)
                     handleError(response.code())
@@ -203,8 +195,7 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             updateFollowStates(recipeId, followed = true)
             try {
-                val token = tokenManager.getToken() ?: ""
-                val response = api.followRecipe(token = token, id = recipeId)
+                val response = api.followRecipe(id = recipeId)
                 if (!response.isSuccessful) {
                     updateFollowStates(recipeId, followed = false)
                     handleError(response.code())
@@ -220,8 +211,7 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
         viewModelScope.launch {
             updateFollowStates(recipeId, followed = false)
             try {
-                val token = tokenManager.getToken() ?: ""
-                val response = api.unfollowRecipe(token = token, id = recipeId)
+                val response = api.unfollowRecipe(id = recipeId)
                 if (!response.isSuccessful) {
                     updateFollowStates(recipeId, followed = true)
                     handleError(response.code())
@@ -255,10 +245,7 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     fun superLikeRecipe(recipeId: UUID){
         viewModelScope.launch {
             try {
-                val response = api.superLikeRecipe(
-                    token = tokenManager.getToken().toString(),
-                    id = recipeId
-                )
+                val response = api.superLikeRecipe(id = recipeId)
                 if (response.isSuccessful) {
                     _currentRecipe.value?.let { current ->
                         if (current.id == recipeId && !current.hasSuperLiked) {
@@ -279,7 +266,7 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
                 } else {
                     handleError(response.code())
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _errorMessage.value = "Le serveur est indisponible, veuillez réessayer plus tard."
             }
         }
@@ -288,9 +275,7 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     fun reportRecipe(recipeId: UUID, reportType: String, justification: String) {
         viewModelScope.launch {
             try {
-                val token = tokenManager.getToken() ?: return@launch
                 val response = api.reportRecipe(
-                    token = token,
                     id = recipeId,
                     request = RecipeReportRequestDTO(reportType, justification)
                 )
@@ -310,12 +295,10 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
             _isLoading.value = true
             _errorMessage.value = null
             try {
-                val token = tokenManager.getToken()
                 val search = _searchQuery.value.ifBlank { null }
                 val allergens = _selectedAllergens.value.toList().ifEmpty { null }
 
                 val response = api.getRecipes(
-                    token = token,
                     page = page,
                     size = size,
                     search = search,
@@ -366,8 +349,7 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
             _currentRecipe.value = null
             _currentDiff.value = null
             try {
-                val token = tokenManager.getToken()
-                val response = api.getRecipeWithId(token = token, id = id)
+                val response = api.getRecipeWithId(id = id)
                 if (response.isSuccessful) {
                     val data = response.body()?.resource
                     _currentRecipe.value = data?.recipe
