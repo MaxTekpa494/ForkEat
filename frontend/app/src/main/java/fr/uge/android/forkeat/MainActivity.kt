@@ -63,6 +63,7 @@ import fr.uge.android.forkeat.admin.AdminWalletsScreen
 import fr.uge.android.forkeat.designsystem.theme.ForkEatTheme
 import fr.uge.android.forkeat.home.ForgotPasswordCodeScreen
 import fr.uge.android.forkeat.home.ForgotPasswordScreen
+import fr.uge.android.forkeat.home.ForgotPasswordViewModel
 import fr.uge.android.forkeat.home.ForkEatScaffold
 import fr.uge.android.forkeat.home.HomeScreen
 import fr.uge.android.forkeat.home.LoginScreen
@@ -149,6 +150,7 @@ class MainActivity : ComponentActivity() {
         val recipesViewModel: RecipesViewModel = viewModel()
         val smartSearchViewModel: SmartSearchViewModel = viewModel()
         val activePromotion by recipesViewModel.activePromotion.collectAsState()
+        val forgotPasswordViewModel : ForgotPasswordViewModel = viewModel()
 
         // ── Bannière in-app promotion ─────────────────────────────────────
         var inAppBanner by remember { mutableStateOf<PromotionEventBus.Event?>(null) }
@@ -290,13 +292,15 @@ class MainActivity : ComponentActivity() {
             composable("forgot-password") {
               ForgotPasswordScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onAskingSuccess = { navController.navigate("forgot-password-code") }
+                onAskingSuccess = { navController.navigate("forgot-password-code") },
+                viewModel = forgotPasswordViewModel
               )
             }
             composable("forgot-password-code") {
               ForgotPasswordCodeScreen(
                 onNavigateBack = { navController.popBackStack() },
-                onCodeSuccess = { navController.navigate("login") }
+                onCodeSuccess = { navController.navigate("login") },
+                viewModel = forgotPasswordViewModel
               )
             }
             composable("new-user-login") {

@@ -1,5 +1,6 @@
 package fr.uge.android.forkeat.home
 
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -115,7 +116,10 @@ fun ForgotPasswordCodeScreen(
 
             // Header
             Text(
-                text = "Nous vous avons envoyez un mail",
+                text = if (!uiState.requiresCode)
+                    "Définissez un nouveau mot de passe"
+                else
+                    "Nous vous avons envoyé un mail",
                 fontSize = 28.sp,
                 fontWeight = FontWeight.Bold,
                 color = Secondary900,
@@ -123,7 +127,10 @@ fun ForgotPasswordCodeScreen(
 
             Spacer(Modifier.height(8.dp))
             Text(
-                text = "Rentrez le code reçu par mail et votre nouveau mot de passe",
+                text = if (!uiState.requiresCode)
+                    "Votre email n'est pas vérifié. Entrez votre nouveau mot de passe et confirmez-le pour réinitialiser votre mot de passe."
+                else
+                    "Entrez le code reçu par mail et votre nouveau mot de passe",
                 fontSize = 14.sp,
                 color = Gray500,
             )
@@ -152,16 +159,16 @@ fun ForgotPasswordCodeScreen(
 
             Spacer(Modifier.height(32.dp))
 
-            // Code input
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth(),
-            ) {
-                HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFD1D5DB))
-                CodeTextFieldFullWidth(onCodeChange = { input -> code = input })
+            if (uiState.requiresCode) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth(),
+                ) {
+                    HorizontalDivider(modifier = Modifier.weight(1f), color = Color(0xFFD1D5DB))
+                    CodeTextFieldFullWidth(onCodeChange = { input -> code = input })
+                }
+                Spacer(Modifier.height(24.dp))
             }
-
-            Spacer(Modifier.height(24.dp))
 
             Text(
                 text = "Nouveau mot de passe",
@@ -260,10 +267,20 @@ fun ForgotPasswordCodeScreen(
 
             // Submit button
             Button(
-                onClick = { viewModel.sendCodeForgotPassword(code, password, confirmPassword) },
+                onClick = {
+                    if (!uiState.requiresCode) {
+                        viewModel.sendCodeForgotPassword("", password, confirmPassword)
+                    } else {
+                        viewModel.sendCodeForgotPassword(code, password, confirmPassword)
+                    }
+                },
                 modifier = Modifier.fillMaxWidth(),
                 shape = RoundedCornerShape(50),
-                enabled = code.length == 6 && password.isNotBlank() && confirmPassword.isNotBlank(),
+                enabled = (
+                    (!uiState.requiresCode || code.length == 6)
+                    && password.isNotBlank()
+                    && confirmPassword.isNotBlank()
+                ),
                 colors = ButtonDefaults.buttonColors(
                     containerColor = Primary500,
                     contentColor = Color.White,
