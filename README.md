@@ -10,6 +10,10 @@ Membres du groupe :
 - Thierno Sy : thierno.sy@edu.univ-eiffel.fr
 - Adel Ziani : adel.ziani@edu.univ.eiffel.fr
 
+## Version en production
+
+L'application est déployée et accessible à l'adresse suivant : https://forkeat.app
+
 ## Lancement du projet en local :
 
 1. Clonez le projet.
