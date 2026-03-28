@@ -8,7 +8,6 @@ import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
-import retrofit2.http.Header
 import retrofit2.http.POST
 import retrofit2.http.PUT
 import retrofit2.http.Path
@@ -33,19 +32,16 @@ interface ProfileApiService {
 
     @PUT("api/profile/{username}/follow")
     suspend fun followUser(
-        @Header("Authorization") token: String,
         @Path("username") username: String
     ): Response<Unit>
 
     @DELETE("api/profile/{username}/follow")
     suspend fun unfollowUser(
-        @Header("Authorization") token: String,
         @Path("username") username: String
     ): Response<Unit>
 
     @POST("api/profile/{username}/reports")
     suspend fun reportUser(
-        @Header("Authorization") token: String,
         @Path("username") username: String,
         @Body request: UserReportRequestDTO
     ): Response<Unit>

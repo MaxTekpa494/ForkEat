@@ -1,25 +1,23 @@
 package fr.uge.android.forkeat.recipes.data.api
 
 import fr.uge.android.forkeat.network.ForkEatApi
-import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
-import fr.uge.android.forkeat.recipes.data.dto.SuperLikePriceResponse
+import fr.uge.android.forkeat.recipes.data.dto.AuthorRecipesResponse
 import fr.uge.android.forkeat.recipes.data.dto.CreateRecipeFormDataResponse
 import fr.uge.android.forkeat.recipes.data.dto.PersonalizedRecipeSummaryDTO
-import fr.uge.android.forkeat.recipes.data.dto.AuthorRecipesResponse
-import fr.uge.android.forkeat.recipes.data.dto.RecipeDTO
+import fr.uge.android.forkeat.recipes.data.dto.RecipeAllergenDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeDetailsResponseDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipeItemResponse
 import fr.uge.android.forkeat.recipes.data.dto.RecipeReportRequestDTO
 import fr.uge.android.forkeat.recipes.data.dto.RecipesListResponse
 import fr.uge.android.forkeat.recipes.data.dto.SmartSearchConfigResponse
 import fr.uge.android.forkeat.recipes.data.dto.SmartSearchRequestDTO
+import fr.uge.android.forkeat.recipes.data.dto.SuperLikePriceResponse
 import okhttp3.MultipartBody
 import okhttp3.RequestBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.DELETE
 import retrofit2.http.GET
-import retrofit2.http.Header
 import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
@@ -38,7 +36,6 @@ interface RecipeApiService {
 
     @GET("api/recipes")
     suspend fun getRecipes(
-        @Header("Authorization") token: String?,
         @Query("status") status: String = "PUBLISHED",
         @Query("size") size: Int = 10,
         @Query("page") page: Int = 0,
@@ -48,7 +45,6 @@ interface RecipeApiService {
 
     @GET("api/recipes/{id}")
     suspend fun getRecipeWithId(
-        @Header("Authorization") token: String?,
         @Path("id") id: UUID
     ): Response<RecipeDetailsResponseDTO>
 
@@ -82,31 +78,26 @@ interface RecipeApiService {
 
     @POST("api/recipes/{id}/like")
     suspend fun likeRecipe(
-        @Header("Authorization") token: String,
         @Path("id") id: UUID
     ): Response<Unit>
 
     @POST("api/recipes/{id}/super-like")
     suspend fun superLikeRecipe(
-        @Header("Authorization") token: String,
         @Path("id") id: UUID
     ): Response<Unit>
 
     @DELETE("api/recipes/{id}/like")
     suspend fun unlikeRecipe(
-        @Header("Authorization") token: String,
         @Path("id") id: UUID
     ): Response<Unit>
 
     @PUT("api/recipes/{id}/follow")
     suspend fun followRecipe(
-        @Header("Authorization") token: String,
         @Path("id") id: UUID
     ): Response<Unit>
 
     @DELETE("api/recipes/{id}/follow")
     suspend fun unfollowRecipe(
-        @Header("Authorization") token: String,
         @Path("id") id: UUID
     ): Response<Unit>
 
@@ -115,7 +106,6 @@ interface RecipeApiService {
 
     @POST("api/recipes/{id}/reports")
     suspend fun reportRecipe(
-        @Header("Authorization") token: String,
         @Path("id") id: UUID,
         @Body request: RecipeReportRequestDTO
     ): Response<Unit>

@@ -133,8 +133,7 @@ class RecipeFormViewModel(
 
     private suspend fun prefillFromRecipe(id: UUID, isVariant: Boolean) {
         try {
-            val token = tokenManager.getToken()?.toString() ?: ""
-            val response = api.getRecipeWithId(token, id)
+            val response = api.getRecipeWithId(id)
             if (response.isSuccessful) {
                 val recipe = response.body()?.resource?.recipe ?: return
                 _uiState.value = _uiState.value.copy(

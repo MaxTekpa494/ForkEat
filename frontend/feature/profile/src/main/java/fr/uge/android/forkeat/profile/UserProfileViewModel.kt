@@ -3,7 +3,6 @@ package fr.uge.android.forkeat.profile
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import fr.uge.android.forkeat.network.TokenManager
 import fr.uge.android.forkeat.profile.data.api.ProfileApi
 import fr.uge.android.forkeat.recipes.data.api.RecipeApi
 import fr.uge.android.forkeat.profile.data.dto.UserReportRequestDTO
@@ -43,7 +42,6 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
     private val _uiState = MutableStateFlow(UserProfileUiState())
     val uiState: StateFlow<UserProfileUiState> = _uiState.asStateFlow()
 
-    private val tokenManager = TokenManager(application)
     private var targetUsername: String = ""
 
     fun dismissInsufficientFunds() {
@@ -74,9 +72,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             _uiState.value = _uiState.value.copy(showReportDialog = false)
             try {
-                val token = tokenManager.getToken() ?: ""
                 val response = profileService.reportUser(
-                    token = token,
                     username = targetUsername,
                     request = UserReportRequestDTO(reportType, justification)
                 )
@@ -84,7 +80,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
                     response.isSuccessful -> _uiState.value = _uiState.value.copy(reportSuccess = true)
                     response.code() == 409 -> _uiState.value = _uiState.value.copy(reportAlreadyDone = true)
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Silently fail
             }
         }
@@ -133,13 +129,12 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             updateRecipeInList(recipeId, liked = true)
             try {
-                val token = tokenManager.getToken() ?: ""
-                val response = recipeService.likeRecipe(token = token, id = recipeId)
+                val response = recipeService.likeRecipe(id = recipeId)
                 if (!response.isSuccessful) {
                     updateRecipeInList(recipeId, liked = false)
                     handleError(response.code())
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 updateRecipeInList(recipeId, liked = false)
             }
         }
@@ -149,13 +144,12 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             updateRecipeInList(recipeId, liked = false)
             try {
-                val token = tokenManager.getToken() ?: ""
-                val response = recipeService.unlikeRecipe(token = token, id = recipeId)
+                val response = recipeService.unlikeRecipe(id = recipeId)
                 if (!response.isSuccessful) {
                     updateRecipeInList(recipeId, liked = true)
                     handleError(response.code())
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 updateRecipeInList(recipeId, liked = true)
             }
         }
@@ -164,8 +158,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
     fun superLikeRecipe(recipeId: UUID) {
         viewModelScope.launch {
             try {
-                val token = tokenManager.getToken() ?: ""
-                val response = recipeService.superLikeRecipe(token = token, id = recipeId)
+                val response = recipeService.superLikeRecipe(id = recipeId)
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         recipes = _uiState.value.recipes.map { recipe ->
@@ -180,7 +173,7 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
                 } else {
                     handleError(response.code())
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 // Silently fail or log it
             }
         }
@@ -190,13 +183,12 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             updateFollowStates(recipeId, followed = true)
             try {
-                val token = tokenManager.getToken() ?: ""
-                val response = recipeService.followRecipe(token = token, id = recipeId)
+                val response = recipeService.followRecipe(id = recipeId)
                 if (!response.isSuccessful) {
                     updateFollowStates(recipeId, followed = false)
                     handleError(response.code())
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 updateFollowStates(recipeId, followed = false)
             }
         }
@@ -206,13 +198,12 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
         viewModelScope.launch {
             updateFollowStates(recipeId, followed = false)
             try {
-                val token = tokenManager.getToken() ?: ""
-                val response = recipeService.unfollowRecipe(token = token, id = recipeId)
+                val response = recipeService.unfollowRecipe(id = recipeId)
                 if (!response.isSuccessful) {
                     updateFollowStates(recipeId, followed = true)
                     handleError(response.code())
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 updateFollowStates(recipeId, followed = true)
             }
         }
@@ -253,15 +244,14 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
                 followerCount = _uiState.value.followerCount + 1
             )
             try {
-                val token = tokenManager.getToken() ?: ""
-                val response = profileService.followUser(token, targetUsername)
+                val response = profileService.followUser(targetUsername)
                 if (!response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         followedByCurrentUser = false,
                         followerCount = _uiState.value.followerCount - 1
                     )
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.value = _uiState.value.copy(
                     followedByCurrentUser = false,
                     followerCount = _uiState.value.followerCount - 1
@@ -277,15 +267,14 @@ class UserProfileViewModel(application: Application) : AndroidViewModel(applicat
                 followerCount = _uiState.value.followerCount - 1
             )
             try {
-                val token = tokenManager.getToken() ?: ""
-                val response = profileService.unfollowUser(token, targetUsername)
+                val response = profileService.unfollowUser(targetUsername)
                 if (!response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(
                         followedByCurrentUser = true,
                         followerCount = _uiState.value.followerCount + 1
                     )
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 _uiState.value = _uiState.value.copy(
                     followedByCurrentUser = true,
                     followerCount = _uiState.value.followerCount + 1
