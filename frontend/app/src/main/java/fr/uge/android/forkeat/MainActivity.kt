@@ -1,10 +1,15 @@
 package fr.uge.android.forkeat
 
+import android.Manifest
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.result.ActivityResultLauncher
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -21,6 +26,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Button
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -39,6 +45,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import androidx.core.content.ContextCompat
 import fr.uge.android.forkeat.designsystem.theme.Primary500
 import fr.uge.android.forkeat.designsystem.theme.Secondary900
 import fr.uge.android.forkeat.designsystem.theme.SurfaceCream
@@ -102,9 +109,92 @@ fun AuthenticatedScreen(
   }
 }
 
+@Composable
+fun NotificationPermissionBanner(
+    notificationPermissionLauncher: ActivityResultLauncher<String>,
+    eventFlow: kotlinx.coroutines.flow.SharedFlow<PromotionEventBus.Event>,
+    showDenied: Boolean,
+    onDismissDenied: () -> Unit,
+    forceShow: Boolean = false
+) {
+    var showNotifPermissionBanner by remember { mutableStateOf(forceShow) }
+
+    // Collecte les événements pour afficher la bannière
+    LaunchedEffect(Unit) {
+        eventFlow.collect { event ->
+            if (event.title == "PERMISSION_REQUIRED") {
+                showNotifPermissionBanner = true
+            }
+        }
+    }
+
+    // Bannière demande de permission
+    if (showNotifPermissionBanner) {
+        AnimatedVisibility(
+            visible = showNotifPermissionBanner,
+            enter = slideInVertically() + fadeIn(),
+            exit = slideOutVertically() + fadeOut(),
+            modifier = Modifier.zIndex(2f)
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFB71C1C))
+                    .padding(16.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Activez les notifications pour recevoir les alertes de promotions.",
+                        color = Color.White,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = {
+                        // On ferme la bannière
+                        showNotifPermissionBanner = false
+                        if (android.os.Build.VERSION.SDK_INT >= 33) {
+                            notificationPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                        }
+                    }) {
+                        Text("Autoriser")
+                    }
+                }
+            }
+        }
+    }
+    // Bannière refus explicite
+    if (showDenied) {
+        AnimatedVisibility(
+            visible = showDenied,
+            enter = slideInVertically() + fadeIn(),
+            exit = slideOutVertically() + fadeOut(),
+            modifier = Modifier.zIndex(2f)
+        ) {
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .background(Color(0xFFB71C1C))
+                    .padding(16.dp)
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(
+                        "Vous avez refusé l'autorisation de notifications. Vous ne recevrez pas d'alertes de promotions.",
+                        color = Color.White,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Spacer(Modifier.width(8.dp))
+                    Button(onClick = onDismissDenied) {
+                        Text("Fermer")
+                    }
+                }
+            }
+        }
+    }
+}
+
 class MainActivity : ComponentActivity() {
   private var pendingDeepLink: String? = null
-
+  private var showNotifPermissionDeniedBanner = false
   private fun startSseService() {
     startService(Intent(this, PromotionSseService::class.java))
   }
@@ -131,6 +221,14 @@ class MainActivity : ComponentActivity() {
     handleDeepLink(intent)
     if (ForkEatApi.isLoggedIn()) startSseService()
     enableEdgeToEdge()
+
+    val notificationPermissionLauncher = registerForActivityResult(
+      ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+      if (!isGranted) {
+        showNotifPermissionDeniedBanner = true
+      }
+    }
     setContent {
       ForkEatTheme {
         val navController = rememberNavController()
@@ -154,15 +252,41 @@ class MainActivity : ComponentActivity() {
 
         // ── Bannière in-app promotion ─────────────────────────────────────
         var inAppBanner by remember { mutableStateOf<PromotionEventBus.Event?>(null) }
+
         LaunchedEffect(Unit) {
           PromotionEventBus.events.collect { event ->
-            // Resynchronise l'état local avec l'API (promo active ou null si expirée)
-            recipesViewModel.loadActivePromotion()
-            inAppBanner = event
-            delay(5_000L)
-            inAppBanner = null
+            if (event.title == "PERMISSION_REQUIRED") {
+              showNotifPermissionDeniedBanner = true
+            } else {
+              recipesViewModel.loadActivePromotion()
+              inAppBanner = event
+              delay(5_000L)
+              inAppBanner = null
+            }
           }
         }
+
+        var deniedBanner by remember { mutableStateOf(false) }
+        // Synchronise l'état entre l'Activity et le composable
+        LaunchedEffect(showNotifPermissionDeniedBanner) {
+          deniedBanner = showNotifPermissionDeniedBanner
+          showNotifPermissionDeniedBanner = false
+        }
+        // Ajout : vérification permission au démarrage
+        val shouldAskNotificationPermission = remember {
+          Build.VERSION.SDK_INT >= 33 &&
+            ContextCompat.checkSelfPermission(
+              this@MainActivity,
+              Manifest.permission.POST_NOTIFICATIONS
+            ) != PackageManager.PERMISSION_GRANTED
+        }
+        NotificationPermissionBanner(
+          notificationPermissionLauncher = notificationPermissionLauncher,
+          eventFlow = PromotionEventBus.events,
+          showDenied = deniedBanner,
+          onDismissDenied = { deniedBanner = false },
+          forceShow = shouldAskNotificationPermission
+        )
 
         var showWelcomeOnLaunch by remember { mutableStateOf(!isLoggedIn) }
 
@@ -442,7 +566,7 @@ class MainActivity : ComponentActivity() {
 
               when (val r = recipe) {
                 null -> Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                  CircularProgressIndicator(color = fr.uge.android.forkeat.designsystem.theme.Primary500)
+                  CircularProgressIndicator(color = Primary500)
                 }
 
                 else -> RecipeDetailScreen(

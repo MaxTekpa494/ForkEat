@@ -25,6 +25,7 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import android.util.Log
 
 class PromotionSseService : Service() {
 
@@ -57,6 +58,8 @@ class PromotionSseService : Service() {
     override fun onDestroy() {
         scope.cancel()
         sseClient.dispatcher.executorService.shutdown()
+        // Annule la notification d'erreur de connexion si présente
+        getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID_SERVICE + 1)
         super.onDestroy()
     }
 
@@ -66,7 +69,10 @@ class PromotionSseService : Service() {
             try {
                 connect()
                 backoffMs = 5_000L // reset backoff après une connexion réussie
+                // Annule la notification d'erreur si la connexion réussit
+                getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID_SERVICE + 1)
             } catch (e: IOException) {
+                showConnectionErrorNotification()
                 delay(backoffMs)
                 backoffMs = minOf(backoffMs * 2, 60_000L) // backoff exponentiel, max 1 min
             }
@@ -90,6 +96,7 @@ class PromotionSseService : Service() {
         try {
             val response = call.execute()
             if (response.code == 401) {
+                Log.d("PromotionSseService", "HTTP 401: arrêt du service")
                 stopSelf()
                 return@withContext
             }
@@ -111,6 +118,8 @@ class PromotionSseService : Service() {
                     }
                 }
             }
+        } catch (e: Exception) {
+            throw e
         } finally {
             call.cancel()
         }
@@ -124,7 +133,7 @@ class PromotionSseService : Service() {
             val name = promotion.optString("name", "Promotion")
             val priceCents = promotion.optLong("priceCents", 0)
             val bonusEveryN = if (promotion.isNull("bonusEveryN")) null else promotion.optInt("bonusEveryN")
-
+            Log.d("PromotionSseService", "handleEvent: type=$type, name=$name, priceCents=$priceCents, bonusEveryN=$bonusEveryN")
             val (title, body) = when (type.uppercase()) {
                 "ACTIVATED" -> buildActivatedMessage(name, priceCents, bonusEveryN)
                 "EXPIRED" -> "Fin de promotion" to "La promotion \"$name\" est terminée"
@@ -179,5 +188,16 @@ class PromotionSseService : Service() {
             .setOngoing(true)
             .setContentIntent(pendingIntent)
             .build()
+    }
+
+    private fun showConnectionErrorNotification() {
+        val notification = NotificationCompat.Builder(this, ForkEatApplication.CHANNEL_SSE_SERVICE)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("Erreur de connexion aux promotions")
+            .setContentText("Impossible de se connecter au service de promotions. Vérifiez votre connexion internet.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID_SERVICE + 1, notification)
     }
 }
