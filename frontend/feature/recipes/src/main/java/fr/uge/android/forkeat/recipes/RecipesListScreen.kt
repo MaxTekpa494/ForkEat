@@ -127,15 +127,17 @@ fun RecipesListScreen(
                 .background(SurfaceCream)
                 .padding(16.dp)
         ) {
-            RecipeSearchFilterBar(
-                searchQuery = searchQuery,
-                onSearchQueryChange = onSearchQueryChange,
-                onSearchSubmit = onSearchSubmit,
-                availableAllergens = availableAllergens,
-                selectedAllergens = selectedAllergens,
-                onAllergenToggle = onAllergenToggle,
-                onClearFilters = onClearFilters
-            )
+            if(feedMode.equals(FeedMode.GENERAL)){
+                RecipeSearchFilterBar(
+                    searchQuery = searchQuery,
+                    onSearchQueryChange = onSearchQueryChange,
+                    onSearchSubmit = onSearchSubmit,
+                    availableAllergens = availableAllergens,
+                    selectedAllergens = selectedAllergens,
+                    onAllergenToggle = onAllergenToggle,
+                    onClearFilters = onClearFilters
+                )
+            }
 
             Spacer(modifier = Modifier.height(8.dp))
 
@@ -168,7 +170,6 @@ fun RecipesListScreen(
                 state = listState
             ) {
                 val recipesToIndex:  List<PersonalizedRecipeSummaryDTO> = if(feedMode.equals(FeedMode.GENERAL))  recipes else recipesFeed;
-                System.out.println(recipesToIndex);
                 itemsIndexed(recipesToIndex) { index, recipe ->
                     RecipeCard(
                         recipe = if (!isLoggedIn) recipe.copy(
