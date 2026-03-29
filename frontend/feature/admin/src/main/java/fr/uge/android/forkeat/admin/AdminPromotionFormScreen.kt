@@ -127,7 +127,7 @@ fun AdminPromotionFormScreen(
     }
 
     fun toIso(epochMs: Long, hour: Int, min: Int): String {
-        val zdt = Instant.ofEpochMilli(epochMs).atZone(ZoneId.of("UTC"))
+        val zdt = Instant.ofEpochMilli(epochMs).atZone(ZoneId.systemDefault())
             .withHour(hour).withMinute(min).withSecond(0).withNano(0)
         return zdt.format(DateTimeFormatter.ISO_INSTANT)
     }
