@@ -5,7 +5,6 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkRequest
-import android.util.Log
 import fr.uge.android.forkeat.service.PromotionSseService
 
 /**

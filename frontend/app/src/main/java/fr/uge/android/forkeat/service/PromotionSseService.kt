@@ -5,7 +5,6 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
-import android.media.session.MediaSession
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import fr.uge.android.forkeat.ForkEatApplication
@@ -59,17 +58,21 @@ class PromotionSseService : Service() {
     override fun onDestroy() {
         scope.cancel()
         sseClient.dispatcher.executorService.shutdown()
+        // Annule la notification d'erreur de connexion si présente
+        getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID_SERVICE + 1)
         super.onDestroy()
     }
 
     private suspend fun connectWithRetry() {
         var backoffMs = 5_000L
-        var attempt = 1
         while (scope.isActive) {
             try {
                 connect()
                 backoffMs = 5_000L // reset backoff après une connexion réussie
+                // Annule la notification d'erreur si la connexion réussit
+                getSystemService(NotificationManager::class.java).cancel(NOTIFICATION_ID_SERVICE + 1)
             } catch (e: IOException) {
+                showConnectionErrorNotification()
                 delay(backoffMs)
                 backoffMs = minOf(backoffMs * 2, 60_000L) // backoff exponentiel, max 1 min
             }
@@ -185,5 +188,16 @@ class PromotionSseService : Service() {
             .setOngoing(true)
             .setContentIntent(pendingIntent)
             .build()
+    }
+
+    private fun showConnectionErrorNotification() {
+        val notification = NotificationCompat.Builder(this, ForkEatApplication.CHANNEL_SSE_SERVICE)
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setContentTitle("Erreur de connexion aux promotions")
+            .setContentText("Impossible de se connecter au service de promotions. Vérifiez votre connexion internet.")
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .setAutoCancel(true)
+            .build()
+        getSystemService(NotificationManager::class.java).notify(NOTIFICATION_ID_SERVICE + 1, notification)
     }
 }
