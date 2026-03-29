@@ -4,6 +4,7 @@ import android.app.Application
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.os.Build
+import fr.uge.android.forkeat.network.NetworkConnectivityMonitor
 
 class ForkEatApplication : Application() {
 
@@ -15,6 +16,7 @@ class ForkEatApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         createNotificationChannels()
+        NetworkConnectivityMonitor.register(this)
     }
 
     private fun createNotificationChannels() {

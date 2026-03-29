@@ -41,6 +41,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import fr.uge.android.forkeat.promotions.data.dto.PromotionDTO
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
 
 @Composable
 fun AdminPromotionsScreen(
@@ -158,6 +161,14 @@ fun AdminPromotionsScreen(
     }
 }
 
+private fun formatUtcToLocal(dateUtc: String?): String {
+    if (dateUtc == null) return "-"
+    val instant = Instant.parse(dateUtc)
+    val localDateTime = instant.atZone(ZoneId.systemDefault())
+    val formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")
+    return localDateTime.format(formatter)
+}
+
 @Composable
 private fun PromotionCard(
     promotion: PromotionDTO,
@@ -199,9 +210,9 @@ private fun PromotionCard(
         promotion.bonusEveryN?.let {
             Text("Bonus : 1 gratuit tous les $it", color = AdminPurple700, fontSize = 13.sp)
         }
-        Text("Début : ${promotion.startsAt?.take(16)?.replace("T", " ") ?: "-"}", color = Color.Gray, fontSize = 12.sp)
+        Text("Début : ${formatUtcToLocal(promotion.startsAt)}", color = Color.Gray, fontSize = 12.sp)
         promotion.endsAt?.let {
-            Text("Fin : ${it.take(16).replace("T", " ")}", color = Color.Gray, fontSize = 12.sp)
+            Text("Fin : ${formatUtcToLocal(it)}", color = Color.Gray, fontSize = 12.sp)
         }
 
         if (isScheduled) {
