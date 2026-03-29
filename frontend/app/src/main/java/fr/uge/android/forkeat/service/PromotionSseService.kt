@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.media.session.MediaSession
 import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import fr.uge.android.forkeat.ForkEatApplication
@@ -25,6 +26,7 @@ import okhttp3.Request
 import org.json.JSONObject
 import java.io.IOException
 import java.util.concurrent.TimeUnit
+import android.util.Log
 
 class PromotionSseService : Service() {
 
@@ -62,6 +64,7 @@ class PromotionSseService : Service() {
 
     private suspend fun connectWithRetry() {
         var backoffMs = 5_000L
+        var attempt = 1
         while (scope.isActive) {
             try {
                 connect()
@@ -90,6 +93,7 @@ class PromotionSseService : Service() {
         try {
             val response = call.execute()
             if (response.code == 401) {
+                Log.d("PromotionSseService", "HTTP 401: arrêt du service")
                 stopSelf()
                 return@withContext
             }
@@ -111,6 +115,8 @@ class PromotionSseService : Service() {
                     }
                 }
             }
+        } catch (e: Exception) {
+            throw e
         } finally {
             call.cancel()
         }
@@ -124,7 +130,7 @@ class PromotionSseService : Service() {
             val name = promotion.optString("name", "Promotion")
             val priceCents = promotion.optLong("priceCents", 0)
             val bonusEveryN = if (promotion.isNull("bonusEveryN")) null else promotion.optInt("bonusEveryN")
-
+            Log.d("PromotionSseService", "handleEvent: type=$type, name=$name, priceCents=$priceCents, bonusEveryN=$bonusEveryN")
             val (title, body) = when (type.uppercase()) {
                 "ACTIVATED" -> buildActivatedMessage(name, priceCents, bonusEveryN)
                 "EXPIRED" -> "Fin de promotion" to "La promotion \"$name\" est terminée"

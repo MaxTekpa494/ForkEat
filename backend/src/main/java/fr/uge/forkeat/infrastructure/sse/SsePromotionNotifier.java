@@ -29,7 +29,7 @@ public class SsePromotionNotifier implements PromotionSsePort {
             emitter.complete();
             emitters.remove(emitter);
         });
-        emitter.onError(e -> emitters.remove(emitter));
+        emitter.onError(_ -> emitters.remove(emitter));
         logger.debug("New SSE subscriber. Total: {}", emitters.size());
         return emitter;
     }
@@ -51,7 +51,7 @@ public class SsePromotionNotifier implements PromotionSsePort {
                 emitter.send(SseEmitter.event()
                         .name(event.type().toLowerCase())
                         .data(event, MediaType.APPLICATION_JSON));
-            } catch (IOException e) {
+            } catch (IOException | IllegalStateException e) {
                 dead.add(emitter);
             }
         });
