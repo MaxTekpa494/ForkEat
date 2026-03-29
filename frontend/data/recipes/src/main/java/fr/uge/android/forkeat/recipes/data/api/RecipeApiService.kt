@@ -43,6 +43,12 @@ interface RecipeApiService {
         @Query("allergens") allergens: List<String>? = null
     ): Response<RecipesListResponse<PersonalizedRecipeSummaryDTO>>
 
+    @GET("api/recipes/following")
+    suspend fun getRecipesFeed(
+        @Query("status") status: String = "PUBLISHED",
+        @Query("page") page: Int = 0,
+    ): Response<RecipesListResponse<PersonalizedRecipeSummaryDTO>>
+
     @GET("api/recipes/{id}")
     suspend fun getRecipeWithId(
         @Path("id") id: UUID

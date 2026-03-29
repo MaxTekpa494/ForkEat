@@ -480,6 +480,7 @@ class MainActivity : ComponentActivity() {
 
             composable("recipes") {
               val recipes by recipesViewModel.recipes.collectAsState()
+              val recipesFeed by recipesViewModel.recipesFeed.collectAsState()
               val totalCount by recipesViewModel.totalCount.collectAsState()
               val errorMessage by recipesViewModel.errorMessage.collectAsState()
               val searchQuery by recipesViewModel.searchQuery.collectAsState()
@@ -491,8 +492,10 @@ class MainActivity : ComponentActivity() {
 
               RecipesListScreen(
                 recipes = recipes,
+                recipesFeed = recipesFeed,
                 totalCount = totalCount,
                 onLoadMore = { recipesViewModel.loadMoreRecipes() },
+                onLoadMoreFeed = {recipesViewModel.loadMoreRecipesFeed()},
                 errorMessage = errorMessage,
                 isLoading = isLoading,
                 isLoggedIn = isLoggedIn,
@@ -520,7 +523,8 @@ class MainActivity : ComponentActivity() {
                 onNavigateToWallet = { navController.navigate("wallet") },
                 onNavigateToAccount = { navController.navigate("account") },
                 onNavigateToSmartSearch = { runAuth { navController.navigate("smart-search") } },
-                activePromotion = activePromotion
+                activePromotion = activePromotion,
+                onFeedSelected = {recipesViewModel.loadRecipesFeed(0)}
               )
             }
             composable(
