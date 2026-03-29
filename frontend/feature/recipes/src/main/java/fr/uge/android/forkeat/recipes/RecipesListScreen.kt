@@ -20,6 +20,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.outlined.DynamicFeed
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -36,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import fr.uge.android.forkeat.designsystem.theme.Gray500
 import fr.uge.android.forkeat.designsystem.theme.Primary500
@@ -165,77 +167,109 @@ fun RecipesListScreen(
 
             Spacer(modifier = Modifier.height(4.dp))
 
-            LazyColumn(
-                modifier = Modifier.weight(1f),
-                state = listState
-            ) {
-                val recipesToIndex:  List<PersonalizedRecipeSummaryDTO> = if(feedMode.equals(FeedMode.GENERAL))  recipes else recipesFeed;
-                itemsIndexed(recipesToIndex) { index, recipe ->
-                    RecipeCard(
-                        recipe = if (!isLoggedIn) recipe.copy(
-                            likedByCurrentUser = false,
-                            superLikedByCurrentUser = false,
-                            followedByCurrentUser = false
-                        ) else recipe,
-                        onRecipeClick = { onRecipeClick(recipe.id.toString()) },
-                        onUsernameClick = { username ->
-                            if (!isLoggedIn) {
-                                onNavigateToLogin()
-                            } else if (currentUsername != null && username == currentUsername) {
-                                onNavigateToMyProfile()
-                            } else {
-                                onNavigateToUserProfile(username)
-                            }
-                        },
-                        isLoggedIn = isLoggedIn,
-                        onNavigateToLogin = onNavigateToLogin,
-                        onLike = onLikeRecipe,
-                        onUnlike = onUnlikeRecipe,
-                        onSuperLike = onSuperLikeRecipe,
-                        superLikeBasePriceCents = superLikeBasePriceCents,
-                        superLikePromoPriceCents = activePromotion?.priceCents,
-                        onFollow = onFollowRecipe,
-                        onUnfollow = onUnfollowRecipe,
+            if(feedMode.equals(FeedMode.PERSONAL) && recipesFeed.isEmpty()){
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Outlined.DynamicFeed,
+                        contentDescription = null,
+                        modifier = Modifier.size(64.dp),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    if (index == recipesToIndex.lastIndex) {
-                        if(feedMode.equals(FeedMode.GENERAL)){
-                            LaunchedEffect(recipes.size) {
-                                onLoadMore()
-                            }
-                        }else{
-                            LaunchedEffect(recipes.size) {
-                                onLoadMoreFeed()
+                    Spacer(modifier = Modifier.height(16.dp))
+                    Text(
+                        text = "Aucune recette disponible dans votre feed personnalisé",
+                        style = MaterialTheme.typography.titleMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Suivez des personnes pour le remplir",
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+
+            }else{
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    state = listState
+                ) {
+                    val recipesToIndex:  List<PersonalizedRecipeSummaryDTO> = if(feedMode.equals(FeedMode.GENERAL))  recipes else recipesFeed;
+                    itemsIndexed(recipesToIndex) { index, recipe ->
+                        RecipeCard(
+                            recipe = if (!isLoggedIn) recipe.copy(
+                                likedByCurrentUser = false,
+                                superLikedByCurrentUser = false,
+                                followedByCurrentUser = false
+                            ) else recipe,
+                            onRecipeClick = { onRecipeClick(recipe.id.toString()) },
+                            onUsernameClick = { username ->
+                                if (!isLoggedIn) {
+                                    onNavigateToLogin()
+                                } else if (currentUsername != null && username == currentUsername) {
+                                    onNavigateToMyProfile()
+                                } else {
+                                    onNavigateToUserProfile(username)
+                                }
+                            },
+                            isLoggedIn = isLoggedIn,
+                            onNavigateToLogin = onNavigateToLogin,
+                            onLike = onLikeRecipe,
+                            onUnlike = onUnlikeRecipe,
+                            onSuperLike = onSuperLikeRecipe,
+                            superLikeBasePriceCents = superLikeBasePriceCents,
+                            superLikePromoPriceCents = activePromotion?.priceCents,
+                            onFollow = onFollowRecipe,
+                            onUnfollow = onUnfollowRecipe,
+                        )
+                        if (index == recipesToIndex.lastIndex) {
+                            if(feedMode.equals(FeedMode.GENERAL)){
+                                LaunchedEffect(recipes.size) {
+                                    onLoadMore()
+                                }
+                            }else{
+                                LaunchedEffect(recipes.size) {
+                                    onLoadMoreFeed()
+                                }
                             }
                         }
                     }
-                }
 
-                if (isLoading) {
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            CircularProgressIndicator(color = Primary500)
+                    if (isLoading) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                CircularProgressIndicator(color = Primary500)
+                            }
                         }
                     }
-                }
 
-                if (recipes.size >= totalCount && totalCount > 0) {
-                    item {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(16.dp),
-                            horizontalArrangement = Arrangement.Center
-                        ) {
-                            Text(
-                                "Toutes les recettes ont été chargées",
-                                style = Typography.labelLarge,
-                                color = Secondary900
-                            )
+                    if (recipes.size >= totalCount && totalCount > 0) {
+                        item {
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(16.dp),
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Text(
+                                    "Toutes les recettes ont été chargées",
+                                    style = Typography.labelLarge,
+                                    color = Secondary900
+                                )
+                            }
                         }
                     }
                 }
