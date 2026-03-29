@@ -33,7 +33,12 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     private val _recipes = MutableStateFlow<List<PersonalizedRecipeSummaryDTO>>(emptyList())
     val recipes: StateFlow<List<PersonalizedRecipeSummaryDTO>> = _recipes.asStateFlow()
 
+    private val _recipesFeed = MutableStateFlow<List<PersonalizedRecipeSummaryDTO>>(emptyList())
+    val recipesFeed: StateFlow<List<PersonalizedRecipeSummaryDTO>> = _recipesFeed.asStateFlow()
+
     private val _recipeIds = mutableSetOf<UUID>()
+
+    private val _recipeIdsFeed = mutableSetOf<UUID>()
 
     private val _currentRecipe = MutableStateFlow<RecipeDetailsDTO?>(null)
     val currentRecipe: StateFlow<RecipeDetailsDTO?> = _currentRecipe.asStateFlow()
@@ -42,7 +47,12 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     val currentDiff: StateFlow<RecipeDiffDTO?> = _currentDiff.asStateFlow()
 
     private val _totalCount = MutableStateFlow(0)
+
+    private val _totalCountFeed = MutableStateFlow(0)
+
     val totalCount: StateFlow<Int> = _totalCount.asStateFlow()
+
+    val totalCountFeed = _totalCountFeed.asStateFlow()
 
     private val _emailNotVerified = MutableStateFlow(false)
     val emailNotVerified: StateFlow<Boolean> = _emailNotVerified.asStateFlow()
@@ -331,6 +341,42 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun loadRecipesFeed(page: Int, append: Boolean = false) {
+        viewModelScope.launch {
+            _isLoading.value = true
+            _errorMessage.value = null
+            try {
+
+                val response = api.getRecipesFeed(
+                    page = page
+                )
+
+                if (response.isSuccessful) {
+                    val body = response.body()
+                    val newItems = body?.resources ?: emptyList()
+
+                    if (append) {
+                        val filteredNewItems = newItems.filter { _recipeIds.add(it.id) }
+                        _recipesFeed.value += filteredNewItems
+                    } else {
+                        _recipeIdsFeed.clear()
+                        _recipeIdsFeed.addAll(newItems.map { it.id })
+                        _recipesFeed.value = newItems
+                    }
+
+                    _totalCountFeed.value = body?.total ?: 0
+                    _currentPage.value = page
+                } else {
+                    handleError(response.code())
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = "Erreur réseau : ${e.message}"
+            } finally {
+                _isLoading.value = false
+            }
+        }
+    }
+
     fun loadAllergens() {
         viewModelScope.launch {
             try {
@@ -388,6 +434,11 @@ class RecipesViewModel(application: Application) : AndroidViewModel(application)
     fun loadMoreRecipes() {
         if (_isLoading.value || _recipes.value.size >= _totalCount.value) return
         loadRecipes(_currentPage.value + 1, append = true)
+    }
+
+    fun loadMoreRecipesFeed() {
+        if (_isLoading.value || _recipesFeed.value.size >= _totalCountFeed.value) return
+        loadRecipesFeed(_currentPage.value + 1, append = true)
     }
 
     private fun handleError(code: Int) {
