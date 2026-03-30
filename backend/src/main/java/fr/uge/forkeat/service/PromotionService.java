@@ -237,6 +237,8 @@ public class PromotionService {
             throw new PromotionDateException(
                     "La date de fin doit être postérieure à la date de début."
             );
+        } else if (!endsAt.isAfter(Instant.now())) {
+            throw new PromotionDateException("La date de fin doit être postérieure à l'heure actuelle");
         }
     }
 
