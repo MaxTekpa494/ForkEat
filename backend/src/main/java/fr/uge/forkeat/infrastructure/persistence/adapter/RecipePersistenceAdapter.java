@@ -435,7 +435,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
 
     @Override
     public boolean hasSuperLikedRecipe(UUID userId, UUID recipeId){
-        return superLikeRepository.existsByRecipeIdAndUserId(Objects.requireNonNull(userId), Objects.requireNonNull(recipeId));
+        return superLikeRepository.existsByRecipeIdAndUserId(Objects.requireNonNull(recipeId), Objects.requireNonNull(userId));
     }
 
     @Override
