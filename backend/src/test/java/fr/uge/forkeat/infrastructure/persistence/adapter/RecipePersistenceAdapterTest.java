@@ -1042,20 +1042,20 @@ class RecipePersistenceAdapterTest {
         void shouldReturnTrueWhenUserHasSuperLiked() {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
-            when(superLikeRepository.existsByRecipeIdAndUserId(userId, recipeId)).thenReturn(true);
+            when(superLikeRepository.existsByRecipeIdAndUserId(recipeId, userId)).thenReturn(true);
 
             assertTrue(adapter.hasSuperLikedRecipe(userId, recipeId));
-            verify(superLikeRepository).existsByRecipeIdAndUserId(userId, recipeId);
+            verify(superLikeRepository).existsByRecipeIdAndUserId(recipeId, userId);
         }
 
         @Test
         void shouldReturnFalseWhenUserHasNotSuperLiked() {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
-            when(superLikeRepository.existsByRecipeIdAndUserId(userId, recipeId)).thenReturn(false);
+            when(superLikeRepository.existsByRecipeIdAndUserId(recipeId, userId)).thenReturn(false);
 
             assertFalse(adapter.hasSuperLikedRecipe(userId, recipeId));
-            verify(superLikeRepository).existsByRecipeIdAndUserId(userId, recipeId);
+            verify(superLikeRepository).existsByRecipeIdAndUserId(recipeId, userId);
         }
 
         @Test
