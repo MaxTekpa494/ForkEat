@@ -374,10 +374,10 @@ public class RecipeService {
 
   @Transactional
   public void superLikeRecipe(UUID userId, UUID recipeId) {
-      if (recipePersistence.hasSuperLikedRecipe(userId, recipeId)) return;
-
       var wallet = walletPersistence.loadWalletWithLock(userId)
-              .orElseThrow(() -> new WalletNotFoundException(userId));
+            .orElseThrow(() -> new WalletNotFoundException(userId));
+
+      if (recipePersistence.hasSuperLikedRecipe(userId, recipeId)) return;
 
       var pricing = resolvePricing(userId);
 
