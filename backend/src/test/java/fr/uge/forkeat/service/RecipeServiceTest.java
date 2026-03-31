@@ -699,16 +699,18 @@ class RecipeServiceTest {
         void ShouldNotSuperLikeWhenItAlreadySuperLiked() {
             var userId = UUID.randomUUID();
             var recipeId = UUID.randomUUID();
+            var wallet = new Wallet(UUID.randomUUID(), userId, 1000L, Instant.now());
 
+            when(walletPersistence.loadWalletWithLock(userId)).thenReturn(Optional.of(wallet));
             when(recipePersistence.hasSuperLikedRecipe(any(), any())).thenReturn(true);
 
             recipeService.superLikeRecipe(userId, recipeId);
 
             verify(recipePersistence, never()).superLikeRecipe(any(), any(), anyLong(), any(), anyBoolean(), anyLong());
-            verify(walletPersistence, never()).loadWalletWithLock(any());
             verify(walletPersistence, never()).incrementBalanceById(any(), anyLong());
             verify(walletPersistence, never()).getRedistributionWallet();
             verify(walletPersistence, never()).getEarningsWallet();
+            verify(walletPersistence, times(1)).loadWalletWithLock(userId);
             verify(recipePersistence, times(1)).hasSuperLikedRecipe(any(), any());
         }
 
