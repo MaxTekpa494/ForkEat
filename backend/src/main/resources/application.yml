@@ -1,0 +1,258 @@
+spring:
+  application:
+    name: ForkEat
+
+  threads:
+    virtual:
+      enabled: true
+
+  # ─── PostgreSQL ───────────────────────────────────────────────────────────
+  datasource:
+    url: jdbc:postgresql://${POSTGRES_URL:localhost}:${POSTGRES_PORT:5432}/${POSTGRES_DB}?stringtype=unspecified
+    username: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 50
+      minimum-idle: 10
+      connection-timeout: 3000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # ─── JPA / Hibernate ──────────────────────────────────────────────────────
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: true
+    open-in-view: false
+    properties:
+      hibernate:
+        format_sql: true
+        globally_quoted_identifiers: true
+
+  # ─── Flyway ───────────────────────────────────────────────────────────────
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    out-of-order: true
+    placeholders:
+      system_earnings_password_hash: ${SYSTEM_EARNINGS_PASSWORD_HASH}
+
+  # ─── Neo4j ────────────────────────────────────────────────────────────────
+  neo4j:
+    uri: bolt://${NEO4J_BOLT_URL:localhost:7687}
+    authentication:
+      username: ${NEO4J_USER}
+      password: ${NEO4J_PASSWORD}
+
+  # ─── Kafka ────────────────────────────────────────────────────────────────
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+
+    consumer:
+      group-id: recipe-ingestion-group
+      auto-offset-reset: earliest
+      key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
+      enable-auto-commit: false     # Commit manuel après traitement réussi uniquement
+      isolation-level: read_committed
+      max-poll-records: 10          # Ingest coûteux (PostgreSQL + Neo4j) → batch petit
+      properties:
+        max.poll.interval.ms: 300000
+        session.timeout.ms: 45000
+
+    producer:
+      key-serializer: org.apache.kafka.common.serialization.StringSerializer
+      value-serializer: org.apache.kafka.common.serialization.StringSerializer
+      acks: all
+      retries: 3
+      properties:
+        enable.idempotence: true
+
+  # ─── Multipart ────────────────────────────────────────────────────────────
+  servlet:
+    multipart:
+      max-file-size: 20MB
+      max-request-size: 20MB
+      location: ./uploads
+
+  # ─── Thymeleaf ────────────────────────────────────────────────────────────
+  thymeleaf:
+    cache: false
+    prefix: classpath:/templates/
+    suffix: .html
+    mode: HTML
+    encoding: UTF-8
+
+  # ─── Mail ─────────────────────────────────────────────────────────────────
+  mail:
+    host: smtp.gmail.com
+    port: 587
+    username: forkeat.noreply@gmail.com
+    password: ${MAIL_PASSWORD}
+    properties:
+      mail:
+        smtp:
+          auth: true
+          starttls:
+            enable: true
+
+  # ─── OAuth2 ───────────────────────────────────────────────────────────────
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID}
+            client-secret: ${GOOGLE_CLIENT_SECRET}
+            scope: profile,email
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+
+  # ─── Spring AI / Ollama ───────────────────────────────────────────────────
+  ai:
+    retry:
+      max-attempts: 1   # Un échec Ollama ne doit pas doubler la latence
+    ollama:
+      base-url: ${OLLAMA_BASE_URL:http://localhost:11435}
+      init:
+        pull-model-strategy: never
+      embedding:
+        options:
+          model: bge-m3
+          num-g-p-u: 99
+      chat:
+        options:
+          model: llama-guard3:1b
+          num-g-p-u: 99
+
+  # ─── Task Scheduling ──────────────────────────────────────────────────────
+  task:
+    scheduling:
+      time-zone: Europe/Paris
+
+# ─── Server ───────────────────────────────────────────────────────────────────
+server:
+  port: 8080
+  servlet:
+    session:
+      persistent: false
+  tomcat:
+    max-swallow-size: -1
+    max-parameter-count: 1000
+    max-http-form-post-size: -1
+    max-part-count: 100
+    max-part-header-size: 2048
+
+# ─── Logging ──────────────────────────────────────────────────────────────────
+logging:
+  level:
+    root: INFO
+    fr.uge.forkeat: DEBUG
+    org.flywaydb: INFO
+    org.springframework.web: DEBUG
+
+# ─── Debezium Embedded ────────────────────────────────────────────────────────
+debezium:
+  enabled: true
+  offset-storage-file: ./debezium-offsets.dat
+  connector:
+    name: forkeat-postgres-connector
+    class: io.debezium.connector.postgresql.PostgresConnector
+  offset:
+    storage: org.apache.kafka.connect.storage.FileOffsetBackingStore
+    flush.interval.ms: 1000
+  database:
+    hostname: ${POSTGRES_URL:localhost}
+    port: ${POSTGRES_PORT:5432}
+    user: ${POSTGRES_USER}
+    password: ${POSTGRES_PASSWORD}
+    dbname: ${POSTGRES_DB}
+    server.name: forkeat
+  topic:
+    prefix: forkeat
+  table:
+    include.list: public.users,public.recipes,public.super_likes
+  plugin:
+    name: pgoutput
+  publication:
+    autocreate.mode: filtered
+  slot:
+    name: forkeat_slot
+  schema:
+    history.internal: io.debezium.relational.history.MemorySchemaHistory
+  snapshot:
+    mode: initial
+
+# ─── App custom ───────────────────────────────────────────────────────────────
+app:
+  admin:
+    username: admin
+    password: ${ADMIN_PASSWORD}
+  system:
+    earnings:
+      username: ${SYSTEM_EARNINGS_USERNAME:ForkEat}
+  jwt:
+    secret: ${JWT_SECRET}
+    expiration: 86400000
+  base-url: ${BASE_PROTOCOL:http}://${BASE_URL:localhost}${BASE_PORT::8080}
+  email:
+    confirmation-expiry-hours: 24
+    code-expiry-minutes: 10
+  # URLs de redirection Stripe
+  webSuccessUrl: ${app.base-url}/wallet?payment=success
+  webCancelUrl: ${app.base-url}/wallet?payment=cancel
+  androidSuccessUrl: forkeat://wallet?payment=success
+  androidCancelUrl: forkeat://wallet?payment=cancel
+  # RAG
+  rag:
+    top-k: 10
+    ef-search: 100
+    moderation:
+      min-length: 3
+      max-length: 500
+      llm-timeout-seconds: 20
+    embedding:
+      timeout-seconds: 10
+    smart-search-cost: 10
+
+# ─── Stripe ───────────────────────────────────────────────────────────────────
+stripe:
+  api:
+    key: ${STRIPE_API_KEY}
+  webhook:
+    secret: ${STRIPE_WEBHOOK_SECRET}
+  connect:
+    country: FR
+    mcc: 5814
+    business-type: individual
+    tos-accepted: true
+  test:
+    dob:
+      day: 1
+      month: 1
+      year: 1902
+    address:
+      line1: address_full_match
+      city: Paris
+      postal-code: 75001
+      country: FR
+    document:
+      front: file_identity_document_success
+
+# ─── Cloudflare R2 ────────────────────────────────────────────────────────────
+cloudflare:
+  r2:
+    access:
+      key:
+        id: ${R2_ACCESS_KEY_ID}
+    secret:
+      access:
+        key: ${R2_SECRET_ACCESS_KEY}
+    bucket:
+      name: forkeat-images
+    endpoint: https://${CLOUDFLARE_ACCOUNT_ID}.r2.cloudflarestorage.com
+    public:
+      url: ${R2_PUBLIC_URL:https://pub-xxxxx.r2.dev}
+cloudflare-r2-limit-size-image: 5
