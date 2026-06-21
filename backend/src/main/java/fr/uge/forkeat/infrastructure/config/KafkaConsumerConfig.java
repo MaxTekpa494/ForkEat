@@ -1,8 +1,9 @@
 package fr.uge.forkeat.infrastructure.config;
 
 import com.google.api.client.util.ExponentialBackOff;
+import fr.uge.forkeat.infrastructure.exception.DuplicateRecipeException;
+import fr.uge.forkeat.infrastructure.exception.RecipeDeserializationException;
 import lombok.RequiredArgsConstructor;
-import org.apache.kafka.clients.producer.Producer;
 import org.apache.kafka.common.TopicPartition;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -27,6 +28,8 @@ class KafkaConsumerConfig {
   public KafkaTemplate<String, String> kafkaTemplate(ProducerFactory<String, String> producerFactory){
     return new KafkaTemplate<>(producerFactory);
   }
+
+
 
   @Bean
   public ConcurrentKafkaListenerContainerFactory<String, String> recipeKafkaListenerContainerFactory
@@ -55,10 +58,10 @@ class KafkaConsumerConfig {
     backOff.setInitialInterval(30_000L);
 
     var errorHandler = new DefaultErrorHandler(recoverer, backOff);
-//    errorHandler.addNotRetryableExceptions(
-//            RecipeDeserializationException.class,
-//            DuplicateRecipeException.class
-//    );
+    errorHandler.addNotRetryableExceptions(
+            RecipeDeserializationException.class,
+            DuplicateRecipeException.class
+    );
     factory.setCommonErrorHandler(errorHandler);
     return factory;
   }
