@@ -55,7 +55,7 @@ class KafkaConsumerConfig {
     var backOff = new ExponentialBackOffWithMaxRetries(5);
     backOff.setInitialInterval(1_000L);
     backOff.setMultiplier(2.0);
-    backOff.setInitialInterval(30_000L);
+    backOff.setMaxInterval(30_000L);
 
     var errorHandler = new DefaultErrorHandler(recoverer, backOff);
     errorHandler.addNotRetryableExceptions(

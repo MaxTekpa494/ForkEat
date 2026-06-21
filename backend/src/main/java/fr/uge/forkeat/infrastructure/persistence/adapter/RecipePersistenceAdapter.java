@@ -163,7 +163,7 @@ public final class RecipePersistenceAdapter implements RecipePersistence {
     public List<String> findAllDietaryNames() {
         return dietaryRepository.findAll().stream()
                 .map(DietaryEntity::getName)
-                .sorted()
+                .sorted() // Ce genre d'OP peut être fait avec postgrSQL
                 .toList();
     }
 

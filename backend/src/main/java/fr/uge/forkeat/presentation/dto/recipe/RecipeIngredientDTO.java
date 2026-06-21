@@ -1,5 +1,10 @@
 package fr.uge.forkeat.presentation.dto.recipe;
 
+import java.util.Objects;
+
 public record RecipeIngredientDTO(String name, double quantity, String unit) {
-  // Les verifs ...
+  public RecipeIngredientDTO{
+    Objects.requireNonNull(name);
+    Objects.requireNonNull(unit);
+  }
 }
