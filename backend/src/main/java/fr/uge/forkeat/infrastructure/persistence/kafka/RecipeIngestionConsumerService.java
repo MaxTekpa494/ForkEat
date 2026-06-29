@@ -3,6 +3,7 @@ package fr.uge.forkeat.infrastructure.persistence.kafka;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import fr.uge.forkeat.infrastructure.exception.DuplicateRecipeException;
 import fr.uge.forkeat.infrastructure.exception.RecipeDeserializationException;
 import lombok.RequiredArgsConstructor;
 import org.apache.kafka.clients.consumer.ConsumerRecord;
@@ -16,12 +17,14 @@ import org.springframework.stereotype.Service;
 
 @Service
 class RecipeIngestionConsumerService<K, V> {
-
-  private final ObjectMapper mapper;
   private final Logger logger = LoggerFactory.getLogger(RecipeIngestionConsumerService.class);
+  private final ObjectMapper mapper;
+  private final RecipeIngestionService recipeIngestionService;
 
-  public RecipeIngestionConsumerService(ObjectMapper mapper){
+
+  public RecipeIngestionConsumerService(ObjectMapper mapper, RecipeIngestionService recipeIngestionService){
     this.mapper = mapper;
+    this.recipeIngestionService = recipeIngestionService;
   }
 
 
@@ -34,14 +37,16 @@ class RecipeIngestionConsumerService<K, V> {
     RecipeRawEvent recipeRawEvent;
     try{
       recipeRawEvent = mapper.readValue(record.toString(), RecipeRawEvent.class);
-      ack.acknowledge();
     } catch (JsonProcessingException e) {
       logger.info("JSON invalide pour key={}: {}", key, e.getMessage());
       throw new RecipeDeserializationException("JSON invalide : "+e.getMessage());
     }
 
-
+    try{
+      recipeIngestionService.ingest(recipeRawEvent);
+    } catch (IllegalArgumentException e) {
+      throw new DuplicateRecipeException(e.getMessage());
+    }
+    ack.acknowledge();
   }
-
-
 }

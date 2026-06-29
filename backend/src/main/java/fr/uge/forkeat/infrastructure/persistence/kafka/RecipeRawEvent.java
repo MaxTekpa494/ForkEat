@@ -2,11 +2,16 @@ package fr.uge.forkeat.infrastructure.persistence.kafka;
 
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
+import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeStep;
+import fr.uge.forkeat.service.model.recipe.Allergen;
+import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
+import fr.uge.forkeat.service.model.recipe.RecipeIngredient;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.UUID;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record RecipeRawEvent(
@@ -46,10 +51,12 @@ public record RecipeRawEvent(
       Objects.requireNonNull(name, "Name in IngredientDetailDto cannot be null");
       Objects.requireNonNull(unit,"Unit in IngredientDetailDto cannot be null");
     }
+
+
   }
 
-  public List<String> convertElementsForDietayToDietaries(){
-    var dietariesBoolean = Map.of(
+  public List<String> convertToDietaries(){
+    var dietariesBoolean = Map.of( // PAS TRÈS BON ÇA... PAS HARDCODER...
             "vegetarian", vegetarian,
             "vegan", vegan,
             "glutenFree", glutenFree,
@@ -61,5 +68,21 @@ public record RecipeRawEvent(
             .stream()
             .filter(k -> dietariesBoolean.getOrDefault(k, false))
             .toList();
+  }
+
+  public List<RecipeIngredient> convertToRecipeIngredient(){
+    return ingredientDetailed.stream()
+            .map(r -> new RecipeIngredient(r.name, r.quantity, r.unit))
+            .toList();
+  }
+
+  public List<Allergen> convertToAllergens(){
+    return allergens.stream()
+            .map(al -> new Allergen(UUID.randomUUID(), al, AllergenSeverity.MEDIUM))
+            .toList();
+  }
+
+  public List<fr.uge.forkeat.service.model.recipe.RecipeStep> convertToRecipeStepModel(){
+    return RecipeEntityMapper.toRecipeSteps(stepByStepInstructions);
   }
 }

@@ -104,7 +104,7 @@ public final class RecipeEntityMapper {
   }
 
 
-  private static List<fr.uge.forkeat.service.model.recipe.RecipeStep> toRecipeSteps(List<RecipeStep> entitySteps) {
+  public static List<fr.uge.forkeat.service.model.recipe.RecipeStep> toRecipeSteps(List<RecipeStep> entitySteps) {
     if (entitySteps == null) {
       return List.of();
     }
