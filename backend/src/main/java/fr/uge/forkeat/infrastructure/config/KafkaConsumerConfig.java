@@ -22,7 +22,7 @@ import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
 @EnableKafka
 class KafkaConsumerConfig {
 
-  private static final int THREAD_PARTITION = 3;
+  private static final int THREAD_PARTITION = 3; // Pas le bon endroit
 
   @Bean
   public KafkaTemplate<String, String> kafkaTemplate(ProducerFactory<String, String> producerFactory){
