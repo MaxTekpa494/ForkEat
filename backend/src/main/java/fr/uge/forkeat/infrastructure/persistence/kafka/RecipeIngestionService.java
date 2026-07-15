@@ -26,7 +26,7 @@ class RecipeIngestionService {
             UUID.randomUUID(),
             event.title(),
             event.summary(),
-            null, //
+            null, // pas de parent
             userSystem,
             event.preparationMinutes(),
             event.imageUrl(),
