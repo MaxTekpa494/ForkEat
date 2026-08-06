@@ -4,14 +4,11 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeEntityMapper;
 import fr.uge.forkeat.infrastructure.persistence.postgres.entity.RecipeStep;
-import fr.uge.forkeat.service.model.recipe.Allergen;
-import fr.uge.forkeat.service.model.recipe.AllergenSeverity;
 import fr.uge.forkeat.service.model.recipe.RecipeIngredient;
 
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.UUID;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record RecipeRawEvent(
@@ -71,14 +68,11 @@ public record RecipeRawEvent(
   }
 
   public List<RecipeIngredient> convertToRecipeIngredient(){
+    if (ingredientDetailed == null) {
+      return List.of();
+    }
     return ingredientDetailed.stream()
             .map(r -> new RecipeIngredient(r.name, r.quantity, r.unit))
-            .toList();
-  }
-
-  public List<Allergen> convertToAllergens(){
-    return allergens.stream()
-            .map(al -> new Allergen(UUID.randomUUID(), al, AllergenSeverity.MEDIUM))
             .toList();
   }
 

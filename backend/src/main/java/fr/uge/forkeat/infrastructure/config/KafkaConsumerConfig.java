@@ -4,12 +4,16 @@ import com.google.api.client.util.ExponentialBackOff;
 import fr.uge.forkeat.infrastructure.exception.DuplicateRecipeException;
 import fr.uge.forkeat.infrastructure.exception.RecipeDeserializationException;
 import lombok.RequiredArgsConstructor;
+import lombok.Value;
+import org.apache.kafka.clients.consumer.ConsumerConfig;
 import org.apache.kafka.common.TopicPartition;
+import org.apache.kafka.common.serialization.StringDeserializer;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.kafka.annotation.EnableKafka;
 import org.springframework.kafka.config.ConcurrentKafkaListenerContainerFactory;
 import org.springframework.kafka.core.ConsumerFactory;
+import org.springframework.kafka.core.DefaultKafkaConsumerFactory;
 import org.springframework.kafka.core.KafkaTemplate;
 import org.springframework.kafka.core.ProducerFactory;
 import org.springframework.kafka.listener.ContainerProperties;
@@ -31,6 +35,8 @@ class KafkaConsumerConfig {
 
 
 
+
+
   @Bean
   public ConcurrentKafkaListenerContainerFactory<String, String> recipeKafkaListenerContainerFactory
           (
@@ -42,7 +48,7 @@ class KafkaConsumerConfig {
     // 3 threads = 3 partitions du topic recipes.raw
     factory.setConcurrency(THREAD_PARTITION);
     factory.getContainerProperties().setAckMode(
-            ContainerProperties.AckMode.RECORD // Commit après chaque message traité
+            ContainerProperties.AckMode.MANUAL // Le listener acquitte lui-même via Acknowledgment
     );
 
     var recoverer = new DeadLetterPublishingRecoverer(

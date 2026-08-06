@@ -25,14 +25,14 @@ class RecipeIngestionConsumerService<K, V> {
 
 
   // ackMode = "MANUAL" version 4.1.x à la place de containerFactory = "kafkaManualAckListenerContainerFactory
-  @KafkaListener(topics = "${spring.kafka.producer.properties.topic}", groupId = "${spring.kafka.consumer.group-id:recipe-ingestion-group}", containerFactory = "kafkaManualAckListenerContainerFactory")
+  @KafkaListener(topics = "${spring.kafka.producer.properties.topic}", groupId = "${spring.kafka.consumer.group-id:recipe-ingestion-group}", containerFactory = "recipeKafkaListenerContainerFactory")
   public void consume(ConsumerRecord<K, V> record, Acknowledgment ack){
     var key = record.key();
     logger.info("Message reçu => key={} partition={} offset={}", key, record.partition(), record.offset());
 
     RecipeRawEvent recipeRawEvent;
     try{
-      recipeRawEvent = mapper.readValue(record.toString(), RecipeRawEvent.class);
+      recipeRawEvent = mapper.readValue(record.value().toString(), RecipeRawEvent.class);
     } catch (JsonProcessingException e) {
       logger.info("JSON invalide pour key={}: {}", key, e.getMessage());
       throw new RecipeDeserializationException("JSON invalide : "+e.getMessage());
@@ -43,6 +43,9 @@ class RecipeIngestionConsumerService<K, V> {
       logger.info("Nouvelle recette depuis Kafka avec la key: {}\n{}", key, recipe);
     } catch (IllegalArgumentException e) {
       throw new DuplicateRecipeException(e.getMessage());
+    } catch (RuntimeException e) {
+      logger.error("Erreur lors de l'ingestion de la recette key={}", key, e);
+      throw e; // AVOIR UNE ERREUR PLUS COHERENTE ICI
     }
     ack.acknowledge();
   }
