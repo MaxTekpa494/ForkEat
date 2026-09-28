@@ -70,7 +70,7 @@ public class RecipeNodeClient {
             OPTIONAL MATCH (oldAuthor:User)-[rel:PUBLISHED]->(recipe)
             DELETE rel
             WITH recipe
-            MATCH (newAuthor:User {id: $authorId})
+            MERGE (newAuthor:User {id: $authorId})
             MERGE (newAuthor)-[rel:PUBLISHED]->(recipe)
             ON CREATE SET rel.date = datetime()
             """;

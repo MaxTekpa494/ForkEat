@@ -51,7 +51,7 @@ spring:
   kafka:
     bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
     consumer:
-      group-id: recipe-ingestion-group
+      group-id: recipe.ingestion.group
       auto-offset-reset: earliest
       key-deserializer: org.apache.kafka.common.serialization.StringDeserializer
       value-deserializer: org.apache.kafka.common.serialization.StringDeserializer
@@ -59,7 +59,7 @@ spring:
       isolation-level: read_committed
       max-poll-records: 10          # Ingest coûteux (PostgreSQL + Neo4j) → batch petit
       properties:
-        max.poll.interval.ms: 300000
+        max.poll.interval.ms: 300000 # Considère le consumer comme mort et faire un rebalancing
         session.timeout.ms: 45000
 
     producer:
@@ -69,7 +69,7 @@ spring:
       retries: 3
       properties:
         enable.idempotence: true
-        topic: ${KAFKA_TOPIC:recipe.raw}
+        topic: ${RECIPE_COLLECTOR_TOPIC:recipe.raw}
 
 
   # ─── Multipart ────────────────────────────────────────────────────────────
@@ -153,38 +153,6 @@ logging:
     fr.uge.forkeat: DEBUG
     org.flywaydb: INFO
     org.springframework.web: DEBUG
-
-# ─── Debezium Embedded ────────────────────────────────────────────────────────
-debezium:
-  enabled: true
-  offset-storage-file: ./debezium-offsets.dat
-  connector:
-    name: forkeat-postgres-connector
-    class: io.debezium.connector.postgresql.PostgresConnector
-  offset:
-    storage: org.apache.kafka.connect.storage.FileOffsetBackingStore
-    flush.interval.ms: 1000
-  database:
-    hostname: ${POSTGRES_URL:localhost}
-    port: ${POSTGRES_PORT:5432}
-    user: ${POSTGRES_USER}
-    password: ${POSTGRES_PASSWORD}
-    dbname: ${POSTGRES_DB}
-    server.name: forkeat
-  topic:
-    prefix: forkeat
-  table:
-    include.list: public.users,public.recipes,public.super_likes
-  plugin:
-    name: pgoutput
-  publication:
-    autocreate.mode: filtered
-  slot:
-    name: forkeat_slot
-  schema:
-    history.internal: io.debezium.relational.history.MemorySchemaHistory
-  snapshot:
-    mode: initial
 
 # ─── App custom ───────────────────────────────────────────────────────────────
 app:

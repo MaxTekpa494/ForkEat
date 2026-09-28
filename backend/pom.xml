@@ -113,40 +113,6 @@
 			<version>3.1.0</version>
 		</dependency>
 
-		<!-- Debezium Embedded Engine -->
-		<dependency>
-			<groupId>io.debezium</groupId>
-			<artifactId>debezium-embedded</artifactId>
-			<version>3.0.7.Final</version>
-		</dependency>
-		<dependency>
-			<groupId>io.debezium</groupId>
-			<artifactId>debezium-connector-postgres</artifactId>
-			<version>3.0.7.Final</version>
-		</dependency>
-
-		<!-- Version KAFKA compatible debezium-->
-		<dependency>
-			<groupId>org.apache.kafka</groupId>
-			<artifactId>kafka-clients</artifactId>
-			<version>3.8.0</version>
-		</dependency>
-
-		<dependency>
-			<groupId>org.apache.kafka</groupId>
-			<artifactId>connect-api</artifactId>
-			<version>3.8.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.kafka</groupId>
-			<artifactId>connect-runtime</artifactId>
-			<version>3.8.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.kafka</groupId>
-			<artifactId>connect-json</artifactId>
-			<version>3.8.0</version>
-		</dependency>
 
 		<!-- Jackson pour le traitement JSON des events Debezium -->
 		<dependency>
@@ -241,6 +207,12 @@
 		<dependency>
 			<groupId>org.testcontainers</groupId>
 			<artifactId>junit-jupiter</artifactId>
+			<version>${testcontainers.version}</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.testcontainers</groupId>
+			<artifactId>kafka</artifactId>
 			<version>${testcontainers.version}</version>
 			<scope>test</scope>
 		</dependency>

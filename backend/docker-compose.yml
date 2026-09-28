@@ -54,6 +54,107 @@ services:
       retries: 5
     mem_reservation: 2g
     mem_limit: 4g
+
+  kafka:
+    image: confluentinc/cp-kafka:7.7.0   # KRaft natif depuis cette image
+    ports:
+      - "9092:9092"
+    environment:
+      # --- Mode KRaft (plus de ZooKeeper) ---
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller     # Ce nœud est à la fois broker ET controller
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENERS: PLAINTEXT://kafka:29092,CONTROLLER://kafka:9093,PLAINTEXT_HOST://0.0.0.0:9092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:29092,PLAINTEXT_HOST://localhost:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+
+      # --- Topics ---
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'false'   # En prod, on crée manuellement
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+
+      # --- Rétention ---
+      KAFKA_LOG_RETENTION_HOURS: 168             # 7 jours (comme Kafka par défaut)
+      KAFKA_LOG_SEGMENT_BYTES: 1073741824        # 1GB par segment
+
+      # --- Performance prod ---
+      KAFKA_NUM_PARTITIONS: 3                    # Défaut pour les nouveaux topics
+      KAFKA_DEFAULT_REPLICATION_FACTOR: 1        # 1 en dev, 3 en vrai prod
+
+      # Obligatoire pour KRaft : identifiant unique du cluster
+      CLUSTER_ID: 'MkU3OEVBNTcwNTJENDM2Qg'      # Généré une fois : kafka-storage random-uuid
+    volumes:
+      - kafka_data:/var/lib/kafka/data
+    networks:
+      - forkeat-network
+    healthcheck:
+      test: [ "CMD", "kafka-broker-api-versions", "--bootstrap-server", "localhost:9092" ]
+      interval: 15s
+      timeout: 10s
+      retries: 5
+
+  kafka-init:
+      # Conteneur éphémère qui crée les topics au démarrage
+      image: confluentinc/cp-kafka:7.7.0
+      container_name: forkeat-kafka-init
+      depends_on:
+        kafka:
+          condition: service_healthy
+      entrypoint: [ "/bin/sh", "-c" ]
+      command:
+        - |
+          echo 'Création des topics...'
+          kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists \
+            --topic recipe.raw \
+            --partitions 3 \
+            --replication-factor 1 \
+            --config retention.ms=604800000 \
+            --config max.message.bytes=5242880
+          
+          for topic in forkeat.public.users forkeat.public.recipes forkeat.public.super_likes; do 
+            kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists \
+              --topic "$$topic" \
+              --partitions 3 \
+              --replication-factor 1 \
+              --config retention.ms=604800000 \
+              --config max.message.bytes=5242880
+          done
+
+          kafka-topics --bootstrap-server kafka:29092 --create --if-not-exists \
+            --topic recipe.raw.DLT \
+            --partitions 3 \
+            --replication-factor 1 \
+            --config retention.ms=2592000000
+
+          echo 'Topics créés :'
+          kafka-topics --bootstrap-server kafka:29092 --list
+      networks:
+        - forkeat-network
+
+
+  debezium:
+    image: quay.io/debezium/server:3.6.3.Final
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    depends_on:
+      postgres:
+          condition: service_healthy
+      kafka-init:
+          condition: service_completed_successfully
+    volumes:
+      - debezium_data:/debezium/data
+      - ./debezium/application.properties:/debezium/config/application.properties
+    networks:
+      - forkeat-network
+    restart: unless-stopped
+
+
+
   ollama:
     build:
       dockerfile_inline: |
@@ -101,7 +202,9 @@ services:
 volumes:
   postgres_data:
   neo4j_data:
+  kafka_data:
   ollama_data:
+  debezium_data:
 
 networks:
   forkeat-network:

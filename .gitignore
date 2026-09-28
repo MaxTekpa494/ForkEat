@@ -3,3 +3,7 @@
 rag_document/
 env
 .DS_Store
+document_portfolio/
+GestionProjet/
+doc/
+frontend/*

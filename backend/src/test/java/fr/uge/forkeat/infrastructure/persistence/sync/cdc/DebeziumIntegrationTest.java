@@ -9,10 +9,9 @@ import fr.uge.forkeat.service.model.recipe.RecipeStatus;
 import fr.uge.forkeat.service.model.user.UserRole;
 import fr.uge.forkeat.service.model.user.UserStatus;
 import jakarta.persistence.EntityManager;
-import org.junit.jupiter.api.AfterAll;
-import org.junit.jupiter.api.Nested;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.TestInstance;
+import org.junit.jupiter.api.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -21,6 +20,12 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.context.transaction.TestTransaction;
 import org.springframework.transaction.annotation.Transactional;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.Network;
+import org.testcontainers.containers.PostgreSQLContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.kafka.KafkaContainer;
+import org.testcontainers.utility.DockerImageName;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -33,7 +38,12 @@ import static org.awaitility.Awaitility.await;
 @ActiveProfiles("test")
 @TestPropertySource(properties = "debezium.enabled=true")
 @TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class DebeziumIntegrationTest extends AbstractIntegrationTest {
+class DebeziumIntegrationTest extends AbstractCdcIntegrationTest {
+
+    private final Logger LOGGER = LoggerFactory.getLogger(DebeziumIntegrationTest.class);
+
+
+
 
     private final EntityManager entityManager;
     private final Neo4jClient neo4jClient;
@@ -47,6 +57,8 @@ class DebeziumIntegrationTest extends AbstractIntegrationTest {
         this.neo4jClient = neo4jClient;
     }
 
+
+
     @AfterAll
     void cleanDatabases() throws Exception {
         // Nettoyage Neo4j
@@ -54,9 +66,9 @@ class DebeziumIntegrationTest extends AbstractIntegrationTest {
 
         // Nettoyage PostgreSQL via psql dans le conteneur
         // Suppression ciblée pour préserver les wallets système (platform_wallets référence wallets via FK)
-        postgres.execInContainer("psql",
-                "-U", postgres.getUsername(),
-                "-d", postgres.getDatabaseName(),
+        configPostgres.execInContainer("psql",
+                "-U", configPostgres.getUsername(),
+                "-d", configPostgres.getDatabaseName(),
                 "-c", """
                     TRUNCATE TABLE recipe_allergens, recipe_ingredients, recipes CASCADE;
                     DELETE FROM wallets WHERE user_id IN (SELECT id FROM "users" WHERE username LIKE 'cdc_%');

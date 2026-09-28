@@ -1,5 +1,6 @@
 package fr.uge.forkeat.infrastructure.config;
 
+import com.fasterxml.jackson.core.JacksonException;
 import com.google.api.client.util.ExponentialBackOff;
 import fr.uge.forkeat.infrastructure.exception.DuplicateRecipeException;
 import fr.uge.forkeat.infrastructure.exception.RecipeDeserializationException;
@@ -20,6 +21,10 @@ import org.springframework.kafka.listener.ContainerProperties;
 import org.springframework.kafka.listener.DeadLetterPublishingRecoverer;
 import org.springframework.kafka.listener.DefaultErrorHandler;
 import org.springframework.kafka.support.ExponentialBackOffWithMaxRetries;
+import org.springframework.util.backoff.FixedBackOff;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @Configuration
 @RequiredArgsConstructor
@@ -71,4 +76,28 @@ class KafkaConsumerConfig {
     factory.setCommonErrorHandler(errorHandler);
     return factory;
   }
+
+
+
+  @Bean
+  public ConcurrentKafkaListenerContainerFactory<String, String> debeziumKafkaListenerContainerFactory
+          ( ConsumerFactory<String, String> consumerFactory
+                  ){
+    var factory = new ConcurrentKafkaListenerContainerFactory<String, String>();
+    factory.setConsumerFactory(consumerFactory);
+    factory.setConcurrency(THREAD_PARTITION);
+    factory.getContainerProperties().setAckMode(
+            ContainerProperties.AckMode.MANUAL
+    );
+
+    var backoff = new FixedBackOff(1000L, FixedBackOff.UNLIMITED_ATTEMPTS);
+    var errorHandler = new DefaultErrorHandler(backoff);
+    errorHandler.addNotRetryableExceptions(
+            JacksonException.class
+    );
+    factory.setCommonErrorHandler(errorHandler);
+    return factory;
+  }
+
+
 }

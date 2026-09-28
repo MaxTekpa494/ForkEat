@@ -1,4 +1,4 @@
-package fr.uge.forkeat.infrastructure.persistence.kafka;
+package fr.uge.forkeat.infrastructure.persistence.kafka.recipecollector;
 
 import fr.uge.forkeat.infrastructure.persistence.adapter.RecipePersistenceAdapter;
 import fr.uge.forkeat.infrastructure.persistence.mapper.RecipeEntityMapper;

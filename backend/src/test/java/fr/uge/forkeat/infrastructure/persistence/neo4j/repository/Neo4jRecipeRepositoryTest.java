@@ -60,8 +60,13 @@ class Neo4jRecipeRepositoryTest extends AbstractIntegrationTest {
     }
 
     private void cleanDatabase() {
-        userRepository.deleteAll();
-        recipeRepository.deleteAll();
+        // Nettoyage via une session brute (comme les écritures faites ailleurs dans cette classe
+        // via driver.session()), car ces écritures commitent réellement et échappent donc
+        // au rollback du @Transactional de la classe : deleteAll() seul (géré par Spring) est
+        // lui-même annulé en fin de test et ne supprime jamais ces nœuds pour de vrai.
+        try (Session session = driver.session()) {
+            session.run("MATCH (n) DETACH DELETE n");
+        }
     }
 
     @Test
