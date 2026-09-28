@@ -1,0 +1,15 @@
+ForkEat est l'application ultime pour tous les passionnés de cuisine, des débutants aux chefs confirmés.
+
+Découvrez un monde de saveurs :
+* Un catalogue de recettes riche et varié, constamment mis à jour par la communauté.
+* Une recherche intelligente basée sur l'IA pour trouver exactement ce que vous voulez cuisiner, même avec des descriptions vagues.
+* Des filtres par allergènes pour une cuisine adaptée à vos besoins de santé.
+
+Devenez un créateur influent :
+* Publiez vos propres recettes avec des guides étapes par étapes et des photos appétissantes.
+* Créez des variantes de recettes existantes pour partager votre touche personnelle.
+* Soyez récompensé pour votre talent grâce au système de Super Like.
+
+Gérez votre passion de la cuisine :
+* Un portefeuille virtuel intégré pour soutenir vos créateurs préférés ou retirer vos gains.
+* Suivez vos chefs favoris et ne manquez aucune de leurs nouvelles créations.

@@ -5,6 +5,7 @@ import fr.uge.forkeat.service.exception.PromotionModificationForbiddenException;
 import fr.uge.forkeat.service.exception.PromotionNotFoundException;
 import fr.uge.forkeat.service.exception.PromotionNotProfitableException;
 import fr.uge.forkeat.service.exception.PromotionPriceException;
+import fr.uge.forkeat.service.exception.PromotionDateException;
 import fr.uge.forkeat.service.exception.PromotionOverlapException;
 import fr.uge.forkeat.service.model.superlike.Promotion;
 import fr.uge.forkeat.service.model.superlike.PromotionStatus;
@@ -72,6 +73,8 @@ public class PromotionService {
             throw new ForbiddenOperationException("Only admins can create a promotion");
         }
 
+        validateDates(startsAt, endsAt);
+
         var config = superLikeConfigPersistence.get();
         validatePrice(priceCents, config);
         validateProfitability(bonusEveryN, config);
@@ -109,6 +112,7 @@ public class PromotionService {
 
         var newStartsAt = startsAt != null ? startsAt : existing.startsAt();
         var newEndsAt   = endsAt   != null ? endsAt   : existing.endsAt();
+        validateDates(newStartsAt, newEndsAt);
         validateNoOverlapExcluding(newStartsAt, newEndsAt, id);
 
         var updated = new Promotion(
@@ -225,6 +229,16 @@ public class PromotionService {
         double ratio = config.earningsRatio().doubleValue();
         if (bonusEveryN * ratio <= (1 - ratio)) {
             throw new PromotionNotProfitableException(bonusEveryN, ratio);
+        }
+    }
+
+    private void validateDates(Instant startsAt, Instant endsAt) {
+        if (!endsAt.isAfter(startsAt)) {
+            throw new PromotionDateException(
+                    "La date de fin doit être postérieure à la date de début."
+            );
+        } else if (!endsAt.isAfter(Instant.now())) {
+            throw new PromotionDateException("La date de fin doit être postérieure à l'heure actuelle");
         }
     }
 

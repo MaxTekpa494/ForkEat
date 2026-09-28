@@ -175,6 +175,12 @@ public class GlobalWebExceptionHandler {
 		return "error/422";
 	}
 
+	@ExceptionHandler(PromotionDateException.class)
+	public String handlePromotionDate(PromotionDateException ex, RedirectAttributes redirectAttributes, HttpServletRequest request) {
+		redirectAttributes.addFlashAttribute("error", ex.getMessage());
+		return "redirect:" + request.getRequestURI();
+	}
+
 	@ExceptionHandler(PromotionPriceException.class)
 	public String handlePromotionPrice(PromotionPriceException ex, RedirectAttributes redirectAttributes, HttpServletRequest request) {
 		redirectAttributes.addFlashAttribute("error", ex.getMessage());

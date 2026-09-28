@@ -114,4 +114,9 @@ public class GlobalRestExceptionHandler {
     public ResponseEntity<HttpResponse<Void>> handlePromotionNotProfitable(PromotionNotProfitableException e) {
         return ResponseEntity.status(HttpStatus.UNPROCESSABLE_CONTENT).body(new UnprocessableContentResponse(e.getMessage()));
     }
+
+    @ExceptionHandler(PromotionDateException.class)
+    public ResponseEntity<HttpResponse<Void>> handlePromotionDate(PromotionDateException e) {
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new BadRequestResponse(e.getMessage()));
+    }
 }

@@ -1,5 +1,6 @@
 package fr.uge.forkeat.service;
 
+import fr.uge.forkeat.service.exception.PromotionDateException;
 import fr.uge.forkeat.service.exception.PromotionModificationForbiddenException;
 import fr.uge.forkeat.service.exception.PromotionNotFoundException;
 import fr.uge.forkeat.service.exception.PromotionNotProfitableException;
@@ -196,6 +197,27 @@ class PromotionServiceTest {
         }
 
         @Test
+        void shouldThrowPromotionDateException_whenEndsAtBeforeStartsAt() {
+            var now = Instant.now();
+            var starts = now.plusSeconds(3660);
+            var ends = now.plusSeconds(60); // ends before starts
+
+            assertThrows(PromotionDateException.class,
+                    () -> promotionService.create("Promo", starts, ends, 100L, null));
+            verify(promotionPersistence, never()).save(any());
+        }
+
+        @Test
+        void shouldThrowPromotionDateException_whenEndsAtEqualsStartsAt() {
+            var now = Instant.now();
+            var sameInstant = now.plusSeconds(60);
+
+            assertThrows(PromotionDateException.class,
+                    () -> promotionService.create("Promo", sameInstant, sameInstant, 100L, null));
+            verify(promotionPersistence, never()).save(any());
+        }
+
+        @Test
         void shouldThrowNotProfitable_whenBonusEveryNTooLow() {
             // ratio=0.10 → min bonusEveryN = floor(0.90/0.10)+1 = 10, bonusEveryN=5 fails
             var config = new SuperLikeConfig(UUID.randomUUID(), 100L, new BigDecimal("0.10"), Instant.now());
@@ -261,6 +283,20 @@ class PromotionServiceTest {
 
             assertThrows(PromotionModificationForbiddenException.class,
                     () -> promotionService.update(id, null, null, null, null, null));
+            verify(promotionPersistence, never()).update(any());
+        }
+
+        @Test
+        void shouldThrowPromotionDateException_whenEndsAtBeforeStartsAt() {
+            var id = UUID.randomUUID();
+            var existing = scheduled(id);
+            var badEnds = existing.startsAt().minusSeconds(60);
+
+            when(promotionPersistence.findById(id)).thenReturn(Optional.of(existing));
+            when(superLikeConfigPersistence.get()).thenReturn(defaultConfig);
+
+            assertThrows(PromotionDateException.class,
+                    () -> promotionService.update(id, null, null, badEnds, null, null));
             verify(promotionPersistence, never()).update(any());
         }
 

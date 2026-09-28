@@ -11,6 +11,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import org.json.JSONObject
 
 data class AdminPromotionFormUiState(
     val promotion: PromotionDTO? = null,   // null = création
@@ -55,7 +56,7 @@ class AdminPromotionFormViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(isSaving = false, success = true)
                 } else {
-                    _uiState.value = _uiState.value.copy(isSaving = false, error = "Erreur : vérifiez les champs (chevauchement ou non-rentabilité)")
+                    _uiState.value = _uiState.value.copy(isSaving = false, error = parseApiError(response.errorBody()?.string()))
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSaving = false, error = e.message)
@@ -71,11 +72,20 @@ class AdminPromotionFormViewModel : ViewModel() {
                 if (response.isSuccessful) {
                     _uiState.value = _uiState.value.copy(isSaving = false, success = true)
                 } else {
-                    _uiState.value = _uiState.value.copy(isSaving = false, error = "Erreur : vérifiez les champs (chevauchement ou non-rentabilité)")
+                    _uiState.value = _uiState.value.copy(isSaving = false, error = parseApiError(response.errorBody()?.string()))
                 }
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(isSaving = false, error = e.message)
             }
+        }
+    }
+
+    private fun parseApiError(errorBody: String?): String {
+        if (errorBody.isNullOrBlank()) return "Erreur inconnue"
+        return try {
+            JSONObject(errorBody).getString("message")
+        } catch (_: Exception) {
+            "Erreur inconnue"
         }
     }
 
