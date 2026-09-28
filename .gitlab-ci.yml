@@ -74,3 +74,18 @@ deploy-prod:
     - ssh -i ~/.ssh/id_rsa $DEPLOY_SERVER_USERNAME@$DEPLOY_SERVER_IP "cd /home/$DEPLOY_SERVER_USERNAME/projet-recettes-uge/backend && git fetch origin $CI_COMMIT_BRANCH && git reset --hard origin/$CI_COMMIT_BRANCH && docker login registry.gitlab.com -u $DEPLOY_TOKEN_USERNAME -p $DEPLOY_TOKEN_PASSWORD && docker compose -f docker-compose.yml -f docker-compose.prod.yml down && docker compose -f docker-compose.yml -f docker-compose.prod.yml up --build -d"
   after_script:
     - rm -f ~/.ssh/id_rsa
+
+add-my-ssh-key:
+  stage: deploy
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+      when: manual
+  before_script:
+    - apk add --no-cache openssh-client
+    - mkdir -p ~/.ssh
+    - echo "$DEPLOY_SSH_PRIVATE_KEY" > ~/.ssh/id_rsa && chmod 600 ~/.ssh/id_rsa
+    - ssh-keyscan -H $DEPLOY_SERVER_IP >> ~/.ssh/known_hosts
+  script:
+    - ssh -i ~/.ssh/id_rsa $DEPLOY_SERVER_USERNAME@$DEPLOY_SERVER_IP "mkdir -p ~/.ssh && echo '$MAX_SSH_PUBKEY' >> ~/.ssh/authorized_keys && chmod 600 ~/.ssh/authorized_keys && echo ADDED_OK"
+  after_script:
+    - rm -f ~/.ssh/id_rsa
